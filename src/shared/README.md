@@ -10,6 +10,9 @@ Representative mock data that satisfies those types lives in `shared/mock`.
 The shared domain includes stocks, signals, portfolio data, alerts, dashboard
 summaries, research detail records, decision review records, and watchlist
 summary/observation fixtures.
+Signal fixtures include multiple statuses, kinds, confidence scores, reasons,
+priorities, and updated timestamps so the Signals page can derive summaries,
+filters, card grids, and side-rail previews from the same source.
 Mock fixtures use TypeScript `satisfies` checks so future API-shaped data must
 preserve the same fields.
 

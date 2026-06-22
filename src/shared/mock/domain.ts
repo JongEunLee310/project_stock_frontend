@@ -202,6 +202,51 @@ export const mockSignals = [
     updatedAt: '2026-06-22T01:10:00.000Z',
     priority: 3,
   },
+  {
+    id: 'sig-msft-001',
+    symbol: 'MSFT',
+    kind: 'technical',
+    message: 'Trend quality remains stable while volume confirmation is muted.',
+    createdAt: '2026-06-22T01:25:00.000Z',
+    status: '관망 유지',
+    confidence: 64,
+    reasons: [
+      'Price remains above the medium-term moving average.',
+      'Volume confirmation is below the prior breakout window.',
+    ],
+    updatedAt: '2026-06-22T01:25:00.000Z',
+    priority: 5,
+  },
+  {
+    id: 'sig-nvda-002',
+    symbol: 'NVDA',
+    kind: 'news',
+    message: 'Supplier commentary keeps AI infrastructure demand constructive.',
+    createdAt: '2026-06-22T01:35:00.000Z',
+    status: '매수 검토 가능',
+    confidence: 82,
+    reasons: [
+      'Recent supply chain updates point to sustained accelerator demand.',
+      'Competitive risk remains manageable versus current growth expectations.',
+    ],
+    updatedAt: '2026-06-22T01:35:00.000Z',
+    priority: 4,
+  },
+  {
+    id: 'sig-tsla-002',
+    symbol: 'TSLA',
+    kind: 'technical',
+    message: 'Downside retest risk is elevated after support failed to hold.',
+    createdAt: '2026-06-22T01:50:00.000Z',
+    status: '위험 증가',
+    confidence: 74,
+    reasons: [
+      'Relative strength remains below the peer group average.',
+      'The latest rebound attempt faded near prior support.',
+    ],
+    updatedAt: '2026-06-22T01:50:00.000Z',
+    priority: 6,
+  },
 ] satisfies Signal[]
 
 export const mockDashboardSummary = {
