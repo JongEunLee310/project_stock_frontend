@@ -1,14 +1,29 @@
+export { decisionTypes } from './decisionType'
+export type { DecisionType } from './decisionType'
 export { riskLevels } from './riskLevel'
 export type { RiskLevel } from './riskLevel'
 export { stockStatuses } from './stockStatus'
 export type { StockStatus } from './stockStatus'
+export { valuationLevels } from './valuationLevel'
+export type { ValuationLevel } from './valuationLevel'
 export type {
   AlertCondition,
   AlertRule,
+  AiBriefing,
+  CatalystItem,
+  ChecklistItem,
+  DashboardSummary,
   DecisionLog,
+  DecisionPattern,
   Holding,
+  NewsItem,
   Portfolio,
+  PricePoint,
+  PriorityQueueItem,
+  ResearchRisk,
+  ReviewMemo,
   Signal,
   SignalKind,
   Stock,
+  StockResearch,
 } from './domain'
