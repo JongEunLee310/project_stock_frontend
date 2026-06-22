@@ -4,9 +4,13 @@ import {
   mockDecisionLogs,
   mockPortfolio,
   mockPriorityQueue,
+  mockRecentWatchlist,
   mockSignals,
   mockStockResearch,
   mockStocks,
+  mockWatchlistAlertSettings,
+  mockWatchlistObservations,
+  mockWatchlistSummary,
 } from './domain'
 
 describe('domain mock data', () => {
@@ -34,9 +38,22 @@ describe('domain mock data', () => {
         (stock) =>
           stock.market.length > 0 &&
           stock.aiVerdict.length > 0 &&
-          riskLevels.includes(stock.newsRisk),
+          riskLevels.includes(stock.newsRisk) &&
+          riskLevels.includes(stock.themeHeat) &&
+          stock.lastUpdatedAt.length > 0 &&
+          typeof stock.isFavorite === 'boolean',
       ),
     ).toBe(true)
+  })
+
+  it('provides watchlist summary, observations, recent additions, and alert previews', () => {
+    expect(mockWatchlistSummary).toHaveLength(4)
+    expect(
+      mockWatchlistSummary.every((card) => card.deltaLabel.length > 0),
+    ).toBe(true)
+    expect(mockWatchlistObservations.length).toBeGreaterThanOrEqual(3)
+    expect(mockRecentWatchlist.length).toBeGreaterThanOrEqual(3)
+    expect(mockWatchlistAlertSettings.length).toBeGreaterThanOrEqual(3)
   })
 
   it('provides priority queue and research fixtures for follow-up pages', () => {

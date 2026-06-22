@@ -6,10 +6,14 @@ import type {
   DecisionPattern,
   Portfolio,
   PriorityQueueItem,
+  RecentWatchlistItem,
   ReviewMemo,
   Signal,
   Stock,
   StockResearch,
+  WatchlistAlertSetting,
+  WatchlistObservation,
+  WatchlistSummaryCard,
 } from '@/shared/model'
 
 export const mockStocks = [
@@ -25,6 +29,10 @@ export const mockStocks = [
     valuation: '고평가',
     aiVerdict:
       'AI infrastructure demand remains strong, but entry price needs discipline.',
+    themeHeat: '높음',
+    lastUpdatedAt: '2026-06-22T00:21:00.000Z',
+    isFavorite: true,
+    changeSeries: [123.4, 124.1, 125.8, 125.2, 126.6, 127.1, 128.72],
   },
   {
     symbol: 'AAPL',
@@ -38,6 +46,10 @@ export const mockStocks = [
     valuation: '적정',
     aiVerdict:
       'Services resilience offsets muted hardware replacement momentum.',
+    themeHeat: '중간',
+    lastUpdatedAt: '2026-06-22T00:21:00.000Z',
+    isFavorite: true,
+    changeSeries: [216.2, 215.9, 216.5, 215.1, 214.8, 214.1, 214.3],
   },
   {
     symbol: 'TSLA',
@@ -50,6 +62,10 @@ export const mockStocks = [
     newsRisk: '높음',
     valuation: '고평가',
     aiVerdict: 'Volatility and margin pressure keep the risk band elevated.',
+    themeHeat: '높음',
+    lastUpdatedAt: '2026-06-22T00:20:00.000Z',
+    isFavorite: false,
+    changeSeries: [191.4, 189.2, 188.5, 186.1, 184.8, 183.6, 182.64],
   },
   {
     symbol: 'MSFT',
@@ -63,8 +79,82 @@ export const mockStocks = [
     valuation: '적정',
     aiVerdict:
       'Cloud growth and balance sheet quality support a stable stance.',
+    themeHeat: '낮음',
+    lastUpdatedAt: '2026-06-22T00:18:00.000Z',
+    isFavorite: true,
+    changeSeries: [444.3, 445.1, 446.2, 445.8, 446.6, 447.0, 447.22],
   },
 ] satisfies Stock[]
+
+export const mockWatchlistSummary = [
+  {
+    label: '전체 관심 종목',
+    value: '28개',
+    deltaLabel: '전일 대비 +2',
+    trend: 'up',
+  },
+  {
+    label: '위험 증가 종목',
+    value: '3개',
+    deltaLabel: '전일 대비 +1',
+    trend: 'up',
+  },
+  {
+    label: '추가 리서치 필요',
+    value: '5개',
+    deltaLabel: '전일 대비 +1',
+    trend: 'up',
+  },
+  {
+    label: '평균 현금 연관도',
+    value: '58%',
+    deltaLabel: '전일 대비 +4%p',
+    trend: 'up',
+  },
+] satisfies WatchlistSummaryCard[]
+
+export const mockWatchlistObservations = [
+  {
+    id: 'watchlist-observation-risk',
+    text: 'NVDA, TSLA는 최근 뉴스 흐름과 밸류에이션 부담으로 위험 증가 상태 지속. 단기 변동성 확대 가능성 주의.',
+  },
+  {
+    id: 'watchlist-observation-quality',
+    text: 'AAPL, MSFT는 실적 및 현금흐름 안정으로 현재 포트폴리오의 핵심 방어주 역할 기대.',
+  },
+  {
+    id: 'watchlist-observation-entry',
+    text: 'AI 반도체 테마 과열 지표가 높은 수준. 신규 진입은 분할 매수 전략 권장.',
+  },
+] satisfies WatchlistObservation[]
+
+export const mockRecentWatchlist = [
+  {
+    symbol: 'META',
+    name: 'Meta Platforms',
+    status: '안정',
+    addedAt: '2026-06-22T00:17:00.000Z',
+  },
+  {
+    symbol: 'AMD',
+    name: 'Advanced Micro Devices',
+    status: '관망',
+    addedAt: '2026-06-22T00:16:00.000Z',
+  },
+  {
+    symbol: 'NFLX',
+    name: 'Netflix',
+    status: '관망',
+    addedAt: '2026-06-22T00:15:00.000Z',
+  },
+] satisfies RecentWatchlistItem[]
+
+export const mockWatchlistAlertSettings = [
+  { label: '가격 변동', value: '±3%' },
+  { label: '뉴스 위험도', value: '높음' },
+  { label: 'AI 판단 변경', value: '모든 변경' },
+  { label: '테마 과열', value: '높음' },
+] satisfies WatchlistAlertSetting[]
 
 export const mockSignals = [
   {

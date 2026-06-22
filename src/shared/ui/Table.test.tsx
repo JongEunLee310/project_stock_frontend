@@ -106,4 +106,27 @@ describe('Table', () => {
     expect(screen.getByRole('columnheader', { name: '작업' })).toBeVisible()
     expect(screen.getByRole('button', { name: '005930 편집' })).toBeVisible()
   })
+
+  it('calls row click handlers with mouse and keyboard input', () => {
+    const handleRowClick = vi.fn()
+
+    render(
+      <Table
+        columns={columns}
+        rows={[rows[0]]}
+        getRowKey={(row) => row.id}
+        onRowClick={handleRowClick}
+      />,
+    )
+
+    const row = screen.getByText('005930').closest('tr')
+
+    expect(row).not.toBeNull()
+
+    fireEvent.click(row as HTMLTableRowElement)
+    fireEvent.keyDown(row as HTMLTableRowElement, { key: 'Enter' })
+
+    expect(handleRowClick).toHaveBeenCalledTimes(2)
+    expect(handleRowClick).toHaveBeenCalledWith(rows[0])
+  })
 })
