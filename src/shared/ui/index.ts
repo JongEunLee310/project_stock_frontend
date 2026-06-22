@@ -5,6 +5,7 @@ export { Input } from './Input'
 export { Table } from './Table'
 export {
   badgeToneClassNames,
+  decisionTypeClassNames,
   riskLevelClassNames,
   stockStatusClassNames,
 } from './stockStatus'
@@ -14,4 +15,9 @@ export type {
   TablePagination,
   TableProps,
 } from './Table'
-export type { BadgeTone, RiskLevel, StockStatus } from './stockStatus'
+export type {
+  BadgeTone,
+  DecisionType,
+  RiskLevel,
+  StockStatus,
+} from './stockStatus'

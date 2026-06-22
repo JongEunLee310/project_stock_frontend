@@ -15,6 +15,8 @@ priorities, and updated timestamps so the Signals page can derive summaries,
 filters, card grids, and side-rail previews from the same source.
 Research fixtures include price-as-of labels, stance confidence, metric tiles,
 category-tagged news/catalysts, and checklist descriptions for the detail page.
+Decision log fixtures include typed decision outcomes and cognitive risk tags so
+the review table, local-entry form, and pattern summaries share one mock shape.
 Mock fixtures use TypeScript `satisfies` checks so future API-shaped data must
 preserve the same fields.
 
