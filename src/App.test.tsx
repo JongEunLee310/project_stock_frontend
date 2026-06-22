@@ -28,13 +28,13 @@ describe('App', () => {
   it('navigates from the sidebar and marks the current menu item', async () => {
     const router = renderRoute('/')
 
-    fireEvent.click(screen.getByRole('link', { name: 'Watchlist' }))
+    fireEvent.click(screen.getByRole('link', { name: /관심종목/ }))
 
     expect(
       await screen.findByRole('heading', { name: '관심 종목' }),
     ).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/watchlist')
-    expect(screen.getByRole('link', { name: 'Watchlist' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /관심종목/ })).toHaveAttribute(
       'aria-current',
       'page',
     )
@@ -47,7 +47,7 @@ describe('App', () => {
     expect(
       screen.getByRole('img', { name: 'NVDA 최근 가격 추이' }),
     ).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Research' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /리서치/ })).toHaveAttribute(
       'aria-current',
       'page',
     )
@@ -59,6 +59,6 @@ describe('App', () => {
     expect(
       screen.getByRole('heading', { name: 'Page not found' }),
     ).toBeInTheDocument()
-    expect(screen.getByLabelText('Market summary')).toBeInTheDocument()
+    expect(screen.getByLabelText('시장 요약')).toBeInTheDocument()
   })
 })

@@ -39,7 +39,7 @@ describe('DashboardPage', () => {
 
     expect(nvdaLink).toHaveAttribute('href', '/research/NVDA')
     expect(within(table).getByText('NVIDIA Corp.')).toBeVisible()
-    expect(within(table).getByText('매수 검토 가능')).toBeVisible()
+    expect(within(table).getByText('관망')).toBeVisible()
     expect(within(table).getAllByText('PER').length).toBeGreaterThan(0)
     expect(within(table).getByText('60.3')).toBeVisible()
     expect(within(table).getAllByText('PEG').length).toBeGreaterThan(0)
