@@ -41,6 +41,7 @@ describe('SignalsPage', () => {
     expect(screen.getAllByText('위험 증가').length).toBeGreaterThan(0)
     expect(screen.getAllByText('추가 리서치 필요').length).toBeGreaterThan(0)
     expect(screen.getAllByText('관망 유지').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('전체 기준')).toHaveLength(4)
   })
 
   it('renders decision log buttons on signal cards', () => {

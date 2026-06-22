@@ -101,6 +101,9 @@ function SummaryCards({ signals }: { signals: Signal[] }) {
             <strong className="text-3xl font-bold text-app-text">
               {countsByStatus[status] ?? 0}개
             </strong>
+            <span className="text-xs font-medium text-app-text-muted">
+              전체 기준
+            </span>
           </div>
         </Card>
       ))}
