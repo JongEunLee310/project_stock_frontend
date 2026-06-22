@@ -43,7 +43,7 @@ const sortLabels: Record<SortKey, string> = {
 const summaryToneClassNames = {
   up: 'text-emerald-300',
   down: 'text-rose-300',
-  flat: 'text-app-text-muted',
+  flat: 'text-cockpit-text-muted',
 }
 
 const summaryIconClassNames = [
@@ -289,7 +289,7 @@ function RowMenu({ stock, isOpen, onToggle, onNavigate }: RowMenuProps) {
     <div className="relative flex justify-end">
       <button
         type="button"
-        className="inline-flex h-8 w-8 items-center justify-center rounded-control text-lg text-app-text-muted hover:bg-app-surface-muted hover:text-app-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent"
+        className="inline-flex h-8 w-8 items-center justify-center rounded-control text-lg text-cockpit-text-muted hover:bg-cockpit-surface-muted hover:text-cockpit-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cockpit-accent"
         aria-label={`${stock.symbol} 행 메뉴`}
         aria-expanded={isOpen}
         onClick={(event) => {
@@ -301,12 +301,12 @@ function RowMenu({ stock, isOpen, onToggle, onNavigate }: RowMenuProps) {
       </button>
       {isOpen ? (
         <div
-          className="absolute right-0 top-9 z-10 flex w-36 flex-col rounded-control border border-app-border bg-app-surface p-1 shadow-lg shadow-black/30"
+          className="absolute right-0 top-9 z-10 flex w-36 flex-col rounded-control border border-cockpit-border bg-cockpit-surface p-1 shadow-lg shadow-black/30"
           role="menu"
         >
           <button
             type="button"
-            className="rounded-control px-3 py-2 text-left text-sm text-app-text hover:bg-app-surface-muted focus-visible:outline-2 focus-visible:outline-app-accent"
+            className="rounded-control px-3 py-2 text-left text-sm text-cockpit-text hover:bg-cockpit-surface-muted focus-visible:outline-2 focus-visible:outline-cockpit-accent"
             role="menuitem"
             onClick={openResearch}
           >
@@ -314,7 +314,7 @@ function RowMenu({ stock, isOpen, onToggle, onNavigate }: RowMenuProps) {
           </button>
           <button
             type="button"
-            className="rounded-control px-3 py-2 text-left text-sm text-app-text-muted hover:bg-app-surface-muted hover:text-app-text focus-visible:outline-2 focus-visible:outline-app-accent"
+            className="rounded-control px-3 py-2 text-left text-sm text-cockpit-text-muted hover:bg-cockpit-surface-muted hover:text-cockpit-text focus-visible:outline-2 focus-visible:outline-cockpit-accent"
             role="menuitem"
             onClick={stopRowNavigation}
           >
@@ -322,7 +322,7 @@ function RowMenu({ stock, isOpen, onToggle, onNavigate }: RowMenuProps) {
           </button>
           <button
             type="button"
-            className="rounded-control px-3 py-2 text-left text-sm text-app-text-muted hover:bg-app-surface-muted hover:text-app-text focus-visible:outline-2 focus-visible:outline-app-accent"
+            className="rounded-control px-3 py-2 text-left text-sm text-cockpit-text-muted hover:bg-cockpit-surface-muted hover:text-cockpit-text focus-visible:outline-2 focus-visible:outline-cockpit-accent"
             role="menuitem"
             onClick={stopRowNavigation}
           >
@@ -403,6 +403,16 @@ export function WatchlistPage() {
 
   const pageSize = 10
   const displayedStocks = visibleStocks.slice(0, pageSize)
+  const displayedStart = visibleStocks.length > 0 ? 1 : 0
+  const displayedEnd = displayedStocks.length
+  const visiblePageCount = Math.max(
+    1,
+    Math.ceil(visibleStocks.length / pageSize),
+  )
+  const visiblePageNumbers = Array.from(
+    { length: Math.min(5, visiblePageCount) },
+    (_, index) => index + 1,
+  )
 
   return (
     <section className="flex flex-col gap-3 text-cockpit-text">
@@ -573,6 +583,7 @@ export function WatchlistPage() {
                 type="button"
                 variant="secondary"
                 className="min-h-9 gap-2 border-cockpit-border bg-cockpit-bg/60 px-3 text-cockpit-text"
+                disabled
               >
                 ⚙ 열 설정
               </Button>
@@ -580,6 +591,7 @@ export function WatchlistPage() {
                 type="button"
                 variant="secondary"
                 className="min-h-9 gap-2 border-cockpit-border bg-cockpit-bg/60 px-3 text-cockpit-text"
+                disabled
               >
                 ⇩ 내보내기
               </Button>
@@ -588,6 +600,7 @@ export function WatchlistPage() {
                 variant="secondary"
                 className="min-h-9 w-9 border-cockpit-border bg-cockpit-bg/60 px-0 text-cockpit-text"
                 aria-label="전체화면"
+                disabled
               >
                 ⛶
               </Button>
@@ -759,7 +772,10 @@ export function WatchlistPage() {
               </table>
             </div>
             <div className="flex flex-wrap items-center justify-between gap-3 border-t border-cockpit-border px-3 py-3 text-sm text-cockpit-text-muted">
-              <span>전체 28개 중 1-6 표시</span>
+              <span>
+                전체 {visibleStocks.length}개 중 {displayedStart}-{displayedEnd}{' '}
+                표시
+              </span>
               <div className="flex items-center gap-2">
                 <Button
                   type="button"
@@ -769,7 +785,7 @@ export function WatchlistPage() {
                 >
                   ‹
                 </Button>
-                {[1, 2, 3, 4, 5].map((page) => (
+                {visiblePageNumbers.map((page) => (
                   <Button
                     key={page}
                     type="button"
@@ -780,6 +796,7 @@ export function WatchlistPage() {
                         ? 'border-blue-700 bg-blue-700 text-white'
                         : 'text-cockpit-text-muted hover:bg-cockpit-surface-muted',
                     )}
+                    disabled={page !== 1}
                   >
                     {page}
                   </Button>
@@ -788,13 +805,17 @@ export function WatchlistPage() {
                   type="button"
                   variant="ghost"
                   className="h-9 min-h-9 w-9 px-0 text-cockpit-text-muted"
+                  disabled={visiblePageCount <= 1}
                 >
                   ›
                 </Button>
               </div>
               <label className="flex items-center gap-2">
                 <span>표시 개수</span>
-                <select className="min-h-9 rounded-control border border-cockpit-border bg-cockpit-bg/60 px-3 py-1 text-cockpit-text">
+                <select
+                  className="min-h-9 rounded-control border border-cockpit-border bg-cockpit-bg/60 px-3 py-1 text-cockpit-text disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled
+                >
                   <option>10</option>
                 </select>
               </label>
