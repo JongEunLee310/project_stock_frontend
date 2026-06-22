@@ -25,7 +25,10 @@ export const appRouteObjects: RouteObject[] = [
       { path: appRoutePaths.research.slice(1), element: <ResearchPage /> },
       { path: appRoutePaths.portfolio.slice(1), element: <PortfolioPage /> },
       { path: appRoutePaths.alerts.slice(1), element: <AlertsPage /> },
-      { path: appRoutePaths.decisionLog.slice(1), element: <DecisionLogPage /> },
+      {
+        path: appRoutePaths.decisionLog.slice(1),
+        element: <DecisionLogPage />,
+      },
       { path: appRoutePaths.settings.slice(1), element: <SettingsPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],

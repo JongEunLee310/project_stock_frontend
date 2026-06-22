@@ -74,7 +74,10 @@ export const navigationItems: NavigationItem[] = [
 export function getActiveNavigationItem(pathname: string) {
   return navigationItems.find((item) => {
     if (item.matchPrefix) {
-      return pathname === item.matchPrefix || pathname.startsWith(`${item.matchPrefix}/`)
+      return (
+        pathname === item.matchPrefix ||
+        pathname.startsWith(`${item.matchPrefix}/`)
+      )
     }
 
     return pathname === item.href

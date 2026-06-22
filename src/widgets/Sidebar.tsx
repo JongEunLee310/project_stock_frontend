@@ -1,6 +1,9 @@
 import { Link, useLocation } from 'react-router-dom'
 
-import { getActiveNavigationItem, navigationItems } from '@/shared/config/navigation'
+import {
+  getActiveNavigationItem,
+  navigationItems,
+} from '@/shared/config/navigation'
 import { classNames } from '@/shared/ui/classNames'
 
 export function Sidebar() {
@@ -11,8 +14,12 @@ export function Sidebar() {
     <aside className="border-b border-app-border bg-app-surface lg:border-b-0 lg:border-r">
       <div className="flex h-full flex-col gap-6 p-4 lg:p-5">
         <Link to="/" className="flex flex-col gap-1 rounded-control px-2 py-1">
-          <span className="text-sm font-semibold uppercase text-app-accent">Stock FE</span>
-          <span className="text-xl font-bold text-app-text">AI Investment Desk</span>
+          <span className="text-sm font-semibold uppercase text-app-accent">
+            Stock FE
+          </span>
+          <span className="text-xl font-bold text-app-text">
+            AI Investment Desk
+          </span>
         </Link>
         <nav aria-label="Primary navigation" className="flex flex-col gap-1">
           {navigationItems.map((item) => {

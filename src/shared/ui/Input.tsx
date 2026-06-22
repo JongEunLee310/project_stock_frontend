@@ -2,7 +2,10 @@ import type { ComponentPropsWithoutRef } from 'react'
 
 import { classNames } from './classNames'
 
-export function Input({ className, ...props }: ComponentPropsWithoutRef<'input'>) {
+export function Input({
+  className,
+  ...props
+}: ComponentPropsWithoutRef<'input'>) {
   return (
     <input
       className={classNames(

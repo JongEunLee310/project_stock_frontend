@@ -9,13 +9,22 @@ interface PagePlaceholderProps {
   children?: ReactNode
 }
 
-export function PagePlaceholder({ title, eyebrow, summary, children }: PagePlaceholderProps) {
+export function PagePlaceholder({
+  title,
+  eyebrow,
+  summary,
+  children,
+}: PagePlaceholderProps) {
   return (
     <section className="flex flex-col gap-5">
       <div className="flex flex-col gap-2">
-        <p className="text-sm font-semibold uppercase text-app-accent">{eyebrow}</p>
+        <p className="text-sm font-semibold uppercase text-app-accent">
+          {eyebrow}
+        </p>
         <h1 className="text-3xl font-bold text-app-text">{title}</h1>
-        <p className="max-w-3xl text-sm leading-6 text-app-text-muted">{summary}</p>
+        <p className="max-w-3xl text-sm leading-6 text-app-text-muted">
+          {summary}
+        </p>
       </div>
       <Card className="min-h-56">
         {children ?? (

@@ -2,7 +2,11 @@ import { Badge, type StockStatus } from '@/shared/ui'
 
 import { PagePlaceholder } from './PagePlaceholder'
 
-const dashboardCards: Array<{ label: string; value: string; status: StockStatus }> = [
+const dashboardCards: Array<{
+  label: string
+  value: string
+  status: StockStatus
+}> = [
   { label: 'Sync', value: 'Live', status: '안정' },
   { label: 'Risk', value: 'Moderate', status: '관망' },
   { label: 'Signals', value: '12 active', status: '추가 리서치 필요' },

@@ -11,7 +11,10 @@ export function AppShell() {
         <Sidebar />
         <div className="flex min-w-0 flex-col">
           <Topbar />
-          <main className="flex flex-1 flex-col gap-6 p-page" aria-label="Page content">
+          <main
+            className="flex flex-1 flex-col gap-6 p-page"
+            aria-label="Page content"
+          >
             <MarketSummary />
             <Outlet />
           </main>

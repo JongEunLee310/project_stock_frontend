@@ -6,7 +6,9 @@ export function NotFoundPage() {
   return (
     <section className="flex min-h-[50vh] items-center justify-center">
       <Card className="flex max-w-lg flex-col items-start gap-4">
-        <p className="text-sm font-semibold uppercase text-app-accent">Not Found</p>
+        <p className="text-sm font-semibold uppercase text-app-accent">
+          Not Found
+        </p>
         <h1 className="text-3xl font-bold text-app-text">Page not found</h1>
         <p className="text-sm leading-6 text-app-text-muted">
           The requested route is not available in this workspace.
