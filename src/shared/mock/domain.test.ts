@@ -1,4 +1,4 @@
-import { riskLevels } from '@/shared/model'
+import { catalystCategories, newsCategories, riskLevels } from '@/shared/model'
 
 import {
   mockDecisionLogs,
@@ -59,11 +59,31 @@ describe('domain mock data', () => {
   it('provides priority queue and research fixtures for follow-up pages', () => {
     expect(mockPriorityQueue.length).toBeGreaterThanOrEqual(3)
     expect(Object.keys(mockStockResearch)).toEqual(
-      expect.arrayContaining(['NVDA', 'AAPL', 'TSLA']),
+      expect.arrayContaining(['NVDA', 'AAPL', 'TSLA', 'MSFT']),
     )
-    expect(mockStockResearch.NVDA.keyRisks.length).toBeGreaterThanOrEqual(3)
-    expect(mockStockResearch.AAPL.keyRisks.length).toBeGreaterThanOrEqual(3)
-    expect(mockStockResearch.TSLA.keyRisks.length).toBeGreaterThanOrEqual(3)
+    expect(
+      Object.values(mockStockResearch).every(
+        (research) =>
+          research.priceAsOf.length > 0 &&
+          research.stanceConfidence >= 0 &&
+          research.stanceConfidence <= 100 &&
+          research.marketCap.length > 0 &&
+          research.fiftyTwoWeekLow < research.fiftyTwoWeekHigh &&
+          research.sector.length > 0 &&
+          research.nextEarningsDate.length > 0 &&
+          research.targetPrice > 0 &&
+          research.keyRisks.length >= 3 &&
+          research.news.every((news) =>
+            newsCategories.includes(news.category),
+          ) &&
+          research.catalysts.every((catalyst) =>
+            catalystCategories.includes(catalyst.category),
+          ) &&
+          research.checklist.every(
+            (item) => item.label.length > 0 && item.description.length > 0,
+          ),
+      ),
+    ).toBe(true)
   })
 
   it('keeps decision logs ready for review workflows', () => {

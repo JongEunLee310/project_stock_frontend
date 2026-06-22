@@ -2,6 +2,8 @@ import type { RiskLevel, StockStatus } from '@/shared/model'
 
 export type { RiskLevel, StockStatus } from '@/shared/model'
 
+export type BadgeTone = 'neutral' | 'accent' | 'info' | 'warning'
+
 export const stockStatusClassNames: Record<StockStatus, string> = {
   안정: 'border-status-stable-border bg-status-stable-bg text-status-stable-text',
   관망: 'border-status-watch-border bg-status-watch-bg text-status-watch-text',
@@ -21,4 +23,11 @@ export const riskLevelClassNames: Record<RiskLevel, string> = {
   높음: 'border-status-level-high-border bg-status-level-high-bg text-status-level-high-text',
   중간: 'border-status-level-medium-border bg-status-level-medium-bg text-status-level-medium-text',
   낮음: 'border-status-level-low-border bg-status-level-low-bg text-status-level-low-text',
+}
+
+export const badgeToneClassNames: Record<BadgeTone, string> = {
+  neutral: 'border-app-border bg-app-surface-muted text-app-text-muted',
+  accent: 'border-app-accent-strong bg-app-accent-strong text-app-accent-text',
+  info: 'border-sky-400/40 bg-sky-400/10 text-sky-200',
+  warning: 'border-amber-400/40 bg-amber-400/10 text-amber-200',
 }

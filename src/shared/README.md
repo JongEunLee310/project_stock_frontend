@@ -13,6 +13,8 @@ summary/observation fixtures.
 Signal fixtures include multiple statuses, kinds, confidence scores, reasons,
 priorities, and updated timestamps so the Signals page can derive summaries,
 filters, card grids, and side-rail previews from the same source.
+Research fixtures include price-as-of labels, stance confidence, metric tiles,
+category-tagged news/catalysts, and checklist descriptions for the detail page.
 Mock fixtures use TypeScript `satisfies` checks so future API-shaped data must
 preserve the same fields.
 

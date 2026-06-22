@@ -3,8 +3,16 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import { appRoutePaths } from '@/shared/config/navigation'
 import { mockStockResearch, mockStocks } from '@/shared/mock'
-import type { ChecklistItem, PricePoint, StockResearch } from '@/shared/model'
+import type {
+  CatalystCategory,
+  ChecklistItem,
+  NewsCategory,
+  PricePoint,
+  RiskLevel,
+  StockResearch,
+} from '@/shared/model'
 import { Badge, Button, Card } from '@/shared/ui'
+import type { BadgeTone } from '@/shared/ui'
 import { classNames } from '@/shared/ui/classNames'
 
 const currencyFormatter = new Intl.NumberFormat('en-US', {
@@ -28,6 +36,29 @@ const timeFormatter = new Intl.DateTimeFormat('ko-KR', {
 })
 
 const researchBySymbol: Record<string, StockResearch> = mockStockResearch
+
+const chartTabs = ['가격', '밸류에이션', '실적'] as const
+const chartRanges = ['1D', '5D', '1M', '3M', '6M', 'YTD', '1Y', '3Y', '5Y']
+
+const newsCategoryTones: Record<NewsCategory, BadgeTone> = {
+  실적: 'accent',
+  제품: 'info',
+  파트너십: 'neutral',
+  규제: 'warning',
+}
+
+const catalystCategoryTones: Record<CatalystCategory, BadgeTone> = {
+  이벤트: 'neutral',
+  실적: 'accent',
+  제품: 'info',
+  공급: 'warning',
+}
+
+const riskRank: Record<RiskLevel, number> = {
+  높음: 3,
+  중간: 2,
+  낮음: 1,
+}
 
 function getResearchSymbol(symbol: string | undefined) {
   return symbol?.trim().toUpperCase() || 'UNKNOWN'
@@ -66,10 +97,18 @@ function getPeriodChange(pricePoints: PricePoint[]) {
   return { absolute, percent }
 }
 
+function getHighestRiskLevel(risks: StockResearch['keyRisks']) {
+  return risks.reduce<RiskLevel>(
+    (highestLevel, risk) =>
+      riskRank[risk.level] > riskRank[highestLevel] ? risk.level : highestLevel,
+    '낮음',
+  )
+}
+
 function buildSparklinePoints(pricePoints: PricePoint[]) {
   const width = 240
-  const height = 72
-  const padding = 6
+  const height = 80
+  const padding = 8
   const closes = pricePoints.map((point) => point.close)
   const min = Math.min(...closes)
   const max = Math.max(...closes)
@@ -105,10 +144,18 @@ function PriceSparkline({
     <svg
       role="img"
       aria-label={`${symbol} 최근 가격 추이`}
-      viewBox="0 0 240 72"
-      className="h-28 w-full overflow-visible"
+      viewBox="0 0 240 80"
+      className="h-44 w-full overflow-visible"
       preserveAspectRatio="none"
     >
+      <line
+        x1="8"
+        x2="232"
+        y1="72"
+        y2="72"
+        className="stroke-app-border"
+        strokeDasharray="4 6"
+      />
       <polyline
         points={points}
         fill="none"
@@ -149,6 +196,48 @@ function EmptyResearchState({ symbol }: { symbol: string }) {
   )
 }
 
+function PageHeader({
+  symbol,
+  isFavorite,
+  onToggleFavorite,
+}: {
+  symbol: string
+  isFavorite: boolean
+  onToggleFavorite: () => void
+}) {
+  return (
+    <header className="flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <p className="text-sm font-semibold uppercase tracking-wide text-app-text-muted">
+          Research
+        </p>
+        <h1 className="mt-1 text-3xl font-bold text-app-text">
+          {symbol} 리서치
+        </h1>
+      </div>
+      <Button
+        type="button"
+        variant={isFavorite ? 'primary' : 'secondary'}
+        aria-pressed={isFavorite}
+        onClick={onToggleFavorite}
+      >
+        {isFavorite ? '관심종목 등록됨' : '관심종목 추가'}
+      </Button>
+    </header>
+  )
+}
+
+function MetricTile({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-h-24 rounded-control border border-app-border bg-app-surface-muted p-4">
+      <dt className="text-xs font-medium text-app-text-muted">{label}</dt>
+      <dd className="mt-2 text-base font-bold leading-6 text-app-text">
+        {value}
+      </dd>
+    </div>
+  )
+}
+
 function HeaderCard({
   research,
   symbol,
@@ -158,49 +247,93 @@ function HeaderCard({
 }) {
   const navigate = useNavigate()
   const stock = mockStocks.find((item) => item.symbol === symbol)
+  const metricTiles = [
+    { label: '시가총액', value: research.marketCap },
+    {
+      label: '52주 범위',
+      value: `${formatCurrency(research.fiftyTwoWeekLow)} ~ ${formatCurrency(
+        research.fiftyTwoWeekHigh,
+      )}`,
+    },
+    { label: '섹터', value: research.sector },
+    { label: '다음 실적 발표', value: `${research.nextEarningsDate} 예정` },
+    {
+      label: '평균 목표주가',
+      value: `${formatCurrency(research.targetPrice)} (${formatPercent(
+        research.targetUpsidePercent,
+      )})`,
+    },
+  ]
 
   return (
     <Card>
-      <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
-        <div className="min-w-0">
-          <p className="text-sm font-semibold uppercase tracking-wide text-app-text-muted">
-            {stock?.market ?? 'Unknown Market'}
-          </p>
-          <div className="mt-2 flex flex-wrap items-end gap-3">
-            <h1 className="text-4xl font-bold text-app-text">{symbol}</h1>
-            <span className="pb-1 text-lg font-medium text-app-text-muted">
-              {stock?.name ?? 'Unknown company'}
-            </span>
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_18rem]">
+        <div className="flex min-w-0 flex-col gap-6">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+            <div className="flex min-w-0 items-start gap-4">
+              <div
+                className="grid h-14 w-14 shrink-0 place-items-center rounded-control border border-app-border bg-app-surface-muted text-xl font-bold text-app-accent"
+                aria-hidden="true"
+              >
+                {symbol[0]}
+              </div>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-end gap-3">
+                  <h2 className="text-3xl font-bold text-app-text">{symbol}</h2>
+                  <span className="pb-1 text-base font-medium text-app-text-muted">
+                    {stock?.name ?? 'Unknown company'}
+                  </span>
+                </div>
+                <p className="mt-2 text-sm text-app-text-muted">
+                  {stock?.market ?? 'Unknown Market'} · {research.sector}
+                </p>
+              </div>
+            </div>
+
+            {stock ? (
+              <div className="lg:text-right">
+                <strong className="block text-3xl font-bold text-app-text">
+                  {formatCurrency(stock.price)}
+                </strong>
+                <span
+                  className={classNames(
+                    'text-sm font-semibold',
+                    stock.change >= 0 ? 'text-emerald-300' : 'text-rose-300',
+                  )}
+                >
+                  {formatPriceChange(stock.change, stock.changePercent)}
+                </span>
+                <p className="mt-1 text-xs text-app-text-muted">
+                  {research.priceAsOf}
+                </p>
+              </div>
+            ) : null}
           </div>
-          <p className="mt-4 max-w-3xl text-lg font-semibold leading-7 text-app-text">
-            {research.stance}
-          </p>
+
+          <dl className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+            {metricTiles.map((metric) => (
+              <MetricTile
+                key={metric.label}
+                label={metric.label}
+                value={metric.value}
+              />
+            ))}
+          </dl>
         </div>
 
-        <div className="flex flex-col gap-4 xl:items-end">
-          <div className="flex flex-wrap items-center gap-3">
-            {stock ? <Badge status={stock.status} /> : null}
-            <span className="rounded-control border border-app-border bg-app-surface-muted px-3 py-1.5 text-sm font-semibold text-app-text">
-              AI stance
-            </span>
-          </div>
-
-          {stock ? (
-            <div className="xl:text-right">
-              <strong className="block text-3xl font-bold text-app-text">
-                {formatCurrency(stock.price)}
-              </strong>
-              <span
-                className={classNames(
-                  'text-sm font-semibold',
-                  stock.change >= 0 ? 'text-emerald-300' : 'text-rose-300',
-                )}
-              >
-                {formatPriceChange(stock.change, stock.changePercent)}
-              </span>
+        <div className="flex flex-col justify-between gap-5 rounded-control border border-app-border bg-app-surface-muted p-5">
+          <div>
+            <p className="text-sm font-semibold text-app-text-muted">
+              AI 투자 스탠스
+            </p>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              {stock ? <Badge status={stock.status} /> : null}
+              <Badge tone="accent">{research.stanceConfidence}%</Badge>
             </div>
-          ) : null}
-
+            <p className="mt-4 text-sm font-semibold leading-6 text-app-text">
+              {research.stance}
+            </p>
+          </div>
           <div className="flex flex-wrap gap-2">
             <Button
               type="button"
@@ -229,41 +362,80 @@ function PricePanel({ research }: { research: StockResearch }) {
 
   return (
     <Card>
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_16rem] lg:items-center">
-        <PriceSparkline
-          symbol={research.symbol}
-          pricePoints={research.pricePoints}
-        />
-        <div className="flex flex-col gap-3">
-          <div>
-            <p className="text-sm font-medium text-app-text-muted">최신 종가</p>
-            <strong className="mt-1 block text-3xl font-bold text-app-text">
-              {latestPoint ? formatCurrency(latestPoint.close) : '-'}
-            </strong>
-          </div>
-          <dl className="grid gap-2 text-sm">
-            <div className="flex justify-between gap-3">
-              <dt className="text-app-text-muted">기간</dt>
-              <dd className="font-medium text-app-text">
-                {firstPoint?.date ?? '-'} ~ {latestPoint?.date ?? '-'}
-              </dd>
-            </div>
-            <div className="flex justify-between gap-3">
-              <dt className="text-app-text-muted">기간 등락</dt>
-              <dd
+      <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-wrap gap-2" aria-label="차트 탭">
+            {chartTabs.map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                disabled={tab !== '가격'}
                 className={classNames(
-                  'font-semibold',
-                  periodChange.absolute >= 0
-                    ? 'text-emerald-300'
-                    : 'text-rose-300',
+                  'min-h-9 rounded-control border px-3 py-1.5 text-sm font-semibold',
+                  tab === '가격'
+                    ? 'border-app-accent-strong bg-app-accent-strong text-app-accent-text'
+                    : 'border-app-border bg-app-surface-muted text-app-text-muted',
                 )}
               >
-                {periodChange.absolute >= 0 ? '+' : ''}
-                {periodChange.absolute.toFixed(2)} (
-                {formatPercent(periodChange.percent)})
-              </dd>
+                {tab}
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-2" aria-label="차트 기간">
+            {chartRanges.map((range) => (
+              <button
+                key={range}
+                type="button"
+                disabled
+                className="min-h-8 rounded-control border border-app-border bg-app-surface-muted px-2.5 py-1 text-xs font-semibold text-app-text-muted"
+              >
+                {range}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="grid gap-6 rounded-control border border-app-border bg-app-surface-muted p-4 lg:grid-cols-[minmax(0,1fr)_17rem] lg:items-center">
+          <PriceSparkline
+            symbol={research.symbol}
+            pricePoints={research.pricePoints}
+          />
+          <div className="flex flex-col gap-4">
+            <div>
+              <p className="text-sm font-medium text-app-text-muted">
+                최신 종가
+              </p>
+              <strong className="mt-1 block text-3xl font-bold text-app-text">
+                {latestPoint ? formatCurrency(latestPoint.close) : '-'}
+              </strong>
             </div>
-          </dl>
+            <dl className="grid gap-2 text-sm">
+              <div className="flex justify-between gap-3">
+                <dt className="text-app-text-muted">기간</dt>
+                <dd className="font-medium text-app-text">
+                  {firstPoint?.date ?? '-'} ~ {latestPoint?.date ?? '-'}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-3">
+                <dt className="text-app-text-muted">기간 등락</dt>
+                <dd
+                  className={classNames(
+                    'font-semibold',
+                    periodChange.absolute >= 0
+                      ? 'text-emerald-300'
+                      : 'text-rose-300',
+                  )}
+                >
+                  {periodChange.absolute >= 0 ? '+' : ''}
+                  {periodChange.absolute.toFixed(2)} (
+                  {formatPercent(periodChange.percent)})
+                </dd>
+              </div>
+            </dl>
+            <p className="text-xs leading-5 text-app-text-muted">
+              캔들·거래량·비교지수는 이슈 19에서 제공
+            </p>
+          </div>
         </div>
       </div>
     </Card>
@@ -273,23 +445,43 @@ function PricePanel({ research }: { research: StockResearch }) {
 function BriefingPanel({ research }: { research: StockResearch }) {
   return (
     <Card>
-      <p className="text-sm font-semibold uppercase tracking-wide text-app-text-muted">
-        AI briefing
-      </p>
-      <h2 className="mt-2 text-2xl font-bold text-app-text">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm font-semibold uppercase tracking-wide text-app-text-muted">
+          AI briefing
+        </p>
+        <span className="text-xs text-app-text-muted">
+          갱신 {research.priceAsOf}
+        </span>
+      </div>
+      <h2 className="mt-3 text-2xl font-bold text-app-text">
         {research.briefing.headline}
       </h2>
       <p className="mt-3 text-sm leading-6 text-app-text-muted">
         {research.briefing.body}
       </p>
+      <button
+        type="button"
+        disabled
+        className="mt-4 text-sm font-semibold text-app-text-muted"
+      >
+        더보기
+      </button>
     </Card>
   )
 }
 
 function RiskPanel({ research }: { research: StockResearch }) {
+  const highestRiskLevel = getHighestRiskLevel(research.keyRisks)
+
   return (
     <Card>
-      <h2 className="text-xl font-bold text-app-text">핵심 리스크</h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-xl font-bold text-app-text">핵심 리스크</h2>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-app-text-muted">종합</span>
+          <Badge riskLevel={highestRiskLevel} />
+        </div>
+      </div>
       <ul className="mt-4 flex flex-col gap-3">
         {research.keyRisks.map((risk) => (
           <li
@@ -313,13 +505,21 @@ function RiskPanel({ research }: { research: StockResearch }) {
 function NewsPanel({ research }: { research: StockResearch }) {
   return (
     <Card>
-      <h2 className="text-xl font-bold text-app-text">뉴스·공시 요약</h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-xl font-bold text-app-text">뉴스·공시 요약</h2>
+        <button type="button" disabled className="text-sm text-app-text-muted">
+          더보기
+        </button>
+      </div>
       <ul className="mt-4 flex flex-col gap-3">
         {research.news.map((news) => (
           <li
             key={news.id}
-            className="grid gap-3 rounded-control border border-app-border bg-app-surface-muted p-4 md:grid-cols-[minmax(0,1fr)_auto]"
+            className="grid gap-3 rounded-control border border-app-border bg-app-surface-muted p-4 md:grid-cols-[auto_minmax(0,1fr)_auto]"
           >
+            <Badge tone={newsCategoryTones[news.category]}>
+              {news.category}
+            </Badge>
             <div className="min-w-0">
               <h3 className="font-semibold text-app-text">{news.headline}</h3>
               <p className="mt-2 text-sm text-app-text-muted">
@@ -348,15 +548,32 @@ function CatalystPanel({ research }: { research: StockResearch }) {
       <h2 className="text-xl font-bold text-app-text">촉매 타임라인</h2>
       <ol className="mt-4 flex flex-col gap-4">
         {catalysts.map((catalyst) => (
-          <li key={catalyst.id} className="grid grid-cols-[6.5rem_1fr] gap-4">
-            <time
-              dateTime={catalyst.date}
-              className="text-sm font-semibold text-app-accent"
-            >
-              {catalyst.date}
-            </time>
-            <div>
-              <h3 className="font-semibold text-app-text">{catalyst.title}</h3>
+          <li
+            key={catalyst.id}
+            className="grid grid-cols-[0.75rem_minmax(0,1fr)] gap-3"
+          >
+            <span
+              className="mt-2 h-3 w-3 rounded-full bg-app-accent"
+              aria-hidden="true"
+            />
+            <div className="min-w-0 border-b border-app-border pb-4 last:border-b-0 last:pb-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <time
+                  dateTime={catalyst.date}
+                  className="text-sm font-semibold text-app-accent"
+                >
+                  {catalyst.date}
+                </time>
+                <Badge tone={catalystCategoryTones[catalyst.category]}>
+                  {catalyst.category}
+                </Badge>
+                <span className="text-xs font-semibold text-app-text-muted">
+                  예정
+                </span>
+              </div>
+              <h3 className="mt-2 font-semibold text-app-text">
+                {catalyst.title}
+              </h3>
               <p className="mt-1 text-sm leading-6 text-app-text-muted">
                 {catalyst.description}
               </p>
@@ -375,9 +592,16 @@ function ChecklistPanel({
   checklist: ChecklistItem[]
   onToggle: (id: string) => void
 }) {
+  const completedCount = checklist.filter((item) => item.checked).length
+
   return (
     <Card>
-      <h2 className="text-xl font-bold text-app-text">의사결정 체크리스트</h2>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-xl font-bold text-app-text">의사결정 체크리스트</h2>
+        <Badge tone="neutral">
+          {completedCount}/{checklist.length}
+        </Badge>
+      </div>
       <ul className="mt-4 flex flex-col gap-3">
         {checklist.map((item) => (
           <li key={item.id}>
@@ -388,7 +612,12 @@ function ChecklistPanel({
                 checked={item.checked}
                 onChange={() => onToggle(item.id)}
               />
-              <span>{item.label}</span>
+              <span>
+                <span className="block font-semibold">{item.label}</span>
+                <span className="mt-1 block text-app-text-muted">
+                  {item.description}
+                </span>
+              </span>
             </label>
           </li>
         ))}
@@ -406,12 +635,15 @@ function MemoPanel({
 }) {
   return (
     <Card>
-      <label
-        htmlFor="research-memo"
-        className="text-xl font-bold text-app-text"
-      >
-        사용자 메모
-      </label>
+      <div className="flex items-center justify-between gap-3">
+        <label
+          htmlFor="research-memo"
+          className="text-xl font-bold text-app-text"
+        >
+          내 메모
+        </label>
+        <span className="text-xs text-app-text-muted">로컬 입력</span>
+      </div>
       <textarea
         id="research-memo"
         value={memo}
@@ -427,13 +659,16 @@ export function ResearchPage() {
   const { symbol } = useParams<{ symbol: string }>()
   const displaySymbol = getResearchSymbol(symbol)
   const research = researchBySymbol[displaySymbol]
+  const stock = mockStocks.find((item) => item.symbol === displaySymbol)
   const [checklist, setChecklist] = useState(() => research?.checklist ?? [])
   const [memo, setMemo] = useState(() => research?.memo ?? '')
+  const [isFavorite, setIsFavorite] = useState(() => stock?.isFavorite ?? false)
 
   useEffect(() => {
     setChecklist(research?.checklist ?? [])
     setMemo(research?.memo ?? '')
-  }, [research])
+    setIsFavorite(stock?.isFavorite ?? false)
+  }, [research, stock])
 
   if (!research) {
     return <EmptyResearchState symbol={displaySymbol} />
@@ -449,6 +684,11 @@ export function ResearchPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <PageHeader
+        symbol={displaySymbol}
+        isFavorite={isFavorite}
+        onToggleFavorite={() => setIsFavorite((current) => !current)}
+      />
       <HeaderCard research={research} symbol={displaySymbol} />
       <PricePanel research={research} />
       <BriefingPanel research={research} />

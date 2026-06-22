@@ -1,4 +1,6 @@
+import type { CatalystCategory } from './catalystCategory'
 import type { DecisionType } from './decisionType'
+import type { NewsCategory } from './newsCategory'
 import type { RiskLevel } from './riskLevel'
 import type { StockStatus } from './stockStatus'
 import type { ValuationLevel } from './valuationLevel'
@@ -136,6 +138,7 @@ export interface ResearchRisk {
 
 export interface NewsItem {
   id: string
+  category: NewsCategory
   headline: string
   source: string
   publishedAt: string
@@ -144,6 +147,7 @@ export interface NewsItem {
 
 export interface CatalystItem {
   id: string
+  category: CatalystCategory
   date: string
   title: string
   description: string
@@ -152,13 +156,23 @@ export interface CatalystItem {
 export interface ChecklistItem {
   id: string
   label: string
+  description: string
   checked: boolean
 }
 
 export interface StockResearch {
   symbol: string
   pricePoints: PricePoint[]
+  priceAsOf: string
   stance: string
+  stanceConfidence: number
+  marketCap: string
+  fiftyTwoWeekLow: number
+  fiftyTwoWeekHigh: number
+  sector: string
+  nextEarningsDate: string
+  targetPrice: number
+  targetUpsidePercent: number
   briefing: AiBriefing
   keyRisks: ResearchRisk[]
   news: NewsItem[]
