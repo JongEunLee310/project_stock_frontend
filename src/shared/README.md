@@ -10,6 +10,8 @@ Representative mock data that satisfies those types lives in `shared/mock`.
 The shared domain includes stocks, signals, portfolio data, alerts, dashboard
 summaries, research detail records, decision review records, and watchlist
 summary/observation fixtures.
+Dashboard fixtures include stock PER/PEG metrics, summary delta labels, AI
+briefing risk checks, and titled priority queue items for the index overview.
 Signal fixtures include multiple statuses, kinds, confidence scores, reasons,
 priorities, and updated timestamps so the Signals page can derive summaries,
 filters, card grids, and side-rail previews from the same source.

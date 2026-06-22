@@ -14,6 +14,8 @@ export interface Stock {
   price: number
   change: number
   changePercent: number
+  per: number
+  peg: number
   status: StockStatus
   newsRisk: RiskLevel
   valuation: ValuationLevel
@@ -75,16 +77,23 @@ export interface DashboardSummary {
   importantNewsCount: number
   reviewSignalCount: number
   cashRatio: number
+  riskAlertDelta: string
+  importantNewsDelta: string
+  reviewSignalDelta: string
+  cashRatioDelta: string
 }
 
 export interface AiBriefing {
   headline: string
   body: string
+  riskHeadline?: string
+  riskChecks?: string[]
 }
 
 export interface PriorityQueueItem {
   id: string
   symbol: string
+  title: string
   reason: string
   risk: RiskLevel
 }
