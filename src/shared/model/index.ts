@@ -1,3 +1,5 @@
+export { riskLevels } from './riskLevel'
+export type { RiskLevel } from './riskLevel'
 export { stockStatuses } from './stockStatus'
 export type { StockStatus } from './stockStatus'
 export type {

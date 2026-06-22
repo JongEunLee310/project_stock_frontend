@@ -1,24 +1,51 @@
 import type { ComponentPropsWithoutRef, ReactNode } from 'react'
 
 import { classNames } from './classNames'
-import { stockStatusClassNames, type StockStatus } from './stockStatus'
+import {
+  riskLevelClassNames,
+  stockStatusClassNames,
+  type RiskLevel,
+  type StockStatus,
+} from './stockStatus'
 
-interface BadgeProps extends ComponentPropsWithoutRef<'span'> {
-  status: StockStatus
+type BadgeBaseProps = ComponentPropsWithoutRef<'span'> & {
   children?: ReactNode
 }
 
-export function Badge({ status, children, className, ...props }: BadgeProps) {
+type BadgeProps = BadgeBaseProps &
+  (
+    | {
+        status: StockStatus
+        riskLevel?: never
+      }
+    | {
+        riskLevel: RiskLevel
+        status?: never
+      }
+  )
+
+export function Badge({
+  status,
+  riskLevel,
+  children,
+  className,
+  ...props
+}: BadgeProps) {
+  const label = status ?? riskLevel
+  const toneClassName = status
+    ? stockStatusClassNames[status]
+    : riskLevelClassNames[riskLevel]
+
   return (
     <span
       className={classNames(
         'inline-flex min-h-7 items-center rounded-control border px-2.5 py-1 text-sm font-medium leading-none',
-        stockStatusClassNames[status],
+        toneClassName,
         className,
       )}
       {...props}
     >
-      {children ?? status}
+      {children ?? label}
     </span>
   )
 }
