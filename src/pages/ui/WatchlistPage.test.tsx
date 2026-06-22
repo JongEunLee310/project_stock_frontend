@@ -29,6 +29,15 @@ describe('WatchlistPage', () => {
     expect(screen.getByText('추가 리서치 필요')).toBeVisible()
     expect(screen.getByText('평균 현금 연관도')).toBeVisible()
     expect(
+      screen.getByRole('img', { name: '전체 관심 종목 추세 차트' }),
+    ).toBeVisible()
+    expect(
+      screen.getByRole('img', { name: '추가 리서치 필요 막대 차트' }),
+    ).toBeVisible()
+    expect(
+      screen.getByRole('img', { name: '평균 현금 연관도 도넛 차트' }),
+    ).toBeVisible()
+    expect(
       screen.getByRole('complementary', { name: 'AI 관찰 레일' }),
     ).toBeVisible()
     expect(screen.getByText('AI 관찰 메모')).toBeVisible()
@@ -51,13 +60,12 @@ describe('WatchlistPage', () => {
     ).toHaveAttribute('aria-pressed', 'true')
     expect(within(table).getByRole('link', { name: 'NVDA' })).toBeVisible()
     expect(within(table).getByText('NVIDIA Corp.')).toBeVisible()
-    expect(within(table).getByText('+1.91%')).toBeVisible()
-    expect(within(table).getAllByText(/09:21/).length).toBeGreaterThan(0)
+    expect(within(table).getByText('-0.24%')).toBeVisible()
     expect(
-      within(table).getByText(
-        'AI infrastructure demand remains strong, but entry price needs discipline.',
-      ),
-    ).toBeVisible()
+      within(table).getAllByRole('img', { name: '1일 변화 스파크라인' }).length,
+    ).toBeGreaterThan(0)
+    expect(within(table).getAllByText(/09:21/).length).toBeGreaterThan(0)
+    expect(within(table).getAllByText('위험 증가').length).toBeGreaterThan(0)
   })
 
   it('narrows rows by search and risk filter, then resets filters', () => {
