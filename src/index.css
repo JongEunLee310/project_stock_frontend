@@ -15,6 +15,16 @@
   --color-app-accent-strong: #0284c7;
   --color-app-accent-text: #f8fafc;
 
+  --color-cockpit-bg: #07101f;
+  --color-cockpit-surface: #0c1829;
+  --color-cockpit-surface-muted: #132235;
+  --color-cockpit-border: #20334d;
+  --color-cockpit-text: #f1f5f9;
+  --color-cockpit-text-muted: #93a4bd;
+  --color-cockpit-accent: #5aa2ff;
+  --color-cockpit-accent-strong: #1d4f9a;
+  --color-cockpit-accent-text: #f8fafc;
+
   --color-status-stable-bg: #14342b;
   --color-status-stable-text: #bbf7d0;
   --color-status-stable-border: #2f6f54;
