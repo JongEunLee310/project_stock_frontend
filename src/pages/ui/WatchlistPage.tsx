@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState, type MouseEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { Bar, BarChart, Cell, Line, LineChart, Pie, PieChart } from 'recharts'
 
 import {
   mockRecentWatchlist,
@@ -9,19 +10,12 @@ import {
   mockWatchlistSummary,
 } from '@/shared/mock'
 import { riskLevels, type RiskLevel, type Stock } from '@/shared/model'
-import {
-  Badge,
-  Button,
-  Card,
-  Input,
-  Table,
-  type TableColumn,
-} from '@/shared/ui'
+import { Badge, Button, Card, Input } from '@/shared/ui'
 import { classNames } from '@/shared/ui/classNames'
 
 type MarketFilter = 'all' | Stock['market']
 type RiskFilter = 'all' | RiskLevel
-type SortKey = 'changePercent' | 'price' | 'symbol' | 'lastUpdatedAt'
+type SortKey = 'custom' | 'changePercent' | 'price' | 'symbol' | 'lastUpdatedAt'
 type SortDirection = 'asc' | 'desc'
 
 const percentFormatter = new Intl.NumberFormat('ko-KR', {
@@ -39,6 +33,7 @@ const timeFormatter = new Intl.DateTimeFormat('ko-KR', {
 })
 
 const sortLabels: Record<SortKey, string> = {
+  custom: '사용자 설정',
   changePercent: '변화율',
   price: '현재가',
   symbol: '심볼',
@@ -48,7 +43,42 @@ const sortLabels: Record<SortKey, string> = {
 const summaryToneClassNames = {
   up: 'text-emerald-300',
   down: 'text-rose-300',
-  flat: 'text-app-text-muted',
+  flat: 'text-cockpit-text-muted',
+}
+
+const summaryIconClassNames = [
+  'bg-blue-500/20 text-blue-300',
+  'bg-rose-500/20 text-rose-300',
+  'bg-blue-500/20 text-blue-300',
+  'bg-emerald-500/20 text-emerald-300',
+]
+
+const summaryIcons = ['▱', '▣', '⊙', '◌']
+
+const researchBars = [38, 54, 66, 78, 50, 30, 84, 58, 44].map(
+  (value, index) => ({
+    index,
+    value,
+  }),
+)
+
+const cashCorrelationData = [
+  { name: '연관', value: 58 },
+  { name: '기타', value: 42 },
+]
+
+const summaryLineSeries = [
+  [24, 25, 26, 25.6, 26.4, 26.1, 28],
+  [3.2, 3.0, 3.4, 3.3, 3.6, 3.5, 3.9],
+]
+
+const symbolMarks: Record<string, { label: string; className: string }> = {
+  NVDA: { label: 'N', className: 'bg-[#76b900] text-black' },
+  AAPL: { label: '●', className: 'bg-white text-black' },
+  TSLA: { label: 'T', className: 'bg-[#e82127] text-white' },
+  MSFT: { label: '■', className: 'bg-[#00a4ef] text-white' },
+  AMZN: { label: 'a', className: 'bg-[#ff9900] text-black' },
+  GOOGL: { label: 'G', className: 'bg-white text-[#4285f4]' },
 }
 
 function getResearchPath(symbol: string) {
@@ -68,6 +98,10 @@ function sortStocks(
   sortKey: SortKey,
   sortDirection: SortDirection,
 ) {
+  if (sortKey === 'custom') {
+    return stocks
+  }
+
   const direction = sortDirection === 'asc' ? 1 : -1
 
   return [...stocks].sort((first, second) => {
@@ -91,24 +125,146 @@ function stopRowNavigation(event: MouseEvent) {
   event.stopPropagation()
 }
 
-function StockIdentity({ stock }: { stock: Stock }) {
+function Sparkline({ values }: { values: number[] }) {
+  const data = values.map((value, index) => ({ index, value }))
+  const isUp = values.at(-1)! >= values[0]
+
   return (
-    <div className="flex items-center gap-3">
+    <div
+      className={classNames(
+        'h-6 w-[4.25rem]',
+        isUp ? 'text-emerald-400' : 'text-rose-400',
+      )}
+      role="img"
+      aria-label="1일 변화 스파크라인"
+    >
+      <LineChart
+        data={data}
+        height={24}
+        margin={{ top: 2, right: 1, bottom: 2, left: 1 }}
+        width={68}
+      >
+        <Line
+          dataKey="value"
+          dot={false}
+          isAnimationActive={false}
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          type="monotone"
+        />
+      </LineChart>
+    </div>
+  )
+}
+
+function SummaryVisual({ index }: { index: number }) {
+  if (index === 3) {
+    return (
       <div
-        className="grid h-9 w-9 shrink-0 place-items-center rounded-control border border-app-border bg-app-surface-muted text-sm font-bold text-app-accent"
+        className="h-16 w-16"
+        role="img"
+        aria-label="평균 현금 연관도 도넛 차트"
+      >
+        <PieChart height={64} width={64}>
+          <Pie
+            data={cashCorrelationData}
+            dataKey="value"
+            innerRadius="64%"
+            isAnimationActive={false}
+            outerRadius="100%"
+            paddingAngle={0}
+            stroke="none"
+          >
+            <Cell fill="#62d66f" />
+            <Cell fill="#30445f" />
+          </Pie>
+        </PieChart>
+      </div>
+    )
+  }
+
+  if (index === 2) {
+    return (
+      <div
+        className="h-16 w-24"
+        role="img"
+        aria-label="추가 리서치 필요 막대 차트"
+      >
+        <BarChart
+          data={researchBars}
+          height={64}
+          margin={{ top: 6, right: 0, bottom: 0, left: 0 }}
+          width={96}
+        >
+          <Bar
+            dataKey="value"
+            fill="#2f7df7"
+            isAnimationActive={false}
+            radius={[2, 2, 0, 0]}
+          />
+        </BarChart>
+      </div>
+    )
+  }
+
+  return (
+    <div
+      className="h-10 w-20"
+      role="img"
+      aria-label={`${index === 1 ? '위험 증가 종목' : '전체 관심 종목'} 추세 차트`}
+    >
+      <LineChart
+        data={summaryLineSeries[index === 1 ? 1 : 0].map((value, point) => ({
+          point,
+          value,
+        }))}
+        height={40}
+        margin={{ top: 2, right: 2, bottom: 2, left: 2 }}
+        width={80}
+      >
+        <Line
+          dataKey="value"
+          dot={false}
+          isAnimationActive={false}
+          stroke={index === 1 ? '#ff4d57' : '#2f7df7'}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          type="monotone"
+        />
+      </LineChart>
+    </div>
+  )
+}
+
+function StockIdentity({ stock }: { stock: Stock }) {
+  const mark = symbolMarks[stock.symbol] ?? {
+    label: stock.symbol[0],
+    className: 'bg-cockpit-surface-muted text-cockpit-accent',
+  }
+
+  return (
+    <div className="flex items-center gap-2.5">
+      <div
+        className={classNames(
+          'grid h-6 w-6 shrink-0 place-items-center rounded-sm text-xs font-black leading-none',
+          mark.className,
+        )}
         aria-hidden="true"
       >
-        {stock.symbol[0]}
+        {mark.label}
       </div>
       <div className="flex min-w-0 flex-col gap-1">
         <Link
           to={getResearchPath(stock.symbol)}
-          className="w-fit font-semibold text-app-text hover:text-app-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent"
+          className="w-fit text-sm font-semibold text-cockpit-text hover:text-cockpit-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cockpit-accent"
           onClick={stopRowNavigation}
         >
           {stock.symbol}
         </Link>
-        <span className="max-w-36 truncate text-xs text-app-text-muted">
+        <span className="max-w-32 truncate text-xs text-cockpit-text-muted">
           {stock.name}
         </span>
       </div>
@@ -133,7 +289,7 @@ function RowMenu({ stock, isOpen, onToggle, onNavigate }: RowMenuProps) {
     <div className="relative flex justify-end">
       <button
         type="button"
-        className="inline-flex h-8 w-8 items-center justify-center rounded-control text-lg text-app-text-muted hover:bg-app-surface-muted hover:text-app-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent"
+        className="inline-flex h-8 w-8 items-center justify-center rounded-control text-lg text-cockpit-text-muted hover:bg-cockpit-surface-muted hover:text-cockpit-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cockpit-accent"
         aria-label={`${stock.symbol} 행 메뉴`}
         aria-expanded={isOpen}
         onClick={(event) => {
@@ -145,12 +301,12 @@ function RowMenu({ stock, isOpen, onToggle, onNavigate }: RowMenuProps) {
       </button>
       {isOpen ? (
         <div
-          className="absolute right-0 top-9 z-10 flex w-36 flex-col rounded-control border border-app-border bg-app-surface p-1 shadow-lg shadow-black/30"
+          className="absolute right-0 top-9 z-10 flex w-36 flex-col rounded-control border border-cockpit-border bg-cockpit-surface p-1 shadow-lg shadow-black/30"
           role="menu"
         >
           <button
             type="button"
-            className="rounded-control px-3 py-2 text-left text-sm text-app-text hover:bg-app-surface-muted focus-visible:outline-2 focus-visible:outline-app-accent"
+            className="rounded-control px-3 py-2 text-left text-sm text-cockpit-text hover:bg-cockpit-surface-muted focus-visible:outline-2 focus-visible:outline-cockpit-accent"
             role="menuitem"
             onClick={openResearch}
           >
@@ -158,7 +314,7 @@ function RowMenu({ stock, isOpen, onToggle, onNavigate }: RowMenuProps) {
           </button>
           <button
             type="button"
-            className="rounded-control px-3 py-2 text-left text-sm text-app-text-muted hover:bg-app-surface-muted hover:text-app-text focus-visible:outline-2 focus-visible:outline-app-accent"
+            className="rounded-control px-3 py-2 text-left text-sm text-cockpit-text-muted hover:bg-cockpit-surface-muted hover:text-cockpit-text focus-visible:outline-2 focus-visible:outline-cockpit-accent"
             role="menuitem"
             onClick={stopRowNavigation}
           >
@@ -166,7 +322,7 @@ function RowMenu({ stock, isOpen, onToggle, onNavigate }: RowMenuProps) {
           </button>
           <button
             type="button"
-            className="rounded-control px-3 py-2 text-left text-sm text-app-text-muted hover:bg-app-surface-muted hover:text-app-text focus-visible:outline-2 focus-visible:outline-app-accent"
+            className="rounded-control px-3 py-2 text-left text-sm text-cockpit-text-muted hover:bg-cockpit-surface-muted hover:text-cockpit-text focus-visible:outline-2 focus-visible:outline-cockpit-accent"
             role="menuitem"
             onClick={stopRowNavigation}
           >
@@ -183,7 +339,7 @@ export function WatchlistPage() {
   const [query, setQuery] = useState('')
   const [marketFilter, setMarketFilter] = useState<MarketFilter>('all')
   const [riskFilter, setRiskFilter] = useState<RiskFilter>('all')
-  const [sortKey, setSortKey] = useState<SortKey>('changePercent')
+  const [sortKey, setSortKey] = useState<SortKey>('custom')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
   const [favoriteBySymbol, setFavoriteBySymbol] = useState(() =>
     Object.fromEntries(
@@ -234,7 +390,7 @@ export function WatchlistPage() {
     setQuery('')
     setMarketFilter('all')
     setRiskFilter('all')
-    setSortKey('changePercent')
+    setSortKey('custom')
     setSortDirection('desc')
   }
 
@@ -245,184 +401,65 @@ export function WatchlistPage() {
     }))
   }, [])
 
-  const columns = useMemo<Array<TableColumn<Stock>>>(
-    () => [
-      {
-        key: 'favorite',
-        header: '★',
-        align: 'center',
-        cell: (stock) => (
-          <button
-            type="button"
-            className={classNames(
-              'inline-flex h-8 w-8 items-center justify-center rounded-control text-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent',
-              stock.isFavorite
-                ? 'text-app-accent'
-                : 'text-app-text-muted hover:text-app-text',
-            )}
-            aria-label={`${stock.symbol} 즐겨찾기`}
-            aria-pressed={stock.isFavorite}
-            onClick={(event) => {
-              stopRowNavigation(event)
-              toggleFavorite(stock.symbol)
-            }}
-          >
-            {stock.isFavorite ? '★' : '☆'}
-          </button>
-        ),
-      },
-      {
-        key: 'symbol',
-        header: '종목',
-        cell: (stock) => <StockIdentity stock={stock} />,
-      },
-      {
-        key: 'status',
-        header: '상태',
-        cell: (stock) => <Badge status={stock.status} />,
-      },
-      {
-        key: 'changePercent',
-        header: '변화(1D)',
-        align: 'right',
-        sortable: true,
-        cell: (stock) => (
-          <div className="flex items-center justify-end gap-3">
-            <span
-              className={classNames(
-                'font-semibold',
-                stock.changePercent >= 0 ? 'text-emerald-300' : 'text-rose-300',
-              )}
-            >
-              {formatPercent(stock.changePercent)}
-            </span>
-            <span
-              className={classNames(
-                'h-4 w-14 rounded-control border border-dashed',
-                stock.changePercent >= 0
-                  ? 'border-emerald-400/50'
-                  : 'border-rose-400/50',
-              )}
-              aria-label={`${stock.symbol} 스파크라인 자리`}
-            />
-          </div>
-        ),
-      },
-      {
-        key: 'newsRisk',
-        header: '뉴스 위험도',
-        cell: (stock) => <Badge riskLevel={stock.newsRisk} />,
-      },
-      {
-        key: 'valuation',
-        header: '밸류에이션',
-        cell: (stock) => (
-          <span className="inline-flex min-h-7 items-center rounded-control border border-app-border bg-app-surface-muted px-2.5 py-1 text-sm font-medium leading-none text-app-text">
-            {stock.valuation}
-          </span>
-        ),
-      },
-      {
-        key: 'themeHeat',
-        header: '테마 과열',
-        cell: (stock) => <Badge riskLevel={stock.themeHeat} />,
-      },
-      {
-        key: 'aiVerdict',
-        header: 'AI 판단',
-        cell: (stock) => (
-          <span className="block max-w-64 leading-6 text-app-text-muted">
-            {stock.aiVerdict}
-          </span>
-        ),
-      },
-      {
-        key: 'lastUpdatedAt',
-        header: '마지막 갱신',
-        align: 'right',
-        sortable: true,
-        cell: (stock) => (
-          <span className="whitespace-nowrap text-app-text-muted">
-            {formatTime(stock.lastUpdatedAt)}
-          </span>
-        ),
-      },
-      {
-        key: 'actions',
-        header: '⋮',
-        align: 'right',
-        cell: (stock) => (
-          <RowMenu
-            stock={stock}
-            isOpen={openMenuSymbol === stock.symbol}
-            onToggle={(symbol) =>
-              setOpenMenuSymbol((current) =>
-                current === symbol ? null : symbol,
-              )
-            }
-            onNavigate={openResearch}
-          />
-        ),
-      },
-    ],
-    [openMenuSymbol, openResearch, toggleFavorite],
+  const pageSize = 10
+  const displayedStocks = visibleStocks.slice(0, pageSize)
+  const displayedStart = visibleStocks.length > 0 ? 1 : 0
+  const displayedEnd = displayedStocks.length
+  const visiblePageCount = Math.max(
+    1,
+    Math.ceil(visibleStocks.length / pageSize),
+  )
+  const visiblePageNumbers = Array.from(
+    { length: Math.min(5, visiblePageCount) },
+    (_, index) => index + 1,
   )
 
   return (
-    <section className="flex flex-col gap-5">
-      <div className="flex flex-col gap-2">
-        <p className="text-sm font-semibold uppercase text-app-accent">
-          Watchlist
-        </p>
-        <h1 className="text-3xl font-bold text-app-text">관심 종목</h1>
-      </div>
+    <section className="flex flex-col gap-3 text-cockpit-text">
+      <h1 className="px-0 pb-2 pt-1 text-3xl font-bold">관심 종목</h1>
 
-      <Card>
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
-          <div className="grid flex-1 gap-3 md:grid-cols-2 xl:grid-cols-[minmax(15rem,1.2fr)_repeat(4,minmax(9rem,auto))]">
-            <label className="flex flex-col gap-2 text-sm font-medium text-app-text">
-              검색
+      <Card className="border-cockpit-border bg-cockpit-surface/80 p-4 shadow-blue-950/20">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div className="grid flex-1 gap-3 md:grid-cols-2 xl:grid-cols-[minmax(18rem,1.2fr)_minmax(10rem,auto)_minmax(9rem,auto)_minmax(10rem,auto)]">
+            <label className="relative flex flex-col text-sm font-medium text-cockpit-text">
+              <span className="sr-only">검색</span>
               <Input
+                aria-label="검색"
                 type="search"
                 value={query}
                 placeholder="종목명 또는 티커 검색"
+                className="min-h-11 border-cockpit-border bg-cockpit-bg/70 pr-10 text-cockpit-text placeholder:text-cockpit-text-muted focus:border-cockpit-accent focus:ring-cockpit-accent/30"
                 onChange={(event) => setQuery(event.target.value)}
               />
+              <span
+                className="pointer-events-none absolute right-3 top-2.5 text-xl text-cockpit-text-muted"
+                aria-hidden="true"
+              >
+                ⌕
+              </span>
             </label>
 
-            <label className="flex flex-col gap-2 text-sm font-medium text-app-text">
-              정렬
+            <label className="flex flex-col text-sm font-medium text-cockpit-text">
+              <span className="sr-only">정렬</span>
               <select
-                className="min-h-10 rounded-control border border-app-border bg-app-surface-muted px-3 py-2 text-sm text-app-text outline-none transition-colors focus:border-app-accent focus:ring-2 focus:ring-app-accent/30"
+                aria-label="정렬"
+                className="min-h-11 rounded-control border border-cockpit-border bg-cockpit-bg/70 px-3 py-2 text-sm text-cockpit-text outline-none transition-colors focus:border-cockpit-accent focus:ring-2 focus:ring-cockpit-accent/30"
                 value={sortKey}
                 onChange={(event) => setSortKey(event.target.value as SortKey)}
               >
                 {Object.entries(sortLabels).map(([value, label]) => (
                   <option key={value} value={value}>
-                    {label}
+                    정렬: {label}
                   </option>
                 ))}
               </select>
             </label>
 
-            <label className="flex flex-col gap-2 text-sm font-medium text-app-text">
-              방향
+            <label className="flex flex-col text-sm font-medium text-cockpit-text">
+              <span className="sr-only">시장</span>
               <select
-                className="min-h-10 rounded-control border border-app-border bg-app-surface-muted px-3 py-2 text-sm text-app-text outline-none transition-colors focus:border-app-accent focus:ring-2 focus:ring-app-accent/30"
-                value={sortDirection}
-                onChange={(event) =>
-                  setSortDirection(event.target.value as SortDirection)
-                }
-              >
-                <option value="desc">내림차순</option>
-                <option value="asc">오름차순</option>
-              </select>
-            </label>
-
-            <label className="flex flex-col gap-2 text-sm font-medium text-app-text">
-              시장
-              <select
-                className="min-h-10 rounded-control border border-app-border bg-app-surface-muted px-3 py-2 text-sm text-app-text outline-none transition-colors focus:border-app-accent focus:ring-2 focus:ring-app-accent/30"
+                aria-label="시장"
+                className="min-h-11 rounded-control border border-cockpit-border bg-cockpit-bg/70 px-3 py-2 text-sm text-cockpit-text outline-none transition-colors focus:border-cockpit-accent focus:ring-2 focus:ring-cockpit-accent/30"
                 value={marketFilter}
                 onChange={(event) => setMarketFilter(event.target.value)}
               >
@@ -435,10 +472,11 @@ export function WatchlistPage() {
               </select>
             </label>
 
-            <label className="flex flex-col gap-2 text-sm font-medium text-app-text">
-              위험 필터
+            <label className="flex flex-col text-sm font-medium text-cockpit-text">
+              <span className="sr-only">위험 필터</span>
               <select
-                className="min-h-10 rounded-control border border-app-border bg-app-surface-muted px-3 py-2 text-sm text-app-text outline-none transition-colors focus:border-app-accent focus:ring-2 focus:ring-app-accent/30"
+                aria-label="위험 필터"
+                className="min-h-11 rounded-control border border-cockpit-border bg-cockpit-bg/70 px-3 py-2 text-sm text-cockpit-text outline-none transition-colors focus:border-cockpit-accent focus:ring-2 focus:ring-cockpit-accent/30"
                 value={riskFilter}
                 onChange={(event) =>
                   setRiskFilter(event.target.value as RiskFilter)
@@ -455,32 +493,62 @@ export function WatchlistPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <Button type="button" variant="ghost" onClick={resetFilters}>
-              필터 초기화
+            <Button
+              type="button"
+              variant="ghost"
+              className="min-h-10 gap-2 text-cockpit-text-muted hover:bg-cockpit-surface-muted hover:text-cockpit-text"
+              onClick={() =>
+                setSortDirection((current) =>
+                  current === 'desc' ? 'asc' : 'desc',
+                )
+              }
+              aria-label="정렬 방향 변경"
+              title="정렬 방향 변경"
+            >
+              ↕
             </Button>
-            <Button type="button">+ 종목 추가</Button>
+            <Button
+              type="button"
+              variant="ghost"
+              className="min-h-10 gap-2 text-cockpit-text-muted hover:bg-cockpit-surface-muted hover:text-cockpit-text"
+              onClick={resetFilters}
+            >
+              필터 초기화 <span aria-hidden="true">↻</span>
+            </Button>
+            <Button
+              type="button"
+              className="min-h-10 border-blue-600 bg-blue-600 px-4 text-white hover:bg-blue-500"
+            >
+              + 종목 추가
+            </Button>
           </div>
         </div>
       </Card>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {mockWatchlistSummary.map((summaryCard) => (
-          <Card key={summaryCard.label} className="min-h-36">
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        {mockWatchlistSummary.map((summaryCard, index) => (
+          <Card
+            key={summaryCard.label}
+            className="min-h-36 border-cockpit-border bg-cockpit-surface/85 p-5 shadow-blue-950/20"
+          >
             <div className="flex h-full flex-col justify-between gap-4">
               <div className="flex items-start justify-between gap-3">
-                <span className="text-sm font-medium text-app-text">
+                <span className="text-sm font-semibold text-cockpit-text">
                   {summaryCard.label}
                 </span>
                 <span
-                  className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-app-border bg-app-surface-muted text-app-accent"
+                  className={classNames(
+                    'grid h-10 w-10 shrink-0 place-items-center rounded-full text-lg',
+                    summaryIconClassNames[index],
+                  )}
                   aria-hidden="true"
                 >
-                  ◇
+                  {summaryIcons[index]}
                 </span>
               </div>
               <div className="flex items-end justify-between gap-4">
                 <div className="flex flex-col gap-2">
-                  <strong className="text-3xl font-bold text-app-text">
+                  <strong className="text-4xl font-semibold tracking-normal text-cockpit-text">
                     {summaryCard.value}
                   </strong>
                   <span
@@ -492,130 +560,403 @@ export function WatchlistPage() {
                     {summaryCard.deltaLabel}
                   </span>
                 </div>
-                <span
-                  className="h-10 w-20 rounded-control border border-dashed border-app-border bg-app-surface-muted/40"
-                  aria-label={`${summaryCard.label} 미니 시각화 자리`}
-                />
+                <SummaryVisual index={index} />
               </div>
             </div>
           </Card>
         ))}
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_26rem]">
-        <Card className="min-w-0">
+      <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_26rem]">
+        <Card className="min-w-0 border-cockpit-border bg-cockpit-surface/85 p-4 shadow-blue-950/20">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <h2 className="text-lg font-semibold text-app-text">
+              <h2 className="text-lg font-semibold text-cockpit-text">
                 관심 종목 목록
               </h2>
-              <span className="text-sm text-app-text-muted">
-                {visibleStocks.length}개 표시
+              <span className="grid h-4 w-4 place-items-center rounded-full border border-cockpit-border text-[10px] text-cockpit-text-muted">
+                i
               </span>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <Button type="button" variant="secondary" disabled>
-                열 설정
+              <Button
+                type="button"
+                variant="secondary"
+                className="min-h-9 gap-2 border-cockpit-border bg-cockpit-bg/60 px-3 text-cockpit-text"
+                disabled
+              >
+                ⚙ 열 설정
               </Button>
-              <Button type="button" variant="secondary" disabled>
-                내보내기
+              <Button
+                type="button"
+                variant="secondary"
+                className="min-h-9 gap-2 border-cockpit-border bg-cockpit-bg/60 px-3 text-cockpit-text"
+                disabled
+              >
+                ⇩ 내보내기
               </Button>
-              <Button type="button" variant="secondary" disabled>
-                전체화면
+              <Button
+                type="button"
+                variant="secondary"
+                className="min-h-9 w-9 border-cockpit-border bg-cockpit-bg/60 px-0 text-cockpit-text"
+                aria-label="전체화면"
+                disabled
+              >
+                ⛶
               </Button>
             </div>
           </div>
 
-          <Table
-            aria-label="관심 종목"
-            columns={columns}
-            rows={visibleStocks}
-            getRowKey={(stock) => stock.symbol}
-            onRowClick={(stock) => openResearch(stock.symbol)}
-            emptyMessage="조건에 맞는 관심 종목이 없습니다."
-            pagination={{ pageSize: 10 }}
-          />
+          <div className="overflow-hidden rounded-card border border-cockpit-border bg-cockpit-bg/35">
+            <div className="overflow-x-auto">
+              <table
+                className="min-w-[58rem] border-collapse text-sm"
+                aria-label="관심 종목"
+              >
+                <thead className="bg-cockpit-surface-muted/70 text-xs font-semibold text-cockpit-text-muted">
+                  <tr>
+                    {[
+                      '',
+                      '종목',
+                      '상태',
+                      '변화(1D)',
+                      '뉴스 위험도',
+                      '밸류에이션',
+                      '테마 과열',
+                      'AI 판단',
+                      '마지막 갱신',
+                      '',
+                    ].map((header, index) => (
+                      <th
+                        key={`${header}-${index}`}
+                        scope="col"
+                        className="border-b border-cockpit-border px-3 py-3 text-left first:w-10 last:w-10"
+                      >
+                        {header}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {displayedStocks.length > 0 ? (
+                    displayedStocks.map((stock) => (
+                      <tr
+                        key={stock.symbol}
+                        className="border-b border-cockpit-border/80 last:border-b-0 hover:bg-cockpit-surface-muted/45"
+                        tabIndex={0}
+                        onClick={() => openResearch(stock.symbol)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault()
+                            openResearch(stock.symbol)
+                          }
+                        }}
+                      >
+                        <td className="px-3 py-2.5">
+                          <button
+                            type="button"
+                            className={classNames(
+                              'inline-flex h-7 w-7 items-center justify-center rounded-control text-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cockpit-accent',
+                              stock.isFavorite
+                                ? 'text-cockpit-accent'
+                                : 'text-cockpit-text-muted hover:text-cockpit-text',
+                            )}
+                            aria-label={`${stock.symbol} 즐겨찾기`}
+                            aria-pressed={stock.isFavorite}
+                            onClick={(event) => {
+                              stopRowNavigation(event)
+                              toggleFavorite(stock.symbol)
+                            }}
+                          >
+                            {stock.isFavorite ? '★' : '☆'}
+                          </button>
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <StockIdentity stock={stock} />
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <Badge
+                            status={stock.status}
+                            className="min-h-7 text-xs"
+                          />
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <div className="flex items-center gap-3">
+                            <span
+                              className={classNames(
+                                'min-w-14 font-semibold',
+                                stock.changePercent >= 0
+                                  ? 'text-emerald-300'
+                                  : 'text-rose-300',
+                              )}
+                            >
+                              {formatPercent(stock.changePercent)}
+                            </span>
+                            <Sparkline
+                              values={stock.changeSeries ?? [stock.price]}
+                            />
+                          </div>
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <Badge
+                            riskLevel={stock.newsRisk}
+                            className="min-h-7 text-xs"
+                          />
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <Badge
+                            riskLevel={
+                              stock.valuation === '고평가'
+                                ? '높음'
+                                : stock.valuation === '적정'
+                                  ? '중간'
+                                  : '낮음'
+                            }
+                            className="min-h-7 text-xs"
+                          >
+                            {stock.valuation === '적정'
+                              ? '보통'
+                              : stock.valuation === '고평가'
+                                ? '높음'
+                                : '낮음'}
+                          </Badge>
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <Badge
+                            riskLevel={stock.themeHeat}
+                            className="min-h-7 text-xs"
+                          />
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <span
+                            className={classNames(
+                              'inline-flex min-h-7 items-center rounded-control border px-2.5 py-1 text-xs font-medium leading-none',
+                              stock.aiVerdict.includes('위험')
+                                ? 'border-status-risk-border bg-status-risk-bg text-status-risk-text'
+                                : stock.aiVerdict.includes('관망')
+                                  ? 'border-status-watch-border bg-status-watch-bg text-status-watch-text'
+                                  : 'border-status-stable-border bg-status-stable-bg text-status-stable-text',
+                            )}
+                          >
+                            {stock.aiVerdict}
+                          </span>
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-2.5 text-cockpit-text-muted">
+                          {formatTime(stock.lastUpdatedAt)}
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <RowMenu
+                            stock={stock}
+                            isOpen={openMenuSymbol === stock.symbol}
+                            onToggle={(symbol) =>
+                              setOpenMenuSymbol((current) =>
+                                current === symbol ? null : symbol,
+                              )
+                            }
+                            onNavigate={openResearch}
+                          />
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td
+                        colSpan={10}
+                        className="px-4 py-8 text-center text-sm text-cockpit-text-muted"
+                      >
+                        조건에 맞는 관심 종목이 없습니다.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-cockpit-border px-3 py-3 text-sm text-cockpit-text-muted">
+              <span>
+                전체 {visibleStocks.length}개 중 {displayedStart}-{displayedEnd}{' '}
+                표시
+              </span>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="h-9 min-h-9 w-9 px-0 text-cockpit-text-muted"
+                  disabled
+                >
+                  ‹
+                </Button>
+                {visiblePageNumbers.map((page) => (
+                  <Button
+                    key={page}
+                    type="button"
+                    variant={page === 1 ? 'primary' : 'ghost'}
+                    className={classNames(
+                      'h-9 min-h-9 w-9 px-0',
+                      page === 1
+                        ? 'border-blue-700 bg-blue-700 text-white'
+                        : 'text-cockpit-text-muted hover:bg-cockpit-surface-muted',
+                    )}
+                    disabled={page !== 1}
+                  >
+                    {page}
+                  </Button>
+                ))}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="h-9 min-h-9 w-9 px-0 text-cockpit-text-muted"
+                  disabled={visiblePageCount <= 1}
+                >
+                  ›
+                </Button>
+              </div>
+              <label className="flex items-center gap-2">
+                <span>표시 개수</span>
+                <select
+                  className="min-h-9 rounded-control border border-cockpit-border bg-cockpit-bg/60 px-3 py-1 text-cockpit-text disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled
+                >
+                  <option>10</option>
+                </select>
+              </label>
+            </div>
+          </div>
         </Card>
 
-        <aside className="flex flex-col gap-4" aria-label="AI 관찰 레일">
-          <Card>
+        <aside className="flex flex-col gap-3" aria-label="AI 관찰 레일">
+          <Card className="border-cockpit-border bg-cockpit-surface/85 p-4 shadow-blue-950/20">
             <div className="mb-3 flex items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold text-app-text">
+              <h2 className="flex items-center gap-2 text-lg font-semibold text-cockpit-text">
                 AI 관찰 메모
+                <span
+                  className="text-sm text-cockpit-text-muted"
+                  aria-hidden="true"
+                >
+                  ✎
+                </span>
               </h2>
-              <Button type="button" variant="ghost" disabled>
-                편집
-              </Button>
             </div>
-            <ul className="flex flex-col gap-3 text-sm leading-6 text-app-text-muted">
+            <ul className="flex flex-col gap-3 rounded-card border border-cockpit-border bg-cockpit-bg/40 px-4 py-3 text-sm leading-6 text-cockpit-text-muted">
               {mockWatchlistObservations.map((observation) => (
                 <li key={observation.id} className="flex gap-2">
-                  <span className="text-app-accent" aria-hidden="true">
+                  <span className="text-cockpit-accent" aria-hidden="true">
                     •
                   </span>
                   <span>{observation.text}</span>
                 </li>
               ))}
             </ul>
-          </Card>
-
-          <Card>
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold text-app-text">
-                새로 추가된 관심 종목
-              </h2>
-              <Button type="button" variant="ghost" disabled>
-                더 보기
+            <div className="mt-2 flex justify-end">
+              <Button
+                type="button"
+                variant="ghost"
+                className="min-h-8 gap-1 px-2 py-1 text-cockpit-text-muted"
+              >
+                더 보기 <span aria-hidden="true">›</span>
               </Button>
             </div>
-            <ul className="flex flex-col gap-3">
+          </Card>
+
+          <Card className="border-cockpit-border bg-cockpit-surface/85 p-4 shadow-blue-950/20">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <h2 className="text-lg font-semibold text-cockpit-text">
+                새로 추가된 관심 종목
+              </h2>
+              <Button
+                type="button"
+                variant="ghost"
+                className="min-h-8 gap-1 px-2 py-1 text-cockpit-text-muted"
+              >
+                더 보기 <span aria-hidden="true">›</span>
+              </Button>
+            </div>
+            <ul className="flex flex-col gap-2">
               {mockRecentWatchlist.map((item) => (
                 <li
                   key={item.symbol}
-                  className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3"
+                  className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3"
                 >
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-app-text">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span
+                      className={classNames(
+                        'grid h-6 w-6 shrink-0 place-items-center rounded-sm text-xs font-black',
+                        symbolMarks[item.symbol]?.className ??
+                          'bg-cockpit-surface-muted text-cockpit-accent',
+                      )}
+                      aria-hidden="true"
+                    >
+                      {symbolMarks[item.symbol]?.label ?? item.symbol[0]}
+                    </span>
+                    <div className="min-w-0">
+                      <span className="font-semibold text-cockpit-text">
                         {item.symbol}
                       </span>
-                      <span className="truncate text-sm text-app-text-muted">
+                      <span className="ml-2 truncate text-sm text-cockpit-text-muted">
                         {item.name}
                       </span>
                     </div>
-                    <span className="text-xs text-app-text-muted">
-                      {formatTime(item.addedAt)}
-                    </span>
                   </div>
-                  <Badge status={item.status} />
+                  <Badge status={item.status} className="min-h-7 text-xs" />
+                  <span className="whitespace-nowrap text-xs text-cockpit-text-muted">
+                    {formatTime(item.addedAt)}
+                  </span>
                 </li>
               ))}
             </ul>
           </Card>
 
-          <Card>
+          <Card className="border-cockpit-border bg-cockpit-surface/85 p-4 shadow-blue-950/20">
             <div className="mb-3 flex items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold text-app-text">
+              <h2 className="text-lg font-semibold text-cockpit-text">
                 빠른 알림 설정
               </h2>
-              <Button type="button" variant="ghost" disabled>
-                관리
+              <Button
+                type="button"
+                variant="ghost"
+                className="min-h-8 w-8 px-0 text-cockpit-text-muted"
+                aria-label="빠른 알림 설정 관리"
+              >
+                ⚙
               </Button>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              {mockWatchlistAlertSettings.map((setting) => (
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-4">
+              {mockWatchlistAlertSettings.map((setting, index) => (
                 <div
                   key={setting.label}
-                  className="rounded-control border border-app-border bg-app-surface-muted p-3"
+                  className="flex min-h-24 flex-col items-center justify-center gap-2 rounded-control border border-cockpit-border bg-cockpit-bg/45 p-3 text-center"
                 >
-                  <div className="text-sm font-medium text-app-text">
+                  <span
+                    className={classNames(
+                      'text-3xl leading-none',
+                      index === 0
+                        ? 'text-blue-400'
+                        : index === 1
+                          ? 'text-rose-400'
+                          : index === 2
+                            ? 'text-cyan-300'
+                            : 'text-red-400',
+                    )}
+                    aria-hidden="true"
+                  >
+                    {['⌁', '▣', '✾', '♨'][index]}
+                  </span>
+                  <div className="text-sm font-medium text-cockpit-text">
                     {setting.label}
                   </div>
-                  <div className="mt-2 text-sm text-app-text-muted">
+                  <div className="text-sm text-cockpit-text-muted">
                     {setting.value}
                   </div>
                 </div>
               ))}
+            </div>
+            <div className="mt-2 flex justify-end">
+              <Button
+                type="button"
+                variant="ghost"
+                className="min-h-8 gap-1 px-2 py-1 text-cockpit-text-muted"
+              >
+                알림 설정 관리 <span aria-hidden="true">›</span>
+              </Button>
             </div>
           </Card>
         </aside>
