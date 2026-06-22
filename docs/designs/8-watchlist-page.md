@@ -71,7 +71,7 @@
 새 필드·모델이 필요하다(`shared/model`·`shared/mock`). 차트 데이터는 단순 배열/수치로만 추가.
 
 - `Stock` 확장: `themeHeat: RiskLevel`, `lastUpdatedAt: string`, `isFavorite: boolean`.
-  (로고는 `logoUrl?: string` 선택 또는 심볼 이니셜 대체. 변화율 스파크라인용 `changeSeries?: number[]`는
+  (로고는 별도 필드 없이 **심볼 이니셜로 대체 렌더**. 변화율 스파크라인용 `changeSeries?: number[]`는
   선택 — 표시는 #19에서.)
 - 신규 모델:
   - `WatchlistSummaryCard`(또는 `WatchlistSummary`) — 카드별 `label`·`value`·`deltaLabel`·`trend` 키.
@@ -111,9 +111,13 @@
   UI 자리/네비게이션까지. 실제 플로우는 각 후속 이슈(알림·설정 등).
 - 다른 페이지(Signals/Research/Decision Log/Dashboard).
 
+## 결정 (2026-06-22 확정)
+
+- **로고**: 정적 자산을 두지 않고 **심볼 이니셜 대체**(단색 배경 + 첫 글자). 자산 의존 회피.
+- **즐겨찾기(★)**: mock `isFavorite` 기준 **표시 위주**. 토글 클릭은 로컬 상태로 즉시 반영 가능하나
+  영속화는 후속(필수 아님).
+- **정렬**: **단일 키 + 방향**(변화율/현재가/심볼 등). "사용자 설정" 다중 키·프리셋은 후속.
+
 ## Open Questions
 
-- 즐겨찾기(★)를 로컬 토글로만 둘지, mock `isFavorite` 표시 위주로 둘지(영속화는 후속).
-- 정렬 "사용자 설정"의 의미(프리셋 정렬 vs 다중 키) — MVP는 단일 키+방향, 확장은 후속.
-- 로고 소스(정적 자산 vs 심볼 이니셜 대체) — 자산 의존 피하려면 이니셜/단색 대체 권장.
-- `WatchlistAlertSetting`과 기존 `AlertRule`의 관계(미리보기 전용 vs 연동).
+- `WatchlistAlertSetting`과 기존 `AlertRule`의 관계(미리보기 전용 vs 연동) — 본 라운드는 미리보기 전용.
