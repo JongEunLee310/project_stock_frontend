@@ -13,6 +13,10 @@ Representative mock data that satisfies those types lives in `shared/mock`.
 Dark theme tokens are defined in `src/index.css` with Tailwind CSS v4 `@theme`.
 Shared primitives live in `shared/ui`.
 
+`Table<T>` renders column-driven tabular data with built-in loading, empty,
+pagination, and row action slots for Watchlist, Decision Log, Alerts, and
+Portfolio-style screens.
+
 Status color mapping:
 
 - `안정` -> `status-stable`
