@@ -5,7 +5,7 @@ import { Topbar } from './Topbar'
 
 export function AppShell() {
   return (
-    <div className="min-h-screen bg-app-bg text-app-text">
+    <div className="min-h-screen bg-cockpit-bg text-cockpit-text">
       <div className="grid min-h-screen lg:grid-cols-[16rem_minmax(0,1fr)]">
         <Sidebar />
         <div className="flex min-w-0 flex-col">

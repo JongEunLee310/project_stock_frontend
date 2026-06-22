@@ -255,9 +255,9 @@ function StockSparkline({ stock }: { stock: Stock }) {
 function SectionTitle({ icon, title }: { icon: string; title: string }) {
   return (
     <div className="flex items-center gap-3">
-      <span className="text-xl text-app-text-muted">{icon}</span>
-      <h2 className="text-lg font-bold text-app-text">{title}</h2>
-      <span className="grid h-4 w-4 place-items-center rounded-full border border-app-border text-[10px] text-app-text-muted">
+      <span className="text-xl text-cockpit-text-muted">{icon}</span>
+      <h2 className="text-lg font-bold text-cockpit-text">{title}</h2>
+      <span className="grid h-4 w-4 place-items-center rounded-full border border-cockpit-border text-[10px] text-cockpit-text-muted">
         i
       </span>
     </div>
@@ -268,7 +268,7 @@ function SectionLink({ label, to }: { label: string; to: string }) {
   return (
     <Link
       to={to}
-      className="inline-flex items-center gap-2 text-sm text-app-text-muted hover:text-app-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent"
+      className="inline-flex items-center gap-2 text-sm text-cockpit-text-muted hover:text-cockpit-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cockpit-accent"
     >
       {label}
       <span aria-hidden="true">›</span>
@@ -281,11 +281,11 @@ function StockIdentity({ stock }: { stock: Stock }) {
     <div className="flex min-w-28 flex-col">
       <Link
         to={getResearchPath(stock.symbol)}
-        className="w-fit font-bold text-app-text hover:text-app-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent"
+        className="w-fit font-bold text-cockpit-text hover:text-cockpit-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cockpit-accent"
       >
         {stock.symbol}
       </Link>
-      <span className="max-w-28 truncate text-xs text-app-text-muted">
+      <span className="max-w-28 truncate text-xs text-cockpit-text-muted">
         {stock.name}
       </span>
     </div>
@@ -328,14 +328,18 @@ const stockColumns: Array<TableColumn<Stock>> = [
     cell: (stock) => (
       <div className="flex items-center justify-end gap-3">
         <StockSparkline stock={stock} />
-        <div className="flex min-w-16 flex-col gap-0.5 text-sm leading-tight text-app-text-muted">
+        <div className="flex min-w-16 flex-col gap-0.5 text-sm leading-tight text-cockpit-text-muted">
           <span>
             PER{' '}
-            <strong className="font-medium text-app-text">{stock.per}</strong>
+            <strong className="font-medium text-cockpit-text">
+              {stock.per}
+            </strong>
           </span>
           <span>
             PEG{' '}
-            <strong className="font-medium text-app-text">{stock.peg}</strong>
+            <strong className="font-medium text-cockpit-text">
+              {stock.peg}
+            </strong>
           </span>
         </div>
       </div>
@@ -348,7 +352,7 @@ const decisionColumns: Array<TableColumn<DecisionLog>> = [
     key: 'createdAt',
     header: '시간',
     cell: (log) => (
-      <span className="whitespace-nowrap text-app-text-muted">
+      <span className="whitespace-nowrap text-cockpit-text-muted">
         {formatDateTime(log.createdAt)}
       </span>
     ),
@@ -359,7 +363,7 @@ const decisionColumns: Array<TableColumn<DecisionLog>> = [
     cell: (log) => (
       <Link
         to={getResearchPath(log.symbol)}
-        className="font-semibold text-app-text hover:text-app-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent"
+        className="font-semibold text-cockpit-text hover:text-cockpit-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cockpit-accent"
       >
         {log.symbol}
       </Link>
@@ -376,7 +380,9 @@ const decisionColumns: Array<TableColumn<DecisionLog>> = [
     key: 'decision',
     header: '요약',
     cell: (log) => (
-      <span className="line-clamp-2 text-app-text-muted">{log.decision}</span>
+      <span className="line-clamp-2 text-cockpit-text-muted">
+        {log.decision}
+      </span>
     ),
   },
 ]
@@ -409,25 +415,25 @@ function SignalCard({ signal }: { signal: Signal }) {
         </h3>
         <Badge status={signal.status}>{signal.status}</Badge>
       </div>
-      <p className="flex items-center justify-between gap-3 text-sm text-app-text-muted">
+      <p className="flex items-center justify-between gap-3 text-sm text-cockpit-text-muted">
         <span>신뢰도</span>
-        <strong className="text-base text-app-text">
+        <strong className="text-base text-cockpit-text">
           {signal.confidence}%
         </strong>
       </p>
       <div className="mt-3">
-        <p className="text-sm text-app-text-muted">근거</p>
-        <ul className="mt-1 flex flex-col gap-1 text-sm leading-6 text-app-text-muted">
+        <p className="text-sm text-cockpit-text-muted">근거</p>
+        <ul className="mt-1 flex flex-col gap-1 text-sm leading-6 text-cockpit-text-muted">
           {signal.reasons.slice(0, 3).map((reason) => (
             <li key={reason}>• {reason}</li>
           ))}
         </ul>
       </div>
-      <p className="mt-3 text-sm text-app-text">
+      <p className="mt-3 text-sm text-cockpit-text">
         관련 종목:{' '}
         <Link
           to={getResearchPath(signal.symbol)}
-          className="font-semibold text-app-accent hover:text-app-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent"
+          className="font-semibold text-cockpit-accent hover:text-cockpit-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cockpit-accent"
         >
           {signal.symbol}
         </Link>
@@ -440,10 +446,10 @@ export function DashboardPage() {
   return (
     <div className="flex flex-col gap-3">
       <header className="flex min-h-16 items-center">
-        <h1 className="text-3xl font-bold text-app-text">AI 투자 관제실</h1>
+        <h1 className="text-3xl font-bold text-cockpit-text">AI 투자 관제실</h1>
       </header>
 
-      <Card className="flex flex-col gap-4 bg-app-surface/70 p-5">
+      <Card className="flex flex-col gap-4 bg-cockpit-surface/70 p-5">
         <SectionTitle icon="▣" title="Today Brief" />
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {todayBriefCards.map((card) => {
@@ -453,7 +459,7 @@ export function DashboardPage() {
             return (
               <section
                 key={card.label}
-                className="min-h-32 rounded-card border border-app-border bg-app-surface-muted/55 p-5"
+                className="min-h-32 rounded-card border border-cockpit-border bg-cockpit-surface-muted/55 p-5"
               >
                 <div className="flex h-full items-center justify-between gap-4">
                   <div className="flex flex-col gap-3">
@@ -466,11 +472,11 @@ export function DashboardPage() {
                       >
                         {card.icon}
                       </span>
-                      <span className="font-semibold text-app-text">
+                      <span className="font-semibold text-cockpit-text">
                         {card.label}
                       </span>
                     </div>
-                    <strong className="text-4xl leading-none text-app-text">
+                    <strong className="text-4xl leading-none text-cockpit-text">
                       {formatMetricValue(value, card.suffix)}
                     </strong>
                     <span
@@ -478,7 +484,7 @@ export function DashboardPage() {
                         'text-sm',
                         card.deltaKey === 'cashRatioDelta'
                           ? 'text-emerald-300'
-                          : 'text-app-text-muted',
+                          : 'text-cockpit-text-muted',
                       )}
                     >
                       {delta}
@@ -496,7 +502,7 @@ export function DashboardPage() {
       </Card>
 
       <div className="grid gap-3 xl:grid-cols-[1.15fr_0.95fr_1fr]">
-        <Card className="flex flex-col gap-4 bg-app-surface/70 p-5">
+        <Card className="flex flex-col gap-4 bg-cockpit-surface/70 p-5">
           <SectionTitle icon="◷" title="관심 종목 상태" />
           <Table
             columns={stockColumns}
@@ -504,7 +510,7 @@ export function DashboardPage() {
             getRowKey={(stock) => stock.symbol}
             emptyMessage="표시할 관심 종목이 없습니다."
             aria-label="관심 종목 상태"
-            className="border-app-border/80 bg-transparent [&_thead]:normal-case [&_th]:px-3 [&_th]:py-2 [&_td]:px-3 [&_td]:py-2.5"
+            className="border-cockpit-border/80 bg-transparent [&_thead]:normal-case [&_th]:px-3 [&_th]:py-2 [&_td]:px-3 [&_td]:py-2.5"
           />
           <div className="flex justify-center">
             <SectionLink
@@ -514,16 +520,16 @@ export function DashboardPage() {
           </div>
         </Card>
 
-        <Card className="flex flex-col gap-5 bg-app-surface/70 p-6">
+        <Card className="flex flex-col gap-5 bg-cockpit-surface/70 p-6">
           <SectionTitle icon="✦" title="AI 브리핑" />
-          <p className="text-base leading-7 text-app-text-muted">
+          <p className="text-base leading-7 text-cockpit-text-muted">
             오늘 시장은 개별 종목의 밸류에이션 부담과 뉴스/센티먼트 변동성
             확대가 주요 리스크로 작용하고 있습니다.
           </p>
-          <strong className="text-xl leading-8 text-app-accent">
+          <strong className="text-xl leading-8 text-cockpit-accent">
             {mockAiBriefing.riskHeadline}를 권고합니다.
           </strong>
-          <ul className="flex flex-col gap-2 text-sm leading-6 text-app-text-muted">
+          <ul className="flex flex-col gap-2 text-sm leading-6 text-cockpit-text-muted">
             {mockAiBriefing.riskChecks?.map((check) => (
               <li key={check}>• {check}</li>
             ))}
@@ -533,22 +539,22 @@ export function DashboardPage() {
           </div>
         </Card>
 
-        <Card className="flex flex-col gap-4 bg-app-surface/70 p-5">
+        <Card className="flex flex-col gap-4 bg-cockpit-surface/70 p-5">
           <SectionTitle icon="▤" title="우선 확인 큐" />
           <ol className="flex flex-col gap-2">
             {priorityQueue.map((item, index) => (
               <li
                 key={item.id}
-                className="flex items-start gap-4 rounded-card border border-app-border bg-app-surface-muted/55 p-3"
+                className="flex items-start gap-4 rounded-card border border-cockpit-border bg-cockpit-surface-muted/55 p-3"
               >
                 <span
                   className={classNames(
-                    'grid h-8 w-8 shrink-0 place-items-center rounded-full text-sm font-bold text-app-accent-text',
+                    'grid h-8 w-8 shrink-0 place-items-center rounded-full text-sm font-bold text-cockpit-accent-text',
                     index === 0
                       ? 'bg-rose-500'
                       : index === 1
-                        ? 'bg-amber-400 text-app-bg'
-                        : 'bg-yellow-400 text-app-bg',
+                        ? 'bg-amber-400 text-cockpit-bg'
+                        : 'bg-yellow-400 text-cockpit-bg',
                   )}
                 >
                   {index + 1}
@@ -557,13 +563,13 @@ export function DashboardPage() {
                   <div className="flex items-start justify-between gap-3">
                     <Link
                       to={getResearchPath(item.symbol)}
-                      className="text-base font-bold text-app-text hover:text-app-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent"
+                      className="text-base font-bold text-cockpit-text hover:text-cockpit-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cockpit-accent"
                     >
                       {item.title}
                     </Link>
                     <Badge riskLevel={item.risk}>{item.risk}</Badge>
                   </div>
-                  <p className="mt-1 line-clamp-1 text-sm text-app-text-muted">
+                  <p className="mt-1 line-clamp-1 text-sm text-cockpit-text-muted">
                     {item.reason}
                   </p>
                 </div>
@@ -577,7 +583,7 @@ export function DashboardPage() {
       </div>
 
       <div className="grid gap-3 xl:grid-cols-[1.45fr_1fr]">
-        <Card className="flex flex-col gap-4 bg-app-surface/70 p-5">
+        <Card className="flex flex-col gap-4 bg-cockpit-surface/70 p-5">
           <SectionTitle icon="⌁" title="시그널" />
           <div className="grid gap-3 lg:grid-cols-3">
             {topSignals.map((signal) => (
@@ -589,15 +595,17 @@ export function DashboardPage() {
           </div>
         </Card>
 
-        <Card className="flex flex-col gap-4 bg-app-surface/70 p-5">
-          <h2 className="text-lg font-bold text-app-text">최근 판단 기록</h2>
+        <Card className="flex flex-col gap-4 bg-cockpit-surface/70 p-5">
+          <h2 className="text-lg font-bold text-cockpit-text">
+            최근 판단 기록
+          </h2>
           <Table
             columns={decisionColumns}
             rows={recentDecisionLogs}
             getRowKey={(log) => log.id}
             emptyMessage="최근 판단 기록이 없습니다."
             aria-label="최근 판단 기록"
-            className="border-app-border/80 bg-transparent [&_thead]:normal-case [&_th]:px-3 [&_th]:py-2 [&_td]:px-3 [&_td]:py-3"
+            className="border-cockpit-border/80 bg-transparent [&_thead]:normal-case [&_th]:px-3 [&_th]:py-2 [&_td]:px-3 [&_td]:py-3"
           />
           <div className="flex justify-center">
             <SectionLink

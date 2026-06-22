@@ -2,8 +2,8 @@ import { Button } from '@/shared/ui'
 
 export function Topbar() {
   return (
-    <header className="flex min-h-20 flex-wrap items-center justify-end gap-4 border-b border-app-border bg-app-bg px-4 py-3 lg:px-5">
-      <div className="flex items-center gap-3 text-sm text-app-text">
+    <header className="flex min-h-20 flex-wrap items-center justify-end gap-4 border-b border-cockpit-border bg-cockpit-bg px-4 py-3 lg:px-5">
+      <div className="flex items-center gap-3 text-sm text-cockpit-text">
         <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
         <span>
           동기화 <strong className="font-semibold">14:32</strong>
@@ -17,7 +17,7 @@ export function Topbar() {
           ↻
         </Button>
       </div>
-      <div className="h-8 w-px bg-app-border" />
+      <div className="h-8 w-px bg-cockpit-border" />
       <div className="flex items-center gap-3">
         <Button
           variant="ghost"
@@ -35,10 +35,10 @@ export function Topbar() {
         >
           ?
         </Button>
-        <span className="grid h-10 w-10 place-items-center rounded-full bg-app-accent-strong text-sm font-semibold text-app-accent-text">
+        <span className="grid h-10 w-10 place-items-center rounded-full bg-cockpit-accent-strong text-sm font-semibold text-cockpit-accent-text">
           IC
         </span>
-        <span className="text-lg text-app-text-muted">⌄</span>
+        <span className="text-lg text-cockpit-text-muted">⌄</span>
       </div>
     </header>
   )

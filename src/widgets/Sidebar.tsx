@@ -35,20 +35,20 @@ export function Sidebar() {
   const activeItem = getActiveNavigationItem(pathname)
 
   return (
-    <aside className="border-b border-app-border bg-app-surface/90 lg:border-b-0 lg:border-r">
+    <aside className="border-b border-cockpit-border bg-cockpit-surface/90 lg:border-b-0 lg:border-r">
       <div className="flex h-full flex-col gap-5 p-4 lg:p-3">
         <Link
           to="/"
           className="flex items-center gap-3 rounded-control px-2 py-2"
         >
-          <span className="grid h-10 w-10 place-items-center rounded-full border border-app-accent/70 bg-app-accent-strong/25 text-lg text-app-accent">
+          <span className="grid h-10 w-10 place-items-center rounded-full border border-cockpit-accent/70 bg-cockpit-accent-strong/25 text-lg text-cockpit-accent">
             ✦
           </span>
           <span className="flex min-w-0 flex-col gap-1">
-            <span className="truncate text-base font-bold text-app-text">
+            <span className="truncate text-base font-bold text-cockpit-text">
               Insight Cockpit AI
             </span>
-            <span className="text-xs text-app-text-muted">
+            <span className="text-xs text-cockpit-text-muted">
               AI 투자 관제 플랫폼
             </span>
           </span>
@@ -64,10 +64,10 @@ export function Sidebar() {
                 to={item.href}
                 aria-current={isActive ? 'page' : undefined}
                 className={classNames(
-                  'flex min-h-12 items-center gap-4 rounded-card border px-4 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent',
+                  'flex min-h-12 items-center gap-4 rounded-card border px-4 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cockpit-accent',
                   isActive
-                    ? 'border-app-accent-strong bg-app-accent-strong/80 text-app-accent-text shadow-lg shadow-blue-950/30'
-                    : 'border-transparent text-app-text-muted hover:bg-app-surface-muted hover:text-app-text',
+                    ? 'border-cockpit-accent-strong bg-cockpit-accent-strong/80 text-cockpit-accent-text shadow-lg shadow-blue-950/30'
+                    : 'border-transparent text-cockpit-text-muted hover:bg-cockpit-surface-muted hover:text-cockpit-text',
                 )}
               >
                 <span className="w-5 text-center text-2xl leading-none">
@@ -75,7 +75,7 @@ export function Sidebar() {
                 </span>
                 <span>{navLabels[item.id]}</span>
                 {item.id === 'alerts' ? (
-                  <span className="ml-auto grid h-6 w-6 place-items-center rounded-full bg-app-accent-strong text-xs text-app-accent-text">
+                  <span className="ml-auto grid h-6 w-6 place-items-center rounded-full bg-cockpit-accent-strong text-xs text-cockpit-accent-text">
                     6
                   </span>
                 ) : null}

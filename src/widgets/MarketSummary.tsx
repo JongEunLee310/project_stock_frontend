@@ -9,11 +9,11 @@ export function MarketSummary() {
   return (
     <section
       aria-label="시장 요약"
-      className="rounded-card border border-app-border bg-app-surface-muted/65 p-4"
+      className="rounded-card border border-cockpit-border bg-cockpit-surface-muted/65 p-4"
     >
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-app-text">시장 요약</h2>
-        <span className="grid h-4 w-4 place-items-center rounded-full border border-app-border text-[10px] text-app-text-muted">
+        <h2 className="text-sm font-semibold text-cockpit-text">시장 요약</h2>
+        <span className="grid h-4 w-4 place-items-center rounded-full border border-cockpit-border text-[10px] text-cockpit-text-muted">
           i
         </span>
       </div>
@@ -21,11 +21,13 @@ export function MarketSummary() {
         {marketSummaries.map((item) => (
           <div
             key={item.label}
-            className="flex items-end justify-between gap-3 border-b border-app-border/60 py-3 last:border-b-0"
+            className="flex items-end justify-between gap-3 border-b border-cockpit-border/60 py-3 last:border-b-0"
           >
             <div className="flex flex-col gap-1">
-              <span className="text-xs text-app-text-muted">{item.label}</span>
-              <strong className="text-lg leading-none text-app-text">
+              <span className="text-xs text-cockpit-text-muted">
+                {item.label}
+              </span>
+              <strong className="text-lg leading-none text-cockpit-text">
                 {item.value}
               </strong>
             </div>
@@ -41,7 +43,7 @@ export function MarketSummary() {
           </div>
         ))}
       </div>
-      <p className="mt-5 text-center text-xs text-app-text-muted">
+      <p className="mt-5 text-center text-xs text-cockpit-text-muted">
         데이터 기준 14:31 KST
       </p>
     </section>
