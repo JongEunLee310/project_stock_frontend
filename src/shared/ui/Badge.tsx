@@ -4,6 +4,8 @@ import { classNames } from './classNames'
 import {
   badgeToneClassNames,
   type BadgeTone,
+  decisionTypeClassNames,
+  type DecisionType,
   riskLevelClassNames,
   stockStatusClassNames,
   type RiskLevel,
@@ -18,35 +20,47 @@ type BadgeProps = BadgeBaseProps &
   (
     | {
         status: StockStatus
+        decisionType?: never
         riskLevel?: never
         tone?: never
       }
     | {
         riskLevel: RiskLevel
+        decisionType?: never
         status?: never
         tone?: never
       }
     | {
         tone: BadgeTone
+        decisionType?: never
         status?: never
         riskLevel?: never
+      }
+    | {
+        decisionType: DecisionType
+        status?: never
+        riskLevel?: never
+        tone?: never
       }
   )
 
 export function Badge({
   status,
+  decisionType,
   riskLevel,
   tone,
   children,
   className,
   ...props
 }: BadgeProps) {
-  const label = status ?? riskLevel ?? children
+  const label = status ?? decisionType ?? riskLevel ?? children
   const toneClassName = status
     ? stockStatusClassNames[status]
-    : riskLevel
-      ? riskLevelClassNames[riskLevel]
-      : badgeToneClassNames[tone]
+    : decisionType
+      ? decisionTypeClassNames[decisionType]
+      : riskLevel
+        ? riskLevelClassNames[riskLevel]
+        : badgeToneClassNames[tone]
 
   return (
     <span

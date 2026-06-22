@@ -1,4 +1,11 @@
-import { catalystCategories, newsCategories, riskLevels } from '@/shared/model'
+import {
+  catalystCategories,
+  cognitiveRisks,
+  decisionOutcomes,
+  decisionTypes,
+  newsCategories,
+  riskLevels,
+} from '@/shared/model'
 
 import {
   mockDecisionLogs,
@@ -91,7 +98,12 @@ describe('domain mock data', () => {
       mockDecisionLogs.every(
         (decisionLog) =>
           decisionLog.decisionType.length > 0 &&
+          decisionTypes.includes(decisionLog.decisionType) &&
           decisionLog.cognitiveRisks.length > 0 &&
+          decisionLog.cognitiveRisks.every((risk) =>
+            cognitiveRisks.includes(risk),
+          ) &&
+          decisionOutcomes.includes(decisionLog.outcome) &&
           decisionLog.reviewDate.length > 0,
       ),
     ).toBe(true)
