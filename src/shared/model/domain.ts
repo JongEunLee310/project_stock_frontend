@@ -66,7 +66,11 @@ export interface Signal {
   message: string
   createdAt: string
   status: StockStatus
+  previousStatus: StockStatus
   confidence: number
+  previousConfidence: number
+  oneMonthChangePercent: number
+  trendSeries: number[]
   reasons: string[]
   updatedAt: string
   priority: number

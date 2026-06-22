@@ -5,6 +5,7 @@ import {
   decisionTypes,
   newsCategories,
   riskLevels,
+  stockStatuses,
 } from '@/shared/model'
 
 import {
@@ -31,6 +32,16 @@ describe('domain mock data', () => {
     expect(mockSignals.every((signal) => stockSymbols.has(signal.symbol))).toBe(
       true,
     )
+    expect(
+      mockSignals.every(
+        (signal) =>
+          stockStatuses.includes(signal.previousStatus) &&
+          signal.previousConfidence >= 0 &&
+          signal.previousConfidence <= 100 &&
+          signal.oneMonthChangePercent !== 0 &&
+          signal.trendSeries.length >= 2,
+      ),
+    ).toBe(true)
     expect(mockPortfolio.totalValue).toBe(holdingsValue)
   })
 
