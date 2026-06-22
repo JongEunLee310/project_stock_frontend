@@ -23,6 +23,10 @@
   --color-status-watch-text: #fde68a;
   --color-status-watch-border: #8a6f22;
 
+  --color-status-watch-hold-bg: #272615;
+  --color-status-watch-hold-text: #fef3c7;
+  --color-status-watch-hold-border: #a16207;
+
   --color-status-risk-bg: #3a1f24;
   --color-status-risk-text: #fecaca;
   --color-status-risk-border: #8a3c45;
@@ -34,6 +38,22 @@
   --color-status-buy-bg: #18352f;
   --color-status-buy-text: #a7f3d0;
   --color-status-buy-border: #317966;
+
+  --color-status-reduce-bg: #33221c;
+  --color-status-reduce-text: #fed7aa;
+  --color-status-reduce-border: #9a5a2e;
+
+  --color-status-level-high-bg: #3a1f24;
+  --color-status-level-high-text: #fecaca;
+  --color-status-level-high-border: #8a3c45;
+
+  --color-status-level-medium-bg: #2d2a16;
+  --color-status-level-medium-text: #fde68a;
+  --color-status-level-medium-border: #8a6f22;
+
+  --color-status-level-low-bg: #14342b;
+  --color-status-level-low-text: #bbf7d0;
+  --color-status-level-low-border: #2f6f54;
 
   --spacing-page: 1.5rem;
   --spacing-panel: 1rem;
