@@ -43,8 +43,9 @@ describe('App', () => {
   it('renders research symbol params', () => {
     renderRoute('/research/NVDA')
 
+    expect(screen.getByRole('heading', { name: 'NVDA' })).toBeInTheDocument()
     expect(
-      screen.getByRole('heading', { name: 'NVDA Research' }),
+      screen.getByRole('img', { name: 'NVDA 최근 가격 추이' }),
     ).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Research' })).toHaveAttribute(
       'aria-current',

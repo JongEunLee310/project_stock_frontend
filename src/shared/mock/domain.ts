@@ -579,6 +579,83 @@ export const mockStockResearch = {
     ],
     memo: '',
   },
+  MSFT: {
+    symbol: 'MSFT',
+    pricePoints: [
+      { date: '2026-06-16', close: 444.3 },
+      { date: '2026-06-17', close: 445.1 },
+      { date: '2026-06-18', close: 446.2 },
+      { date: '2026-06-19', close: 445.8 },
+      { date: '2026-06-22', close: 447.22 },
+    ],
+    stance: 'Stable compounder, review on cloud durability',
+    briefing: {
+      headline: 'MSFT stays defensive while cloud execution remains steady.',
+      body: 'Cloud growth, AI platform breadth, and balance sheet quality support a stable stance, with valuation discipline still required.',
+    },
+    keyRisks: [
+      {
+        id: 'msft-risk-cloud',
+        title: 'Cloud growth deceleration',
+        level: '중간',
+        description:
+          'A slower Azure growth path would challenge current quality-premium assumptions.',
+      },
+      {
+        id: 'msft-risk-ai-spend',
+        title: 'AI capex efficiency',
+        level: '중간',
+        description:
+          'Large infrastructure investment needs visible revenue conversion to protect margins.',
+      },
+      {
+        id: 'msft-risk-regulation',
+        title: 'Platform regulation',
+        level: '낮음',
+        description:
+          'Enterprise bundling and cloud market scrutiny can create headline risk.',
+      },
+    ],
+    news: [
+      {
+        id: 'msft-news-001',
+        headline:
+          'Enterprise cloud demand remains resilient into the next quarter.',
+        source: 'Market Desk',
+        publishedAt: '2026-06-21T10:20:00.000Z',
+        risk: '낮음',
+      },
+    ],
+    catalysts: [
+      {
+        id: 'msft-catalyst-earnings',
+        date: '2026-07-29',
+        title: 'Quarterly earnings',
+        description:
+          'Check Azure growth, AI contribution, and margin guidance.',
+      },
+      {
+        id: 'msft-catalyst-cloud',
+        date: '2026-09-15',
+        title: 'Cloud platform update',
+        description:
+          'Watch for enterprise adoption signals and infrastructure efficiency.',
+      },
+    ],
+    checklist: [
+      {
+        id: 'msft-check-azure',
+        label: 'Azure growth remains within thesis range',
+        checked: true,
+      },
+      {
+        id: 'msft-check-valuation',
+        label: 'Valuation premium is still justified',
+        checked: false,
+      },
+    ],
+    memo: '',
+  },
 } satisfies Record<string, StockResearch>
 
 export const mockDecisionPatterns = [
