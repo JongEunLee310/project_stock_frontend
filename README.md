@@ -1,7 +1,6 @@
 # AI 개발 보조 템플릿
 
-> **브랜치:** `react` — 최소 실행 가능한 React + Tailwind CSS 스타터가 포함된 React 변형.
-> 공통 Harness Engineering 파일이 포함된다. 프레임워크 무관 템플릿은 `main` 브랜치를 참고한다.
+> **브랜치:** `main` — 최소 실행 가능한 React + Tailwind CSS 스타터가 포함된 프론트엔드 기반.
 
 이 저장소는 Claude Code와 Codex를 함께 사용하는 팀을 위한 재사용 가능한 Harness Engineering 기반 프로젝트 템플릿이다.
 
@@ -33,14 +32,26 @@ Claude Code 리뷰는 기본적으로 로컬에서 수행한다. 이 템플릿�
 ### 검증
 
 ```bash
-npm install
-npm run lint
-npm run typecheck
-npm run test
-npm run build
+corepack enable
+pnpm install
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
 ```
 
-개발 서버는 `npm run dev`로 실행한다.
+개발 서버는 `pnpm dev`로 실행한다.
+
+### 프론트엔드 레이어
+
+`src/`는 Feature-Sliced Design 계열 레이어를 따른다.
+
+- `app/` — 앱 진입점, 전역 프로바이더, 라우터 구성, 전역 스타일 연결.
+- `pages/` — 라우트 단위 화면 조립. 하위 레이어를 조합하고 도메인 로직은 두지 않는다.
+- `widgets/` — 여러 feature/entity를 묶은 독립 UI 블록.
+- `features/` — 사용자 행동 단위 기능.
+- `entities/` — 도메인 엔티티 단위 모델과 표현.
+- `shared/` — 도메인 비의존 공통 UI, 유틸, 타입, API 클라이언트, Mock.
 
 ## 포함된 관행
 
