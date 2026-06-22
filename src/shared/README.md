@@ -7,6 +7,10 @@ infrastructure.
 
 Core domain types live in `shared/model`.
 Representative mock data that satisfies those types lives in `shared/mock`.
+The shared domain includes stocks, signals, portfolio data, alerts, dashboard
+summaries, research detail records, and decision review records.
+Mock fixtures use TypeScript `satisfies` checks so future API-shaped data must
+preserve the same fields.
 
 ## UI Tokens
 
