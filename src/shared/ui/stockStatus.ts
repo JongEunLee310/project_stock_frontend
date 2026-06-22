@@ -1,9 +1,6 @@
-export type StockStatus =
-  | '안정'
-  | '관망'
-  | '위험 증가'
-  | '추가 리서치 필요'
-  | '매수 검토 가능'
+import type { StockStatus } from '@/shared/model'
+
+export type { StockStatus } from '@/shared/model'
 
 export const stockStatusClassNames: Record<StockStatus, string> = {
   안정: 'border-status-stable-border bg-status-stable-bg text-status-stable-text',
