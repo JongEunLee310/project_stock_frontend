@@ -30,6 +30,7 @@ const percentFormatter = new Intl.NumberFormat('ko-KR', {
 })
 
 const timeFormatter = new Intl.DateTimeFormat('ko-KR', {
+  timeZone: 'Asia/Seoul',
   month: '2-digit',
   day: '2-digit',
   hour: '2-digit',
