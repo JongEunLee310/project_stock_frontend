@@ -29,11 +29,14 @@ describe('Badge', () => {
     )
   })
 
-  it.each(riskLevels)('renders token classes for %s risk level', (riskLevel) => {
-    render(<Badge riskLevel={riskLevel} />)
+  it.each(riskLevels)(
+    'renders token classes for %s risk level',
+    (riskLevel) => {
+      render(<Badge riskLevel={riskLevel} />)
 
-    expect(screen.getByText(riskLevel)).toHaveClass(
-      ...riskLevelClassNames[riskLevel].split(' '),
-    )
-  })
+      expect(screen.getByText(riskLevel)).toHaveClass(
+        ...riskLevelClassNames[riskLevel].split(' '),
+      )
+    },
+  )
 })

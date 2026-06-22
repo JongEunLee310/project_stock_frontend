@@ -19,7 +19,6 @@ export const stockStatusClassNames: Record<StockStatus, string> = {
 
 export const riskLevelClassNames: Record<RiskLevel, string> = {
   높음: 'border-status-level-high-border bg-status-level-high-bg text-status-level-high-text',
-  중간:
-    'border-status-level-medium-border bg-status-level-medium-bg text-status-level-medium-text',
+  중간: 'border-status-level-medium-border bg-status-level-medium-bg text-status-level-medium-text',
   낮음: 'border-status-level-low-border bg-status-level-low-bg text-status-level-low-text',
 }
