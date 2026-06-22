@@ -31,7 +31,7 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('link', { name: 'Watchlist' }))
 
     expect(
-      await screen.findByRole('heading', { name: 'Watchlist' }),
+      await screen.findByRole('heading', { name: '관심 종목' }),
     ).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/watchlist')
     expect(screen.getByRole('link', { name: 'Watchlist' })).toHaveAttribute(

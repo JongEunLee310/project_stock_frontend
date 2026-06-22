@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useState, type KeyboardEvent, type ReactNode } from 'react'
 
 import { Button } from './Button'
 import { classNames } from './classNames'
@@ -27,6 +27,7 @@ export interface TableProps<T> {
   columns: Array<TableColumn<T>>
   rows: T[]
   getRowKey: (row: T, index: number) => string | number
+  onRowClick?: (row: T) => void
   isLoading?: boolean
   loadingMessage?: ReactNode
   emptyMessage?: ReactNode
@@ -54,6 +55,7 @@ export function Table<T>({
   columns,
   rows,
   getRowKey,
+  onRowClick,
   isLoading = false,
   loadingMessage = '데이터를 불러오는 중입니다.',
   emptyMessage = '표시할 데이터가 없습니다.',
@@ -83,6 +85,15 @@ export function Table<T>({
     }
 
     pagination?.onPageChange?.(clampedPage)
+  }
+
+  const handleRowKeyDown = (event: KeyboardEvent, row: T) => {
+    if (!onRowClick || (event.key !== 'Enter' && event.key !== ' ')) {
+      return
+    }
+
+    event.preventDefault()
+    onRowClick(row)
   }
 
   return (
@@ -138,7 +149,14 @@ export function Table<T>({
               visibleRows.map((row, index) => (
                 <tr
                   key={getRowKey(row, index)}
-                  className="border-b border-app-border last:border-b-0 hover:bg-app-surface-muted/60"
+                  className={classNames(
+                    'border-b border-app-border last:border-b-0 hover:bg-app-surface-muted/60',
+                    onRowClick &&
+                      'cursor-pointer focus-visible:outline-2 focus-visible:outline-inset focus-visible:outline-app-accent',
+                  )}
+                  tabIndex={onRowClick ? 0 : undefined}
+                  onClick={() => onRowClick?.(row)}
+                  onKeyDown={(event) => handleRowKeyDown(event, row)}
                 >
                   {columns.map((column) => (
                     <td

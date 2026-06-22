@@ -14,6 +14,36 @@ export interface Stock {
   newsRisk: RiskLevel
   valuation: ValuationLevel
   aiVerdict: string
+  themeHeat: RiskLevel
+  lastUpdatedAt: string
+  isFavorite: boolean
+  changeSeries?: number[]
+}
+
+export type WatchlistTrend = 'up' | 'down' | 'flat'
+
+export interface WatchlistSummaryCard {
+  label: string
+  value: string
+  deltaLabel: string
+  trend: WatchlistTrend
+}
+
+export interface WatchlistObservation {
+  id: string
+  text: string
+}
+
+export interface RecentWatchlistItem {
+  symbol: string
+  name: string
+  status: StockStatus
+  addedAt: string
+}
+
+export interface WatchlistAlertSetting {
+  label: string
+  value: string
 }
 
 export type SignalKind =
