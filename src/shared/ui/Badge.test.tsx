@@ -2,6 +2,8 @@ import { render, screen } from '@testing-library/react'
 
 import { Badge } from './Badge'
 import {
+  badgeToneClassNames,
+  type BadgeTone,
   riskLevelClassNames,
   stockStatusClassNames,
   type RiskLevel,
@@ -19,6 +21,7 @@ const statuses: StockStatus[] = [
 ]
 
 const riskLevels: RiskLevel[] = ['높음', '중간', '낮음']
+const tones: BadgeTone[] = ['neutral', 'accent', 'info', 'warning']
 
 describe('Badge', () => {
   it.each(statuses)('renders token classes for %s status', (status) => {
@@ -39,4 +42,12 @@ describe('Badge', () => {
       )
     },
   )
+
+  it.each(tones)('renders token classes for %s tone', (tone) => {
+    render(<Badge tone={tone}>카테고리</Badge>)
+
+    expect(screen.getByText('카테고리')).toHaveClass(
+      ...badgeToneClassNames[tone].split(' '),
+    )
+  })
 })

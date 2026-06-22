@@ -361,6 +361,16 @@ export const mockDecisionLogs = [
 export const mockStockResearch = {
   NVDA: {
     symbol: 'NVDA',
+    priceAsOf: '06.22 16:00 ET · 종가',
+    stance: 'Constructive, wait for disciplined add-on entry',
+    stanceConfidence: 65,
+    marketCap: '2.54T USD',
+    fiftyTwoWeekLow: 399.23,
+    fiftyTwoWeekHigh: 974.0,
+    sector: '정보기술',
+    nextEarningsDate: '2026-08-28',
+    targetPrice: 1145.32,
+    targetUpsidePercent: 11.8,
     pricePoints: [
       { date: '2026-06-16', close: 122.4 },
       { date: '2026-06-17', close: 124.1 },
@@ -368,7 +378,6 @@ export const mockStockResearch = {
       { date: '2026-06-19', close: 126.31 },
       { date: '2026-06-22', close: 128.72 },
     ],
-    stance: 'Constructive, wait for disciplined add-on entry',
     briefing: {
       headline: 'Data center demand keeps NVDA on the priority list.',
       body: 'The stock remains a high-quality AI compounder, but current valuation leaves limited room for execution misses.',
@@ -399,21 +408,32 @@ export const mockStockResearch = {
     news: [
       {
         id: 'nvda-news-001',
+        category: '실적',
         headline: 'Cloud capex plans remain tilted toward AI accelerators.',
         source: 'Market Desk',
         publishedAt: '2026-06-21T12:00:00.000Z',
         risk: '중간',
       },
+      {
+        id: 'nvda-news-002',
+        category: '제품',
+        headline: 'Next-generation accelerator schedule remains on track.',
+        source: 'Supply Chain Daily',
+        publishedAt: '2026-06-22T08:20:00.000Z',
+        risk: '낮음',
+      },
     ],
     catalysts: [
       {
         id: 'nvda-catalyst-earnings',
+        category: '실적',
         date: '2026-08-26',
         title: 'Quarterly earnings',
         description: 'Validate data center growth and gross margin durability.',
       },
       {
         id: 'nvda-catalyst-product',
+        category: '제품',
         date: '2026-09-10',
         title: 'AI platform update',
         description:
@@ -424,11 +444,15 @@ export const mockStockResearch = {
       {
         id: 'nvda-check-entry',
         label: 'Entry price is inside target band',
+        description:
+          'Confirm the current price is inside the pre-defined add-on range.',
         checked: false,
       },
       {
         id: 'nvda-check-margin',
         label: 'Margin trend remains intact',
+        description:
+          'Review gross margin commentary against the long-term thesis.',
         checked: true,
       },
     ],
@@ -436,6 +460,16 @@ export const mockStockResearch = {
   },
   AAPL: {
     symbol: 'AAPL',
+    priceAsOf: '06.22 16:00 ET · 종가',
+    stance: 'Neutral until growth assumptions improve',
+    stanceConfidence: 58,
+    marketCap: '3.18T USD',
+    fiftyTwoWeekLow: 164.08,
+    fiftyTwoWeekHigh: 237.49,
+    sector: '정보기술',
+    nextEarningsDate: '2026-07-30',
+    targetPrice: 224.5,
+    targetUpsidePercent: 4.8,
     pricePoints: [
       { date: '2026-06-16', close: 216.2 },
       { date: '2026-06-17', close: 215.7 },
@@ -443,7 +477,6 @@ export const mockStockResearch = {
       { date: '2026-06-19', close: 215.48 },
       { date: '2026-06-22', close: 214.3 },
     ],
-    stance: 'Neutral until growth assumptions improve',
     briefing: {
       headline: 'AAPL remains stable but needs a clearer growth trigger.',
       body: 'Services strength supports downside resilience, while valuation limits near-term upside without a hardware or AI catalyst.',
@@ -473,31 +506,53 @@ export const mockStockResearch = {
     news: [
       {
         id: 'aapl-news-001',
+        category: '실적',
         headline:
           'Services revenue remains the key watch item for the next quarter.',
         source: 'Market Desk',
         publishedAt: '2026-06-20T09:30:00.000Z',
         risk: '낮음',
       },
+      {
+        id: 'aapl-news-002',
+        category: '규제',
+        headline: 'Platform fee scrutiny remains a manageable headline risk.',
+        source: 'Policy Monitor',
+        publishedAt: '2026-06-21T11:45:00.000Z',
+        risk: '중간',
+      },
     ],
     catalysts: [
       {
         id: 'aapl-catalyst-earnings',
+        category: '실적',
         date: '2026-07-30',
         title: 'Quarterly earnings',
         description:
           'Focus on services growth and management commentary on device demand.',
+      },
+      {
+        id: 'aapl-catalyst-product',
+        category: '제품',
+        date: '2026-09-09',
+        title: 'Product cycle update',
+        description:
+          'Watch whether the next device cycle can reset growth expectations.',
       },
     ],
     checklist: [
       {
         id: 'aapl-check-services',
         label: 'Services growth supports valuation',
+        description:
+          'Confirm services growth offsets slower hardware replacement demand.',
         checked: true,
       },
       {
         id: 'aapl-check-catalyst',
         label: 'New catalyst identified',
+        description:
+          'Require a product or AI catalyst before upgrading the stance.',
         checked: false,
       },
     ],
@@ -505,6 +560,16 @@ export const mockStockResearch = {
   },
   TSLA: {
     symbol: 'TSLA',
+    priceAsOf: '06.22 16:00 ET · 종가',
+    stance: 'Defensive review before adding exposure',
+    stanceConfidence: 42,
+    marketCap: '582.4B USD',
+    fiftyTwoWeekLow: 138.8,
+    fiftyTwoWeekHigh: 299.29,
+    sector: '임의소비재',
+    nextEarningsDate: '2026-07-23',
+    targetPrice: 196.75,
+    targetUpsidePercent: 7.7,
     pricePoints: [
       { date: '2026-06-16', close: 194.8 },
       { date: '2026-06-17', close: 191.35 },
@@ -512,7 +577,6 @@ export const mockStockResearch = {
       { date: '2026-06-19', close: 189.46 },
       { date: '2026-06-22', close: 182.64 },
     ],
-    stance: 'Defensive review before adding exposure',
     briefing: {
       headline: 'TSLA risk remains elevated after momentum weakened.',
       body: 'The setup needs evidence of margin stabilization and calmer delivery expectations before new buying is justified.',
@@ -543,16 +607,27 @@ export const mockStockResearch = {
     news: [
       {
         id: 'tsla-news-001',
+        category: '실적',
         headline:
           'Volatility increased as investors reassess near-term delivery risk.',
         source: 'Market Desk',
         publishedAt: '2026-06-21T14:15:00.000Z',
         risk: '높음',
       },
+      {
+        id: 'tsla-news-002',
+        category: '파트너십',
+        headline:
+          'Charging ecosystem updates remain a secondary support factor.',
+        source: 'Mobility Brief',
+        publishedAt: '2026-06-22T07:10:00.000Z',
+        risk: '중간',
+      },
     ],
     catalysts: [
       {
         id: 'tsla-catalyst-deliveries',
+        category: '이벤트',
         date: '2026-07-02',
         title: 'Delivery update',
         description:
@@ -560,6 +635,7 @@ export const mockStockResearch = {
       },
       {
         id: 'tsla-catalyst-earnings',
+        category: '실적',
         date: '2026-07-23',
         title: 'Quarterly earnings',
         description: 'Review margin trajectory and management guidance.',
@@ -569,11 +645,116 @@ export const mockStockResearch = {
       {
         id: 'tsla-check-support',
         label: 'Price recovered above support band',
+        description:
+          'Avoid adding before price action confirms a support recovery.',
         checked: false,
       },
       {
         id: 'tsla-check-margin',
         label: 'Margin risk has stabilized',
+        description: 'Check whether price cuts and mix pressure are easing.',
+        checked: false,
+      },
+    ],
+    memo: '',
+  },
+  MSFT: {
+    symbol: 'MSFT',
+    priceAsOf: '06.22 16:00 ET · 종가',
+    stance: 'Stable compounder, review on cloud durability',
+    stanceConfidence: 72,
+    marketCap: '3.32T USD',
+    fiftyTwoWeekLow: 366.5,
+    fiftyTwoWeekHigh: 468.35,
+    sector: '정보기술',
+    nextEarningsDate: '2026-07-29',
+    targetPrice: 486.4,
+    targetUpsidePercent: 8.8,
+    pricePoints: [
+      { date: '2026-06-16', close: 444.3 },
+      { date: '2026-06-17', close: 445.1 },
+      { date: '2026-06-18', close: 446.2 },
+      { date: '2026-06-19', close: 445.8 },
+      { date: '2026-06-22', close: 447.22 },
+    ],
+    briefing: {
+      headline: 'MSFT stays defensive while cloud execution remains steady.',
+      body: 'Cloud growth, AI platform breadth, and balance sheet quality support a stable stance, with valuation discipline still required.',
+    },
+    keyRisks: [
+      {
+        id: 'msft-risk-cloud',
+        title: 'Cloud growth deceleration',
+        level: '중간',
+        description:
+          'A slower Azure growth path would challenge current quality-premium assumptions.',
+      },
+      {
+        id: 'msft-risk-ai-spend',
+        title: 'AI capex efficiency',
+        level: '중간',
+        description:
+          'Large infrastructure investment needs visible revenue conversion to protect margins.',
+      },
+      {
+        id: 'msft-risk-regulation',
+        title: 'Platform regulation',
+        level: '낮음',
+        description:
+          'Enterprise bundling and cloud market scrutiny can create headline risk.',
+      },
+    ],
+    news: [
+      {
+        id: 'msft-news-001',
+        category: '파트너십',
+        headline:
+          'Enterprise cloud demand remains resilient into the next quarter.',
+        source: 'Market Desk',
+        publishedAt: '2026-06-21T10:20:00.000Z',
+        risk: '낮음',
+      },
+      {
+        id: 'msft-news-002',
+        category: '제품',
+        headline:
+          'AI platform adoption keeps enterprise pipeline constructive.',
+        source: 'Cloud Weekly',
+        publishedAt: '2026-06-22T06:50:00.000Z',
+        risk: '낮음',
+      },
+    ],
+    catalysts: [
+      {
+        id: 'msft-catalyst-earnings',
+        category: '실적',
+        date: '2026-07-29',
+        title: 'Quarterly earnings',
+        description:
+          'Check Azure growth, AI contribution, and margin guidance.',
+      },
+      {
+        id: 'msft-catalyst-cloud',
+        category: '공급',
+        date: '2026-09-15',
+        title: 'Cloud platform update',
+        description:
+          'Watch for enterprise adoption signals and infrastructure efficiency.',
+      },
+    ],
+    checklist: [
+      {
+        id: 'msft-check-azure',
+        label: 'Azure growth remains within thesis range',
+        description:
+          'Confirm cloud growth remains strong enough to justify quality premium.',
+        checked: true,
+      },
+      {
+        id: 'msft-check-valuation',
+        label: 'Valuation premium is still justified',
+        description:
+          'Compare target upside with current multiple and margin trend.',
         checked: false,
       },
     ],

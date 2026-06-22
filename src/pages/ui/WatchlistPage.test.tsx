@@ -107,9 +107,7 @@ describe('WatchlistPage', () => {
     fireEvent.click(screen.getByRole('link', { name: 'TSLA' }))
 
     expect(router.state.location.pathname).toBe('/research/TSLA')
-    expect(
-      await screen.findByRole('heading', { name: 'TSLA Research' }),
-    ).toBeVisible()
+    expect(await screen.findByRole('heading', { name: 'TSLA' })).toBeVisible()
 
     await returnToWatchlist(router)
 
@@ -122,9 +120,7 @@ describe('WatchlistPage', () => {
     fireEvent.click(aaplRow as HTMLTableRowElement)
 
     expect(router.state.location.pathname).toBe('/research/AAPL')
-    expect(
-      await screen.findByRole('heading', { name: 'AAPL Research' }),
-    ).toBeVisible()
+    expect(await screen.findByRole('heading', { name: 'AAPL' })).toBeVisible()
 
     await returnToWatchlist(router)
 
@@ -132,8 +128,6 @@ describe('WatchlistPage', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: '리서치 보기' }))
 
     expect(router.state.location.pathname).toBe('/research/NVDA')
-    expect(
-      await screen.findByRole('heading', { name: 'NVDA Research' }),
-    ).toBeVisible()
+    expect(await screen.findByRole('heading', { name: 'NVDA' })).toBeVisible()
   })
 })

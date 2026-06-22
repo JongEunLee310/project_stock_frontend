@@ -2,6 +2,8 @@ import type { ComponentPropsWithoutRef, ReactNode } from 'react'
 
 import { classNames } from './classNames'
 import {
+  badgeToneClassNames,
+  type BadgeTone,
   riskLevelClassNames,
   stockStatusClassNames,
   type RiskLevel,
@@ -17,24 +19,34 @@ type BadgeProps = BadgeBaseProps &
     | {
         status: StockStatus
         riskLevel?: never
+        tone?: never
       }
     | {
         riskLevel: RiskLevel
         status?: never
+        tone?: never
+      }
+    | {
+        tone: BadgeTone
+        status?: never
+        riskLevel?: never
       }
   )
 
 export function Badge({
   status,
   riskLevel,
+  tone,
   children,
   className,
   ...props
 }: BadgeProps) {
-  const label = status ?? riskLevel
+  const label = status ?? riskLevel ?? children
   const toneClassName = status
     ? stockStatusClassNames[status]
-    : riskLevelClassNames[riskLevel]
+    : riskLevel
+      ? riskLevelClassNames[riskLevel]
+      : badgeToneClassNames[tone]
 
   return (
     <span
