@@ -24,6 +24,8 @@ export const mockStocks = [
     price: 128.72,
     change: 2.41,
     changePercent: 1.91,
+    per: 60.3,
+    peg: 1.32,
     status: '매수 검토 가능',
     newsRisk: '중간',
     valuation: '고평가',
@@ -41,6 +43,8 @@ export const mockStocks = [
     price: 214.3,
     change: -1.18,
     changePercent: -0.55,
+    per: 28.7,
+    peg: 2.36,
     status: '관망',
     newsRisk: '낮음',
     valuation: '적정',
@@ -58,6 +62,8 @@ export const mockStocks = [
     price: 182.64,
     change: -6.82,
     changePercent: -3.6,
+    per: 88.1,
+    peg: 3.04,
     status: '위험 증가',
     newsRisk: '높음',
     valuation: '고평가',
@@ -74,6 +80,8 @@ export const mockStocks = [
     price: 447.22,
     change: 0.86,
     changePercent: 0.19,
+    per: 31.6,
+    peg: 2.36,
     status: '안정',
     newsRisk: '낮음',
     valuation: '적정',
@@ -250,38 +258,52 @@ export const mockSignals = [
 ] satisfies Signal[]
 
 export const mockDashboardSummary = {
-  riskAlertCount: 4,
-  importantNewsCount: 7,
-  reviewSignalCount: 3,
-  cashRatio: 18,
+  riskAlertCount: 3,
+  importantNewsCount: 8,
+  reviewSignalCount: 5,
+  cashRatio: 22.7,
+  riskAlertDelta: '전일 대비 +1',
+  importantNewsDelta: '전일 대비 +2',
+  reviewSignalDelta: '전일 대비 +1',
+  cashRatioDelta: '전일 대비 +1.3%p',
 } satisfies DashboardSummary
 
 export const mockAiBriefing = {
-  headline:
-    'AI leaders remain constructive while volatility concentrates in high-beta names.',
-  body: 'NVDA and MSFT retain the strongest quality signals. TSLA requires a stricter review band until delivery and margin risk stabilize.',
+  headline: 'AI 관점 오늘의 시장 브리핑',
+  body: 'AI 인프라 수요는 여전히 견조하지만 고밸류 종목의 변동성이 커지고 있습니다. NVDA와 MSFT는 품질 신호가 유지되는 반면, TSLA는 뉴스 감성과 마진 리스크가 동시에 악화되어 신규 매수 전 조건 확인이 필요합니다.',
+  riskHeadline: '신규 매수 전 리스크 검토',
+  riskChecks: [
+    'TSLA 변동성 확대 구간에서 손절 기준을 먼저 확정',
+    'NVDA 추가 진입은 PER 부담과 실적 모멘텀을 함께 확인',
+    'AAPL 서비스 성장률이 현재 밸류에이션을 방어하는지 점검',
+    '현금 비중 22.7%를 유지하며 이벤트 전 추격 매수 제한',
+  ],
 } satisfies AiBriefing
 
 export const mockPriorityQueue = [
   {
     id: 'queue-nvda-entry',
     symbol: 'NVDA',
+    title: '엔비디아 추가 진입 가격 점검',
     reason:
-      'Review add-on entry if price resets toward the prior support band.',
+      'AI 인프라 수요는 강하지만 PER 60배 구간이라 기존 지지선 재접근 여부와 실적 코멘트를 함께 확인해야 합니다.',
     risk: '중간',
   },
   {
     id: 'queue-tsla-risk',
     symbol: 'TSLA',
-    reason: 'Recheck downside scenario after the latest volatility spike.',
+    title: '테슬라 뉴스 감성 급락',
+    reason:
+      '최근 변동성 확대와 마진 둔화 뉴스가 겹쳐 단기 신규 매수보다 하방 시나리오와 보유 기준을 먼저 재점검해야 합니다.',
     risk: '높음',
   },
   {
     id: 'queue-aapl-valuation',
     symbol: 'AAPL',
+    title: '애플 서비스 성장률 확인',
     reason:
-      'Compare services growth assumptions with current valuation premium.',
-    risk: '낮음',
+      '하드웨어 교체 수요가 약한 상황에서 서비스 매출 성장률이 현재 프리미엄을 정당화하는지 비교가 필요합니다.',
+    risk: '중간',
   },
 ] satisfies PriorityQueueItem[]
 

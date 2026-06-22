@@ -21,7 +21,7 @@ describe('App', () => {
       screen.getByRole('navigation', { name: 'Primary navigation' }),
     ).toBeInTheDocument()
     expect(
-      screen.getByRole('heading', { name: 'Market Command Center' }),
+      screen.getByRole('heading', { name: 'AI 투자 관제실' }),
     ).toBeInTheDocument()
   })
 
