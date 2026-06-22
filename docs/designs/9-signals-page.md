@@ -88,12 +88,14 @@
    각 카드 하단에 `LineChart` 스파크라인 + 1M 등락(±%). 폭은 `ResizeObserver`로 측정한 컨테이너 폭,
    `height` 고정·`isAnimationActive={false}`로 결정성 유지, `role="img"` + `aria-label`. 이슈 19 경계는
    캔들·거래량 등 본격 분석 차트 기준으로 재정의(대시보드/관심 종목 라운드와 동일).
-3. **요약 카드 4종 → 5종**. 좌측에 "총 시그널" 카드(하드코딩 `128건`·전일 대비 델타) 추가 + 상태별 4종.
-   상태 카드 개수는 `mockSignals` 파생 집계 유지, `detail` 퍼센트(42.2% 등)와 총 시그널 값은 **정적
-   자리표시**(실제 연동 후속).
-4. **`signalVisuals` 페이지 로컬 비주얼 메타 신설**. 심볼별 `companyName`·`oneMonthChange`·
-   `previousStatus`·`previousConfidence`·`sparkline`을 페이지 상수로 보유(도메인 타입 아님, 시안 표현 전용).
-   미정의 심볼은 폴백 제공.
+3. **요약 카드 4종 → 5종**. 좌측에 "총 시그널" 카드 추가 + 상태별 4종. 모두 `mockSignals` 파생
+   집계 — 총 시그널 = `signals.length`, 상태 카드 퍼센트 = `formatStatusShare`로 동적 계산(리뷰 반영으로
+   하드코딩 `128건`·`42.2%` 등 제거). "알림 설정" 버튼은 `disabled` + "준비 중" 표기로 자리표시 명확화.
+4. **비주얼 메타를 도메인 `Signal`로 이전**(리뷰 반영). 1차 구현은 `signalVisuals` 페이지 로컬 상수였으나,
+   리뷰 Suggestion/Question을 반영해 `previousStatus`·`previousConfidence`·`oneMonthChangePercent`·
+   `trendSeries`를 도메인 `Signal` 타입의 필수 필드로 승격(우선순위 델타·최근 변경 전이·스파크라인의 단일
+   출처). `companyName`은 별도 보유하지 않고 `mockStocks`에서 파생(`stockNamesBySymbol`). `mockSignals`
+   전 항목에 신규 필드 채움, `domain.test`에 멤버십·범위 검증 추가.
 5. **우측 레일 충실화**. 우선순위/최근 변경 패널을 그리드 테이블형으로 재구성 — 우선순위는 신뢰도 델타
    (▲/▼ vs `previousConfidence`), 최근 변경은 `previousStatus → status` 전이를 표기.
 6. **셸 톤 `cockpit-*` 토큰 적용**. 대시보드/관심 종목과 동일하게 페이지를 `cockpit-*` 토큰으로 통일.
@@ -102,8 +104,13 @@
    관심 종목 페이지는 전체 `mockStocks`를 표시하므로 8행이 되지만 푸터·페이지네이션이 동적이라 회귀 없음.
    대시보드는 `mockStocks.slice(0, 4)`라 무영향. 전체 테스트 통과로 회귀 없음 확인.
 
+### 리뷰 반영 (Codex)
+
+- **정적 자리표시 동적화**: 총 시그널 = `signals.length`, 상태 퍼센트 = `formatStatusShare` 계산.
+  "전일 대비 +12건" → "현재 로드 기준", "알림 설정" 버튼 `disabled` + "준비 중" 표기.
+- **비주얼 메타 도메인 이전**: `signalVisuals` 페이지 상수를 제거하고 `Signal` 도메인 필드로 승격(위 4 참조).
+
 ### 비차단 후속(이월)
 
-- 정적 자리표시(총 시그널 128건·요약 퍼센트·알림 설정 버튼)는 실제 데이터/동작 연동 후속.
 - 원시 색(emerald/red/amber/blue/sky/orange, 신뢰도 링 색)의 의미 토큰화는 후속(대시보드/관심 종목과 동일 이월).
-- `signalVisuals`의 비주얼 메타가 도메인과 분리돼 있음 — 실제 시계열 연동 시 도메인/파생으로 이전 검토.
+- 카드 스파크라인 폭 측정 방식이 관심 종목(고정 `width`)·시그널(`ResizeObserver` 측정)로 갈림 — 공통 스파크라인 추출 시 수렴 검토.
