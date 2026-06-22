@@ -1,4 +1,4 @@
-# Codex Handoff Task — task-009 후속 수정: 타임존 의존 테스트 (PR #32)
+# Codex Handoff Task — task-010: 타임존 의존 테스트 수정 (PR #32, task-009 후속)
 
 ## Source Issue
 
