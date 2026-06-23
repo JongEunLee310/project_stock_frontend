@@ -104,14 +104,29 @@ export interface PriorityQueueItem {
 
 export interface Holding {
   symbol: string
+  name: string
+  sector: string
   quantity: number
   avgPrice: number
   currentValue: number
+  dailyChangePercent: number
+}
+
+export interface PortfolioRiskExposure {
+  id: string
+  label: string
+  level: RiskLevel
+  description: string
 }
 
 export interface Portfolio {
   totalValue: number
+  cash: number
+  dayChangeValue: number
+  dayChangePercent: number
   holdings: Holding[]
+  aiBriefing: AiBriefing
+  riskExposures: PortfolioRiskExposure[]
 }
 
 export type AlertCondition =
