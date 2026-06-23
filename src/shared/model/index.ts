@@ -26,6 +26,7 @@ export type {
   Holding,
   NewsItem,
   Portfolio,
+  PortfolioRiskExposure,
   PricePoint,
   PriorityQueueItem,
   RecentWatchlistItem,

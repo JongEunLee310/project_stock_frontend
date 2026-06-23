@@ -43,6 +43,28 @@ describe('domain mock data', () => {
       ),
     ).toBe(true)
     expect(mockPortfolio.totalValue).toBe(holdingsValue)
+    expect(mockPortfolio.cash).toBeGreaterThan(0)
+    expect(mockPortfolio.dayChangeValue).not.toBe(0)
+    expect(mockPortfolio.dayChangePercent).not.toBe(0)
+    expect(
+      mockPortfolio.holdings.every(
+        (holding) =>
+          holding.name.length > 0 &&
+          holding.sector.length > 0 &&
+          typeof holding.dailyChangePercent === 'number',
+      ),
+    ).toBe(true)
+    expect(mockPortfolio.aiBriefing.headline.length).toBeGreaterThan(0)
+    expect(mockPortfolio.aiBriefing.body.length).toBeGreaterThan(0)
+    expect(mockPortfolio.aiBriefing.riskChecks?.length).toBeGreaterThan(0)
+    expect(
+      mockPortfolio.riskExposures.every(
+        (riskExposure) =>
+          riskExposure.label.length > 0 &&
+          riskLevels.includes(riskExposure.level) &&
+          riskExposure.description.length > 0,
+      ),
+    ).toBe(true)
   })
 
   it('fills extended stock fields with valid risk levels', () => {
