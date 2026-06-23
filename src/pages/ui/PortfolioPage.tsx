@@ -9,7 +9,6 @@ import {
   Card,
   DonutChart,
   EmptyState,
-  LineChart,
   Table,
   type TableColumn,
 } from '@/shared/ui'
@@ -54,15 +53,6 @@ const allocationColors = [
   '#64748b',
   '#475569',
 ]
-
-const performanceTrend = [
-  -1.9, -2.4, -1.8, -2.1, -0.8, -1.1, -0.3, 0.2, -0.2, 0.8, 1.1, 0.4, 2.8, 3.5,
-  5.9, 6.6, 8.2, 7.1, 9.5, 8.7, 10.2, 7.4, 9.3, 8.6, 11.8, 10.9, 13.2, 15.6,
-  14.8, 16.4,
-].map((value, index) => ({
-  name: `${index + 1}`,
-  value,
-}))
 
 function getResearchPath(symbol: string) {
   return appRoutePaths.research.replace(':symbol', symbol)
@@ -118,34 +108,20 @@ function getSectorExposure(holdings: HoldingWeight[]): SectorExposure[] {
     .sort((first, second) => second.value - first.value)
 }
 
-function getRiskScore(portfolio: Portfolio, holdings: HoldingWeight[]) {
-  const highRiskCount = portfolio.riskExposures.filter(
-    (risk) => risk.level === '높음',
-  ).length
-  const topThreeShare = holdings
-    .slice(0, 3)
-    .reduce((sum, holding) => sum + holding.weight, 0)
-  const cashRatio =
-    portfolio.totalValue + portfolio.cash > 0
-      ? (portfolio.cash / (portfolio.totalValue + portfolio.cash)) * 100
-      : 0
-
-  return Math.min(
-    100,
-    Math.round(38 + highRiskCount * 12 + topThreeShare / 3 - cashRatio / 4),
-  )
-}
-
 function SummaryCard({
   label,
   value,
   helper,
   visual,
+  donutRatio,
+  positive,
 }: {
   label: string
   value: string
   helper: string
-  visual: 'wallet' | 'donut' | 'line' | 'risk'
+  visual: 'wallet' | 'donut' | 'delta' | 'risk'
+  donutRatio?: number
+  positive?: boolean
 }) {
   return (
     <Card className="min-h-28 border-cockpit-border bg-cockpit-surface/80">
@@ -173,8 +149,8 @@ function SummaryCard({
             width={64}
             height={64}
             data={[
-              { name: '현금', value: 22.7 },
-              { name: '투자자산', value: 77.3 },
+              { name: '현금', value: donutRatio ?? 0 },
+              { name: '투자자산', value: Math.max(0, 100 - (donutRatio ?? 0)) },
             ]}
             colors={['currentColor', '#334155']}
             innerRadius={22}
@@ -182,18 +158,18 @@ function SummaryCard({
             ariaLabel="현금 비중 요약"
           />
         ) : null}
-        {visual === 'line' ? (
-          <LineChart
-            className="shrink-0 text-emerald-400"
-            width={112}
-            height={56}
-            data={performanceTrend.slice(-12)}
-            color="currentColor"
-            showAxes={false}
-            showGrid={false}
-            margin={{ top: 4, right: 2, bottom: 4, left: 2 }}
-            ariaLabel="일간 손익 추이"
-          />
+        {visual === 'delta' ? (
+          <span
+            aria-hidden="true"
+            className={classNames(
+              'grid h-12 w-12 shrink-0 place-items-center rounded-control border text-2xl',
+              positive
+                ? 'border-emerald-400/30 text-emerald-300'
+                : 'border-rose-400/30 text-rose-300',
+            )}
+          >
+            {positive ? '▲' : '▼'}
+          </span>
         ) : null}
         {visual === 'risk' ? (
           <div
@@ -302,7 +278,6 @@ export function PortfolioPageView({ portfolio }: { portfolio: Portfolio }) {
     .slice(0, 5)
     .reduce((sum, holding) => sum + holding.weight, 0)
   const maxHolding = holdings[0]
-  const riskScore = getRiskScore(portfolio, holdings)
   const holdingColumns = buildHoldingColumns()
   const allocationData = [
     ...holdings.map((holding) => ({
@@ -333,17 +308,23 @@ export function PortfolioPageView({ portfolio }: { portfolio: Portfolio }) {
           value={formatPercent(cashRatio)}
           helper={formatKrw(portfolio.cash)}
           visual="donut"
+          donutRatio={cashRatio}
         />
         <SummaryCard
           label="일간 손익"
           value={formatKrw(portfolio.dayChangeValue)}
           helper={formatSignedPercent(portfolio.dayChangePercent)}
-          visual="line"
+          visual="delta"
+          positive={portfolio.dayChangePercent >= 0}
         />
         <SummaryCard
-          label="리스크 집중도"
-          value={`${riskScore} / 100`}
-          helper={`상위 3종목 비중 ${formatPercent(topThreeShare)}`}
+          label="상위 3 종목 비중"
+          value={formatPercent(topThreeShare)}
+          helper={
+            maxHolding
+              ? `최대 ${maxHolding.symbol} ${formatPercent(maxHolding.weight)}`
+              : '보유 종목 없음'
+          }
           visual="risk"
         />
       </section>
@@ -522,34 +503,6 @@ export function PortfolioPageView({ portfolio }: { portfolio: Portfolio }) {
               ))}
             </div>
           </Card>
-
-          <Card className="border-cockpit-border bg-cockpit-surface/80">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <PanelTitle title="성과 추이" kicker="누적 수익률" />
-              <div className="flex gap-1 text-xs text-cockpit-text-muted">
-                {['1M', '3M', '6M', 'YTD', '1Y'].map((period) => (
-                  <span
-                    key={period}
-                    className={classNames(
-                      'rounded-control px-2 py-1',
-                      period === '3M'
-                        ? 'bg-cockpit-accent/20 text-cockpit-accent'
-                        : 'bg-cockpit-surface-muted/40',
-                    )}
-                  >
-                    {period}
-                  </span>
-                ))}
-              </div>
-            </div>
-            <LineChart
-              width={620}
-              height={190}
-              data={performanceTrend}
-              color="#3b82f6"
-              ariaLabel="포트폴리오 성과 추이"
-            />
-          </Card>
         </div>
 
         <Card className="border-cockpit-border bg-cockpit-surface/80">
@@ -573,24 +526,6 @@ export function PortfolioPageView({ portfolio }: { portfolio: Portfolio }) {
             <p className="mt-3 leading-7 text-cockpit-text">
               {portfolio.aiBriefing.body}
             </p>
-          </div>
-          <div className="mt-4 grid gap-3">
-            {portfolio.riskExposures.map((risk) => (
-              <article
-                key={risk.id}
-                className="rounded-card border border-cockpit-border bg-cockpit-surface-muted/30 p-4"
-              >
-                <div className="flex items-center gap-2">
-                  <Badge riskLevel={risk.level}>{risk.level}</Badge>
-                  <h3 className="font-semibold text-cockpit-text">
-                    {risk.label}
-                  </h3>
-                </div>
-                <p className="mt-2 text-sm leading-6 text-cockpit-text-muted">
-                  {risk.description}
-                </p>
-              </article>
-            ))}
           </div>
           {portfolio.aiBriefing.riskChecks ? (
             <div className="mt-4 rounded-card border border-cockpit-border bg-cockpit-accent/10 p-4">

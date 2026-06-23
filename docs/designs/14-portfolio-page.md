@@ -30,8 +30,10 @@
 
 페이지 헤더 "포트폴리오" → 요약 카드 행 → 차트·집중도 행 → 리스크/브리핑 행 → 보유 종목 테이블.
 
-- **요약 카드 행 (3)**: 총 자산(`totalValue + cash`) · 현금 비중(`cash` 파생) · 일간 손익
-  (`dayChangeValue`/`dayChangePercent`, 부호 색 emerald/rose). `Card` 분할, 통화/퍼센트 포매터.
+- **요약 카드 행 (4)**: 총 자산(`totalValue + cash`) · 현금 비중(`cash` 파생, 장식 도넛도 `cashRatio`
+  파생) · 일간 손익(`dayChangeValue`/`dayChangePercent`, 부호 색 emerald/rose, 부호 아이콘) · 상위 3 종목
+  비중(`topThreeShare` 파생, helper에 최대 종목·비중). `Card` 분할, 통화/퍼센트 포매터. 모든 KPI는 mock
+  원시값에서 파생(합성/매직넘버 금지).
 - **자산 배분 (`DonutChart`)**: 종목별 + 현금 세그먼트(총 자산 기준). 명시 `width`/`height`, 범례는 종목
   심볼+비중(%). 장식 도넛은 `aria-hidden`, 차트 컨테이너 `ariaLabel`은 공통 차트 규칙 따름.
 - **섹터 익스포저 패널**: 보유 종목을 `sector`로 그룹·합산해 섹터별 비중 표시. 공통 `BarChart`(명시 `width`)
@@ -39,7 +41,8 @@
 - **단일 종목 집중도 패널**: 비중 내림차순 상위 종목 + 최대 비중/상위 N 누적 비중. 과집중 경고 문구(파생).
 - **리스크 노출 분석 카드**: `riskExposures`를 `Badge riskLevel` + label + description으로 나열.
   완료 조건의 "리스크 권고 문구"를 충족.
-- **포트폴리오 AI 브리핑 패널**: `portfolio.aiBriefing`(headline/body/riskChecks) 표시(Dashboard 패턴).
+- **포트폴리오 AI 브리핑 패널**: `portfolio.aiBriefing`(headline/body + 권고 요약 `riskChecks`) 표시
+  (Dashboard 패턴). `riskExposures` 상세는 "리스크 노출 분석" 카드에만 두고 브리핑 패널에서 중복 렌더하지 않음.
 - **보유 종목 테이블 (`Table<Holding>`)**: 종목(심볼+이름, `/research/:symbol` Link) · 섹터 · 수량 · 평균
   단가 · 평가액 · 비중(%) · 일간 변화(`dailyChangePercent` 부호 색). 빈 경우 공통 `EmptyState`.
 
