@@ -45,10 +45,10 @@ const initialFormState: DecisionFormState = {
 }
 
 const selectClassName =
-  'min-h-10 rounded-control border border-app-border bg-app-surface-muted px-3 py-2 text-sm text-app-text outline-none transition-colors focus:border-app-accent focus:ring-2 focus:ring-app-accent/30 disabled:cursor-not-allowed disabled:opacity-60'
+  'min-h-10 rounded-control border border-cockpit-border bg-cockpit-surface px-3 py-2 text-sm text-cockpit-text outline-none transition-colors focus:border-cockpit-accent focus:ring-2 focus:ring-cockpit-accent/30 disabled:cursor-not-allowed disabled:opacity-60'
 
 const textareaClassName =
-  'min-h-28 rounded-control border border-app-border bg-app-surface-muted px-3 py-2 text-sm leading-6 text-app-text outline-none transition-colors placeholder:text-app-text-muted focus:border-app-accent focus:ring-2 focus:ring-app-accent/30'
+  'min-h-24 rounded-control border border-cockpit-border bg-cockpit-surface px-3 py-2 text-sm leading-6 text-cockpit-text outline-none transition-colors placeholder:text-cockpit-text-muted focus:border-cockpit-accent focus:ring-2 focus:ring-cockpit-accent/30'
 
 const outcomeTone: Record<DecisionOutcome, BadgeTone> = {
   '진행 중': 'info',
@@ -100,21 +100,64 @@ function MetricCard({
   label,
   value,
   description,
+  icon,
+  tone,
 }: {
   label: string
   value: string
   description: string
+  icon: string
+  tone: 'blue' | 'slate' | 'amber' | 'rose'
 }) {
+  const toneClassNames: Record<typeof tone, string> = {
+    blue: 'border-blue-400/20 bg-blue-500/15 text-blue-300',
+    slate: 'border-slate-300/20 bg-slate-400/10 text-slate-300',
+    amber: 'border-amber-300/20 bg-amber-400/15 text-amber-300',
+    rose: 'border-rose-300/20 bg-rose-400/15 text-rose-300',
+  }
+
   return (
-    <Card className="min-h-32">
-      <div className="flex h-full flex-col justify-between gap-4">
-        <span className="text-sm font-medium text-app-text-muted">{label}</span>
-        <strong className="text-3xl font-bold text-app-text">{value}</strong>
-        <span className="text-xs font-medium text-app-text-muted">
-          {description}
+    <Card className="min-h-32 border-cockpit-border bg-cockpit-surface/90 p-5 shadow-blue-950/20">
+      <div className="flex h-full items-center gap-4">
+        <span
+          className={classNames(
+            'grid h-12 w-12 shrink-0 place-items-center rounded-full border text-2xl',
+            toneClassNames[tone],
+          )}
+          aria-hidden="true"
+        >
+          {icon}
         </span>
+        <div className="flex min-w-0 flex-col gap-1">
+          <span className="text-sm font-semibold text-cockpit-text">
+            {label}
+          </span>
+          <strong className="text-3xl font-bold leading-tight text-cockpit-text">
+            {value}
+          </strong>
+          <span className="text-sm font-medium text-cockpit-text-muted">
+            {description}
+          </span>
+        </div>
       </div>
     </Card>
+  )
+}
+
+function FieldLabel({
+  children,
+  htmlFor,
+}: {
+  children: string
+  htmlFor?: string
+}) {
+  return (
+    <label
+      htmlFor={htmlFor}
+      className="shrink-0 pt-2 text-sm font-semibold text-cockpit-text lg:w-24"
+    >
+      {children}
+    </label>
   )
 }
 
@@ -134,27 +177,33 @@ function DecisionForm({
   onSubmit: (event: FormEvent<HTMLFormElement>) => void
 }) {
   return (
-    <Card>
+    <Card className="border-cockpit-border bg-cockpit-surface/90 shadow-blue-950/20">
       <form className="flex flex-col gap-4" onSubmit={onSubmit}>
         <div>
-          <h2 className="text-lg font-semibold text-app-text">새 판단 기록</h2>
+          <h2 className="text-lg font-semibold text-cockpit-text">
+            새 판단 기록 작성
+          </h2>
         </div>
 
-        <label className="flex flex-col gap-2 text-sm font-medium text-app-text">
-          종목
+        <div className="flex flex-col gap-2 lg:flex-row">
+          <FieldLabel htmlFor="decision-symbol">종목</FieldLabel>
           <Input
+            id="decision-symbol"
             value={form.symbol}
-            placeholder="예: NVDA"
+            placeholder="종목명 또는 티커 입력"
+            className="min-w-0 flex-1 border-cockpit-border bg-cockpit-surface text-cockpit-text placeholder:text-cockpit-text-muted focus:border-cockpit-accent focus:ring-cockpit-accent/30"
             onChange={(event) =>
               onChange({ ...form, symbol: event.target.value })
             }
           />
-        </label>
+        </div>
 
-        <label className="flex flex-col gap-2 text-sm font-medium text-app-text">
-          판단유형
+        <div className="flex flex-col gap-2 lg:flex-row">
+          <FieldLabel htmlFor="decision-type">판단 유형</FieldLabel>
           <select
-            className={selectClassName}
+            id="decision-type"
+            aria-label="판단유형"
+            className={classNames(selectClassName, 'min-w-0 flex-1')}
             value={form.decisionType}
             onChange={(event) =>
               onChange({
@@ -169,43 +218,43 @@ function DecisionForm({
               </option>
             ))}
           </select>
-        </label>
-
-        <div className="flex flex-col gap-2">
-          <label
-            htmlFor="decision-rationale"
-            className="text-sm font-medium text-app-text"
-          >
-            판단 이유
-          </label>
-          <textarea
-            id="decision-rationale"
-            className={textareaClassName}
-            maxLength={500}
-            value={form.rationale}
-            placeholder="판단 근거와 확인할 조건을 기록"
-            onChange={(event) =>
-              onChange({ ...form, rationale: event.target.value })
-            }
-          />
-          <span className="text-right text-xs text-app-text-muted">
-            {form.rationale.length}/500
-          </span>
         </div>
 
-        <fieldset className="flex flex-col gap-3">
-          <legend className="text-sm font-medium text-app-text">
+        <div className="flex flex-col gap-2 lg:flex-row">
+          <FieldLabel htmlFor="decision-rationale">판단 이유</FieldLabel>
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            <textarea
+              id="decision-rationale"
+              className={textareaClassName}
+              maxLength={500}
+              value={form.rationale}
+              placeholder="판단의 핵심 이유를 입력하세요."
+              onChange={(event) =>
+                onChange({ ...form, rationale: event.target.value })
+              }
+            />
+            <span className="text-right text-xs text-cockpit-text-muted">
+              {form.rationale.length} / 500
+            </span>
+          </div>
+        </div>
+
+        <fieldset className="flex flex-col gap-2 lg:flex-row">
+          <legend className="shrink-0 pt-0 text-sm font-semibold text-cockpit-text lg:w-24">
             인지 리스크
+            <span className="mt-1 block text-xs font-medium text-cockpit-text-muted">
+              (복수 선택 가능)
+            </span>
           </legend>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid min-w-0 flex-1 grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
             {cognitiveRisks.map((risk) => (
               <label
                 key={risk}
-                className="flex items-center gap-2 rounded-control border border-app-border bg-app-surface-muted px-3 py-2 text-sm text-app-text"
+                className="flex items-center gap-2 text-sm text-cockpit-text"
               >
                 <input
                   type="checkbox"
-                  className="h-4 w-4 accent-app-accent"
+                  className="h-4 w-4 rounded border-cockpit-border bg-cockpit-surface accent-cockpit-accent"
                   checked={form.cognitiveRisks.includes(risk)}
                   onChange={() => onRiskToggle(risk)}
                 />
@@ -215,33 +264,37 @@ function DecisionForm({
           </div>
         </fieldset>
 
-        <label className="flex flex-col gap-2 text-sm font-medium text-app-text">
-          재검토 일정
+        <div className="flex flex-col gap-2 lg:flex-row">
+          <FieldLabel htmlFor="decision-review-date">다음 확인 날짜</FieldLabel>
           <Input
+            id="decision-review-date"
+            aria-label="재검토 일정"
             type="date"
             value={form.reviewDate}
+            className="min-w-0 flex-1 border-cockpit-border bg-cockpit-surface text-cockpit-text placeholder:text-cockpit-text-muted focus:border-cockpit-accent focus:ring-cockpit-accent/30"
             onChange={(event) =>
               onChange({ ...form, reviewDate: event.target.value })
             }
           />
-        </label>
+        </div>
 
-        <div className="flex flex-col gap-2">
-          <label
-            htmlFor="decision-note"
-            className="text-sm font-medium text-app-text"
-          >
-            추가 메모
-          </label>
-          <textarea
-            id="decision-note"
-            className={classNames(textareaClassName, 'min-h-24')}
-            value={form.note}
-            placeholder="복기 때 확인할 메모"
-            onChange={(event) =>
-              onChange({ ...form, note: event.target.value })
-            }
-          />
+        <div className="flex flex-col gap-2 lg:flex-row">
+          <FieldLabel htmlFor="decision-note">메모 (선택)</FieldLabel>
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            <textarea
+              id="decision-note"
+              className={classNames(textareaClassName, 'min-h-20')}
+              maxLength={500}
+              value={form.note}
+              placeholder="추가 메모를 입력하세요."
+              onChange={(event) =>
+                onChange({ ...form, note: event.target.value })
+              }
+            />
+            <span className="text-right text-xs text-cockpit-text-muted">
+              {form.note.length} / 500
+            </span>
+          </div>
         </div>
 
         {error ? (
@@ -250,11 +303,18 @@ function DecisionForm({
           </p>
         ) : null}
 
-        <div className="grid grid-cols-2 gap-2">
-          <Button type="button" variant="secondary" onClick={onReset}>
+        <div className="grid grid-cols-2 gap-3 pt-1 lg:ml-24">
+          <Button
+            type="button"
+            variant="secondary"
+            className="border-cockpit-border bg-cockpit-surface text-cockpit-text hover:border-cockpit-accent"
+            onClick={onReset}
+          >
             초기화
           </Button>
-          <Button type="submit">저장</Button>
+          <Button type="submit" className="bg-blue-600 hover:bg-blue-500">
+            저장
+          </Button>
         </div>
       </form>
     </Card>
@@ -298,7 +358,7 @@ export function DecisionLogPage() {
         key: 'createdAt',
         header: '날짜/시간',
         cell: (log) => (
-          <span className="whitespace-nowrap text-app-text-muted">
+          <span className="whitespace-nowrap text-cockpit-text-muted">
             {formatDateTime(log.createdAt)}
           </span>
         ),
@@ -309,7 +369,7 @@ export function DecisionLogPage() {
         cell: (log) => (
           <Link
             to={getResearchPath(log.symbol)}
-            className="font-semibold text-app-text hover:text-app-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent"
+            className="font-semibold text-cockpit-text hover:text-cockpit-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cockpit-accent"
             onClick={stopRowNavigation}
           >
             {log.symbol}
@@ -326,7 +386,7 @@ export function DecisionLogPage() {
         header: '판단 이유',
         className: 'min-w-72 max-w-96',
         cell: (log) => (
-          <span className="line-clamp-2 text-app-text-muted">
+          <span className="line-clamp-2 text-cockpit-text-muted">
             {log.rationale}
           </span>
         ),
@@ -349,7 +409,7 @@ export function DecisionLogPage() {
         key: 'reviewDate',
         header: '재검토 일정',
         cell: (log) => (
-          <span className="whitespace-nowrap text-app-text-muted">
+          <span className="whitespace-nowrap text-cockpit-text-muted">
             {log.reviewDate || '미정'}
           </span>
         ),
@@ -409,60 +469,63 @@ export function DecisionLogPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-2">
-        <span className="text-sm font-semibold uppercase tracking-wide text-app-accent">
-          Decision Log
-        </span>
-        <h1 className="text-3xl font-bold text-app-text">판단 기록</h1>
+    <div className="flex flex-col gap-4">
+      <header className="flex min-h-16 items-center">
+        <h1 className="text-3xl font-bold text-cockpit-text">판단 기록</h1>
       </header>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
-        <main className="flex min-w-0 flex-col gap-6">
+      <div className="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_32rem]">
+        <main className="flex min-w-0 flex-col gap-4">
           <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
             <MetricCard
               label="총 기록 수"
               value={`${summary.total}건`}
-              description="로컬 추가 포함"
+              description="전체 기간 누적"
+              icon="▤"
+              tone="blue"
             />
             <MetricCard
               label="이번 주 기록"
               value={`${summary.recent}건`}
               description="최근 7일 기준"
+              icon="▦"
+              tone="slate"
             />
             <MetricCard
               label="관망 유지"
               value={`${summary.watchHold}건`}
-              description="판단유형 집계"
+              description={`${Math.round((summary.watchHold / summary.total) * 100)}%`}
+              icon="◉"
+              tone="amber"
             />
             <MetricCard
               label="리스크 증가 검토"
               value={`${summary.riskReview}건`}
-              description="판단유형 집계"
+              description={`${Math.round((summary.riskReview / summary.total) * 100)}%`}
+              icon="△"
+              tone="rose"
             />
           </div>
 
-          <Card>
-            <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-              <div>
-                <h2 className="text-xl font-semibold text-app-text">
+          <Card className="border-cockpit-border bg-cockpit-surface/80 p-0 shadow-blue-950/20">
+            <div className="flex items-center justify-between gap-3 border-b border-cockpit-border px-4 py-3">
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl font-semibold text-cockpit-text">
                   판단 기록 로그
                 </h2>
+                <span className="grid h-5 w-5 place-items-center rounded-full border border-cockpit-border text-xs text-cockpit-text-muted">
+                  i
+                </span>
               </div>
-              <div className="grid gap-2 sm:grid-cols-2">
-                <label className="flex flex-col gap-1 text-xs font-medium text-app-text-muted">
-                  일별
-                  <select className={selectClassName} disabled value="all">
-                    <option value="all">전체</option>
-                  </select>
-                </label>
-                <label className="flex flex-col gap-1 text-xs font-medium text-app-text-muted">
-                  기간
-                  <select className={selectClassName} disabled value="recent">
-                    <option value="recent">최근 기록</option>
-                  </select>
-                </label>
-              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                className="min-h-8 border-cockpit-border px-3 py-1 text-xs text-cockpit-text-muted disabled:border-cockpit-border disabled:bg-cockpit-surface-muted/40 disabled:text-cockpit-text-muted/70"
+                disabled
+                title="필터 기능은 후속 데이터 연동 범위에서 활성화됩니다."
+              >
+                필터 ⌯
+              </Button>
             </div>
             <Table
               columns={columns}
@@ -471,11 +534,12 @@ export function DecisionLogPage() {
               emptyMessage="기록된 판단이 없습니다."
               pagination={{ pageSize: 10 }}
               aria-label="판단 기록 로그"
+              className="rounded-none border-0 bg-transparent"
             />
           </Card>
         </main>
 
-        <aside className="flex min-w-0 flex-col gap-6">
+        <aside className="grid min-w-0 gap-4 lg:grid-cols-2 2xl:flex 2xl:flex-col">
           <DecisionForm
             form={form}
             error={formError}
@@ -488,10 +552,15 @@ export function DecisionLogPage() {
             onSubmit={saveDecision}
           />
 
-          <Card>
-            <h2 className="mb-4 text-lg font-semibold text-app-text">
-              자주 나온 판단 패턴
-            </h2>
+          <Card className="border-cockpit-border bg-cockpit-surface/90 shadow-blue-950/20">
+            <div className="mb-4 flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-cockpit-text">
+                자주 나온 판단 패턴
+              </h2>
+              <span className="grid h-5 w-5 place-items-center rounded-full border border-cockpit-border text-xs text-cockpit-text-muted">
+                i
+              </span>
+            </div>
             <ul className="flex flex-col gap-4">
               {sortedPatterns.map((pattern) => {
                 const percent =
@@ -502,15 +571,15 @@ export function DecisionLogPage() {
                 return (
                   <li key={pattern.id} className="flex flex-col gap-2">
                     <div className="flex items-center justify-between gap-3 text-sm">
-                      <span className="font-medium text-app-text">
+                      <span className="font-medium text-cockpit-text">
                         {pattern.label}
                       </span>
-                      <span className="text-app-text-muted">
-                        {pattern.count}건 · {percent}%
+                      <span className="text-cockpit-text-muted">
+                        {percent}% ({pattern.count}건)
                       </span>
                     </div>
                     <div
-                      className="h-2.5 rounded-full bg-app-surface-muted"
+                      className="h-2 rounded-full bg-cockpit-surface-muted"
                       role="meter"
                       aria-label={`${pattern.label} ${percent}%`}
                       aria-valuemin={0}
@@ -518,7 +587,7 @@ export function DecisionLogPage() {
                       aria-valuenow={percent}
                     >
                       <div
-                        className="h-full rounded-full bg-app-accent"
+                        className="h-full rounded-full bg-blue-500"
                         style={{ width: `${percent}%` }}
                       />
                     </div>
@@ -528,33 +597,41 @@ export function DecisionLogPage() {
             </ul>
           </Card>
 
-          <Card>
-            <h2 className="mb-4 text-lg font-semibold text-app-text">
-              최근 복기 메모
-            </h2>
-            <ul className="flex flex-col gap-4">
+          <Card className="border-cockpit-border bg-cockpit-surface/90 shadow-blue-950/20">
+            <div className="mb-4 flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-cockpit-text">
+                최근 복기 메모
+              </h2>
+              <span className="grid h-5 w-5 place-items-center rounded-full border border-cockpit-border text-xs text-cockpit-text-muted">
+                i
+              </span>
+            </div>
+            <ul className="flex flex-col gap-3">
               {mockReviewMemos.map((memo) => (
                 <li
                   key={memo.id}
-                  className="flex flex-col gap-2 border-b border-app-border pb-4 last:border-b-0 last:pb-0"
+                  className="flex flex-col gap-2 rounded-card border border-cockpit-border bg-cockpit-surface-muted/40 p-3"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <h3 className="font-semibold text-app-text">
-                        {memo.symbol} 판단 복기
+                      <h3 className="font-semibold text-cockpit-text">
+                        <span className="text-cockpit-text-muted">
+                          {formatMemoDate(memo.reviewedAt)}
+                        </span>{' '}
+                        <span className="text-blue-300">
+                          {memo.symbol} 판단 복기
+                        </span>
                       </h3>
-                      <span className="text-xs text-app-text-muted">
-                        {formatMemoDate(memo.reviewedAt)}
-                      </span>
                     </div>
                     <Link
                       to={appRoutePaths.decisionLog}
-                      className="text-sm font-semibold text-app-accent hover:text-app-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent"
+                      aria-label="복기 보기"
+                      className="text-sm font-semibold text-blue-300 hover:text-cockpit-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cockpit-accent"
                     >
-                      복기 보기
+                      복기 보기 ›
                     </Link>
                   </div>
-                  <p className="text-sm leading-6 text-app-text-muted">
+                  <p className="text-sm leading-6 text-cockpit-text-muted">
                     {memo.memo}
                   </p>
                 </li>
