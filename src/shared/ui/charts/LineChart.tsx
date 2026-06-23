@@ -16,27 +16,29 @@ import {
   useMeasuredChartWidth,
 } from './chartTheme'
 
-export interface LineChartPoint {
-  [key: string]: number | string
-}
+export type LineChartPoint = Record<string, number | string>
+export type LineChartDataKey<T extends LineChartPoint> = Extract<
+  keyof T,
+  string
+>
 
-export interface LineChartProps {
-  data: LineChartPoint[]
+export interface LineChartProps<T extends LineChartPoint = LineChartPoint> {
+  data: T[]
   height: number
   width?: number
   responsive?: boolean
   color?: string
   ariaLabel?: string
   className?: string
-  xDataKey?: string
-  yDataKey?: string
+  xDataKey?: LineChartDataKey<T>
+  yDataKey?: LineChartDataKey<T>
   margin?: Margin
   showAxes?: boolean
   showGrid?: boolean
   showTooltip?: boolean
 }
 
-export function LineChart({
+export function LineChart<T extends LineChartPoint = LineChartPoint>({
   data,
   height,
   width,
@@ -44,16 +46,18 @@ export function LineChart({
   color = chartTheme.lineColor,
   ariaLabel,
   className,
-  xDataKey = 'name',
-  yDataKey = 'value',
+  xDataKey,
+  yDataKey,
   margin = chartTheme.chartMargin,
   showAxes = true,
   showGrid = true,
   showTooltip = false,
-}: LineChartProps) {
+}: LineChartProps<T>) {
   const { containerRef, chartWidth } = useMeasuredChartWidth(
     responsive ? width : (width ?? chartTheme.fallbackWidth),
   )
+  const resolvedXDataKey = (xDataKey ?? 'name') as LineChartDataKey<T>
+  const resolvedYDataKey = (yDataKey ?? 'value') as LineChartDataKey<T>
 
   return (
     <div
@@ -77,7 +81,7 @@ export function LineChart({
         ) : null}
         {showAxes ? (
           <XAxis
-            dataKey={xDataKey}
+            dataKey={resolvedXDataKey}
             tick={{ fill: chartTheme.axisColor, fontSize: 11 }}
             tickLine={false}
             axisLine={{ stroke: chartTheme.gridColor }}
@@ -95,7 +99,7 @@ export function LineChart({
         {showTooltip ? <Tooltip isAnimationActive={false} /> : null}
         <Line
           type="monotone"
-          dataKey={yDataKey}
+          dataKey={resolvedYDataKey}
           stroke={color}
           strokeWidth={2.6}
           strokeLinecap="round"
