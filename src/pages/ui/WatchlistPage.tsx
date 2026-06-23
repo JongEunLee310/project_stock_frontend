@@ -15,6 +15,7 @@ import {
   Button,
   Card,
   DonutChart,
+  EmptyState,
   Input,
   Sparkline as UiSparkline,
 } from '@/shared/ui'
@@ -723,9 +724,12 @@ export function WatchlistPage() {
                     <tr>
                       <td
                         colSpan={10}
-                        className="px-4 py-8 text-center text-sm text-cockpit-text-muted"
+                        className="px-4 py-6 text-center text-sm text-cockpit-text-muted"
                       >
-                        조건에 맞는 관심 종목이 없습니다.
+                        <EmptyState
+                          title="조건에 맞는 관심 종목이 없습니다."
+                          className="py-4"
+                        />
                       </td>
                     </tr>
                   )}
