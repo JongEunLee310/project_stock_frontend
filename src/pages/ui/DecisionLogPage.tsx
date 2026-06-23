@@ -358,7 +358,7 @@ export function DecisionLogPage() {
         key: 'createdAt',
         header: '날짜/시간',
         cell: (log) => (
-          <span className="whitespace-nowrap text-app-text-muted">
+          <span className="whitespace-nowrap text-cockpit-text-muted">
             {formatDateTime(log.createdAt)}
           </span>
         ),
@@ -369,7 +369,7 @@ export function DecisionLogPage() {
         cell: (log) => (
           <Link
             to={getResearchPath(log.symbol)}
-            className="font-semibold text-app-text hover:text-app-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent"
+            className="font-semibold text-cockpit-text hover:text-cockpit-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cockpit-accent"
             onClick={stopRowNavigation}
           >
             {log.symbol}
@@ -386,7 +386,7 @@ export function DecisionLogPage() {
         header: '판단 이유',
         className: 'min-w-72 max-w-96',
         cell: (log) => (
-          <span className="line-clamp-2 text-app-text-muted">
+          <span className="line-clamp-2 text-cockpit-text-muted">
             {log.rationale}
           </span>
         ),
@@ -409,7 +409,7 @@ export function DecisionLogPage() {
         key: 'reviewDate',
         header: '재검토 일정',
         cell: (log) => (
-          <span className="whitespace-nowrap text-app-text-muted">
+          <span className="whitespace-nowrap text-cockpit-text-muted">
             {log.reviewDate || '미정'}
           </span>
         ),
@@ -487,7 +487,7 @@ export function DecisionLogPage() {
             <MetricCard
               label="이번 주 기록"
               value={`${summary.recent}건`}
-              description="지난 주 대비 +27%"
+              description="최근 7일 기준"
               icon="▦"
               tone="slate"
             />
@@ -520,7 +520,9 @@ export function DecisionLogPage() {
               <Button
                 type="button"
                 variant="ghost"
-                className="min-h-8 border-cockpit-border px-3 py-1 text-xs text-cockpit-text-muted"
+                className="min-h-8 border-cockpit-border px-3 py-1 text-xs text-cockpit-text-muted disabled:border-cockpit-border disabled:bg-cockpit-surface-muted/40 disabled:text-cockpit-text-muted/70"
+                disabled
+                title="필터 기능은 후속 데이터 연동 범위에서 활성화됩니다."
               >
                 필터 ⌯
               </Button>
