@@ -11,7 +11,7 @@ import type {
   RiskLevel,
   StockResearch,
 } from '@/shared/model'
-import { Badge, Button, Card, LineChart } from '@/shared/ui'
+import { Badge, Button, Card, EmptyState, LineChart } from '@/shared/ui'
 import type { BadgeTone } from '@/shared/ui'
 import { classNames } from '@/shared/ui/classNames'
 
@@ -136,26 +136,22 @@ function PriceSparkline({
 function EmptyResearchState({ symbol }: { symbol: string }) {
   return (
     <Card className="mx-auto max-w-3xl">
-      <div className="flex flex-col items-start gap-5">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-app-text-muted">
-            Research
-          </p>
-          <h1 className="mt-2 text-3xl font-bold text-app-text">
-            {symbol} 리서치 데이터를 찾을 수 없습니다
-          </h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-app-text-muted">
-            현재 mock 리서치 범위에 없는 심볼입니다. 관심 종목에서 지원 심볼을
-            선택해 주세요.
-          </p>
-        </div>
-        <Link
-          to={appRoutePaths.watchlist}
-          className="inline-flex min-h-10 items-center justify-center rounded-control border border-app-border bg-app-surface-muted px-4 py-2 text-sm font-semibold text-app-text transition-colors hover:border-app-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent"
-        >
-          워치리스트로 돌아가기
-        </Link>
-      </div>
+      <p className="text-sm font-semibold uppercase tracking-wide text-app-text-muted">
+        Research
+      </p>
+      <EmptyState
+        title={`${symbol} 리서치 데이터를 찾을 수 없습니다`}
+        description="현재 mock 리서치 범위에 없는 심볼입니다. 관심 종목에서 지원 심볼을 선택해 주세요."
+        action={
+          <Link
+            to={appRoutePaths.watchlist}
+            className="inline-flex min-h-10 items-center justify-center rounded-control border border-app-border bg-app-surface-muted px-4 py-2 text-sm font-semibold text-app-text transition-colors hover:border-app-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent"
+          >
+            워치리스트로 돌아가기
+          </Link>
+        }
+        className="items-start px-0 pb-0 pt-2 text-left"
+      />
     </Card>
   )
 }

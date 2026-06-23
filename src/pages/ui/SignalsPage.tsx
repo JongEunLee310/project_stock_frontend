@@ -9,7 +9,7 @@ import {
   type SignalKind,
   type StockStatus,
 } from '@/shared/model'
-import { Badge, Button, Card, Input, Sparkline } from '@/shared/ui'
+import { Badge, Button, Card, EmptyState, Input, Sparkline } from '@/shared/ui'
 import { classNames } from '@/shared/ui/classNames'
 
 type StatusFilter = 'all' | StockStatus
@@ -662,9 +662,10 @@ export function SignalsPage() {
               ))
             ) : (
               <Card className="border-cockpit-border bg-cockpit-surface/80 lg:col-span-2">
-                <p className="text-sm text-cockpit-text-muted">
-                  조건에 맞는 시그널이 없습니다.
-                </p>
+                <EmptyState
+                  title="조건에 맞는 시그널이 없습니다."
+                  className="py-6"
+                />
               </Card>
             )}
           </div>
