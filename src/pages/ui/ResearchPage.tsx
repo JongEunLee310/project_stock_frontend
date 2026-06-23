@@ -11,7 +11,7 @@ import type {
   RiskLevel,
   StockResearch,
 } from '@/shared/model'
-import { Badge, Button, Card } from '@/shared/ui'
+import { Badge, Button, Card, LineChart } from '@/shared/ui'
 import type { BadgeTone } from '@/shared/ui'
 import { classNames } from '@/shared/ui/classNames'
 
@@ -105,32 +105,6 @@ function getHighestRiskLevel(risks: StockResearch['keyRisks']) {
   )
 }
 
-function buildSparklinePoints(pricePoints: PricePoint[]) {
-  const width = 240
-  const height = 80
-  const padding = 8
-  const closes = pricePoints.map((point) => point.close)
-  const min = Math.min(...closes)
-  const max = Math.max(...closes)
-  const range = max - min || 1
-  const xStep =
-    pricePoints.length > 1
-      ? (width - padding * 2) / (pricePoints.length - 1)
-      : 0
-
-  return pricePoints
-    .map((point, index) => {
-      const x = padding + index * xStep
-      const y =
-        height -
-        padding -
-        ((point.close - min) / range) * (height - padding * 2)
-
-      return `${x.toFixed(2)},${y.toFixed(2)}`
-    })
-    .join(' ')
-}
-
 function PriceSparkline({
   symbol,
   pricePoints,
@@ -138,34 +112,24 @@ function PriceSparkline({
   symbol: string
   pricePoints: PricePoint[]
 }) {
-  const points = buildSparklinePoints(pricePoints)
+  const data = pricePoints.map((point) => ({
+    date: point.date.slice(5),
+    close: point.close,
+  }))
 
   return (
-    <svg
-      role="img"
-      aria-label={`${symbol} 최근 가격 추이`}
-      viewBox="0 0 240 80"
-      className="h-44 w-full overflow-visible"
-      preserveAspectRatio="none"
-    >
-      <line
-        x1="8"
-        x2="232"
-        y1="72"
-        y2="72"
-        className="stroke-app-border"
-        strokeDasharray="4 6"
-      />
-      <polyline
-        points={points}
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="3"
-        className="text-app-accent"
-      />
-    </svg>
+    <LineChart
+      className="h-44 w-full text-app-accent"
+      data={data}
+      height={176}
+      color="currentColor"
+      ariaLabel={`${symbol} 최근 가격 추이`}
+      xDataKey="date"
+      yDataKey="close"
+      margin={{ top: 10, right: 12, bottom: 4, left: 4 }}
+      showAxes={false}
+      showGrid
+    />
   )
 }
 

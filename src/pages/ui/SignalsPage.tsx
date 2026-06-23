@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Line, LineChart, XAxis, YAxis } from 'recharts'
 
 import { appRoutePaths } from '@/shared/config/navigation'
 import { mockSignals, mockStocks } from '@/shared/mock'
@@ -10,7 +9,7 @@ import {
   type SignalKind,
   type StockStatus,
 } from '@/shared/model'
-import { Badge, Button, Card, Input } from '@/shared/ui'
+import { Badge, Button, Card, Input, Sparkline } from '@/shared/ui'
 import { classNames } from '@/shared/ui/classNames'
 
 type StatusFilter = 'all' | StockStatus
@@ -139,71 +138,22 @@ function SignalSparklineChart({
   points: number[]
   value: number
 }) {
-  const chartRef = useRef<HTMLDivElement>(null)
-  const [chartWidth, setChartWidth] = useState(100)
   const isPositive = value >= 0
   const data = points.map((point, index) => ({ index, value: point }))
 
-  useEffect(() => {
-    const element = chartRef.current
-
-    if (!element) {
-      return undefined
-    }
-
-    const updateWidth = () => {
-      setChartWidth(
-        Math.max(Math.round(element.getBoundingClientRect().width), 1),
-      )
-    }
-
-    updateWidth()
-
-    if (!('ResizeObserver' in window)) {
-      return undefined
-    }
-
-    const resizeObserver = new ResizeObserver(updateWidth)
-    resizeObserver.observe(element)
-
-    return () => resizeObserver.disconnect()
-  }, [])
-
   return (
-    <div
-      ref={chartRef}
+    <Sparkline
       className={classNames(
         'h-10 min-w-0 flex-1',
         isPositive ? 'text-emerald-400' : 'text-red-400',
       )}
-      role="img"
-      aria-label={`1개월 변동 ${value > 0 ? '+' : ''}${value.toFixed(1)}%`}
-    >
-      <LineChart
-        data={data}
-        height={40}
-        margin={{ top: 4, right: 0, bottom: 4, left: 0 }}
-        width={chartWidth}
-      >
-        <XAxis
-          dataKey="index"
-          domain={[0, Math.max(points.length - 1, 0)]}
-          hide
-          type="number"
-        />
-        <YAxis hide domain={['dataMin', 'dataMax']} />
-        <Line
-          dataKey="value"
-          dot={false}
-          isAnimationActive={false}
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2.4}
-          type="monotone"
-        />
-      </LineChart>
-    </div>
+      data={data}
+      height={40}
+      color="currentColor"
+      ariaLabel={`1개월 변동 ${value > 0 ? '+' : ''}${value.toFixed(1)}%`}
+      margin={{ top: 4, right: 0, bottom: 4, left: 0 }}
+      strokeWidth={2.4}
+    />
   )
 }
 

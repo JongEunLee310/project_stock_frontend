@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom'
-import { Bar, BarChart, Cell, Line, LineChart, Pie, PieChart } from 'recharts'
 
 import { appRoutePaths } from '@/shared/config/navigation'
 import {
@@ -11,7 +10,15 @@ import {
   mockStocks,
 } from '@/shared/mock'
 import type { DecisionLog, Signal, Stock, StockStatus } from '@/shared/model'
-import { Badge, Card, Table, type TableColumn } from '@/shared/ui'
+import {
+  Badge,
+  BarChart,
+  Card,
+  DonutChart,
+  Sparkline,
+  Table,
+  type TableColumn,
+} from '@/shared/ui'
 import { classNames } from '@/shared/ui/classNames'
 
 type BriefMetricKey =
@@ -156,67 +163,44 @@ function MiniVisual({
 }) {
   if (kind === 'bars-news') {
     return (
-      <div className={classNames('h-12 w-24', className)} aria-hidden="true">
-        <BarChart
-          width={96}
-          height={48}
-          data={importantNewsBarData}
-          margin={{ top: 4, right: 0, bottom: 0, left: 0 }}
-        >
-          <Bar
-            dataKey="value"
-            fill="currentColor"
-            isAnimationActive={false}
-            radius={[2, 2, 0, 0]}
-          />
-        </BarChart>
-      </div>
+      <BarChart
+        className={classNames('h-12 w-24', className)}
+        width={96}
+        height={48}
+        data={importantNewsBarData}
+        color="currentColor"
+        margin={{ top: 4, right: 0, bottom: 0, left: 0 }}
+      />
     )
   }
 
   if (kind === 'donut-cash') {
     return (
-      <div className={classNames('h-16 w-16', className)} aria-hidden="true">
-        <PieChart width={64} height={64}>
-          <Pie
-            data={[
-              { name: 'cash', value: mockDashboardSummary.cashRatio },
-              { name: 'invested', value: 100 - mockDashboardSummary.cashRatio },
-            ]}
-            dataKey="value"
-            innerRadius={22}
-            outerRadius={30}
-            startAngle={90}
-            endAngle={-270}
-            stroke="none"
-            isAnimationActive={false}
-          >
-            <Cell fill="currentColor" />
-            <Cell fill="#475569" />
-          </Pie>
-        </PieChart>
-      </div>
+      <DonutChart
+        className={classNames('h-16 w-16', className)}
+        width={64}
+        height={64}
+        data={[
+          { name: 'cash', value: mockDashboardSummary.cashRatio },
+          { name: 'invested', value: 100 - mockDashboardSummary.cashRatio },
+        ]}
+        colors={['currentColor', '#475569']}
+        innerRadius={22}
+        outerRadius={30}
+      />
     )
   }
 
   return (
-    <div className={classNames('h-14 w-24', className)} aria-hidden="true">
-      <LineChart
-        width={96}
-        height={56}
-        data={briefSparklineData[kind]}
-        margin={{ top: 6, right: 4, bottom: 6, left: 4 }}
-      >
-        <Line
-          type="monotone"
-          dataKey="value"
-          stroke="currentColor"
-          strokeWidth={2.4}
-          dot={false}
-          isAnimationActive={false}
-        />
-      </LineChart>
-    </div>
+    <Sparkline
+      className={classNames('h-14 w-24', className)}
+      width={96}
+      height={56}
+      data={briefSparklineData[kind]}
+      color="currentColor"
+      margin={{ top: 6, right: 4, bottom: 6, left: 4 }}
+      strokeWidth={2.4}
+    />
   )
 }
 
@@ -225,30 +209,18 @@ function StockSparkline({ stock }: { stock: Stock }) {
   const data = series.map((value, index) => ({ index, value }))
 
   return (
-    <div
+    <Sparkline
       className={classNames(
         'h-8 w-20',
         stock.changePercent >= 0 ? 'text-emerald-400' : 'text-rose-400',
       )}
-      role="img"
-      aria-label={`${stock.symbol} 핵심 지표 추이`}
-    >
-      <LineChart
-        width={80}
-        height={34}
-        data={data}
-        margin={{ top: 4, right: 3, bottom: 2, left: 3 }}
-      >
-        <Line
-          type="monotone"
-          dataKey="value"
-          stroke="currentColor"
-          strokeWidth={2.2}
-          dot={false}
-          isAnimationActive={false}
-        />
-      </LineChart>
-    </div>
+      width={80}
+      height={34}
+      data={data}
+      color="currentColor"
+      ariaLabel={`${stock.symbol} 핵심 지표 추이`}
+      margin={{ top: 4, right: 3, bottom: 2, left: 3 }}
+    />
   )
 }
 

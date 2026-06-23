@@ -1,6 +1,13 @@
 export { Badge } from './Badge'
 export { Button } from './Button'
 export { Card } from './Card'
+export {
+  BarChart,
+  chartTheme,
+  DonutChart,
+  LineChart,
+  Sparkline,
+} from './charts'
 export { Input } from './Input'
 export { Table } from './Table'
 export {
@@ -21,3 +28,13 @@ export type {
   RiskLevel,
   StockStatus,
 } from './stockStatus'
+export type {
+  BarChartPoint,
+  BarChartProps,
+  DonutChartPoint,
+  DonutChartProps,
+  LineChartPoint,
+  LineChartProps,
+  SparklinePoint,
+  SparklineProps,
+} from './charts'

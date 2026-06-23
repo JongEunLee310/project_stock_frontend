@@ -1,6 +1,5 @@
 import { useCallback, useMemo, useState, type MouseEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Bar, BarChart, Cell, Line, LineChart, Pie, PieChart } from 'recharts'
 
 import {
   mockRecentWatchlist,
@@ -10,7 +9,15 @@ import {
   mockWatchlistSummary,
 } from '@/shared/mock'
 import { riskLevels, type RiskLevel, type Stock } from '@/shared/model'
-import { Badge, Button, Card, Input } from '@/shared/ui'
+import {
+  Badge,
+  BarChart,
+  Button,
+  Card,
+  DonutChart,
+  Input,
+  Sparkline as UiSparkline,
+} from '@/shared/ui'
 import { classNames } from '@/shared/ui/classNames'
 
 type MarketFilter = 'all' | Stock['market']
@@ -130,112 +137,66 @@ function Sparkline({ values }: { values: number[] }) {
   const isUp = values.at(-1)! >= values[0]
 
   return (
-    <div
+    <UiSparkline
       className={classNames(
         'h-6 w-[4.25rem]',
         isUp ? 'text-emerald-400' : 'text-rose-400',
       )}
-      role="img"
-      aria-label="1일 변화 스파크라인"
-    >
-      <LineChart
-        data={data}
-        height={24}
-        margin={{ top: 2, right: 1, bottom: 2, left: 1 }}
-        width={68}
-      >
-        <Line
-          dataKey="value"
-          dot={false}
-          isAnimationActive={false}
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          type="monotone"
-        />
-      </LineChart>
-    </div>
+      data={data}
+      height={24}
+      width={68}
+      color="currentColor"
+      ariaLabel="1일 변화 스파크라인"
+      margin={{ top: 2, right: 1, bottom: 2, left: 1 }}
+      strokeWidth={2}
+    />
   )
 }
 
 function SummaryVisual({ index }: { index: number }) {
   if (index === 3) {
     return (
-      <div
+      <DonutChart
         className="h-16 w-16"
-        role="img"
-        aria-label="평균 현금 연관도 도넛 차트"
-      >
-        <PieChart height={64} width={64}>
-          <Pie
-            data={cashCorrelationData}
-            dataKey="value"
-            innerRadius="64%"
-            isAnimationActive={false}
-            outerRadius="100%"
-            paddingAngle={0}
-            stroke="none"
-          >
-            <Cell fill="#62d66f" />
-            <Cell fill="#30445f" />
-          </Pie>
-        </PieChart>
-      </div>
+        data={cashCorrelationData}
+        height={64}
+        width={64}
+        colors={['#62d66f', '#30445f']}
+        innerRadius="64%"
+        outerRadius="100%"
+        ariaLabel="평균 현금 연관도 도넛 차트"
+      />
     )
   }
 
   if (index === 2) {
     return (
-      <div
+      <BarChart
         className="h-16 w-24"
-        role="img"
-        aria-label="추가 리서치 필요 막대 차트"
-      >
-        <BarChart
-          data={researchBars}
-          height={64}
-          margin={{ top: 6, right: 0, bottom: 0, left: 0 }}
-          width={96}
-        >
-          <Bar
-            dataKey="value"
-            fill="#2f7df7"
-            isAnimationActive={false}
-            radius={[2, 2, 0, 0]}
-          />
-        </BarChart>
-      </div>
+        data={researchBars}
+        height={64}
+        width={96}
+        color="#2f7df7"
+        ariaLabel="추가 리서치 필요 막대 차트"
+        margin={{ top: 6, right: 0, bottom: 0, left: 0 }}
+      />
     )
   }
 
   return (
-    <div
+    <UiSparkline
       className="h-10 w-20"
-      role="img"
-      aria-label={`${index === 1 ? '위험 증가 종목' : '전체 관심 종목'} 추세 차트`}
-    >
-      <LineChart
-        data={summaryLineSeries[index === 1 ? 1 : 0].map((value, point) => ({
-          point,
-          value,
-        }))}
-        height={40}
-        margin={{ top: 2, right: 2, bottom: 2, left: 2 }}
-        width={80}
-      >
-        <Line
-          dataKey="value"
-          dot={false}
-          isAnimationActive={false}
-          stroke={index === 1 ? '#ff4d57' : '#2f7df7'}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          type="monotone"
-        />
-      </LineChart>
-    </div>
+      data={summaryLineSeries[index === 1 ? 1 : 0].map((value, point) => ({
+        point,
+        value,
+      }))}
+      height={40}
+      width={80}
+      color={index === 1 ? '#ff4d57' : '#2f7df7'}
+      ariaLabel={`${index === 1 ? '위험 증가 종목' : '전체 관심 종목'} 추세 차트`}
+      margin={{ top: 2, right: 2, bottom: 2, left: 2 }}
+      strokeWidth={2}
+    />
   )
 }
 
