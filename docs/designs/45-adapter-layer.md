@@ -39,49 +39,49 @@ UPPER_SNAKE enum·envelope·UTC) ↔ FE 도메인/표시(camelCase·number·한�
 
 ### `src/shared/api/envelope.ts`
 
-| 심볼 | 형태 | 책임 |
-|---|---|---|
-| `ApiEnvelope<T>` | type | `{ data, message?, error?, meta? }` 와이어 봉투 |
-| `ApiErrorBody` | type | `{ code: string; message?: string }` |
-| `ApiMeta` | type | `{ page: number; size: number; total: number }` (C2) |
-| `unwrapEnvelope<T>(env)` | `(ApiEnvelope<T>) => { data: T; meta?: ApiMeta }` | `error` 있으면 throw, 없으면 data/meta 반환 (C1) |
-| `ApiError` | class | `code`/`message` 보유 도메인 에러(throw 대상) |
+| 심볼                     | 형태                                              | 책임                                                 |
+| ------------------------ | ------------------------------------------------- | ---------------------------------------------------- |
+| `ApiEnvelope<T>`         | type                                              | `{ data, message?, error?, meta? }` 와이어 봉투      |
+| `ApiErrorBody`           | type                                              | `{ code: string; message?: string }`                 |
+| `ApiMeta`                | type                                              | `{ page: number; size: number; total: number }` (C2) |
+| `unwrapEnvelope<T>(env)` | `(ApiEnvelope<T>) => { data: T; meta?: ApiMeta }` | `error` 있으면 throw, 없으면 data/meta 반환 (C1)     |
+| `ApiError`               | class                                             | `code`/`message` 보유 도메인 에러(throw 대상)        |
 
 ### `src/shared/api/errorCodes.ts`
 
-| 심볼 | 형태 | 책임 |
-|---|---|---|
-| `errorCodeMessages` | `Record<string,string>` | 알려진 `ErrorCode`→한글 메시지 (C9) |
-| `messageForErrorCode(code, fallback?)` | `(string, string?) => string` | 매핑 조회, 미지 코드 fallback |
+| 심볼                                   | 형태                          | 책임                                |
+| -------------------------------------- | ----------------------------- | ----------------------------------- |
+| `errorCodeMessages`                    | `Record<string,string>`       | 알려진 `ErrorCode`→한글 메시지 (C9) |
+| `messageForErrorCode(code, fallback?)` | `(string, string?) => string` | 매핑 조회, 미지 코드 fallback       |
 
 ### `src/shared/api/paging.ts`
 
-| 심볼 | 형태 | 책임 |
-|---|---|---|
-| `toTablePagination(meta, onPageChange)` | `(ApiMeta, (p:number)=>void) => TablePagination` | meta→Table props(C2) |
-| `buildSortParam(field, dir)` | `(string, 'asc'\|'desc') => string` | `field`/`-field` 직렬화(C7) |
+| 심볼                                    | 형태                                             | 책임                        |
+| --------------------------------------- | ------------------------------------------------ | --------------------------- |
+| `toTablePagination(meta, onPageChange)` | `(ApiMeta, (p:number)=>void) => TablePagination` | meta→Table props(C2)        |
+| `buildSortParam(field, dir)`            | `(string, 'asc'\|'desc') => string`              | `field`/`-field` 직렬화(C7) |
 
 ### `src/shared/lib/format/decimal.ts`
 
-| 심볼 | 형태 | 책임 |
-|---|---|---|
-| `parseDecimal(value)` | `(string\|null) => number\|null` | 문자열 Decimal→number(C5) |
-| `formatMoney(value, opts?)` | `(number, …) => string` | `Intl.NumberFormat` 통화/금액 표시 |
-| `formatPercent(value, opts?)` | `(number, …) => string` | 비율 표시(소수 자리 옵션) |
+| 심볼                          | 형태                             | 책임                               |
+| ----------------------------- | -------------------------------- | ---------------------------------- |
+| `parseDecimal(value)`         | `(string\|null) => number\|null` | 문자열 Decimal→number(C5)          |
+| `formatMoney(value, opts?)`   | `(number, …) => string`          | `Intl.NumberFormat` 통화/금액 표시 |
+| `formatPercent(value, opts?)` | `(number, …) => string`          | 비율 표시(소수 자리 옵션)          |
 
 ### `src/shared/lib/format/datetime.ts`
 
-| 심볼 | 형태 | 책임 |
-|---|---|---|
-| `formatKstDate(iso)` | `(string) => string` | UTC ISO→KST 날짜(`Asia/Seoul` 고정, C6) |
-| `formatKstDateTime(iso)` | `(string) => string` | UTC ISO→KST 일시 |
+| 심볼                     | 형태                 | 책임                                    |
+| ------------------------ | -------------------- | --------------------------------------- |
+| `formatKstDate(iso)`     | `(string) => string` | UTC ISO→KST 날짜(`Asia/Seoul` 고정, C6) |
+| `formatKstDateTime(iso)` | `(string) => string` | UTC ISO→KST 일시                        |
 
 ### `src/shared/lib/format/enumLabel.ts`
 
-| 심볼 | 형태 | 책임 |
-|---|---|---|
-| `riskLevelLabels` 등 | `Record<WireEnum,string>` | 영문 UPPER_SNAKE→한글 라벨(C8) |
-| `toLabel(map, wire, fallback?)` | 제네릭 조회 | 미지 값 fallback=원문 |
+| 심볼                            | 형태                      | 책임                           |
+| ------------------------------- | ------------------------- | ------------------------------ |
+| `riskLevelLabels` 등            | `Record<WireEnum,string>` | 영문 UPPER_SNAKE→한글 라벨(C8) |
+| `toLabel(map, wire, fallback?)` | 제네릭 조회               | 미지 값 fallback=원문          |
 
 알려진 매핑(C8): `HIGH/MEDIUM/LOW`→`높음/중간/낮음`, Alert status `UNREAD/READ/DISMISSED`,
 `StockStatus`/`ValuationLevel` 와이어 영문값은 계약(`frontend-api-spec.md`) 확정값에 맞춘다.
@@ -90,10 +90,10 @@ UPPER_SNAKE enum·envelope·UTC) ↔ FE 도메인/표시(camelCase·number·한�
 
 ### `src/shared/ui/Table.tsx` (확장)
 
-| 변경 | 책임 |
-|---|---|
+| 변경                                                     | 책임                                                              |
+| -------------------------------------------------------- | ----------------------------------------------------------------- |
 | `TablePagination`에 `manual?: boolean`(또는 동등 플래그) | 서버 페이징 모드: 내부 `rows.slice` 건너뜀, 받은 rows 그대로 렌더 |
-| 기존 동작 | `manual` 미지정 시 현행 클라이언트 슬라이싱 유지(하위 호환) |
+| 기존 동작                                                | `manual` 미지정 시 현행 클라이언트 슬라이싱 유지(하위 호환)       |
 
 ## 범위 밖
 
