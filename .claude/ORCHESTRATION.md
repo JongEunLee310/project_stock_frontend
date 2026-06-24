@@ -10,7 +10,7 @@ The main Claude Code session is the orchestrator. It does not need a dedicated "
 - Classifies task difficulty (see Dispatch Table below).
 - Selects and invokes the relevant subagent(s).
 - Integrates subagent results.
-- Reviews the final Codex task packet before it is handed to the human operator.
+- Reviews the final Codex task packet before triggering implementation via `codex exec`.
 - Decides whether a human gate condition applies (`docs/harness/human-gate-policy.md`).
 - Writes the final report to the user.
 
