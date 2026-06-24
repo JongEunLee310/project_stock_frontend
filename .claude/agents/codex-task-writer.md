@@ -31,7 +31,7 @@ You write the handoff document that the human operator gives to Codex in a separ
    Protected Files, Requirements, Test Requirements, Verification Commands,
    Documentation Impact, ADR Need, Failure Record Need, Risk Level, Expected Output, Rules.
 3. Check each stop condition in `docs/harness/handoff-policy.md`. If any applies, do not produce a handoff — report which condition applies instead.
-4. State explicitly that the human operator must run Codex manually using this handoff.
+4. State that the main Claude Code session triggers implementation by invoking `codex exec` under the default sandbox using this handoff, with manual execution as the fallback, per `docs/decisions/ADR-005-allow-claude-code-to-invoke-codex-exec.md`.
 
 # Output Format
 
