@@ -2,22 +2,39 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 
 import { appRouteObjects } from '@/app/router'
+import { AuthProvider } from '@/shared/auth/AuthProvider'
+import {
+  setupAuthenticatedUser,
+  teardownAuthenticatedUser,
+} from '@/test-utils/authTestSetup'
+
+beforeEach(() => {
+  setupAuthenticatedUser()
+})
+
+afterEach(() => {
+  teardownAuthenticatedUser()
+})
 
 function renderSignals() {
   const router = createMemoryRouter(appRouteObjects, {
     initialEntries: ['/signals'],
   })
 
-  render(<RouterProvider router={router} />)
+  render(
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>,
+  )
 
   return router
 }
 
 describe('SignalsPage', () => {
-  it('renders signal cards with symbol, status, confidence, and reasons', () => {
+  it('renders signal cards with symbol, status, confidence, and reasons', async () => {
     renderSignals()
 
-    const nvdaCard = screen.getByRole('article', {
+    const nvdaCard = await screen.findByRole('article', {
       name: 'NVDA 실적 시그널',
     })
 
@@ -34,8 +51,10 @@ describe('SignalsPage', () => {
     ).toBeVisible()
   })
 
-  it('shows all four required status summary cards', () => {
+  it('shows all four required status summary cards', async () => {
     renderSignals()
+
+    await screen.findByRole('article', { name: 'NVDA 실적 시그널' })
 
     expect(screen.getAllByText('매수 검토 가능').length).toBeGreaterThan(0)
     expect(screen.getAllByText('위험 증가').length).toBeGreaterThan(0)
@@ -44,8 +63,10 @@ describe('SignalsPage', () => {
     expect(screen.getAllByText('전체 기준')).toHaveLength(4)
   })
 
-  it('renders decision log buttons on signal cards', () => {
+  it('renders decision log buttons on signal cards', async () => {
     renderSignals()
+
+    await screen.findByRole('article', { name: 'NVDA 실적 시그널' })
 
     const signalCards = screen.getAllByRole('article')
 
@@ -58,8 +79,10 @@ describe('SignalsPage', () => {
     ).toBe(true)
   })
 
-  it('narrows visible cards by search, status, and kind filters, then resets', () => {
+  it('narrows visible cards by search, status, and kind filters, then resets', async () => {
     renderSignals()
+
+    await screen.findByRole('article', { name: 'NVDA 실적 시그널' })
 
     fireEvent.change(screen.getByLabelText('검색'), {
       target: { value: 'aapl' },

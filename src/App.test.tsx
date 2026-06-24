@@ -1,24 +1,41 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 
 import { appRouteObjects } from '@/app/router'
+import { AuthProvider } from '@/shared/auth/AuthProvider'
+import {
+  setupAuthenticatedUser,
+  teardownAuthenticatedUser,
+} from '@/test-utils/authTestSetup'
+
+beforeEach(() => {
+  setupAuthenticatedUser()
+})
+
+afterEach(() => {
+  teardownAuthenticatedUser()
+})
 
 function renderRoute(initialEntry: string) {
   const router = createMemoryRouter(appRouteObjects, {
     initialEntries: [initialEntry],
   })
 
-  render(<RouterProvider router={router} />)
+  render(
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>,
+  )
 
   return router
 }
 
 describe('App', () => {
-  it('renders the app shell and dashboard route', () => {
+  it('renders the app shell and dashboard route', async () => {
     renderRoute('/')
 
     expect(
-      screen.getByRole('navigation', { name: 'Primary navigation' }),
+      await screen.findByRole('navigation', { name: 'Primary navigation' }),
     ).toBeInTheDocument()
     expect(
       screen.getByRole('heading', { name: 'AI 투자 관제실' }),
@@ -27,6 +44,8 @@ describe('App', () => {
 
   it('navigates from the sidebar and marks the current menu item', async () => {
     const router = renderRoute('/')
+
+    await screen.findByRole('navigation', { name: 'Primary navigation' })
 
     fireEvent.click(screen.getByRole('link', { name: /관심종목/ }))
 
@@ -40,10 +59,12 @@ describe('App', () => {
     )
   })
 
-  it('renders research symbol params', () => {
+  it('renders research symbol params', async () => {
     renderRoute('/research/NVDA')
 
-    expect(screen.getByRole('heading', { name: 'NVDA' })).toBeInTheDocument()
+    expect(
+      await screen.findByRole('heading', { name: 'NVDA' }),
+    ).toBeInTheDocument()
     expect(
       screen.getByRole('img', { name: 'NVDA 최근 가격 추이' }),
     ).toBeInTheDocument()
@@ -53,12 +74,14 @@ describe('App', () => {
     )
   })
 
-  it('renders not found inside the app shell', () => {
+  it('renders not found inside the app shell', async () => {
     renderRoute('/missing-route')
 
-    expect(
-      screen.getByRole('heading', { name: 'Page not found' }),
-    ).toBeInTheDocument()
+    await waitFor(() => {
+      expect(
+        screen.getByRole('heading', { name: 'Page not found' }),
+      ).toBeInTheDocument()
+    })
     expect(screen.getByLabelText('시장 요약')).toBeInTheDocument()
   })
 })

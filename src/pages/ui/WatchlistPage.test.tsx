@@ -2,13 +2,30 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 
 import { appRouteObjects } from '@/app/router'
+import { AuthProvider } from '@/shared/auth/AuthProvider'
+import {
+  setupAuthenticatedUser,
+  teardownAuthenticatedUser,
+} from '@/test-utils/authTestSetup'
+
+beforeEach(() => {
+  setupAuthenticatedUser()
+})
+
+afterEach(() => {
+  teardownAuthenticatedUser()
+})
 
 function renderWatchlist() {
   const router = createMemoryRouter(appRouteObjects, {
     initialEntries: ['/watchlist'],
   })
 
-  render(<RouterProvider router={router} />)
+  render(
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>,
+  )
 
   return router
 }
@@ -20,10 +37,12 @@ async function returnToWatchlist(router: ReturnType<typeof renderWatchlist>) {
 }
 
 describe('WatchlistPage', () => {
-  it('renders the redesigned watchlist structure', () => {
+  it('renders the redesigned watchlist structure', async () => {
     renderWatchlist()
 
-    expect(screen.getByRole('heading', { name: '관심 종목' })).toBeVisible()
+    expect(
+      await screen.findByRole('heading', { name: '관심 종목' }),
+    ).toBeVisible()
     expect(screen.getByText('전체 관심 종목')).toBeVisible()
     expect(screen.getByText('위험 증가 종목')).toBeVisible()
     expect(screen.getByText('추가 리서치 필요')).toBeVisible()
@@ -45,9 +64,9 @@ describe('WatchlistPage', () => {
     expect(screen.getByText('빠른 알림 설정')).toBeVisible()
   })
 
-  it('renders extended table columns and stock cells', () => {
+  it('renders extended table columns and stock cells', async () => {
     renderWatchlist()
-    const table = screen.getByRole('table', { name: '관심 종목' })
+    const table = await screen.findByRole('table', { name: '관심 종목' })
 
     expect(
       within(table).getByRole('columnheader', { name: '테마 과열' }),
@@ -68,8 +87,10 @@ describe('WatchlistPage', () => {
     expect(within(table).getAllByText('위험 증가').length).toBeGreaterThan(0)
   })
 
-  it('narrows rows by search and risk filter, then resets filters', () => {
+  it('narrows rows by search and risk filter, then resets filters', async () => {
     renderWatchlist()
+
+    await screen.findByRole('heading', { name: '관심 종목' })
 
     fireEvent.change(screen.getByLabelText('검색'), {
       target: { value: 'tesla' },
@@ -95,8 +116,10 @@ describe('WatchlistPage', () => {
     expect(screen.getByRole('link', { name: 'AAPL' })).toBeVisible()
   })
 
-  it('toggles the favorite marker locally', () => {
+  it('toggles the favorite marker locally', async () => {
     renderWatchlist()
+
+    await screen.findByRole('heading', { name: '관심 종목' })
 
     const tslaFavoriteButton = screen.getByRole('button', {
       name: 'TSLA 즐겨찾기',
@@ -111,6 +134,8 @@ describe('WatchlistPage', () => {
 
   it('navigates to research from symbol, row, and row menu actions', async () => {
     const router = renderWatchlist()
+
+    await screen.findByRole('heading', { name: '관심 종목' })
 
     fireEvent.click(screen.getByRole('link', { name: 'TSLA' }))
 

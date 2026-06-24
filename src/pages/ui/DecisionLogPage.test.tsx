@@ -2,22 +2,41 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 
 import { appRouteObjects } from '@/app/router'
+import { AuthProvider } from '@/shared/auth/AuthProvider'
+import {
+  setupAuthenticatedUser,
+  teardownAuthenticatedUser,
+} from '@/test-utils/authTestSetup'
+
+beforeEach(() => {
+  setupAuthenticatedUser()
+})
+
+afterEach(() => {
+  teardownAuthenticatedUser()
+})
 
 function renderDecisionLog() {
   const router = createMemoryRouter(appRouteObjects, {
     initialEntries: ['/decision-log'],
   })
 
-  render(<RouterProvider router={router} />)
+  render(
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>,
+  )
 
   return router
 }
 
 describe('DecisionLogPage', () => {
-  it('renders the page heading and KPI cards', () => {
+  it('renders the page heading and KPI cards', async () => {
     renderDecisionLog()
 
-    expect(screen.getByRole('heading', { name: '판단 기록' })).toBeVisible()
+    expect(
+      await screen.findByRole('heading', { name: '판단 기록' }),
+    ).toBeVisible()
     expect(screen.getByText('총 기록 수')).toBeVisible()
     expect(screen.getByText('이번 주 기록')).toBeVisible()
     expect(screen.getAllByText('관망 유지').length).toBeGreaterThan(0)
@@ -25,10 +44,10 @@ describe('DecisionLogPage', () => {
     expect(screen.getByText('13건')).toBeVisible()
   })
 
-  it('renders mock decision rows with symbol, decision type, and outcome badges', () => {
+  it('renders mock decision rows with symbol, decision type, and outcome badges', async () => {
     renderDecisionLog()
 
-    const table = screen.getByRole('table', { name: '판단 기록 로그' })
+    const table = await screen.findByRole('table', { name: '판단 기록 로그' })
 
     expect(within(table).getByRole('link', { name: 'NVDA' })).toHaveAttribute(
       'href',
@@ -38,8 +57,10 @@ describe('DecisionLogPage', () => {
     expect(within(table).getAllByText('진행 중').length).toBeGreaterThan(0)
   })
 
-  it('prepends a locally saved decision to the table', () => {
+  it('prepends a locally saved decision to the table', async () => {
     renderDecisionLog()
+
+    await screen.findByRole('heading', { name: '판단 기록' })
 
     fireEvent.change(screen.getByLabelText('종목'), {
       target: { value: 'ibm' },
@@ -63,8 +84,10 @@ describe('DecisionLogPage', () => {
     expect(screen.getByLabelText('종목')).toHaveValue('')
   })
 
-  it('resets form inputs without saving', () => {
+  it('resets form inputs without saving', async () => {
     renderDecisionLog()
+
+    await screen.findByRole('heading', { name: '판단 기록' })
 
     fireEvent.change(screen.getByLabelText('종목'), {
       target: { value: 'orcl' },
@@ -80,8 +103,10 @@ describe('DecisionLogPage', () => {
     expect(screen.getByLabelText('경쟁 심화')).not.toBeChecked()
   })
 
-  it('renders frequent decision patterns', () => {
+  it('renders frequent decision patterns', async () => {
     renderDecisionLog()
+
+    await screen.findByRole('heading', { name: '판단 기록' })
 
     const panel = screen
       .getByRole('heading', { name: '자주 나온 판단 패턴' })
@@ -96,8 +121,10 @@ describe('DecisionLogPage', () => {
     ).toHaveAttribute('aria-valuenow', '38')
   })
 
-  it('renders recent review memos', () => {
+  it('renders recent review memos', async () => {
     renderDecisionLog()
+
+    await screen.findByRole('heading', { name: '판단 기록' })
 
     const panel = screen
       .getByRole('heading', { name: '최근 복기 메모' })

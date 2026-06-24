@@ -4,6 +4,7 @@ import {
   AlertsPage,
   DashboardPage,
   DecisionLogPage,
+  LoginPage,
   NotFoundPage,
   PortfolioPage,
   ResearchPage,
@@ -11,13 +12,22 @@ import {
   SignalsPage,
   WatchlistPage,
 } from '@/pages'
+import { RequireAuth } from '@/shared/auth/AuthProvider'
 import { appRoutePaths } from '@/shared/config/navigation'
 import { AppShell } from '@/widgets/AppShell'
 
 export const appRouteObjects: RouteObject[] = [
   {
+    path: '/login',
+    element: <LoginPage />,
+  },
+  {
     path: appRoutePaths.dashboard,
-    element: <AppShell />,
+    element: (
+      <RequireAuth>
+        <AppShell />
+      </RequireAuth>
+    ),
     children: [
       { index: true, element: <DashboardPage /> },
       { path: appRoutePaths.watchlist.slice(1), element: <WatchlistPage /> },
