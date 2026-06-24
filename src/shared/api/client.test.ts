@@ -115,6 +115,22 @@ describe('apiRequest — 401 lazy refresh 성공', () => {
     expect(tokens?.refreshToken).toBe('new-refresh')
   })
 
+  it('비회전: refresh 응답의 refresh_token이 빈 문자열이면 기존 refresh를 유지한다', async () => {
+    setTokens({ accessToken: 'old', refreshToken: 'keep-this-refresh' })
+
+    fetchMock
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+      .mockResolvedValueOnce(refreshOkResponse('rotated-access', '')) // 빈 refresh_token
+      .mockResolvedValueOnce(okResponse({}))
+
+    await apiRequest('/protected')
+
+    const { getTokens } = await import('@/shared/auth/tokenStore')
+    const tokens = getTokens()
+    expect(tokens?.accessToken).toBe('rotated-access')
+    expect(tokens?.refreshToken).toBe('keep-this-refresh')
+  })
+
   it('재시도 요청에 새 access 토큰을 Authorization에 담는다', async () => {
     setTokens({ accessToken: 'old', refreshToken: 'ref' })
 

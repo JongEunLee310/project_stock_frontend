@@ -9,7 +9,7 @@ import { ApiError, unwrapEnvelope, type ApiMeta } from './envelope'
 import { messageForErrorCode } from './errorCodes'
 
 export interface RequestOptions extends Omit<RequestInit, 'body'> {
-  /** false にすると Authorization ヘッダと 401 refresh を適用しない */
+  /** false면 Authorization 헤더와 401 refresh를 적용하지 않는다 */
   auth?: boolean
   body?: unknown
 }
@@ -47,7 +47,8 @@ async function doRefresh(): Promise<string> {
   }
 
   const newAccess = dto.access_token
-  const newRefresh = dto.refresh_token ?? tokens.refreshToken
+  // 비회전 정책: 서버가 refresh_token을 비우거나 생략하면 기존 refresh 유지
+  const newRefresh = dto.refresh_token || tokens.refreshToken
   setTokens({ accessToken: newAccess, refreshToken: newRefresh })
   return newAccess
 }
