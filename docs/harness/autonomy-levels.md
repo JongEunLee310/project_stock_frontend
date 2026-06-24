@@ -20,7 +20,7 @@ Claude Code plans, Codex implements, and CI verifies. Humans review PRs before m
 
 Use when: the task is Low or Medium risk, scope is clearly defined, and verification commands exist.
 
-Codex implementation at this level is still started manually by the human operator, in a separate session, using Claude Code's handoff document. Claude Code does not invoke Codex CLI itself; see `docs/harness/handoff-policy.md` and `docs/decisions/ADR-002-use-manual-codex-execution-instead-of-nested-codex-exec.md`.
+At this level Claude Code triggers Codex implementation automatically by invoking `codex exec` under the default sandbox (`read-only` / `workspace-write`), using its handoff document as the brief, then resumes with the local review. Humans review and merge the PR; they do not run a manual implementation step for Low/Medium risk work. Bypass/danger sandbox flags are never used — if the default sandbox cannot run a task, Claude Code falls back to manual execution or asks the human. See `docs/harness/handoff-policy.md` and `docs/decisions/ADR-005-allow-claude-code-to-invoke-codex-exec.md` (which supersedes ADR-002).
 
 ## Default Level
 

@@ -17,11 +17,12 @@ Claude Code 리뷰는 기본적으로 로컬에서 수행한다. 이 템플릿�
 
 ## 에이전트 자율성
 
-에이전트 행동 범위는 `docs/agent/autonomy-levels.md`에 정의된 레벨로 제어한다.
+에이전트 행동 범위는 `docs/harness/autonomy-levels.md`에 정의된 레벨로 제어한다.
 
-- 기본 레벨은 **Level 1: Local Edit**이다.
-- 작업 문서에서 명시적으로 지정하지 않으면 에이전트는 커밋, push, PR 생성을 수행하지 않는다.
-- 레벨 상향은 작업 문서에서 명시적으로 지정해야 한다.
+- **Level 0: Manual** — 사람이 모든 작업을 수행한다.
+- **Level 1: AI-Assisted** — Claude Code와 Codex가 계획·작성·구현을 보조하고 사람이 매 단계 검토·승인한다.
+- **Level 2: Semi-Autonomous** — Claude Code가 계획하고 Codex가 `codex exec`로 구현하며 CI가 검증한다. 사람은 PR을 검토·merge한다.
+- 기본 동작은 Low/Medium 위험 작업에 **Level 2**, High/Critical 위험 작업은 **Level 1**(구현 전 휴먼 게이트)이다.
 
 ## React 스타터
 
@@ -63,8 +64,8 @@ pnpm build
 - PR, CI, 리뷰 학습을 위한 피드백 루프 기록.
 - 오래된 AI 워크플로우 아티팩트 및 문서 제거를 위한 가비지 컬렉션 정책.
 - 문서 드리프트 감소를 위한 디렉토리 README 파일.
-- 보호 파일 및 문서 일관성 훅 플레이스홀더.
-- 에이전트 자율성 레벨 정의 (`docs/agent/autonomy-levels.md`).
+- 보호 파일 검사 및 문서 일관성 검사 훅 (`.claude/hooks/`).
+- 에이전트 자율성 레벨 정의 (`docs/harness/autonomy-levels.md`).
 
 ## 의도적 제외 항목
 

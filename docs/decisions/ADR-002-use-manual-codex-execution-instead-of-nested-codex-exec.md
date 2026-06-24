@@ -2,7 +2,9 @@
 
 ## Status
 
-Accepted
+Superseded by [ADR-005](ADR-005-allow-claude-code-to-invoke-codex-exec.md)
+
+> ADR-005 allows Claude Code to invoke `codex exec` automatically **under the default sandbox only** (never bypass/danger flags), once the Codex CLI is pinned to a crash-free version. The role boundary and the permanent prohibition on elevated/bypass invocation below remain in force; only the "manual execution step is mandatory" decision is reversed. This document is retained for history and as the fallback model when automated invocation is unavailable.
 
 ## Context
 
