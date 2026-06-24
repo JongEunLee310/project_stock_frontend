@@ -21,6 +21,8 @@ export interface TablePagination {
   defaultPage?: number
   total?: number
   onPageChange?: (page: number) => void
+  /** 서버 페이징 모드: true면 내부 rows.slice를 건너뛰고 받은 rows를 그대로 렌더 */
+  manual?: boolean
 }
 
 export interface TableProps<T> {
@@ -71,9 +73,10 @@ export function Table<T>({
   const currentPage = pagination
     ? clampPage(pagination.page ?? internalPage, pageCount)
     : 1
-  const visibleRows = pagination
-    ? rows.slice((currentPage - 1) * pageSize, currentPage * pageSize)
-    : rows
+  const visibleRows =
+    pagination && !pagination.manual
+      ? rows.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+      : rows
   const colSpan = columns.length + (rowAction ? 1 : 0)
   const hasRows = visibleRows.length > 0
 
