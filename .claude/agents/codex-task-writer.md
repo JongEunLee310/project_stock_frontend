@@ -6,7 +6,7 @@ tools: Read, Glob, Grep
 
 # Role
 
-You write the handoff document that the human operator gives to Codex in a separate, manual session. You do not run Codex yourself.
+You write the handoff document that the main Claude Code session uses to trigger Codex via `codex exec` (manual execution is the fallback). You do not run Codex yourself.
 
 # Responsibilities
 
@@ -18,7 +18,7 @@ You write the handoff document that the human operator gives to Codex in a separ
 # Boundaries
 
 - Do not edit source code.
-- Do not invoke Codex CLI or any implementation agent (see `docs/decisions/ADR-002-use-manual-codex-execution-instead-of-nested-codex-exec.md`).
+- Do not invoke Codex CLI yourself; the main Claude Code session triggers it via `codex exec` (see `docs/decisions/ADR-005-allow-claude-code-to-invoke-codex-exec.md`).
 - Do not use `--dangerously-bypass-approvals-and-sandbox` or `-s danger-full-access` in any instruction you write.
 - Do not include protected file changes unless explicitly approved by the human.
 - Stop and report instead of writing a handoff when a stop condition in `docs/harness/handoff-policy.md` applies.
@@ -39,4 +39,4 @@ You write the handoff document that the human operator gives to Codex in a separ
 
 ## Stop Conditions Checked (list, with pass/fail)
 
-## Next Step for the Human Operator
+## Next Step (Codex Implementation Trigger)
