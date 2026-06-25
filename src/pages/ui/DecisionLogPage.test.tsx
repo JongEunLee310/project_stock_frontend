@@ -1,19 +1,50 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
-import { createMemoryRouter, RouterProvider } from 'react-router-dom'
+import {
+  createMemoryRouter,
+  MemoryRouter,
+  RouterProvider,
+} from 'react-router-dom'
+import { afterEach, beforeEach, vi } from 'vitest'
 
 import { appRouteObjects } from '@/app/router'
 import { AuthProvider } from '@/shared/auth/AuthProvider'
+import { mockDecisionLogs } from '@/shared/mock'
 import {
   setupAuthenticatedUser,
   teardownAuthenticatedUser,
 } from '@/test-utils/authTestSetup'
+import { DecisionLogPage } from './DecisionLogPage'
+
+const mockCreateMutate = vi.fn()
+const mockUseDecisionLogs = vi.fn()
+const mockUseCreateDecisionLog = vi.fn()
+
+vi.mock('@/features/decision-log/queries', () => ({
+  useDecisionLogs: () => mockUseDecisionLogs(),
+  useCreateDecisionLog: () => mockUseCreateDecisionLog(),
+}))
 
 beforeEach(() => {
   setupAuthenticatedUser()
+  mockUseDecisionLogs.mockReturnValue({
+    data: mockDecisionLogs,
+    isLoading: false,
+    isError: false,
+    error: null,
+    refetch: vi.fn(),
+  })
+  mockUseCreateDecisionLog.mockReturnValue({
+    mutate: mockCreateMutate,
+    isPending: false,
+  })
+  mockCreateMutate.mockImplementation((log, options) => {
+    options?.onSuccess?.(log)
+  })
 })
 
 afterEach(() => {
   teardownAuthenticatedUser()
+  vi.clearAllMocks()
 })
 
 function renderDecisionLog() {
@@ -21,13 +52,13 @@ function renderDecisionLog() {
     initialEntries: ['/decision-log'],
   })
 
-  render(
+  const renderResult = render(
     <AuthProvider>
       <RouterProvider router={router} />
     </AuthProvider>,
   )
 
-  return router
+  return { router, ...renderResult }
 }
 
 describe('DecisionLogPage', () => {
@@ -138,5 +169,51 @@ describe('DecisionLogPage', () => {
       within(panel as HTMLElement).getAllByRole('link', { name: '복기 보기' })
         .length,
     ).toBeGreaterThan(0)
+  })
+
+  it('renders loading, error, and empty states from decision-log query', async () => {
+    mockUseDecisionLogs.mockReturnValue({
+      isLoading: true,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    })
+    const loadingRender = render(
+      <MemoryRouter>
+        <DecisionLogPage />
+      </MemoryRouter>,
+    )
+    expect(document.querySelector('.animate-pulse')).not.toBeNull()
+    loadingRender.unmount()
+
+    mockUseDecisionLogs.mockReturnValue({
+      isLoading: false,
+      isError: true,
+      error: new Error('boom'),
+      refetch: vi.fn(),
+    })
+    const errorRender = render(
+      <MemoryRouter>
+        <DecisionLogPage />
+      </MemoryRouter>,
+    )
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '판단 기록을 불러오지 못했습니다',
+    )
+    errorRender.unmount()
+
+    mockUseDecisionLogs.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    })
+    render(
+      <MemoryRouter>
+        <DecisionLogPage />
+      </MemoryRouter>,
+    )
+    expect(await screen.findByText('기록된 판단이 없습니다.')).toBeVisible()
   })
 })

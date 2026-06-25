@@ -1,6 +1,17 @@
-import { useMemo, useState, type FormEvent, type MouseEvent } from 'react'
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent,
+  type MouseEvent,
+} from 'react'
 import { Link } from 'react-router-dom'
 
+import {
+  useCreateDecisionLog,
+  useDecisionLogs,
+} from '@/features/decision-log/queries'
+import { ApiError } from '@/shared/api/envelope'
 import { appRoutePaths } from '@/shared/config/navigation'
 import {
   mockDecisionLogs,
@@ -19,7 +30,9 @@ import {
   Badge,
   Button,
   Card,
+  ErrorState,
   Input,
+  Skeleton,
   Table,
   type BadgeTone,
   type TableColumn,
@@ -168,6 +181,7 @@ function DecisionForm({
   onRiskToggle,
   onReset,
   onSubmit,
+  isSaving,
 }: {
   form: DecisionFormState
   error: string | null
@@ -175,6 +189,7 @@ function DecisionForm({
   onRiskToggle: (risk: CognitiveRisk) => void
   onReset: () => void
   onSubmit: (event: FormEvent<HTMLFormElement>) => void
+  isSaving: boolean
 }) {
   return (
     <Card className="border-cockpit-border bg-cockpit-surface/90 shadow-blue-950/20">
@@ -312,8 +327,12 @@ function DecisionForm({
           >
             초기화
           </Button>
-          <Button type="submit" className="bg-blue-600 hover:bg-blue-500">
-            저장
+          <Button
+            type="submit"
+            className="bg-blue-600 hover:bg-blue-500"
+            disabled={isSaving}
+          >
+            {isSaving ? '저장 중' : '저장'}
           </Button>
         </div>
       </form>
@@ -322,9 +341,29 @@ function DecisionForm({
 }
 
 export function DecisionLogPage() {
+  const decisionLogsQuery = useDecisionLogs()
+  const createDecisionLog = useCreateDecisionLog()
   const [logs, setLogs] = useState<DecisionLog[]>(mockDecisionLogs)
   const [form, setForm] = useState<DecisionFormState>(initialFormState)
   const [formError, setFormError] = useState<string | null>(null)
+  const [usesLocalFallback, setUsesLocalFallback] = useState(false)
+
+  useEffect(() => {
+    if (decisionLogsQuery.data) {
+      setLogs(decisionLogsQuery.data)
+      setUsesLocalFallback(false)
+      return
+    }
+
+    if (
+      decisionLogsQuery.error instanceof ApiError &&
+      decisionLogsQuery.error.code.includes('NOT_FOUND')
+    ) {
+      // G10: decision-logs API가 미머지/404인 동안 기존 로컬 mock 흐름을 유지한다.
+      setLogs(mockDecisionLogs)
+      setUsesLocalFallback(true)
+    }
+  }, [decisionLogsQuery.data, decisionLogsQuery.error])
 
   const summary = useMemo(() => {
     const recentThreshold = getRecentThreshold(logs)
@@ -464,8 +503,47 @@ export function DecisionLogPage() {
       createdAt: new Date().toISOString(),
     }
 
-    setLogs((currentLogs) => [nextLog, ...currentLogs])
-    resetForm()
+    if (usesLocalFallback) {
+      setLogs((currentLogs) => [nextLog, ...currentLogs])
+      resetForm()
+      return
+    }
+
+    createDecisionLog.mutate(nextLog, {
+      onSuccess: (createdLog) => {
+        setLogs((currentLogs) => [createdLog, ...currentLogs])
+        resetForm()
+      },
+      onError: (error) => {
+        if (error instanceof ApiError && error.code.includes('NOT_FOUND')) {
+          // G10: 엔드포인트 404면 사용자 입력은 로컬 목록에 보존한다.
+          setUsesLocalFallback(true)
+          setLogs((currentLogs) => [nextLog, ...currentLogs])
+          resetForm()
+          return
+        }
+
+        setFormError('판단 기록 저장에 실패했습니다.')
+      },
+    })
+  }
+
+  if (decisionLogsQuery.isLoading) {
+    return (
+      <Card className="border-cockpit-border bg-cockpit-surface/90">
+        <Skeleton lines={8} />
+      </Card>
+    )
+  }
+
+  if (decisionLogsQuery.isError && !usesLocalFallback) {
+    return (
+      <ErrorState
+        title="판단 기록을 불러오지 못했습니다"
+        description="의사결정 로그 API 조회를 다시 시도해 주세요."
+        onRetry={() => void decisionLogsQuery.refetch()}
+      />
+    )
   }
 
   return (
@@ -494,14 +572,22 @@ export function DecisionLogPage() {
             <MetricCard
               label="관망 유지"
               value={`${summary.watchHold}건`}
-              description={`${Math.round((summary.watchHold / summary.total) * 100)}%`}
+              description={`${
+                summary.total === 0
+                  ? 0
+                  : Math.round((summary.watchHold / summary.total) * 100)
+              }%`}
               icon="◉"
               tone="amber"
             />
             <MetricCard
               label="리스크 증가 검토"
               value={`${summary.riskReview}건`}
-              description={`${Math.round((summary.riskReview / summary.total) * 100)}%`}
+              description={`${
+                summary.total === 0
+                  ? 0
+                  : Math.round((summary.riskReview / summary.total) * 100)
+              }%`}
               icon="△"
               tone="rose"
             />
@@ -550,6 +636,7 @@ export function DecisionLogPage() {
             onRiskToggle={toggleRisk}
             onReset={resetForm}
             onSubmit={saveDecision}
+            isSaving={createDecisionLog.isPending}
           />
 
           <Card className="border-cockpit-border bg-cockpit-surface/90 shadow-blue-950/20">

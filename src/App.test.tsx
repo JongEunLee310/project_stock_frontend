@@ -40,6 +40,54 @@ vi.mock('@/features/watchlist/queries', () => ({
   }),
 }))
 
+vi.mock('@/features/research/queries', () => ({
+  useResearch: (symbol: string) => researchQueryBySymbol(symbol),
+}))
+
+const appResearchQueries = new Map<
+  string,
+  ReturnType<typeof createAppResearchQuery>
+>()
+
+function createAppResearchQuery(symbol: string) {
+  return {
+    data: {
+      assetId: 1,
+      symbol,
+      name: `${symbol} Inc.`,
+      market: 'NASDAQ',
+      sector: 'Technology',
+      industry: null,
+      description: null,
+      price: 100,
+      change: 1,
+      changePercent: 1,
+      currency: 'USD',
+      asOf: '2026-06-19T00:00:00Z',
+      metrics: [],
+      pricePoints: [{ date: '2026-06-24', close: 100 }],
+      briefing: { headline: `${symbol} thesis`, body: '', updatedAt: '' },
+      keyRisks: [],
+      reports: [],
+      thesis: null,
+      checklist: [],
+      memo: '',
+    },
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
+  }
+}
+
+function researchQueryBySymbol(symbol: string) {
+  const existing = appResearchQueries.get(symbol)
+  if (existing) return existing
+
+  const next = createAppResearchQuery(symbol)
+  appResearchQueries.set(symbol, next)
+  return next
+}
+
 beforeEach(() => {
   setupAuthenticatedUser()
 })

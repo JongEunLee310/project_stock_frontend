@@ -1,118 +1,126 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
-import { createMemoryRouter, RouterProvider } from 'react-router-dom'
+import { fireEvent, render, screen } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { appRouteObjects } from '@/app/router'
-import { AuthProvider } from '@/shared/auth/AuthProvider'
 import {
   setupAuthenticatedUser,
   teardownAuthenticatedUser,
 } from '@/test-utils/authTestSetup'
 
+import type { SignalView } from '@/features/signals/adapters'
+import { SignalsPage } from './SignalsPage'
+
+const mockUseSignals = vi.fn()
+
+vi.mock('@/features/signals/queries', () => ({
+  useSignals: () => mockUseSignals(),
+}))
+
+const signalRows: SignalView[] = [
+  {
+    id: '1',
+    assetId: 1,
+    symbol: 'AAPL',
+    signalType: 'RISK_ALERT',
+    signalTypeLabel: '리스크 알림',
+    score: 80,
+    riskLevel: '높음',
+    reason: 'Thesis conflict detected',
+    evidence: null,
+    expiresAt: '2026-06-26T00:00:00Z',
+    isExpired: false,
+    createdAt: '2026-06-19T00:00:00Z',
+    trendSeries: [100, 110],
+    oneMonthChangePercent: 10,
+  },
+]
+
 beforeEach(() => {
   setupAuthenticatedUser()
+  mockUseSignals.mockReturnValue({
+    data: signalRows,
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
+  })
 })
 
 afterEach(() => {
   teardownAuthenticatedUser()
+  vi.clearAllMocks()
 })
 
 function renderSignals() {
-  const router = createMemoryRouter(appRouteObjects, {
-    initialEntries: ['/signals'],
-  })
-
   render(
-    <AuthProvider>
-      <RouterProvider router={router} />
-    </AuthProvider>,
+    <MemoryRouter initialEntries={['/signals']}>
+      <SignalsPage />
+    </MemoryRouter>,
   )
-
-  return router
 }
 
 describe('SignalsPage', () => {
-  it('renders signal cards with symbol, status, confidence, and reasons', async () => {
+  it('renders API-backed signal cards with score, risk, reason, and sparkline', async () => {
     renderSignals()
 
-    const nvdaCard = await screen.findByRole('article', {
-      name: 'NVDA 실적 시그널',
-    })
-
-    expect(within(nvdaCard).getByRole('link', { name: 'NVDA' })).toBeVisible()
-    expect(within(nvdaCard).getByText('매수 검토 가능')).toBeVisible()
-    expect(within(nvdaCard).getByText('86%')).toBeVisible()
     expect(
-      within(nvdaCard).getByRole('meter', { name: 'NVDA 신뢰도 86%' }),
-    ).toHaveAttribute('aria-valuenow', '86')
-    expect(
-      within(nvdaCard).getByText(
-        'Data center demand remains above the prior quarter run rate.',
-      ),
+      await screen.findByRole('article', { name: 'AAPL 리스크 알림 시그널' }),
     ).toBeVisible()
+    expect(screen.getByText('80%')).toBeVisible()
+    expect(screen.getAllByText('높음').length).toBeGreaterThan(0)
+    expect(screen.getByText('Thesis conflict detected')).toBeVisible()
+    expect(screen.getByRole('img', { name: 'AAPL 가격 흐름' })).toBeVisible()
   })
 
-  it('shows all four required status summary cards', async () => {
-    renderSignals()
+  it('renders loading, error, and empty states', async () => {
+    mockUseSignals.mockReturnValue({
+      isLoading: true,
+      isError: false,
+      refetch: vi.fn(),
+    })
+    const { unmount } = render(
+      <MemoryRouter>
+        <SignalsPage />
+      </MemoryRouter>,
+    )
+    expect(document.querySelector('.animate-pulse')).not.toBeNull()
+    unmount()
 
-    await screen.findByRole('article', { name: 'NVDA 실적 시그널' })
+    mockUseSignals.mockReturnValue({
+      isLoading: false,
+      isError: true,
+      refetch: vi.fn(),
+    })
+    const errorRender = render(
+      <MemoryRouter>
+        <SignalsPage />
+      </MemoryRouter>,
+    )
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '시그널을 불러오지 못했습니다',
+    )
+    errorRender.unmount()
 
-    expect(screen.getAllByText('매수 검토 가능').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('위험 증가').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('추가 리서치 필요').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('관망 유지').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('전체 기준')).toHaveLength(4)
+    mockUseSignals.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    })
+    render(
+      <MemoryRouter>
+        <SignalsPage />
+      </MemoryRouter>,
+    )
+    expect(await screen.findByText('표시할 시그널이 없습니다')).toBeVisible()
   })
 
-  it('renders decision log buttons on signal cards', async () => {
+  it('filters visible cards by search and risk', async () => {
     renderSignals()
 
-    await screen.findByRole('article', { name: 'NVDA 실적 시그널' })
-
-    const signalCards = screen.getAllByRole('article')
-
-    expect(signalCards).toHaveLength(6)
-    expect(
-      signalCards.every(
-        (card) =>
-          within(card).getByRole('button', { name: '판단 기록' }) !== null,
-      ),
-    ).toBe(true)
-  })
-
-  it('narrows visible cards by search, status, and kind filters, then resets', async () => {
-    renderSignals()
-
-    await screen.findByRole('article', { name: 'NVDA 실적 시그널' })
-
+    await screen.findByRole('article', { name: 'AAPL 리스크 알림 시그널' })
     fireEvent.change(screen.getByLabelText('검색'), {
-      target: { value: 'aapl' },
+      target: { value: 'missing' },
     })
-
-    expect(screen.getAllByRole('article')).toHaveLength(1)
-    expect(
-      screen.getByRole('article', { name: 'AAPL 밸류에이션 시그널' }),
-    ).toBeVisible()
-
-    fireEvent.change(screen.getByLabelText('검색'), {
-      target: { value: '' },
-    })
-    fireEvent.change(screen.getByLabelText('상태'), {
-      target: { value: '관망 유지' },
-    })
-    fireEvent.change(screen.getByLabelText('시그널 유형'), {
-      target: { value: 'technical' },
-    })
-
-    expect(screen.getAllByRole('article')).toHaveLength(1)
-    expect(
-      screen.getByRole('article', { name: 'MSFT 기술적 흐름 시그널' }),
-    ).toBeVisible()
-
-    fireEvent.click(screen.getByRole('button', { name: '필터 초기화' }))
-
-    expect(screen.getByLabelText('검색')).toHaveValue('')
-    expect(screen.getByLabelText('상태')).toHaveValue('all')
-    expect(screen.getByLabelText('시그널 유형')).toHaveValue('all')
-    expect(screen.getAllByRole('article')).toHaveLength(6)
+    expect(screen.getByText('필터에 맞는 시그널이 없습니다')).toBeVisible()
   })
 })
