@@ -11,6 +11,7 @@ This directory stores project workflow knowledge, glossary terms, and project-sp
 - `domain-knowledge.md`
 - `template-usage.md`
 - `frontend-conventions.md`
+- `orchestrator-comparison.md`
 
 ## Writing Rules
 
