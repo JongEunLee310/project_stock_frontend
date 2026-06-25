@@ -40,6 +40,44 @@ vi.mock('@/features/watchlist/queries', () => ({
   }),
 }))
 
+vi.mock('@/features/research/queries', () => ({
+  SymbolNotFoundError: class SymbolNotFoundError extends Error {},
+  useResearchView: (symbol: string) => ({
+    data: {
+      assetId: 1,
+      symbol,
+      name: `${symbol} Corp.`,
+      market: 'NASDAQ',
+      sector: 'Technology',
+      marketCap: null,
+      per: null,
+      peg: null,
+      fiftyTwoWeekLow: null,
+      fiftyTwoWeekHigh: null,
+      targetPrice: null,
+      targetUpsidePercent: null,
+      nextEarningsDate: null,
+      updatedAt: null,
+      stance: 'Hold',
+      stanceConfidence: null,
+      briefing: {
+        headline: 'Research',
+        body: '',
+        createdAt: '2026. 5. 24. 오전 9:00',
+      },
+      keyRisks: [],
+      buyChecklist: [],
+      reports: [],
+      latestThesis: null,
+      priceSparkline: [],
+    },
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: vi.fn(),
+  }),
+}))
+
 beforeEach(() => {
   setupAuthenticatedUser()
 })
