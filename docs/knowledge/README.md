@@ -11,7 +11,8 @@ This directory stores project workflow knowledge, glossary terms, and project-sp
 - `domain-knowledge.md`
 - `template-usage.md`
 - `frontend-conventions.md`
-- `orchestrator-comparison.md`
+
+> 오케스트레이터 조합 비교 실측은 `docs/experiments/`로 이동했다.
 
 ## Writing Rules
 
