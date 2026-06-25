@@ -10,6 +10,7 @@ This directory stores project workflow knowledge, glossary terms, and project-sp
 - `glossary.md`
 - `domain-knowledge.md`
 - `template-usage.md`
+- `frontend-conventions.md`
 
 ## Writing Rules
 

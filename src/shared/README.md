@@ -1,3 +1,51 @@
 # shared
 
-Domain-agnostic UI, utilities, types, API clients, and mock infrastructure.
+Domain-agnostic UI, domain model types, utilities, API clients, and mock
+infrastructure.
+
+## Domain Model And Mock Data
+
+Core domain types live in `shared/model`.
+Representative mock data that satisfies those types lives in `shared/mock`.
+The shared domain includes stocks, signals, portfolio data, alerts, dashboard
+summaries, research detail records, decision review records, and watchlist
+summary/observation fixtures.
+Dashboard fixtures include stock PER/PEG metrics, summary delta labels, AI
+briefing risk checks, and titled priority queue items for the index overview.
+Signal fixtures include multiple statuses, kinds, confidence scores, reasons,
+priorities, and updated timestamps so the Signals page can derive summaries,
+filters, card grids, and side-rail previews from the same source.
+Research fixtures include price-as-of labels, stance confidence, metric tiles,
+category-tagged news/catalysts, and checklist descriptions for the detail page.
+Decision log fixtures include typed decision outcomes and cognitive risk tags so
+the review table, local-entry form, and pattern summaries share one mock shape.
+Mock fixtures use TypeScript `satisfies` checks so future API-shaped data must
+preserve the same fields.
+
+## UI Tokens
+
+Dark theme tokens are defined in `src/index.css` with Tailwind CSS v4 `@theme`.
+Shared primitives live in `shared/ui`.
+
+`Table<T>` renders column-driven tabular data with built-in loading, empty,
+pagination, and row action slots for Watchlist, Decision Log, Alerts, and
+Portfolio-style screens.
+
+Status color mapping:
+
+- `안정` -> `status-stable`
+- `관망` -> `status-watch`
+- `관망 유지` -> `status-watch-hold`
+- `위험 증가` -> `status-risk`
+- `추가 리서치 필요` -> `status-research`
+- `매수 검토 가능` -> `status-buy`
+- `비중 축소 검토` -> `status-reduce`
+
+Risk level color mapping:
+
+- `높음` -> `status-level-high`
+- `중간` -> `status-level-medium`
+- `낮음` -> `status-level-low`
+
+When adding a status or risk level, update the model union, `@theme` tokens,
+and the `Record` mapping together so typecheck catches missing color mappings.

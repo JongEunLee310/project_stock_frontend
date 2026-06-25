@@ -30,7 +30,8 @@ The Claude Code → Codex → CI → human pipeline keeps a human-operated step 
 
 ## Follow-up
 
-- If a future Codex CLI or OS update resolves the sandbox crash, re-evaluate automated `codex exec` invocation under its default (non-bypassed) sandbox modes only — never under `danger-full-access` or the bypass flag.
+- The exit-133 crash was later traced to an upstream Codex CLI v0.141.0 SIGTRAP regression on Intel macOS x86_64, not a nested-sandbox conflict — it reproduces standalone and even under `danger-full-access` (track [openai/codex#29136](https://github.com/openai/codex/issues/29136), [openai/codex#28893](https://github.com/openai/codex/issues/28893)). Codex 0.140.0 was verified working on this machine (first `workspace-write` shell tool call succeeded, exit 0), so the workaround is to pin Codex to 0.140.0 via npm until a fixed release ships. See `FAILURE-001` for details. This does not change the decision above, which is a role/approval boundary independent of the crash.
+- If a future Codex CLI release fixes that crash, re-evaluate automated `codex exec` invocation under its default (non-bypassed) sandbox modes only — never under `danger-full-access` or the bypass flag.
 - Document the manual Codex execution step in `docs/knowledge/template-usage.md` and `docs/feedback/dogfooding-plan.md`.
 
 ## Related Documents
