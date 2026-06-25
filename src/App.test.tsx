@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
+import { vi } from 'vitest'
 
 import { appRouteObjects } from '@/app/router'
 import { AuthProvider } from '@/shared/auth/AuthProvider'
@@ -7,6 +8,92 @@ import {
   setupAuthenticatedUser,
   teardownAuthenticatedUser,
 } from '@/test-utils/authTestSetup'
+
+vi.mock('@/shared/api/hooks', () => ({
+  useDashboardSummary: () => ({
+    data: {
+      riskAlertCount: 3,
+      importantNewsCount: 8,
+      reviewSignalCount: 5,
+      cashRatio: 18,
+      riskAlertDelta: '',
+      importantNewsDelta: '',
+      reviewSignalDelta: '',
+      cashRatioDelta: '',
+    },
+    isPending: false,
+    isError: false,
+    error: null,
+    refetch: vi.fn(),
+  }),
+  useWatchlists: () => ({
+    data: [{ id: 1, name: 'Core holdings', createdAt: '2026-06-19T00:00:00Z' }],
+    isPending: false,
+    isError: false,
+    error: null,
+    refetch: vi.fn(),
+  }),
+  useWatchlistItems: () => ({
+    data: {
+      stocks: [
+        {
+          symbol: 'NVDA',
+          name: 'NVIDIA Corp.',
+          price: 128.72,
+          changePercent: -0.24,
+          lastUpdatedAt: '2026-05-24T00:21:00.000Z',
+          isFavorite: true,
+        },
+      ],
+      summaryCards: [
+        {
+          label: '전체 관심 종목',
+          value: '1개',
+          deltaLabel: '',
+          trend: 'flat',
+        },
+        { label: '위험 증가 종목', value: '—', deltaLabel: '', trend: 'flat' },
+        {
+          label: '추가 리서치 필요',
+          value: '—',
+          deltaLabel: '',
+          trend: 'flat',
+        },
+        {
+          label: '평균 현금 연관도',
+          value: '—',
+          deltaLabel: '',
+          trend: 'flat',
+        },
+      ],
+    },
+    isPending: false,
+    isError: false,
+    error: null,
+    refetch: vi.fn(),
+  }),
+  usePortfolios: () => ({
+    data: [{ id: 1, name: 'Long term', createdAt: '2026-06-19T00:00:00Z' }],
+    isPending: false,
+    isError: false,
+    error: null,
+    refetch: vi.fn(),
+  }),
+  usePortfolioSummary: () => ({
+    data: {
+      totalValue: 2056.4,
+      cash: 100,
+      cashRatio: 4.86,
+      hasSectorConcentration: true,
+      holdings: [],
+      sectorWeights: [],
+    },
+    isPending: false,
+    isError: false,
+    error: null,
+    refetch: vi.fn(),
+  }),
+}))
 
 beforeEach(() => {
   setupAuthenticatedUser()

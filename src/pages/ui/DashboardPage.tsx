@@ -1,20 +1,21 @@
 import { Link } from 'react-router-dom'
 
+import { useDashboardSummary } from '@/shared/api/hooks'
 import { appRoutePaths } from '@/shared/config/navigation'
-import {
-  mockAiBriefing,
-  mockDashboardSummary,
-  mockDecisionLogs,
-  mockPriorityQueue,
-  mockSignals,
-  mockStocks,
-} from '@/shared/mock'
-import type { DecisionLog, Signal, Stock, StockStatus } from '@/shared/model'
+import type {
+  DecisionLog,
+  PriorityQueueItem,
+  Signal,
+  Stock,
+  StockStatus,
+} from '@/shared/model'
 import {
   Badge,
   BarChart,
   Card,
   DonutChart,
+  ErrorState,
+  Skeleton,
   Sparkline,
   Table,
   type TableColumn,
@@ -114,16 +115,219 @@ const importantNewsBarData = [44, 62, 78, 52, 84, 38, 68, 90, 26].map(
   (value) => ({ value }),
 )
 
-const dashboardStocks = mockStocks.slice(0, 4)
-const topSignals = [...mockSignals]
+// TODO #48: 관심 종목 상태 API 미구현
+const dashboardStocks: Stock[] = [
+  {
+    symbol: 'NVDA',
+    name: 'NVIDIA Corp.',
+    market: 'NASDAQ',
+    price: 128.72,
+    change: -0.31,
+    changePercent: -0.24,
+    per: 60.3,
+    peg: 1.32,
+    status: '관망',
+    newsRisk: '중간',
+    valuation: '고평가',
+    aiVerdict: '위험 증가',
+    themeHeat: '높음',
+    lastUpdatedAt: '2026-05-24T00:21:00.000Z',
+    isFavorite: true,
+    changeSeries: [128.4, 127.9, 128.1, 127.6, 127.8, 128.2, 128.72],
+  },
+  {
+    symbol: 'AAPL',
+    name: 'Apple Inc.',
+    market: 'NASDAQ',
+    price: 214.3,
+    change: 0.68,
+    changePercent: 0.32,
+    per: 28.7,
+    peg: 2.36,
+    status: '안정',
+    newsRisk: '낮음',
+    valuation: '적정',
+    aiVerdict: '안정',
+    themeHeat: '중간',
+    lastUpdatedAt: '2026-05-24T00:21:00.000Z',
+    isFavorite: true,
+    changeSeries: [212.4, 212.8, 213.1, 212.9, 213.7, 213.9, 214.3],
+  },
+  {
+    symbol: 'TSLA',
+    name: 'Tesla Inc.',
+    market: 'NASDAQ',
+    price: 182.64,
+    change: -4.02,
+    changePercent: -2.15,
+    per: 88.1,
+    peg: 3.04,
+    status: '위험 증가',
+    newsRisk: '높음',
+    valuation: '고평가',
+    aiVerdict: '위험 증가',
+    themeHeat: '높음',
+    lastUpdatedAt: '2026-05-24T00:20:00.000Z',
+    isFavorite: false,
+    changeSeries: [190.4, 188.8, 187.2, 186.1, 184.8, 183.6, 182.64],
+  },
+  {
+    symbol: 'MSFT',
+    name: 'Microsoft Corp.',
+    market: 'NASDAQ',
+    price: 447.22,
+    change: 1.82,
+    changePercent: 0.41,
+    per: 31.6,
+    peg: 2.36,
+    status: '안정',
+    newsRisk: '낮음',
+    valuation: '적정',
+    aiVerdict: '안정',
+    themeHeat: '낮음',
+    lastUpdatedAt: '2026-05-24T00:20:00.000Z',
+    isFavorite: true,
+    changeSeries: [444.3, 445.1, 446.2, 445.8, 446.6, 447.0, 447.22],
+  },
+]
+
+// TODO #48: Signal API 미구현
+const topSignals = (
+  [
+    {
+      id: 'sig-nvda-001',
+      symbol: 'NVDA',
+      kind: 'earnings',
+      message: 'Data center revenue trend remains above watchlist threshold.',
+      createdAt: '2026-06-21T13:30:00.000Z',
+      status: '매수 검토 가능',
+      previousStatus: '관망 유지',
+      confidence: 86,
+      previousConfidence: 70,
+      oneMonthChangePercent: 12.4,
+      trendSeries: [42, 43, 41],
+      reasons: [
+        'Data center demand remains above the prior quarter run rate.',
+        'Gross margin commentary supports continued AI accelerator pricing power.',
+      ],
+      updatedAt: '2026-06-22T00:20:00.000Z',
+      priority: 1,
+    },
+    {
+      id: 'sig-tsla-001',
+      symbol: 'TSLA',
+      kind: 'price_momentum',
+      message: 'Short-term price momentum weakened after recent volatility.',
+      createdAt: '2026-06-21T15:45:00.000Z',
+      status: '위험 증가',
+      previousStatus: '관망 유지',
+      confidence: 78,
+      previousConfidence: 62,
+      oneMonthChangePercent: -8.7,
+      trendSeries: [62, 60, 59],
+      reasons: [
+        'Price closed below the short-term support band.',
+        'Delivery and margin news flow remains mixed.',
+      ],
+      updatedAt: '2026-06-22T00:45:00.000Z',
+      priority: 2,
+    },
+    {
+      id: 'sig-aapl-001',
+      symbol: 'AAPL',
+      kind: 'valuation',
+      message: 'Valuation spread is near the upper bound of the peer range.',
+      createdAt: '2026-06-22T01:10:00.000Z',
+      status: '추가 리서치 필요',
+      previousStatus: '매수 검토 가능',
+      confidence: 71,
+      previousConfidence: 66,
+      oneMonthChangePercent: 1.3,
+      trendSeries: [50, 51, 50],
+      reasons: [
+        'Forward multiple is near the upper peer range.',
+        'Services growth needs to offset slower device cycle expectations.',
+      ],
+      updatedAt: '2026-06-22T01:10:00.000Z',
+      priority: 3,
+    },
+  ] satisfies Signal[]
+)
   .sort((first, second) => first.priority - second.priority)
   .slice(0, 3)
-const priorityQueue = [...mockPriorityQueue].sort((first, second) => {
+
+// TODO #48: Priority queue API 미구현
+const priorityQueue = (
+  [
+    {
+      id: 'queue-nvda-entry',
+      symbol: 'NVDA',
+      title: '엔비디아 추가 진입 가격 점검',
+      reason:
+        'AI 인프라 수요는 강하지만 PER 60배 구간이라 기존 지지선 재접근 여부와 실적 코멘트를 함께 확인해야 합니다.',
+      risk: '중간',
+    },
+    {
+      id: 'queue-tsla-risk',
+      symbol: 'TSLA',
+      title: '테슬라 뉴스 감성 급락',
+      reason:
+        '최근 변동성 확대와 마진 둔화 뉴스가 겹쳐 단기 신규 매수보다 하방 시나리오와 보유 기준을 먼저 재점검해야 합니다.',
+      risk: '높음',
+    },
+    {
+      id: 'queue-aapl-valuation',
+      symbol: 'AAPL',
+      title: '애플 서비스 성장률 확인',
+      reason:
+        '하드웨어 교체 수요가 약한 상황에서 서비스 매출 성장률이 현재 프리미엄을 정당화하는지 비교가 필요합니다.',
+      risk: '중간',
+    },
+  ] satisfies PriorityQueueItem[]
+).sort((first, second) => {
   const riskRank = { 높음: 0, 중간: 1, 낮음: 2 }
 
   return riskRank[first.risk] - riskRank[second.risk]
 })
-const recentDecisionLogs = [...mockDecisionLogs]
+
+// TODO #48: Decision Log API 미구현
+const recentDecisionLogs = (
+  [
+    {
+      id: 'decision-nvda-001',
+      symbol: 'NVDA',
+      decision: '기존 비중을 유지하고 눌림 구간만 재검토',
+      decisionType: '관망 유지',
+      rationale: '',
+      cognitiveRisks: ['밸류에이션'],
+      reviewDate: '2026-06-29',
+      outcome: '진행 중',
+      createdAt: '2026-06-22T08:40:00.000Z',
+    },
+    {
+      id: 'decision-tsla-001',
+      symbol: 'TSLA',
+      decision: '단기 신규 매수 보류',
+      decisionType: '리스크 증가 검토',
+      rationale: '',
+      cognitiveRisks: ['마진 압박'],
+      reviewDate: '2026-06-26',
+      outcome: '진행 중',
+      createdAt: '2026-06-21T17:20:00.000Z',
+    },
+    {
+      id: 'decision-aapl-001',
+      symbol: 'AAPL',
+      decision: '서비스 성장률 확인 전까지 관망',
+      decisionType: '관망 유지',
+      rationale: '',
+      cognitiveRisks: ['밸류에이션'],
+      reviewDate: '2026-07-01',
+      outcome: '대기',
+      createdAt: '2026-06-21T10:15:00.000Z',
+    },
+  ] satisfies DecisionLog[]
+)
   .sort(
     (first, second) =>
       new Date(second.createdAt).getTime() -
@@ -156,9 +360,11 @@ function formatMetricValue(value: number, suffix?: string) {
 
 function MiniVisual({
   kind,
+  cashRatio,
   className,
 }: {
   kind: VisualKind
+  cashRatio: number | null
   className?: string
 }) {
   if (kind === 'bars-news') {
@@ -181,8 +387,8 @@ function MiniVisual({
         width={64}
         height={64}
         data={[
-          { name: 'cash', value: mockDashboardSummary.cashRatio },
-          { name: 'invested', value: 100 - mockDashboardSummary.cashRatio },
+          { name: 'cash', value: cashRatio ?? 0 },
+          { name: 'invested', value: Math.max(0, 100 - (cashRatio ?? 0)) },
         ]}
         colors={['currentColor', '#475569']}
         innerRadius={22}
@@ -415,6 +621,27 @@ function SignalCard({ signal }: { signal: Signal }) {
 }
 
 export function DashboardPage() {
+  const {
+    data: summary,
+    isPending,
+    isError,
+    error,
+    refetch,
+  } = useDashboardSummary()
+
+  if (isPending) {
+    return <Skeleton className="min-h-[32rem]" />
+  }
+
+  if (isError) {
+    return (
+      <ErrorState
+        description={error instanceof Error ? error.message : undefined}
+        onRetry={() => void refetch()}
+      />
+    )
+  }
+
   return (
     <div className="flex flex-col gap-3">
       <header className="flex min-h-16 items-center">
@@ -425,8 +652,8 @@ export function DashboardPage() {
         <SectionTitle icon="▣" title="Today Brief" />
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {todayBriefCards.map((card) => {
-            const value = mockDashboardSummary[card.metricKey]
-            const delta = mockDashboardSummary[card.deltaKey]
+            const value = summary?.[card.metricKey]
+            const delta = summary?.[card.deltaKey]
 
             return (
               <section
@@ -449,21 +676,26 @@ export function DashboardPage() {
                       </span>
                     </div>
                     <strong className="text-4xl leading-none text-cockpit-text">
-                      {formatMetricValue(value, card.suffix)}
+                      {value == null
+                        ? '—'
+                        : formatMetricValue(value, card.suffix)}
                     </strong>
-                    <span
-                      className={classNames(
-                        'text-sm',
-                        card.deltaKey === 'cashRatioDelta'
-                          ? 'text-emerald-300'
-                          : 'text-cockpit-text-muted',
-                      )}
-                    >
-                      {delta}
-                    </span>
+                    {delta ? (
+                      <span
+                        className={classNames(
+                          'text-sm',
+                          card.deltaKey === 'cashRatioDelta'
+                            ? 'text-emerald-300'
+                            : 'text-cockpit-text-muted',
+                        )}
+                      >
+                        {delta}
+                      </span>
+                    ) : null}
                   </div>
                   <MiniVisual
                     kind={card.visual}
+                    cashRatio={summary?.cashRatio ?? null}
                     className={card.toneClassName}
                   />
                 </div>
@@ -493,16 +725,21 @@ export function DashboardPage() {
         </Card>
 
         <Card className="flex flex-col gap-5 bg-cockpit-surface/70 p-6">
+          {/* TODO #48: AI briefing API 미구현 */}
           <SectionTitle icon="✦" title="AI 브리핑" />
           <p className="text-base leading-7 text-cockpit-text-muted">
             오늘 시장은 개별 종목의 밸류에이션 부담과 뉴스/센티먼트 변동성
             확대가 주요 리스크로 작용하고 있습니다.
           </p>
           <strong className="text-xl leading-8 text-cockpit-accent">
-            {mockAiBriefing.riskHeadline}를 권고합니다.
+            신규 매수 전 리스크 검토를 권고합니다.
           </strong>
           <ul className="flex flex-col gap-2 text-sm leading-6 text-cockpit-text-muted">
-            {mockAiBriefing.riskChecks?.map((check) => (
+            {[
+              'TSLA 변동성 확대 구간에서 손절 기준을 먼저 확정',
+              'NVDA 추가 진입은 PER 부담과 실적 모멘텀을 함께 확인',
+              'AAPL 서비스 성장률이 현재 밸류에이션을 방어하는지 점검',
+            ].map((check) => (
               <li key={check}>• {check}</li>
             ))}
           </ul>

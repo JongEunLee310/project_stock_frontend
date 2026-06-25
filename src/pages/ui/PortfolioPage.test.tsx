@@ -1,12 +1,46 @@
 import { render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 
-import { mockPortfolio } from '@/shared/mock'
-import type { Portfolio } from '@/shared/model'
+import type { PortfolioSummary } from '@/shared/api/adapters'
 
 import { PortfolioPageView } from './PortfolioPage'
 
-function renderPortfolio(portfolio: Portfolio = mockPortfolio) {
+const portfolioFixture: PortfolioSummary = {
+  totalValue: 128_734_000,
+  cash: 29_224_000,
+  cashRatio: 22.7,
+  hasSectorConcentration: true,
+  holdings: [
+    {
+      assetId: 1,
+      symbol: '1',
+      quantity: 120,
+      avgPrice: 154_900,
+      costValue: 18_588_000,
+      currentValue: 15_125_520,
+      weight: 11.8,
+    },
+    {
+      assetId: 2,
+      symbol: '2',
+      quantity: 100,
+      avgPrice: 203_800,
+      costValue: 20_380_000,
+      currentValue: 20_383_548,
+      weight: 15.8,
+    },
+  ],
+  sectorWeights: [
+    {
+      name: 'Technology',
+      value: 62.5,
+      amount: 80_456_000,
+      exceedsThreshold: true,
+    },
+  ],
+}
+
+function renderPortfolio(portfolio: PortfolioSummary = portfolioFixture) {
   render(
     <MemoryRouter>
       <PortfolioPageView portfolio={portfolio} />
@@ -23,20 +57,19 @@ describe('PortfolioPage', () => {
     expect(screen.getAllByText('₩128,734,000').length).toBeGreaterThan(0)
     expect(screen.getByText('현금 비중')).toBeVisible()
     expect(screen.getAllByText('22.7%').length).toBeGreaterThan(0)
-    expect(screen.getByText('일간 손익')).toBeVisible()
-    expect(screen.getByText('₩1,292,000')).toBeVisible()
+    expect(screen.queryByText('일간 손익')).not.toBeInTheDocument()
   })
 
   it('renders allocation, sector exposure, and concentration labels', () => {
     renderPortfolio()
 
     expect(screen.getByText('자산 배분')).toBeVisible()
-    expect(screen.getAllByText('NVDA').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('1').length).toBeGreaterThan(0)
     expect(screen.getAllByText('현금').length).toBeGreaterThan(0)
     expect(screen.getByText('섹터 익스포저')).toBeVisible()
-    expect(screen.getAllByText('정보기술').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Technology').length).toBeGreaterThan(0)
     expect(screen.getByText('단일 종목 집중도')).toBeVisible()
-    expect(screen.getByText('1. QQQ')).toBeVisible()
+    expect(screen.getByText('1. 2')).toBeVisible()
     expect(screen.getByText('Top 3 합계')).toBeVisible()
   })
 
@@ -57,20 +90,20 @@ describe('PortfolioPage', () => {
     renderPortfolio()
 
     const table = screen.getByRole('table', { name: '보유 종목' })
-    const nvdaLink = within(table).getByRole('link', { name: 'NVDA' })
+    const assetLink = within(table).getByRole('link', { name: '1' })
 
-    expect(nvdaLink).toHaveAttribute('href', '/research/NVDA')
-    expect(within(table).getByText('NVIDIA Corp.')).toBeVisible()
-    expect(within(table).getAllByText('정보기술').length).toBeGreaterThan(0)
-    expect(within(table).getByText('15.2%')).toBeVisible()
-    expect(within(table).getByText('+2.64%')).toBeVisible()
+    expect(assetLink).toHaveAttribute('href', '/research/1')
+    expect(within(table).getByText('asset_id 1')).toBeVisible()
+    expect(within(table).queryByText('일간 변화')).not.toBeInTheDocument()
+    expect(within(table).getByText('11.8%')).toBeVisible()
   })
 
   it('renders an empty state when there are no holdings', () => {
     renderPortfolio({
-      ...mockPortfolio,
+      ...portfolioFixture,
       totalValue: 0,
       holdings: [],
+      sectorWeights: [],
     })
 
     expect(screen.getAllByText('보유 종목이 없습니다').length).toBeGreaterThan(

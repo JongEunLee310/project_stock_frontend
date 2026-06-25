@@ -1,21 +1,23 @@
 import { Link } from 'react-router-dom'
 
+import { usePortfolioSummary, usePortfolios } from '@/shared/api/hooks'
+import type { PortfolioHolding, PortfolioSummary } from '@/shared/api/adapters'
 import { appRoutePaths } from '@/shared/config/navigation'
-import { mockPortfolio } from '@/shared/mock'
-import type { Holding, Portfolio } from '@/shared/model'
+import type { AiBriefing, PortfolioRiskExposure } from '@/shared/model'
 import {
   Badge,
   BarChart,
   Card,
   DonutChart,
   EmptyState,
+  ErrorState,
+  Skeleton,
   Table,
   type TableColumn,
 } from '@/shared/ui'
 import { classNames } from '@/shared/ui/classNames'
 
-type HoldingWeight = Holding & {
-  weight: number
+type HoldingWeight = PortfolioHolding & {
   assetWeight: number
 }
 
@@ -37,11 +39,6 @@ const percentFormatter = new Intl.NumberFormat('ko-KR', {
   maximumFractionDigits: 1,
 })
 
-const signedPercentFormatter = new Intl.NumberFormat('ko-KR', {
-  signDisplay: 'always',
-  maximumFractionDigits: 2,
-})
-
 const allocationColors = [
   '#2563eb',
   '#4f46e5',
@@ -53,6 +50,36 @@ const allocationColors = [
   '#64748b',
   '#475569',
 ]
+
+// TODO #48: 리스크 노출 분석 API 미구현
+const portfolioRiskExposures = [
+  {
+    id: 'portfolio-risk-semiconductor',
+    label: '반도체 쏠림 위험',
+    level: '높음',
+    description:
+      '정보기술/반도체 비중이 높아 업종 변동성 확대 시 타격 가능성이 큽니다.',
+  },
+  {
+    id: 'portfolio-risk-us-megacap',
+    label: '미국 대형주 의존도',
+    level: '중간',
+    description:
+      '미국 대형주 비중이 높아 환율 및 금리 변수에 민감할 수 있습니다.',
+  },
+] satisfies PortfolioRiskExposure[]
+
+// TODO #48: 포트폴리오 AI 브리핑 API 미구현
+const portfolioAiBriefing = {
+  headline: '포트폴리오 브리핑',
+  body: '포트폴리오는 성장 섹터에 대한 익스포저가 높아 단기 수익 기회가 크지만, 일부 리스크가 누적되고 있습니다.',
+  riskHeadline: '권고 요약',
+  riskChecks: [
+    '현금 비중을 25~30% 수준으로 확대 검토',
+    '반도체/성장주 비중을 점진적으로 분산',
+    '방어주 및 배당 ETF 편입으로 리스크 완충',
+  ],
+} satisfies AiBriefing
 
 function getResearchPath(symbol: string) {
   return appRoutePaths.research.replace(':symbol', symbol)
@@ -66,46 +93,16 @@ function formatPercent(value: number) {
   return `${percentFormatter.format(value)}%`
 }
 
-function formatSignedPercent(value: number) {
-  return `${signedPercentFormatter.format(value)}%`
-}
-
-function getHoldingWeights(portfolio: Portfolio): HoldingWeight[] {
-  const totalAssets = portfolio.totalValue + portfolio.cash
+function getHoldingWeights(portfolio: PortfolioSummary): HoldingWeight[] {
+  const totalAssets = portfolio.totalValue
 
   return portfolio.holdings
     .map((holding) => ({
       ...holding,
-      weight:
-        portfolio.totalValue > 0
-          ? (holding.currentValue / portfolio.totalValue) * 100
-          : 0,
       assetWeight:
         totalAssets > 0 ? (holding.currentValue / totalAssets) * 100 : 0,
     }))
     .sort((first, second) => second.currentValue - first.currentValue)
-}
-
-function getSectorExposure(holdings: HoldingWeight[]): SectorExposure[] {
-  const totalValue = holdings.reduce(
-    (sum, holding) => sum + holding.currentValue,
-    0,
-  )
-  const totalsBySector = holdings.reduce(
-    (totals, holding) => ({
-      ...totals,
-      [holding.sector]: (totals[holding.sector] ?? 0) + holding.currentValue,
-    }),
-    {} as Record<string, number>,
-  )
-
-  return Object.entries(totalsBySector)
-    .map(([name, amount]) => ({
-      name,
-      amount,
-      value: totalValue > 0 ? (amount / totalValue) * 100 : 0,
-    }))
-    .sort((first, second) => second.value - first.value)
 }
 
 function SummaryCard({
@@ -114,14 +111,12 @@ function SummaryCard({
   helper,
   visual,
   donutRatio,
-  positive,
 }: {
   label: string
   value: string
   helper: string
-  visual: 'wallet' | 'donut' | 'delta' | 'risk'
+  visual: 'wallet' | 'donut' | 'risk'
   donutRatio?: number
-  positive?: boolean
 }) {
   return (
     <Card className="min-h-28 border-cockpit-border bg-cockpit-surface/80">
@@ -158,19 +153,6 @@ function SummaryCard({
             ariaLabel="현금 비중 요약"
           />
         ) : null}
-        {visual === 'delta' ? (
-          <span
-            aria-hidden="true"
-            className={classNames(
-              'grid h-12 w-12 shrink-0 place-items-center rounded-control border text-2xl',
-              positive
-                ? 'border-emerald-400/30 text-emerald-300'
-                : 'border-rose-400/30 text-rose-300',
-            )}
-          >
-            {positive ? '▲' : '▼'}
-          </span>
-        ) : null}
         {visual === 'risk' ? (
           <div
             className="mt-1 h-12 w-20 shrink-0 rounded-t-full border-[10px] border-b-0 border-rose-400"
@@ -193,7 +175,7 @@ function PanelTitle({ title, kicker }: { title: string; kicker?: string }) {
   )
 }
 
-function PortfolioHoldingLink({ holding }: { holding: Holding }) {
+function PortfolioHoldingLink({ holding }: { holding: PortfolioHolding }) {
   return (
     <div className="flex min-w-36 flex-col">
       <Link
@@ -203,7 +185,7 @@ function PortfolioHoldingLink({ holding }: { holding: Holding }) {
         {holding.symbol}
       </Link>
       <span className="max-w-40 truncate text-xs text-cockpit-text-muted">
-        {holding.name}
+        asset_id {holding.assetId}
       </span>
     </div>
   )
@@ -215,11 +197,6 @@ function buildHoldingColumns(): Array<TableColumn<HoldingWeight>> {
       key: 'symbol',
       header: '종목',
       cell: (holding) => <PortfolioHoldingLink holding={holding} />,
-    },
-    {
-      key: 'sector',
-      header: '섹터',
-      cell: (holding) => holding.sector,
     },
     {
       key: 'quantity',
@@ -245,31 +222,24 @@ function buildHoldingColumns(): Array<TableColumn<HoldingWeight>> {
       align: 'right',
       cell: (holding) => formatPercent(holding.weight),
     },
-    {
-      key: 'dailyChange',
-      header: '일간 변화',
-      align: 'right',
-      cell: (holding) => (
-        <span
-          className={classNames(
-            'font-semibold',
-            holding.dailyChangePercent >= 0
-              ? 'text-emerald-300'
-              : 'text-rose-300',
-          )}
-        >
-          {formatSignedPercent(holding.dailyChangePercent)}
-        </span>
-      ),
-    },
   ]
 }
 
-export function PortfolioPageView({ portfolio }: { portfolio: Portfolio }) {
-  const totalAssets = portfolio.totalValue + portfolio.cash
-  const cashRatio = totalAssets > 0 ? (portfolio.cash / totalAssets) * 100 : 0
+export function PortfolioPageView({
+  portfolio,
+}: {
+  portfolio: PortfolioSummary
+}) {
+  const totalAssets = portfolio.totalValue
+  const cashRatio = portfolio.cashRatio
   const holdings = getHoldingWeights(portfolio)
-  const sectorExposure = getSectorExposure(holdings)
+  const sectorExposure: SectorExposure[] = portfolio.sectorWeights.map(
+    (sector) => ({
+      name: sector.name,
+      value: sector.value,
+      amount: sector.amount,
+    }),
+  )
   const topHoldings = holdings.slice(0, 5)
   const topThreeShare = holdings
     .slice(0, 3)
@@ -300,7 +270,7 @@ export function PortfolioPageView({ portfolio }: { portfolio: Portfolio }) {
         <SummaryCard
           label="총 자산"
           value={formatKrw(totalAssets)}
-          helper={`전일 대비 ${formatSignedPercent(portfolio.dayChangePercent)} (${formatKrw(portfolio.dayChangeValue)})`}
+          helper="일간 손익은 API 미지원"
           visual="wallet"
         />
         <SummaryCard
@@ -309,13 +279,6 @@ export function PortfolioPageView({ portfolio }: { portfolio: Portfolio }) {
           helper={formatKrw(portfolio.cash)}
           visual="donut"
           donutRatio={cashRatio}
-        />
-        <SummaryCard
-          label="일간 손익"
-          value={formatKrw(portfolio.dayChangeValue)}
-          helper={formatSignedPercent(portfolio.dayChangePercent)}
-          visual="delta"
-          positive={portfolio.dayChangePercent >= 0}
         />
         <SummaryCard
           label="상위 3 종목 비중"
@@ -485,7 +448,7 @@ export function PortfolioPageView({ portfolio }: { portfolio: Portfolio }) {
           <Card className="border-cockpit-border bg-cockpit-surface/80">
             <PanelTitle title="리스크 노출 분석" />
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-              {portfolio.riskExposures.map((risk) => (
+              {portfolioRiskExposures.map((risk) => (
                 <article
                   key={risk.id}
                   className="rounded-card border border-cockpit-border bg-cockpit-surface-muted/40 p-4"
@@ -521,19 +484,19 @@ export function PortfolioPageView({ portfolio }: { portfolio: Portfolio }) {
           </div>
           <div className="rounded-card border border-cockpit-border bg-cockpit-bg/40 p-4">
             <h3 className="font-bold text-cockpit-text">
-              {portfolio.aiBriefing.headline}
+              {portfolioAiBriefing.headline}
             </h3>
             <p className="mt-3 leading-7 text-cockpit-text">
-              {portfolio.aiBriefing.body}
+              {portfolioAiBriefing.body}
             </p>
           </div>
-          {portfolio.aiBriefing.riskChecks ? (
+          {portfolioAiBriefing.riskChecks ? (
             <div className="mt-4 rounded-card border border-cockpit-border bg-cockpit-accent/10 p-4">
               <h3 className="font-semibold text-cockpit-text">
-                {portfolio.aiBriefing.riskHeadline}
+                {portfolioAiBriefing.riskHeadline}
               </h3>
               <ul className="mt-3 grid gap-2 text-sm text-cockpit-text-muted">
-                {portfolio.aiBriefing.riskChecks.map((check) => (
+                {portfolioAiBriefing.riskChecks.map((check) => (
                   <li key={check}>• {check}</li>
                 ))}
               </ul>
@@ -570,5 +533,38 @@ export function PortfolioPageView({ portfolio }: { portfolio: Portfolio }) {
 }
 
 export function PortfolioPage() {
-  return <PortfolioPageView portfolio={mockPortfolio} />
+  const portfoliosQuery = usePortfolios()
+  const selectedPortfolioId = portfoliosQuery.data?.[0]?.id
+  const summaryQuery = usePortfolioSummary(selectedPortfolioId)
+
+  if (portfoliosQuery.isPending || summaryQuery.isPending) {
+    return <Skeleton className="min-h-[32rem]" />
+  }
+
+  if (portfoliosQuery.isError || summaryQuery.isError) {
+    const queryError = portfoliosQuery.error ?? summaryQuery.error
+
+    return (
+      <ErrorState
+        description={
+          queryError instanceof Error ? queryError.message : undefined
+        }
+        onRetry={() => {
+          void portfoliosQuery.refetch()
+          void summaryQuery.refetch()
+        }}
+      />
+    )
+  }
+
+  if (!selectedPortfolioId || !summaryQuery.data) {
+    return (
+      <EmptyState
+        title="포트폴리오가 없습니다"
+        description="포트폴리오를 생성하면 요약을 표시합니다."
+      />
+    )
+  }
+
+  return <PortfolioPageView portfolio={summaryQuery.data} />
 }

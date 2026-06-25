@@ -1,5 +1,6 @@
 import { render, screen, within } from '@testing-library/react'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
+import { vi } from 'vitest'
 
 import { appRouteObjects } from '@/app/router'
 import { AuthProvider } from '@/shared/auth/AuthProvider'
@@ -7,6 +8,27 @@ import {
   setupAuthenticatedUser,
   teardownAuthenticatedUser,
 } from '@/test-utils/authTestSetup'
+
+const refetch = vi.fn()
+
+vi.mock('@/shared/api/hooks', () => ({
+  useDashboardSummary: () => ({
+    data: {
+      riskAlertCount: 3,
+      importantNewsCount: 8,
+      reviewSignalCount: 5,
+      cashRatio: 18,
+      riskAlertDelta: '',
+      importantNewsDelta: '',
+      reviewSignalDelta: '',
+      cashRatioDelta: '',
+    },
+    isPending: false,
+    isError: false,
+    error: null,
+    refetch,
+  }),
+}))
 
 beforeEach(() => {
   setupAuthenticatedUser()
@@ -44,8 +66,8 @@ describe('DashboardPage', () => {
     expect(screen.getAllByText('3').length).toBeGreaterThan(0)
     expect(screen.getAllByText('8').length).toBeGreaterThan(0)
     expect(screen.getAllByText('5').length).toBeGreaterThan(0)
-    expect(screen.getByText('22.7%')).toBeVisible()
-    expect(screen.getAllByText('전일 대비 +1').length).toBeGreaterThan(0)
+    expect(screen.getByText('18%')).toBeVisible()
+    expect(screen.queryByText(/전일 대비/)).not.toBeInTheDocument()
   })
 
   it('renders watchlist status with research links and PER/PEG metrics', async () => {

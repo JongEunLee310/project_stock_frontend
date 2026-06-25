@@ -1,28 +1,28 @@
 import { useCallback, useMemo, useState, type MouseEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
+import { useWatchlistItems, useWatchlists } from '@/shared/api/hooks'
+import type {
+  RecentWatchlistItem,
+  WatchlistAlertSetting,
+  WatchlistObservation,
+} from '@/shared/model'
+import type { WatchlistStock } from '@/shared/api/adapters'
 import {
-  mockRecentWatchlist,
-  mockStocks,
-  mockWatchlistAlertSettings,
-  mockWatchlistObservations,
-  mockWatchlistSummary,
-} from '@/shared/mock'
-import { riskLevels, type RiskLevel, type Stock } from '@/shared/model'
-import {
-  Badge,
   BarChart,
   Button,
   Card,
   DonutChart,
   EmptyState,
+  ErrorState,
   Input,
+  Skeleton,
   Sparkline as UiSparkline,
 } from '@/shared/ui'
 import { classNames } from '@/shared/ui/classNames'
 
-type MarketFilter = 'all' | Stock['market']
-type RiskFilter = 'all' | RiskLevel
+type MarketFilter = 'all'
+type RiskFilter = 'all'
 type SortKey = 'custom' | 'changePercent' | 'price' | 'symbol' | 'lastUpdatedAt'
 type SortDirection = 'asc' | 'desc'
 
@@ -63,6 +63,42 @@ const summaryIconClassNames = [
 
 const summaryIcons = ['▱', '▣', '⊙', '◌']
 
+// TODO #48: AI 관찰 메모 API 미구현
+const watchlistObservations = [
+  {
+    id: 'watchlist-observation-risk',
+    text: 'NVDA, TSLA는 최근 뉴스 흐름과 밸류에이션 부담으로 위험 증가 상태 지속. 단기 변동성 확대 가능성 주의.',
+  },
+  {
+    id: 'watchlist-observation-quality',
+    text: 'AAPL, MSFT는 실적 및 현금흐름 안정으로 현재 포트폴리오의 핵심 방어주 역할 기대.',
+  },
+] satisfies WatchlistObservation[]
+
+// TODO #48: 새로 추가된 관심종목 API 미구현
+const recentWatchlist = [
+  {
+    symbol: 'META',
+    name: 'Meta Platforms',
+    status: '안정',
+    addedAt: '2026-05-24T00:17:00.000Z',
+  },
+  {
+    symbol: 'AMD',
+    name: 'Advanced Micro Devices',
+    status: '관망',
+    addedAt: '2026-05-24T00:16:00.000Z',
+  },
+] satisfies RecentWatchlistItem[]
+
+// TODO #48: 빠른 알림 설정 API 미구현
+const watchlistAlertSettings = [
+  { label: '가격 변동', value: '±3%' },
+  { label: '뉴스 위험도', value: '높음' },
+  { label: 'AI 판단 변경', value: '모든 변경' },
+  { label: '테마 과열', value: '높음' },
+] satisfies WatchlistAlertSetting[]
+
 const researchBars = [38, 54, 66, 78, 50, 30, 84, 58, 44].map(
   (value, index) => ({
     index,
@@ -102,7 +138,7 @@ function formatTime(value: string) {
 }
 
 function sortStocks(
-  stocks: Stock[],
+  stocks: WatchlistStock[],
   sortKey: SortKey,
   sortDirection: SortDirection,
 ) {
@@ -125,33 +161,12 @@ function sortStocks(
       )
     }
 
-    return (first[sortKey] - second[sortKey]) * direction
+    return ((first[sortKey] ?? 0) - (second[sortKey] ?? 0)) * direction
   })
 }
 
 function stopRowNavigation(event: MouseEvent) {
   event.stopPropagation()
-}
-
-function Sparkline({ values }: { values: number[] }) {
-  const data = values.map((value, index) => ({ index, value }))
-  const isUp = values.at(-1)! >= values[0]
-
-  return (
-    <UiSparkline
-      className={classNames(
-        'h-6 w-[4.25rem]',
-        isUp ? 'text-emerald-400' : 'text-rose-400',
-      )}
-      data={data}
-      height={24}
-      width={68}
-      color="currentColor"
-      ariaLabel="1일 변화 스파크라인"
-      margin={{ top: 2, right: 1, bottom: 2, left: 1 }}
-      strokeWidth={2}
-    />
-  )
 }
 
 function SummaryVisual({ index }: { index: number }) {
@@ -201,7 +216,7 @@ function SummaryVisual({ index }: { index: number }) {
   )
 }
 
-function StockIdentity({ stock }: { stock: Stock }) {
+function StockIdentity({ stock }: { stock: WatchlistStock }) {
   const mark = symbolMarks[stock.symbol] ?? {
     label: stock.symbol[0],
     className: 'bg-cockpit-surface-muted text-cockpit-accent',
@@ -235,7 +250,7 @@ function StockIdentity({ stock }: { stock: Stock }) {
 }
 
 interface RowMenuProps {
-  stock: Stock
+  stock: WatchlistStock
   isOpen: boolean
   onToggle: (symbol: string) => void
   onNavigate: (symbol: string) => void
@@ -298,30 +313,26 @@ function RowMenu({ stock, isOpen, onToggle, onNavigate }: RowMenuProps) {
 
 export function WatchlistPage() {
   const navigate = useNavigate()
+  const watchlistsQuery = useWatchlists()
+  const selectedWatchlistId = watchlistsQuery.data?.[0]?.id
+  const itemsQuery = useWatchlistItems(selectedWatchlistId)
   const [query, setQuery] = useState('')
   const [marketFilter, setMarketFilter] = useState<MarketFilter>('all')
   const [riskFilter, setRiskFilter] = useState<RiskFilter>('all')
   const [sortKey, setSortKey] = useState<SortKey>('custom')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
-  const [favoriteBySymbol, setFavoriteBySymbol] = useState(() =>
-    Object.fromEntries(
-      mockStocks.map((stock) => [stock.symbol, stock.isFavorite]),
-    ),
-  )
+  const [favoriteBySymbol, setFavoriteBySymbol] = useState<
+    Record<string, boolean>
+  >({})
   const [openMenuSymbol, setOpenMenuSymbol] = useState<string | null>(null)
 
   const stocks = useMemo(
     () =>
-      mockStocks.map((stock) => ({
+      (itemsQuery.data?.stocks ?? []).map((stock) => ({
         ...stock,
         isFavorite: favoriteBySymbol[stock.symbol] ?? stock.isFavorite,
       })),
-    [favoriteBySymbol],
-  )
-
-  const markets = useMemo(
-    () => Array.from(new Set(mockStocks.map((stock) => stock.market))).sort(),
-    [],
+    [favoriteBySymbol, itemsQuery.data?.stocks],
   )
 
   const visibleStocks = useMemo(() => {
@@ -331,9 +342,8 @@ export function WatchlistPage() {
         normalizedQuery.length === 0 ||
         stock.symbol.toLowerCase().includes(normalizedQuery) ||
         stock.name.toLowerCase().includes(normalizedQuery)
-      const matchesMarket =
-        marketFilter === 'all' || stock.market === marketFilter
-      const matchesRisk = riskFilter === 'all' || stock.newsRisk === riskFilter
+      const matchesMarket = marketFilter === 'all'
+      const matchesRisk = riskFilter === 'all'
 
       return matchesQuery && matchesMarket && matchesRisk
     })
@@ -375,6 +385,35 @@ export function WatchlistPage() {
     { length: Math.min(5, visiblePageCount) },
     (_, index) => index + 1,
   )
+
+  if (watchlistsQuery.isPending || itemsQuery.isPending) {
+    return <Skeleton className="min-h-[32rem]" />
+  }
+
+  if (watchlistsQuery.isError || itemsQuery.isError) {
+    const queryError = watchlistsQuery.error ?? itemsQuery.error
+
+    return (
+      <ErrorState
+        description={
+          queryError instanceof Error ? queryError.message : undefined
+        }
+        onRetry={() => {
+          void watchlistsQuery.refetch()
+          void itemsQuery.refetch()
+        }}
+      />
+    )
+  }
+
+  if (!selectedWatchlistId) {
+    return (
+      <EmptyState
+        title="관심목록이 없습니다"
+        description="관심목록을 생성하면 종목 목록을 표시합니다."
+      />
+    )
+  }
 
   return (
     <section className="flex flex-col gap-3 text-cockpit-text">
@@ -421,16 +460,14 @@ export function WatchlistPage() {
               <span className="sr-only">시장</span>
               <select
                 aria-label="시장"
-                className="min-h-11 rounded-control border border-cockpit-border bg-cockpit-bg/70 px-3 py-2 text-sm text-cockpit-text outline-none transition-colors focus:border-cockpit-accent focus:ring-2 focus:ring-cockpit-accent/30"
+                className="min-h-11 rounded-control border border-cockpit-border bg-cockpit-bg/70 px-3 py-2 text-sm text-cockpit-text outline-none transition-colors disabled:cursor-not-allowed disabled:opacity-60"
                 value={marketFilter}
-                onChange={(event) => setMarketFilter(event.target.value)}
+                onChange={(event) =>
+                  setMarketFilter(event.target.value as MarketFilter)
+                }
+                disabled
               >
                 <option value="all">시장 전체</option>
-                {markets.map((market) => (
-                  <option key={market} value={market}>
-                    {market}
-                  </option>
-                ))}
               </select>
             </label>
 
@@ -438,18 +475,14 @@ export function WatchlistPage() {
               <span className="sr-only">위험 필터</span>
               <select
                 aria-label="위험 필터"
-                className="min-h-11 rounded-control border border-cockpit-border bg-cockpit-bg/70 px-3 py-2 text-sm text-cockpit-text outline-none transition-colors focus:border-cockpit-accent focus:ring-2 focus:ring-cockpit-accent/30"
+                className="min-h-11 rounded-control border border-cockpit-border bg-cockpit-bg/70 px-3 py-2 text-sm text-cockpit-text outline-none transition-colors disabled:cursor-not-allowed disabled:opacity-60"
                 value={riskFilter}
                 onChange={(event) =>
                   setRiskFilter(event.target.value as RiskFilter)
                 }
+                disabled
               >
                 <option value="all">위험 필터 전체</option>
-                {riskLevels.map((riskLevel) => (
-                  <option key={riskLevel} value={riskLevel}>
-                    {riskLevel}
-                  </option>
-                ))}
               </select>
             </label>
           </div>
@@ -488,7 +521,7 @@ export function WatchlistPage() {
       </Card>
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        {mockWatchlistSummary.map((summaryCard, index) => (
+        {itemsQuery.data?.summaryCards.map((summaryCard, index) => (
           <Card
             key={summaryCard.label}
             className="min-h-36 border-cockpit-border bg-cockpit-surface/85 p-5 shadow-blue-950/20"
@@ -519,7 +552,7 @@ export function WatchlistPage() {
                       summaryToneClassNames[summaryCard.trend],
                     )}
                   >
-                    {summaryCard.deltaLabel}
+                    {summaryCard.deltaLabel || null}
                   </span>
                 </div>
                 <SummaryVisual index={index} />
@@ -577,26 +610,17 @@ export function WatchlistPage() {
               >
                 <thead className="bg-cockpit-surface-muted/70 text-xs font-semibold text-cockpit-text-muted">
                   <tr>
-                    {[
-                      '',
-                      '종목',
-                      '상태',
-                      '변화(1D)',
-                      '뉴스 위험도',
-                      '밸류에이션',
-                      '테마 과열',
-                      'AI 판단',
-                      '마지막 갱신',
-                      '',
-                    ].map((header, index) => (
-                      <th
-                        key={`${header}-${index}`}
-                        scope="col"
-                        className="border-b border-cockpit-border px-3 py-3 text-left first:w-10 last:w-10"
-                      >
-                        {header}
-                      </th>
-                    ))}
+                    {['', '종목', '변화(1D)', '마지막 갱신', ''].map(
+                      (header, index) => (
+                        <th
+                          key={`${header}-${index}`}
+                          scope="col"
+                          className="border-b border-cockpit-border px-3 py-3 text-left first:w-10 last:w-10"
+                        >
+                          {header}
+                        </th>
+                      ),
+                    )}
                   </tr>
                 </thead>
                 <tbody>
@@ -637,71 +661,20 @@ export function WatchlistPage() {
                           <StockIdentity stock={stock} />
                         </td>
                         <td className="px-3 py-2.5">
-                          <Badge
-                            status={stock.status}
-                            className="min-h-7 text-xs"
-                          />
-                        </td>
-                        <td className="px-3 py-2.5">
                           <div className="flex items-center gap-3">
                             <span
                               className={classNames(
                                 'min-w-14 font-semibold',
-                                stock.changePercent >= 0
+                                (stock.changePercent ?? 0) >= 0
                                   ? 'text-emerald-300'
                                   : 'text-rose-300',
                               )}
                             >
-                              {formatPercent(stock.changePercent)}
+                              {stock.changePercent == null
+                                ? '—'
+                                : formatPercent(stock.changePercent)}
                             </span>
-                            <Sparkline
-                              values={stock.changeSeries ?? [stock.price]}
-                            />
                           </div>
-                        </td>
-                        <td className="px-3 py-2.5">
-                          <Badge
-                            riskLevel={stock.newsRisk}
-                            className="min-h-7 text-xs"
-                          />
-                        </td>
-                        <td className="px-3 py-2.5">
-                          <Badge
-                            riskLevel={
-                              stock.valuation === '고평가'
-                                ? '높음'
-                                : stock.valuation === '적정'
-                                  ? '중간'
-                                  : '낮음'
-                            }
-                            className="min-h-7 text-xs"
-                          >
-                            {stock.valuation === '적정'
-                              ? '보통'
-                              : stock.valuation === '고평가'
-                                ? '높음'
-                                : '낮음'}
-                          </Badge>
-                        </td>
-                        <td className="px-3 py-2.5">
-                          <Badge
-                            riskLevel={stock.themeHeat}
-                            className="min-h-7 text-xs"
-                          />
-                        </td>
-                        <td className="px-3 py-2.5">
-                          <span
-                            className={classNames(
-                              'inline-flex min-h-7 items-center rounded-control border px-2.5 py-1 text-xs font-medium leading-none',
-                              stock.aiVerdict.includes('위험')
-                                ? 'border-status-risk-border bg-status-risk-bg text-status-risk-text'
-                                : stock.aiVerdict.includes('관망')
-                                  ? 'border-status-watch-border bg-status-watch-bg text-status-watch-text'
-                                  : 'border-status-stable-border bg-status-stable-bg text-status-stable-text',
-                            )}
-                          >
-                            {stock.aiVerdict}
-                          </span>
                         </td>
                         <td className="whitespace-nowrap px-3 py-2.5 text-cockpit-text-muted">
                           {formatTime(stock.lastUpdatedAt)}
@@ -723,7 +696,7 @@ export function WatchlistPage() {
                   ) : (
                     <tr>
                       <td
-                        colSpan={10}
+                        colSpan={5}
                         className="px-4 py-6 text-center text-sm text-cockpit-text-muted"
                       >
                         <EmptyState
@@ -802,7 +775,7 @@ export function WatchlistPage() {
               </h2>
             </div>
             <ul className="flex flex-col gap-3 rounded-card border border-cockpit-border bg-cockpit-bg/40 px-4 py-3 text-sm leading-6 text-cockpit-text-muted">
-              {mockWatchlistObservations.map((observation) => (
+              {watchlistObservations.map((observation) => (
                 <li key={observation.id} className="flex gap-2">
                   <span className="text-cockpit-accent" aria-hidden="true">
                     •
@@ -836,7 +809,7 @@ export function WatchlistPage() {
               </Button>
             </div>
             <ul className="flex flex-col gap-2">
-              {mockRecentWatchlist.map((item) => (
+              {recentWatchlist.map((item) => (
                 <li
                   key={item.symbol}
                   className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3"
@@ -861,7 +834,9 @@ export function WatchlistPage() {
                       </span>
                     </div>
                   </div>
-                  <Badge status={item.status} className="min-h-7 text-xs" />
+                  <span className="text-xs text-cockpit-text-muted">
+                    {item.status}
+                  </span>
                   <span className="whitespace-nowrap text-xs text-cockpit-text-muted">
                     {formatTime(item.addedAt)}
                   </span>
@@ -885,7 +860,7 @@ export function WatchlistPage() {
               </Button>
             </div>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-4">
-              {mockWatchlistAlertSettings.map((setting, index) => (
+              {watchlistAlertSettings.map((setting, index) => (
                 <div
                   key={setting.label}
                   className="flex min-h-24 flex-col items-center justify-center gap-2 rounded-control border border-cockpit-border bg-cockpit-bg/45 p-3 text-center"

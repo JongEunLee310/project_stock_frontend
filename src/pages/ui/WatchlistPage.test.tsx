@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
+import { vi } from 'vitest'
 
 import { appRouteObjects } from '@/app/router'
 import { AuthProvider } from '@/shared/auth/AuthProvider'
@@ -7,6 +8,73 @@ import {
   setupAuthenticatedUser,
   teardownAuthenticatedUser,
 } from '@/test-utils/authTestSetup'
+
+const watchlistStocks = [
+  {
+    symbol: 'NVDA',
+    name: 'NVIDIA Corp.',
+    price: 128.72,
+    changePercent: -0.24,
+    lastUpdatedAt: '2026-05-24T00:21:00.000Z',
+    isFavorite: true,
+  },
+  {
+    symbol: 'AAPL',
+    name: 'Apple Inc.',
+    price: 214.3,
+    changePercent: 0.32,
+    lastUpdatedAt: '2026-05-24T00:21:00.000Z',
+    isFavorite: true,
+  },
+  {
+    symbol: 'TSLA',
+    name: 'Tesla Inc.',
+    price: 182.64,
+    changePercent: -2.15,
+    lastUpdatedAt: '2026-05-24T00:20:00.000Z',
+    isFavorite: false,
+  },
+]
+
+vi.mock('@/shared/api/hooks', () => ({
+  useWatchlists: () => ({
+    data: [{ id: 1, name: 'Core holdings', createdAt: '2026-06-19T00:00:00Z' }],
+    isPending: false,
+    isError: false,
+    error: null,
+    refetch: vi.fn(),
+  }),
+  useWatchlistItems: () => ({
+    data: {
+      stocks: watchlistStocks,
+      summaryCards: [
+        {
+          label: '전체 관심 종목',
+          value: '3개',
+          deltaLabel: '',
+          trend: 'flat',
+        },
+        { label: '위험 증가 종목', value: '—', deltaLabel: '', trend: 'flat' },
+        {
+          label: '추가 리서치 필요',
+          value: '—',
+          deltaLabel: '',
+          trend: 'flat',
+        },
+        {
+          label: '평균 현금 연관도',
+          value: '—',
+          deltaLabel: '',
+          trend: 'flat',
+        },
+      ],
+    },
+    isPending: false,
+    isError: false,
+    error: null,
+    refetch: vi.fn(),
+  }),
+}))
 
 beforeEach(() => {
   setupAuthenticatedUser()
@@ -64,13 +132,13 @@ describe('WatchlistPage', () => {
     expect(screen.getByText('빠른 알림 설정')).toBeVisible()
   })
 
-  it('renders extended table columns and stock cells', async () => {
+  it('renders API-backed table columns and stock cells', async () => {
     renderWatchlist()
     const table = await screen.findByRole('table', { name: '관심 종목' })
 
     expect(
-      within(table).getByRole('columnheader', { name: '테마 과열' }),
-    ).toBeVisible()
+      within(table).queryByRole('columnheader', { name: '테마 과열' }),
+    ).not.toBeInTheDocument()
     expect(
       within(table).getByRole('columnheader', { name: /마지막 갱신/ }),
     ).toBeVisible()
@@ -80,14 +148,10 @@ describe('WatchlistPage', () => {
     expect(within(table).getByRole('link', { name: 'NVDA' })).toBeVisible()
     expect(within(table).getByText('NVIDIA Corp.')).toBeVisible()
     expect(within(table).getByText('-0.24%')).toBeVisible()
-    expect(
-      within(table).getAllByRole('img', { name: '1일 변화 스파크라인' }).length,
-    ).toBeGreaterThan(0)
     expect(within(table).getAllByText(/09:21/).length).toBeGreaterThan(0)
-    expect(within(table).getAllByText('위험 증가').length).toBeGreaterThan(0)
   })
 
-  it('narrows rows by search and risk filter, then resets filters', async () => {
+  it('narrows rows by search, then resets filters', async () => {
     renderWatchlist()
 
     await screen.findByRole('heading', { name: '관심 종목' })
@@ -98,16 +162,6 @@ describe('WatchlistPage', () => {
 
     expect(screen.getByRole('link', { name: 'TSLA' })).toBeVisible()
     expect(screen.queryByRole('link', { name: 'NVDA' })).not.toBeInTheDocument()
-
-    fireEvent.change(screen.getByLabelText('검색'), {
-      target: { value: '' },
-    })
-    fireEvent.change(screen.getByLabelText('위험 필터'), {
-      target: { value: '높음' },
-    })
-
-    expect(screen.getByRole('link', { name: 'TSLA' })).toBeVisible()
-    expect(screen.queryByRole('link', { name: 'AAPL' })).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: '필터 초기화' }))
 
