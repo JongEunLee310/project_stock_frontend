@@ -1,29 +1,29 @@
 import { useCallback, useMemo, useState, type MouseEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
+import type { WatchlistAssetRow } from '@/features/watchlist/adapters'
+import { useWatchlistAssets } from '@/features/watchlist/queries'
 import {
   mockRecentWatchlist,
-  mockStocks,
   mockWatchlistAlertSettings,
   mockWatchlistObservations,
   mockWatchlistSummary,
 } from '@/shared/mock'
-import { riskLevels, type RiskLevel, type Stock } from '@/shared/model'
 import {
-  Badge,
   BarChart,
+  Badge,
   Button,
   Card,
   DonutChart,
   EmptyState,
+  ErrorState,
   Input,
+  Skeleton,
   Sparkline as UiSparkline,
 } from '@/shared/ui'
 import { classNames } from '@/shared/ui/classNames'
 
-type MarketFilter = 'all' | Stock['market']
-type RiskFilter = 'all' | RiskLevel
-type SortKey = 'custom' | 'changePercent' | 'price' | 'symbol' | 'lastUpdatedAt'
+type SortKey = 'custom' | 'changePercent' | 'price' | 'symbol' | 'createdAt'
 type SortDirection = 'asc' | 'desc'
 
 const percentFormatter = new Intl.NumberFormat('ko-KR', {
@@ -45,7 +45,7 @@ const sortLabels: Record<SortKey, string> = {
   changePercent: '변화율',
   price: '현재가',
   symbol: '심볼',
-  lastUpdatedAt: '마지막 갱신',
+  createdAt: '추가일',
 }
 
 const summaryToneClassNames = {
@@ -101,57 +101,40 @@ function formatTime(value: string) {
   return timeFormatter.format(new Date(value))
 }
 
-function sortStocks(
-  stocks: Stock[],
+const priceFormatter = new Intl.NumberFormat('ko-KR', {
+  maximumFractionDigits: 2,
+})
+
+function sortWatchlistRows(
+  rows: WatchlistAssetRow[],
   sortKey: SortKey,
   sortDirection: SortDirection,
 ) {
   if (sortKey === 'custom') {
-    return stocks
+    return rows
   }
 
   const direction = sortDirection === 'asc' ? 1 : -1
 
-  return [...stocks].sort((first, second) => {
+  return [...rows].sort((first, second) => {
     if (sortKey === 'symbol') {
       return first.symbol.localeCompare(second.symbol) * direction
     }
 
-    if (sortKey === 'lastUpdatedAt') {
+    if (sortKey === 'createdAt') {
       return (
-        (new Date(first.lastUpdatedAt).getTime() -
-          new Date(second.lastUpdatedAt).getTime()) *
+        (new Date(first.createdAt).getTime() -
+          new Date(second.createdAt).getTime()) *
         direction
       )
     }
 
-    return (first[sortKey] - second[sortKey]) * direction
+    return ((first[sortKey] ?? 0) - (second[sortKey] ?? 0)) * direction
   })
 }
 
 function stopRowNavigation(event: MouseEvent) {
   event.stopPropagation()
-}
-
-function Sparkline({ values }: { values: number[] }) {
-  const data = values.map((value, index) => ({ index, value }))
-  const isUp = values.at(-1)! >= values[0]
-
-  return (
-    <UiSparkline
-      className={classNames(
-        'h-6 w-[4.25rem]',
-        isUp ? 'text-emerald-400' : 'text-rose-400',
-      )}
-      data={data}
-      height={24}
-      width={68}
-      color="currentColor"
-      ariaLabel="1일 변화 스파크라인"
-      margin={{ top: 2, right: 1, bottom: 2, left: 1 }}
-      strokeWidth={2}
-    />
-  )
 }
 
 function SummaryVisual({ index }: { index: number }) {
@@ -201,7 +184,7 @@ function SummaryVisual({ index }: { index: number }) {
   )
 }
 
-function StockIdentity({ stock }: { stock: Stock }) {
+function StockIdentity({ stock }: { stock: WatchlistAssetRow }) {
   const mark = symbolMarks[stock.symbol] ?? {
     label: stock.symbol[0],
     className: 'bg-cockpit-surface-muted text-cockpit-accent',
@@ -235,7 +218,7 @@ function StockIdentity({ stock }: { stock: Stock }) {
 }
 
 interface RowMenuProps {
-  stock: Stock
+  stock: WatchlistAssetRow
   isOpen: boolean
   onToggle: (symbol: string) => void
   onNavigate: (symbol: string) => void
@@ -298,30 +281,22 @@ function RowMenu({ stock, isOpen, onToggle, onNavigate }: RowMenuProps) {
 
 export function WatchlistPage() {
   const navigate = useNavigate()
+  const watchlistAssetsQuery = useWatchlistAssets()
   const [query, setQuery] = useState('')
-  const [marketFilter, setMarketFilter] = useState<MarketFilter>('all')
-  const [riskFilter, setRiskFilter] = useState<RiskFilter>('all')
   const [sortKey, setSortKey] = useState<SortKey>('custom')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
-  const [favoriteBySymbol, setFavoriteBySymbol] = useState(() =>
-    Object.fromEntries(
-      mockStocks.map((stock) => [stock.symbol, stock.isFavorite]),
-    ),
-  )
+  const [favoriteBySymbol, setFavoriteBySymbol] = useState<
+    Record<string, boolean>
+  >({})
   const [openMenuSymbol, setOpenMenuSymbol] = useState<string | null>(null)
 
   const stocks = useMemo(
     () =>
-      mockStocks.map((stock) => ({
+      (watchlistAssetsQuery.data ?? []).map((stock) => ({
         ...stock,
         isFavorite: favoriteBySymbol[stock.symbol] ?? stock.isFavorite,
       })),
-    [favoriteBySymbol],
-  )
-
-  const markets = useMemo(
-    () => Array.from(new Set(mockStocks.map((stock) => stock.market))).sort(),
-    [],
+    [favoriteBySymbol, watchlistAssetsQuery.data],
   )
 
   const visibleStocks = useMemo(() => {
@@ -330,16 +305,14 @@ export function WatchlistPage() {
       const matchesQuery =
         normalizedQuery.length === 0 ||
         stock.symbol.toLowerCase().includes(normalizedQuery) ||
-        stock.name.toLowerCase().includes(normalizedQuery)
-      const matchesMarket =
-        marketFilter === 'all' || stock.market === marketFilter
-      const matchesRisk = riskFilter === 'all' || stock.newsRisk === riskFilter
+        stock.name.toLowerCase().includes(normalizedQuery) ||
+        stock.sector.toLowerCase().includes(normalizedQuery)
 
-      return matchesQuery && matchesMarket && matchesRisk
+      return matchesQuery
     })
 
-    return sortStocks(filteredStocks, sortKey, sortDirection)
-  }, [marketFilter, query, riskFilter, sortDirection, sortKey, stocks])
+    return sortWatchlistRows(filteredStocks, sortKey, sortDirection)
+  }, [query, sortDirection, sortKey, stocks])
 
   const openResearch = useCallback(
     (symbol: string) => {
@@ -350,8 +323,6 @@ export function WatchlistPage() {
 
   const resetFilters = () => {
     setQuery('')
-    setMarketFilter('all')
-    setRiskFilter('all')
     setSortKey('custom')
     setSortDirection('desc')
   }
@@ -382,7 +353,7 @@ export function WatchlistPage() {
 
       <Card className="border-cockpit-border bg-cockpit-surface/80 p-4 shadow-blue-950/20">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-          <div className="grid flex-1 gap-3 md:grid-cols-2 xl:grid-cols-[minmax(18rem,1.2fr)_minmax(10rem,auto)_minmax(9rem,auto)_minmax(10rem,auto)]">
+          <div className="grid flex-1 gap-3 md:grid-cols-2 xl:grid-cols-[minmax(18rem,1.2fr)_minmax(10rem,auto)]">
             <label className="relative flex flex-col text-sm font-medium text-cockpit-text">
               <span className="sr-only">검색</span>
               <Input
@@ -412,42 +383,6 @@ export function WatchlistPage() {
                 {Object.entries(sortLabels).map(([value, label]) => (
                   <option key={value} value={value}>
                     정렬: {label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="flex flex-col text-sm font-medium text-cockpit-text">
-              <span className="sr-only">시장</span>
-              <select
-                aria-label="시장"
-                className="min-h-11 rounded-control border border-cockpit-border bg-cockpit-bg/70 px-3 py-2 text-sm text-cockpit-text outline-none transition-colors focus:border-cockpit-accent focus:ring-2 focus:ring-cockpit-accent/30"
-                value={marketFilter}
-                onChange={(event) => setMarketFilter(event.target.value)}
-              >
-                <option value="all">시장 전체</option>
-                {markets.map((market) => (
-                  <option key={market} value={market}>
-                    {market}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="flex flex-col text-sm font-medium text-cockpit-text">
-              <span className="sr-only">위험 필터</span>
-              <select
-                aria-label="위험 필터"
-                className="min-h-11 rounded-control border border-cockpit-border bg-cockpit-bg/70 px-3 py-2 text-sm text-cockpit-text outline-none transition-colors focus:border-cockpit-accent focus:ring-2 focus:ring-cockpit-accent/30"
-                value={riskFilter}
-                onChange={(event) =>
-                  setRiskFilter(event.target.value as RiskFilter)
-                }
-              >
-                <option value="all">위험 필터 전체</option>
-                {riskLevels.map((riskLevel) => (
-                  <option key={riskLevel} value={riskLevel}>
-                    {riskLevel}
                   </option>
                 ))}
               </select>
@@ -488,6 +423,7 @@ export function WatchlistPage() {
       </Card>
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        {/* BE 출처가 없는 watchlist summary 카드들은 후속 API까지 mock을 유지한다. */}
         {mockWatchlistSummary.map((summaryCard, index) => (
           <Card
             key={summaryCard.label}
@@ -570,172 +506,138 @@ export function WatchlistPage() {
           </div>
 
           <div className="overflow-hidden rounded-card border border-cockpit-border bg-cockpit-bg/35">
-            <div className="overflow-x-auto">
-              <table
-                className="min-w-[58rem] border-collapse text-sm"
-                aria-label="관심 종목"
-              >
-                <thead className="bg-cockpit-surface-muted/70 text-xs font-semibold text-cockpit-text-muted">
-                  <tr>
-                    {[
-                      '',
-                      '종목',
-                      '상태',
-                      '변화(1D)',
-                      '뉴스 위험도',
-                      '밸류에이션',
-                      '테마 과열',
-                      'AI 판단',
-                      '마지막 갱신',
-                      '',
-                    ].map((header, index) => (
-                      <th
-                        key={`${header}-${index}`}
-                        scope="col"
-                        className="border-b border-cockpit-border px-3 py-3 text-left first:w-10 last:w-10"
-                      >
-                        {header}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {displayedStocks.length > 0 ? (
-                    displayedStocks.map((stock) => (
-                      <tr
-                        key={stock.symbol}
-                        className="border-b border-cockpit-border/80 last:border-b-0 hover:bg-cockpit-surface-muted/45"
-                        tabIndex={0}
-                        onClick={() => openResearch(stock.symbol)}
-                        onKeyDown={(event) => {
-                          if (event.key === 'Enter' || event.key === ' ') {
-                            event.preventDefault()
-                            openResearch(stock.symbol)
-                          }
-                        }}
-                      >
-                        <td className="px-3 py-2.5">
-                          <button
-                            type="button"
-                            className={classNames(
-                              'inline-flex h-7 w-7 items-center justify-center rounded-control text-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cockpit-accent',
-                              stock.isFavorite
-                                ? 'text-cockpit-accent'
-                                : 'text-cockpit-text-muted hover:text-cockpit-text',
-                            )}
-                            aria-label={`${stock.symbol} 즐겨찾기`}
-                            aria-pressed={stock.isFavorite}
-                            onClick={(event) => {
-                              stopRowNavigation(event)
-                              toggleFavorite(stock.symbol)
-                            }}
-                          >
-                            {stock.isFavorite ? '★' : '☆'}
-                          </button>
-                        </td>
-                        <td className="px-3 py-2.5">
-                          <StockIdentity stock={stock} />
-                        </td>
-                        <td className="px-3 py-2.5">
-                          <Badge
-                            status={stock.status}
-                            className="min-h-7 text-xs"
-                          />
-                        </td>
-                        <td className="px-3 py-2.5">
-                          <div className="flex items-center gap-3">
+            {watchlistAssetsQuery.isLoading ? (
+              <Skeleton className="m-4" lines={8} />
+            ) : watchlistAssetsQuery.isError ? (
+              <ErrorState
+                title="관심 종목을 불러오지 못했습니다"
+                description={watchlistAssetsQuery.error.message}
+                onRetry={() => {
+                  void watchlistAssetsQuery.refetch()
+                }}
+              />
+            ) : (
+              <div className="overflow-x-auto">
+                <table
+                  className="min-w-[44rem] border-collapse text-sm"
+                  aria-label="관심 종목"
+                >
+                  <thead className="bg-cockpit-surface-muted/70 text-xs font-semibold text-cockpit-text-muted">
+                    <tr>
+                      {[
+                        '',
+                        '종목',
+                        '섹터',
+                        '현재가',
+                        '변화율',
+                        '추가일',
+                        '',
+                      ].map((header, index) => (
+                        <th
+                          key={`${header}-${index}`}
+                          scope="col"
+                          className="border-b border-cockpit-border px-3 py-3 text-left first:w-10 last:w-10"
+                        >
+                          {header}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {displayedStocks.length > 0 ? (
+                      displayedStocks.map((stock) => (
+                        <tr
+                          key={stock.symbol}
+                          className="border-b border-cockpit-border/80 last:border-b-0 hover:bg-cockpit-surface-muted/45"
+                          tabIndex={0}
+                          onClick={() => openResearch(stock.symbol)}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault()
+                              openResearch(stock.symbol)
+                            }
+                          }}
+                        >
+                          <td className="px-3 py-2.5">
+                            <button
+                              type="button"
+                              className={classNames(
+                                'inline-flex h-7 w-7 items-center justify-center rounded-control text-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cockpit-accent',
+                                stock.isFavorite
+                                  ? 'text-cockpit-accent'
+                                  : 'text-cockpit-text-muted hover:text-cockpit-text',
+                              )}
+                              aria-label={`${stock.symbol} 즐겨찾기`}
+                              aria-pressed={stock.isFavorite}
+                              onClick={(event) => {
+                                stopRowNavigation(event)
+                                toggleFavorite(stock.symbol)
+                              }}
+                            >
+                              {stock.isFavorite ? '★' : '☆'}
+                            </button>
+                          </td>
+                          <td className="px-3 py-2.5">
+                            <StockIdentity stock={stock} />
+                          </td>
+                          <td className="px-3 py-2.5">
+                            <span className="text-cockpit-text-muted">
+                              {stock.sector}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2.5">
+                            {stock.price == null
+                              ? '—'
+                              : priceFormatter.format(stock.price)}
+                          </td>
+                          <td className="px-3 py-2.5">
                             <span
                               className={classNames(
                                 'min-w-14 font-semibold',
-                                stock.changePercent >= 0
+                                (stock.changePercent ?? 0) >= 0
                                   ? 'text-emerald-300'
                                   : 'text-rose-300',
                               )}
                             >
-                              {formatPercent(stock.changePercent)}
+                              {stock.changePercent == null
+                                ? '—'
+                                : formatPercent(stock.changePercent)}
                             </span>
-                            <Sparkline
-                              values={stock.changeSeries ?? [stock.price]}
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-2.5 text-cockpit-text-muted">
+                            {formatTime(stock.createdAt)}
+                          </td>
+                          <td className="px-3 py-2.5">
+                            <RowMenu
+                              stock={stock}
+                              isOpen={openMenuSymbol === stock.symbol}
+                              onToggle={(symbol) =>
+                                setOpenMenuSymbol((current) =>
+                                  current === symbol ? null : symbol,
+                                )
+                              }
+                              onNavigate={openResearch}
                             />
-                          </div>
-                        </td>
-                        <td className="px-3 py-2.5">
-                          <Badge
-                            riskLevel={stock.newsRisk}
-                            className="min-h-7 text-xs"
-                          />
-                        </td>
-                        <td className="px-3 py-2.5">
-                          <Badge
-                            riskLevel={
-                              stock.valuation === '고평가'
-                                ? '높음'
-                                : stock.valuation === '적정'
-                                  ? '중간'
-                                  : '낮음'
-                            }
-                            className="min-h-7 text-xs"
-                          >
-                            {stock.valuation === '적정'
-                              ? '보통'
-                              : stock.valuation === '고평가'
-                                ? '높음'
-                                : '낮음'}
-                          </Badge>
-                        </td>
-                        <td className="px-3 py-2.5">
-                          <Badge
-                            riskLevel={stock.themeHeat}
-                            className="min-h-7 text-xs"
-                          />
-                        </td>
-                        <td className="px-3 py-2.5">
-                          <span
-                            className={classNames(
-                              'inline-flex min-h-7 items-center rounded-control border px-2.5 py-1 text-xs font-medium leading-none',
-                              stock.aiVerdict.includes('위험')
-                                ? 'border-status-risk-border bg-status-risk-bg text-status-risk-text'
-                                : stock.aiVerdict.includes('관망')
-                                  ? 'border-status-watch-border bg-status-watch-bg text-status-watch-text'
-                                  : 'border-status-stable-border bg-status-stable-bg text-status-stable-text',
-                            )}
-                          >
-                            {stock.aiVerdict}
-                          </span>
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-2.5 text-cockpit-text-muted">
-                          {formatTime(stock.lastUpdatedAt)}
-                        </td>
-                        <td className="px-3 py-2.5">
-                          <RowMenu
-                            stock={stock}
-                            isOpen={openMenuSymbol === stock.symbol}
-                            onToggle={(symbol) =>
-                              setOpenMenuSymbol((current) =>
-                                current === symbol ? null : symbol,
-                              )
-                            }
-                            onNavigate={openResearch}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td
+                          colSpan={6}
+                          className="px-4 py-6 text-center text-sm text-cockpit-text-muted"
+                        >
+                          <EmptyState
+                            title="조건에 맞는 관심 종목이 없습니다."
+                            className="py-4"
                           />
                         </td>
                       </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td
-                        colSpan={10}
-                        className="px-4 py-6 text-center text-sm text-cockpit-text-muted"
-                      >
-                        <EmptyState
-                          title="조건에 맞는 관심 종목이 없습니다."
-                          className="py-4"
-                        />
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
             <div className="flex flex-wrap items-center justify-between gap-3 border-t border-cockpit-border px-3 py-3 text-sm text-cockpit-text-muted">
               <span>
                 전체 {visibleStocks.length}개 중 {displayedStart}-{displayedEnd}{' '}
@@ -789,6 +691,7 @@ export function WatchlistPage() {
         </Card>
 
         <aside className="flex flex-col gap-3" aria-label="AI 관찰 레일">
+          {/* BE 출처가 없는 관찰 메모/최근 추가/알림 설정은 후속 API까지 mock을 유지한다. */}
           <Card className="border-cockpit-border bg-cockpit-surface/85 p-4 shadow-blue-950/20">
             <div className="mb-3 flex items-center justify-between gap-3">
               <h2 className="flex items-center gap-2 text-lg font-semibold text-cockpit-text">

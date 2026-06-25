@@ -1,15 +1,79 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
+import { vi } from 'vitest'
 
 import { appRouteObjects } from '@/app/router'
+import type { WatchlistAssetRow } from '@/features/watchlist/adapters'
 import { AuthProvider } from '@/shared/auth/AuthProvider'
 import {
   setupAuthenticatedUser,
   teardownAuthenticatedUser,
 } from '@/test-utils/authTestSetup'
 
+const watchlistRows: WatchlistAssetRow[] = [
+  {
+    id: 1,
+    symbol: 'NVDA',
+    name: 'NVIDIA Corp.',
+    price: 128.72,
+    changePercent: -0.24,
+    sector: 'Technology',
+    reason: 'Core AI exposure',
+    tags: ['ai'],
+    memo: null,
+    createdAt: '2026-05-24T00:21:00.000Z',
+    isFavorite: true,
+  },
+  {
+    id: 2,
+    symbol: 'AAPL',
+    name: 'Apple Inc.',
+    price: 214.3,
+    changePercent: 0.32,
+    sector: 'Technology',
+    reason: null,
+    tags: [],
+    memo: null,
+    createdAt: '2026-05-24T00:20:00.000Z',
+    isFavorite: true,
+  },
+  {
+    id: 3,
+    symbol: 'TSLA',
+    name: 'Tesla Inc.',
+    price: 182.64,
+    changePercent: -2.15,
+    sector: 'Consumer Discretionary',
+    reason: null,
+    tags: [],
+    memo: null,
+    createdAt: '2026-05-24T00:19:00.000Z',
+    isFavorite: false,
+  },
+]
+
+const refetchWatchlistAssets = vi.fn()
+let watchlistAssetsQueryState = {
+  data: watchlistRows,
+  error: null as Error | null,
+  isError: false,
+  isLoading: false,
+  refetch: refetchWatchlistAssets,
+}
+
+vi.mock('@/features/watchlist/queries', () => ({
+  useWatchlistAssets: () => watchlistAssetsQueryState,
+}))
+
 beforeEach(() => {
   setupAuthenticatedUser()
+  watchlistAssetsQueryState = {
+    data: watchlistRows,
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: refetchWatchlistAssets,
+  }
 })
 
 afterEach(() => {
@@ -21,16 +85,18 @@ function renderWatchlist() {
     initialEntries: ['/watchlist'],
   })
 
-  render(
+  const renderResult = render(
     <AuthProvider>
       <RouterProvider router={router} />
     </AuthProvider>,
   )
 
-  return router
+  return { router, ...renderResult }
 }
 
-async function returnToWatchlist(router: ReturnType<typeof renderWatchlist>) {
+async function returnToWatchlist({
+  router,
+}: ReturnType<typeof renderWatchlist>) {
   await act(async () => {
     await router.navigate('/watchlist')
   })
@@ -64,15 +130,15 @@ describe('WatchlistPage', () => {
     expect(screen.getByText('빠른 알림 설정')).toBeVisible()
   })
 
-  it('renders extended table columns and stock cells', async () => {
+  it('renders thin table columns and stock cells', async () => {
     renderWatchlist()
     const table = await screen.findByRole('table', { name: '관심 종목' })
 
     expect(
-      within(table).getByRole('columnheader', { name: '테마 과열' }),
+      within(table).getByRole('columnheader', { name: '섹터' }),
     ).toBeVisible()
     expect(
-      within(table).getByRole('columnheader', { name: /마지막 갱신/ }),
+      within(table).getByRole('columnheader', { name: '현재가' }),
     ).toBeVisible()
     expect(
       within(table).getByRole('button', { name: 'NVDA 즐겨찾기' }),
@@ -80,14 +146,11 @@ describe('WatchlistPage', () => {
     expect(within(table).getByRole('link', { name: 'NVDA' })).toBeVisible()
     expect(within(table).getByText('NVIDIA Corp.')).toBeVisible()
     expect(within(table).getByText('-0.24%')).toBeVisible()
-    expect(
-      within(table).getAllByRole('img', { name: '1일 변화 스파크라인' }).length,
-    ).toBeGreaterThan(0)
     expect(within(table).getAllByText(/09:21/).length).toBeGreaterThan(0)
-    expect(within(table).getAllByText('위험 증가').length).toBeGreaterThan(0)
+    expect(within(table).getAllByText('Technology').length).toBeGreaterThan(0)
   })
 
-  it('narrows rows by search and risk filter, then resets filters', async () => {
+  it('narrows rows by search, then resets filters', async () => {
     renderWatchlist()
 
     await screen.findByRole('heading', { name: '관심 종목' })
@@ -98,16 +161,6 @@ describe('WatchlistPage', () => {
 
     expect(screen.getByRole('link', { name: 'TSLA' })).toBeVisible()
     expect(screen.queryByRole('link', { name: 'NVDA' })).not.toBeInTheDocument()
-
-    fireEvent.change(screen.getByLabelText('검색'), {
-      target: { value: '' },
-    })
-    fireEvent.change(screen.getByLabelText('위험 필터'), {
-      target: { value: '높음' },
-    })
-
-    expect(screen.getByRole('link', { name: 'TSLA' })).toBeVisible()
-    expect(screen.queryByRole('link', { name: 'AAPL' })).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: '필터 초기화' }))
 
@@ -133,16 +186,16 @@ describe('WatchlistPage', () => {
   })
 
   it('navigates to research from symbol, row, and row menu actions', async () => {
-    const router = renderWatchlist()
+    const rendered = renderWatchlist()
 
     await screen.findByRole('heading', { name: '관심 종목' })
 
     fireEvent.click(screen.getByRole('link', { name: 'TSLA' }))
 
-    expect(router.state.location.pathname).toBe('/research/TSLA')
+    expect(rendered.router.state.location.pathname).toBe('/research/TSLA')
     expect(await screen.findByRole('heading', { name: 'TSLA' })).toBeVisible()
 
-    await returnToWatchlist(router)
+    await returnToWatchlist(rendered)
 
     const aaplRow = (await screen.findByRole('link', { name: 'AAPL' })).closest(
       'tr',
@@ -152,15 +205,59 @@ describe('WatchlistPage', () => {
 
     fireEvent.click(aaplRow as HTMLTableRowElement)
 
-    expect(router.state.location.pathname).toBe('/research/AAPL')
+    expect(rendered.router.state.location.pathname).toBe('/research/AAPL')
     expect(await screen.findByRole('heading', { name: 'AAPL' })).toBeVisible()
 
-    await returnToWatchlist(router)
+    await returnToWatchlist(rendered)
 
     fireEvent.click(await screen.findByRole('button', { name: 'NVDA 행 메뉴' }))
     fireEvent.click(screen.getByRole('menuitem', { name: '리서치 보기' }))
 
-    expect(router.state.location.pathname).toBe('/research/NVDA')
+    expect(rendered.router.state.location.pathname).toBe('/research/NVDA')
     expect(await screen.findByRole('heading', { name: 'NVDA' })).toBeVisible()
+  })
+
+  it('renders loading, error, and empty states for connected rows', async () => {
+    watchlistAssetsQueryState = {
+      ...watchlistAssetsQueryState,
+      data: undefined as never,
+      isLoading: true,
+    }
+    const { unmount } = renderWatchlist()
+
+    expect(
+      await screen.findByRole('heading', { name: '관심 종목' }),
+    ).toBeVisible()
+    expect(
+      screen.queryByRole('table', { name: '관심 종목' }),
+    ).not.toBeInTheDocument()
+
+    unmount()
+    watchlistAssetsQueryState = {
+      ...watchlistAssetsQueryState,
+      data: undefined as never,
+      error: new Error('network failed'),
+      isError: true,
+      isLoading: false,
+    }
+    const { unmount: unmountError } = renderWatchlist()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '관심 종목을 불러오지 못했습니다',
+    )
+
+    unmountError()
+    watchlistAssetsQueryState = {
+      ...watchlistAssetsQueryState,
+      data: [],
+      error: null,
+      isError: false,
+      isLoading: false,
+    }
+    renderWatchlist()
+
+    expect(
+      await screen.findByText('조건에 맞는 관심 종목이 없습니다.'),
+    ).toBeVisible()
   })
 })

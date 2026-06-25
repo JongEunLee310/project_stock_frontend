@@ -1,5 +1,6 @@
 import { render, screen, within } from '@testing-library/react'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
+import { vi } from 'vitest'
 
 import { appRouteObjects } from '@/app/router'
 import { AuthProvider } from '@/shared/auth/AuthProvider'
@@ -8,8 +9,46 @@ import {
   teardownAuthenticatedUser,
 } from '@/test-utils/authTestSetup'
 
+const refetchDashboardSummary = vi.fn()
+let dashboardSummaryQueryState = {
+  data: {
+    riskAlertCount: 3,
+    importantNewsCount: 8,
+    reviewSignalCount: 5,
+    cashRatio: 22.7,
+    riskAlertDelta: null,
+    importantNewsDelta: null,
+    reviewSignalDelta: null,
+    cashRatioDelta: null,
+  },
+  error: null as Error | null,
+  isError: false,
+  isLoading: false,
+  refetch: refetchDashboardSummary,
+}
+
+vi.mock('@/features/dashboard/queries', () => ({
+  useDashboardSummary: () => dashboardSummaryQueryState,
+}))
+
 beforeEach(() => {
   setupAuthenticatedUser()
+  dashboardSummaryQueryState = {
+    data: {
+      riskAlertCount: 3,
+      importantNewsCount: 8,
+      reviewSignalCount: 5,
+      cashRatio: 22.7,
+      riskAlertDelta: null,
+      importantNewsDelta: null,
+      reviewSignalDelta: null,
+      cashRatioDelta: null,
+    },
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: refetchDashboardSummary,
+  }
 })
 
 afterEach(() => {
@@ -21,13 +60,13 @@ function renderDashboard() {
     initialEntries: ['/'],
   })
 
-  render(
+  const renderResult = render(
     <AuthProvider>
       <RouterProvider router={router} />
     </AuthProvider>,
   )
 
-  return router
+  return { router, ...renderResult }
 }
 
 describe('DashboardPage', () => {
@@ -45,7 +84,49 @@ describe('DashboardPage', () => {
     expect(screen.getAllByText('8').length).toBeGreaterThan(0)
     expect(screen.getAllByText('5').length).toBeGreaterThan(0)
     expect(screen.getByText('22.7%')).toBeVisible()
-    expect(screen.getAllByText('전일 대비 +1').length).toBeGreaterThan(0)
+    expect(screen.queryByText('전일 대비 +1')).not.toBeInTheDocument()
+  })
+
+  it('renders loading, error, and empty states for Today Brief', async () => {
+    dashboardSummaryQueryState = {
+      ...dashboardSummaryQueryState,
+      data: undefined as never,
+      isLoading: true,
+    }
+    const { unmount } = renderDashboard()
+
+    expect(
+      await screen.findByRole('heading', { name: 'AI 투자 관제실' }),
+    ).toBeVisible()
+    expect(screen.queryByText('22.7%')).not.toBeInTheDocument()
+
+    unmount()
+    dashboardSummaryQueryState = {
+      ...dashboardSummaryQueryState,
+      data: undefined as never,
+      error: new Error('network failed'),
+      isError: true,
+      isLoading: false,
+    }
+    const { unmount: unmountError } = renderDashboard()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Today Brief를 불러오지 못했습니다',
+    )
+
+    unmountError()
+    dashboardSummaryQueryState = {
+      ...dashboardSummaryQueryState,
+      data: undefined as never,
+      error: null,
+      isError: false,
+      isLoading: false,
+    }
+    renderDashboard()
+
+    expect(
+      await screen.findByText('Today Brief 데이터가 없습니다'),
+    ).toBeVisible()
   })
 
   it('renders watchlist status with research links and PER/PEG metrics', async () => {

@@ -1,21 +1,26 @@
 import { Link } from 'react-router-dom'
 
+import type {
+  PortfolioHoldingView,
+  PortfolioView,
+} from '@/features/portfolio/adapters'
+import { usePortfolioSummary } from '@/features/portfolio/queries'
 import { appRoutePaths } from '@/shared/config/navigation'
 import { mockPortfolio } from '@/shared/mock'
-import type { Holding, Portfolio } from '@/shared/model'
 import {
   Badge,
   BarChart,
   Card,
   DonutChart,
   EmptyState,
+  ErrorState,
+  Skeleton,
   Table,
   type TableColumn,
 } from '@/shared/ui'
 import { classNames } from '@/shared/ui/classNames'
 
-type HoldingWeight = Holding & {
-  weight: number
+type HoldingWeight = PortfolioHoldingView & {
   assetWeight: number
 }
 
@@ -35,11 +40,6 @@ const numberFormatter = new Intl.NumberFormat('ko-KR')
 
 const percentFormatter = new Intl.NumberFormat('ko-KR', {
   maximumFractionDigits: 1,
-})
-
-const signedPercentFormatter = new Intl.NumberFormat('ko-KR', {
-  signDisplay: 'always',
-  maximumFractionDigits: 2,
 })
 
 const allocationColors = [
@@ -66,46 +66,16 @@ function formatPercent(value: number) {
   return `${percentFormatter.format(value)}%`
 }
 
-function formatSignedPercent(value: number) {
-  return `${signedPercentFormatter.format(value)}%`
-}
-
-function getHoldingWeights(portfolio: Portfolio): HoldingWeight[] {
-  const totalAssets = portfolio.totalValue + portfolio.cash
-
+function getHoldingWeights(portfolio: PortfolioView): HoldingWeight[] {
   return portfolio.holdings
     .map((holding) => ({
       ...holding,
-      weight:
+      assetWeight:
         portfolio.totalValue > 0
           ? (holding.currentValue / portfolio.totalValue) * 100
           : 0,
-      assetWeight:
-        totalAssets > 0 ? (holding.currentValue / totalAssets) * 100 : 0,
     }))
     .sort((first, second) => second.currentValue - first.currentValue)
-}
-
-function getSectorExposure(holdings: HoldingWeight[]): SectorExposure[] {
-  const totalValue = holdings.reduce(
-    (sum, holding) => sum + holding.currentValue,
-    0,
-  )
-  const totalsBySector = holdings.reduce(
-    (totals, holding) => ({
-      ...totals,
-      [holding.sector]: (totals[holding.sector] ?? 0) + holding.currentValue,
-    }),
-    {} as Record<string, number>,
-  )
-
-  return Object.entries(totalsBySector)
-    .map(([name, amount]) => ({
-      name,
-      amount,
-      value: totalValue > 0 ? (amount / totalValue) * 100 : 0,
-    }))
-    .sort((first, second) => second.value - first.value)
 }
 
 function SummaryCard({
@@ -193,7 +163,7 @@ function PanelTitle({ title, kicker }: { title: string; kicker?: string }) {
   )
 }
 
-function PortfolioHoldingLink({ holding }: { holding: Holding }) {
+function PortfolioHoldingLink({ holding }: { holding: PortfolioHoldingView }) {
   return (
     <div className="flex min-w-36 flex-col">
       <Link
@@ -245,31 +215,20 @@ function buildHoldingColumns(): Array<TableColumn<HoldingWeight>> {
       align: 'right',
       cell: (holding) => formatPercent(holding.weight),
     },
-    {
-      key: 'dailyChange',
-      header: '일간 변화',
-      align: 'right',
-      cell: (holding) => (
-        <span
-          className={classNames(
-            'font-semibold',
-            holding.dailyChangePercent >= 0
-              ? 'text-emerald-300'
-              : 'text-rose-300',
-          )}
-        >
-          {formatSignedPercent(holding.dailyChangePercent)}
-        </span>
-      ),
-    },
   ]
 }
 
-export function PortfolioPageView({ portfolio }: { portfolio: Portfolio }) {
-  const totalAssets = portfolio.totalValue + portfolio.cash
+export function PortfolioPageView({ portfolio }: { portfolio: PortfolioView }) {
+  const totalAssets = portfolio.totalValue
   const cashRatio = totalAssets > 0 ? (portfolio.cash / totalAssets) * 100 : 0
   const holdings = getHoldingWeights(portfolio)
-  const sectorExposure = getSectorExposure(holdings)
+  const sectorExposure: SectorExposure[] = portfolio.sectorExposure.map(
+    (sector) => ({
+      name: sector.name,
+      value: sector.value,
+      amount: sector.amount,
+    }),
+  )
   const topHoldings = holdings.slice(0, 5)
   const topThreeShare = holdings
     .slice(0, 3)
@@ -300,7 +259,7 @@ export function PortfolioPageView({ portfolio }: { portfolio: Portfolio }) {
         <SummaryCard
           label="총 자산"
           value={formatKrw(totalAssets)}
-          helper={`전일 대비 ${formatSignedPercent(portfolio.dayChangePercent)} (${formatKrw(portfolio.dayChangeValue)})`}
+          helper="API summary 기준"
           visual="wallet"
         />
         <SummaryCard
@@ -309,13 +268,6 @@ export function PortfolioPageView({ portfolio }: { portfolio: Portfolio }) {
           helper={formatKrw(portfolio.cash)}
           visual="donut"
           donutRatio={cashRatio}
-        />
-        <SummaryCard
-          label="일간 손익"
-          value={formatKrw(portfolio.dayChangeValue)}
-          helper={formatSignedPercent(portfolio.dayChangePercent)}
-          visual="delta"
-          positive={portfolio.dayChangePercent >= 0}
         />
         <SummaryCard
           label="상위 3 종목 비중"
@@ -481,11 +433,12 @@ export function PortfolioPageView({ portfolio }: { portfolio: Portfolio }) {
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[1.25fr_0.75fr]">
+        {/* dayChange, riskExposures, aiBriefing은 BE 출처가 없어 후속 API까지 mock을 유지한다. */}
         <div className="grid gap-4">
           <Card className="border-cockpit-border bg-cockpit-surface/80">
             <PanelTitle title="리스크 노출 분석" />
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-              {portfolio.riskExposures.map((risk) => (
+              {mockPortfolio.riskExposures.map((risk) => (
                 <article
                   key={risk.id}
                   className="rounded-card border border-cockpit-border bg-cockpit-surface-muted/40 p-4"
@@ -521,19 +474,19 @@ export function PortfolioPageView({ portfolio }: { portfolio: Portfolio }) {
           </div>
           <div className="rounded-card border border-cockpit-border bg-cockpit-bg/40 p-4">
             <h3 className="font-bold text-cockpit-text">
-              {portfolio.aiBriefing.headline}
+              {mockPortfolio.aiBriefing.headline}
             </h3>
             <p className="mt-3 leading-7 text-cockpit-text">
-              {portfolio.aiBriefing.body}
+              {mockPortfolio.aiBriefing.body}
             </p>
           </div>
-          {portfolio.aiBriefing.riskChecks ? (
+          {mockPortfolio.aiBriefing.riskChecks ? (
             <div className="mt-4 rounded-card border border-cockpit-border bg-cockpit-accent/10 p-4">
               <h3 className="font-semibold text-cockpit-text">
-                {portfolio.aiBriefing.riskHeadline}
+                {mockPortfolio.aiBriefing.riskHeadline}
               </h3>
               <ul className="mt-3 grid gap-2 text-sm text-cockpit-text-muted">
-                {portfolio.aiBriefing.riskChecks.map((check) => (
+                {mockPortfolio.aiBriefing.riskChecks.map((check) => (
                   <li key={check}>• {check}</li>
                 ))}
               </ul>
@@ -570,5 +523,41 @@ export function PortfolioPageView({ portfolio }: { portfolio: Portfolio }) {
 }
 
 export function PortfolioPage() {
-  return <PortfolioPageView portfolio={mockPortfolio} />
+  const portfolioSummaryQuery = usePortfolioSummary()
+
+  if (portfolioSummaryQuery.isLoading) {
+    return (
+      <div className="flex flex-col gap-5">
+        <h1 className="text-3xl font-bold text-cockpit-text">포트폴리오</h1>
+        <Skeleton
+          lines={10}
+          className="rounded-card border border-cockpit-border bg-cockpit-surface/80 p-5"
+        />
+      </div>
+    )
+  }
+
+  if (portfolioSummaryQuery.isError) {
+    return (
+      <ErrorState
+        title="포트폴리오를 불러오지 못했습니다"
+        description={portfolioSummaryQuery.error.message}
+        onRetry={() => {
+          void portfolioSummaryQuery.refetch()
+        }}
+        className="rounded-card border border-cockpit-border bg-cockpit-surface/80"
+      />
+    )
+  }
+
+  if (!portfolioSummaryQuery.data) {
+    return (
+      <EmptyState
+        title="포트폴리오 데이터가 없습니다"
+        className="rounded-card border border-cockpit-border bg-cockpit-surface/80"
+      />
+    )
+  }
+
+  return <PortfolioPageView portfolio={portfolioSummaryQuery.data} />
 }

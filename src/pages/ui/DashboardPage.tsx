@@ -1,9 +1,9 @@
 import { Link } from 'react-router-dom'
 
+import { useDashboardSummary } from '@/features/dashboard/queries'
 import { appRoutePaths } from '@/shared/config/navigation'
 import {
   mockAiBriefing,
-  mockDashboardSummary,
   mockDecisionLogs,
   mockPriorityQueue,
   mockSignals,
@@ -15,7 +15,10 @@ import {
   BarChart,
   Card,
   DonutChart,
+  EmptyState,
+  ErrorState,
   Sparkline,
+  Skeleton,
   Table,
   type TableColumn,
 } from '@/shared/ui'
@@ -156,9 +159,11 @@ function formatMetricValue(value: number, suffix?: string) {
 
 function MiniVisual({
   kind,
+  cashRatio,
   className,
 }: {
   kind: VisualKind
+  cashRatio?: number
   className?: string
 }) {
   if (kind === 'bars-news') {
@@ -181,8 +186,8 @@ function MiniVisual({
         width={64}
         height={64}
         data={[
-          { name: 'cash', value: mockDashboardSummary.cashRatio },
-          { name: 'invested', value: 100 - mockDashboardSummary.cashRatio },
+          { name: 'cash', value: cashRatio ?? 0 },
+          { name: 'invested', value: Math.max(0, 100 - (cashRatio ?? 0)) },
         ]}
         colors={['currentColor', '#475569']}
         innerRadius={22}
@@ -415,6 +420,8 @@ function SignalCard({ signal }: { signal: Signal }) {
 }
 
 export function DashboardPage() {
+  const dashboardSummaryQuery = useDashboardSummary()
+
   return (
     <div className="flex flex-col gap-3">
       <header className="flex min-h-16 items-center">
@@ -423,54 +430,83 @@ export function DashboardPage() {
 
       <Card className="flex flex-col gap-4 bg-cockpit-surface/70 p-5">
         <SectionTitle icon="▣" title="Today Brief" />
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {todayBriefCards.map((card) => {
-            const value = mockDashboardSummary[card.metricKey]
-            const delta = mockDashboardSummary[card.deltaKey]
-
-            return (
-              <section
+        {dashboardSummaryQuery.isLoading ? (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {todayBriefCards.map((card) => (
+              <Skeleton
                 key={card.label}
                 className="min-h-32 rounded-card border border-cockpit-border bg-cockpit-surface-muted/55 p-5"
-              >
-                <div className="flex h-full items-center justify-between gap-4">
-                  <div className="flex flex-col gap-3">
-                    <div className="flex items-center gap-3">
-                      <span
-                        className={classNames(
-                          'grid h-8 w-8 place-items-center rounded-full border text-base',
-                          card.iconClassName,
-                        )}
-                      >
-                        {card.icon}
-                      </span>
-                      <span className="font-semibold text-cockpit-text">
-                        {card.label}
-                      </span>
+                lines={4}
+              />
+            ))}
+          </div>
+        ) : dashboardSummaryQuery.isError ? (
+          <ErrorState
+            title="Today Brief를 불러오지 못했습니다"
+            description={dashboardSummaryQuery.error.message}
+            onRetry={() => {
+              void dashboardSummaryQuery.refetch()
+            }}
+            className="rounded-card border border-cockpit-border bg-cockpit-surface-muted/45"
+          />
+        ) : dashboardSummaryQuery.data ? (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {todayBriefCards.map((card) => {
+              const value = dashboardSummaryQuery.data[card.metricKey]
+              const delta = dashboardSummaryQuery.data[card.deltaKey]
+
+              return (
+                <section
+                  key={card.label}
+                  className="min-h-32 rounded-card border border-cockpit-border bg-cockpit-surface-muted/55 p-5"
+                >
+                  <div className="flex h-full items-center justify-between gap-4">
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center gap-3">
+                        <span
+                          className={classNames(
+                            'grid h-8 w-8 place-items-center rounded-full border text-base',
+                            card.iconClassName,
+                          )}
+                        >
+                          {card.icon}
+                        </span>
+                        <span className="font-semibold text-cockpit-text">
+                          {card.label}
+                        </span>
+                      </div>
+                      <strong className="text-4xl leading-none text-cockpit-text">
+                        {formatMetricValue(value, card.suffix)}
+                      </strong>
+                      {delta ? (
+                        <span
+                          className={classNames(
+                            'text-sm',
+                            card.deltaKey === 'cashRatioDelta'
+                              ? 'text-emerald-300'
+                              : 'text-cockpit-text-muted',
+                          )}
+                        >
+                          {delta}
+                        </span>
+                      ) : null}
                     </div>
-                    <strong className="text-4xl leading-none text-cockpit-text">
-                      {formatMetricValue(value, card.suffix)}
-                    </strong>
-                    <span
-                      className={classNames(
-                        'text-sm',
-                        card.deltaKey === 'cashRatioDelta'
-                          ? 'text-emerald-300'
-                          : 'text-cockpit-text-muted',
-                      )}
-                    >
-                      {delta}
-                    </span>
+                    <MiniVisual
+                      kind={card.visual}
+                      cashRatio={dashboardSummaryQuery.data.cashRatio}
+                      className={card.toneClassName}
+                    />
                   </div>
-                  <MiniVisual
-                    kind={card.visual}
-                    className={card.toneClassName}
-                  />
-                </div>
-              </section>
-            )
-          })}
-        </div>
+                </section>
+              )
+            })}
+          </div>
+        ) : (
+          <EmptyState
+            title="Today Brief 데이터가 없습니다"
+            className="rounded-card border border-cockpit-border bg-cockpit-surface-muted/45"
+          />
+        )}
       </Card>
 
       <div className="grid gap-3 xl:grid-cols-[1.15fr_0.95fr_1fr]">
