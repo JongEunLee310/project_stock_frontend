@@ -1,12 +1,44 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { QueryClientProvider } from '@tanstack/react-query'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
+import { vi } from 'vitest'
 
 import { appRouteObjects } from '@/app/router'
+import { createQueryClient } from '@/shared/api/queryClient'
 import { AuthProvider } from '@/shared/auth/AuthProvider'
 import {
   setupAuthenticatedUser,
   teardownAuthenticatedUser,
 } from '@/test-utils/authTestSetup'
+
+vi.mock('@/features/dashboard/queries', () => ({
+  useDashboardSummary: () => ({
+    data: {
+      riskAlertCount: 3,
+      importantNewsCount: 8,
+      reviewSignalCount: 5,
+      cashRatio: 22.7,
+      riskAlertDelta: null,
+      importantNewsDelta: null,
+      reviewSignalDelta: null,
+      cashRatioDelta: null,
+    },
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: vi.fn(),
+  }),
+}))
+
+vi.mock('@/features/watchlist/queries', () => ({
+  useWatchlistAssets: () => ({
+    data: [],
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: vi.fn(),
+  }),
+}))
 
 beforeEach(() => {
   setupAuthenticatedUser()
@@ -20,11 +52,14 @@ function renderRoute(initialEntry: string) {
   const router = createMemoryRouter(appRouteObjects, {
     initialEntries: [initialEntry],
   })
+  const queryClient = createQueryClient()
 
   render(
-    <AuthProvider>
-      <RouterProvider router={router} />
-    </AuthProvider>,
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>
+    </QueryClientProvider>,
   )
 
   return router

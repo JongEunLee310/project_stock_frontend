@@ -1,12 +1,76 @@
 import { render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
+import { vi } from 'vitest'
 
-import { mockPortfolio } from '@/shared/mock'
-import type { Portfolio } from '@/shared/model'
+import type { PortfolioView } from '@/features/portfolio/adapters'
 
-import { PortfolioPageView } from './PortfolioPage'
+import { PortfolioPage, PortfolioPageView } from './PortfolioPage'
 
-function renderPortfolio(portfolio: Portfolio = mockPortfolio) {
+const portfolioView: PortfolioView = {
+  totalValue: 128_734_000,
+  cash: 29_234_000,
+  holdings: [
+    {
+      assetId: 1,
+      symbol: 'QQQ',
+      name: 'Invesco QQQ Trust',
+      sector: 'ETF',
+      quantity: 80,
+      avgPrice: 480_000,
+      currentValue: 45_200_000,
+      weight: 35.1,
+    },
+    {
+      assetId: 2,
+      symbol: 'NVDA',
+      name: 'NVIDIA Corp.',
+      sector: '정보기술',
+      quantity: 120,
+      avgPrice: 143_000,
+      currentValue: 19_600_000,
+      weight: 15.2,
+    },
+    {
+      assetId: 3,
+      symbol: 'AAPL',
+      name: 'Apple Inc.',
+      sector: '정보기술',
+      quantity: 40,
+      avgPrice: 260_000,
+      currentValue: 11_800_000,
+      weight: 9.2,
+    },
+  ],
+  sectorExposure: [
+    { name: '정보기술', amount: 31_400_000, value: 31.6 },
+    { name: 'ETF', amount: 45_200_000, value: 45.4 },
+  ],
+}
+
+const refetchPortfolioSummary = vi.fn()
+let portfolioSummaryQueryState = {
+  data: portfolioView,
+  error: null as Error | null,
+  isError: false,
+  isLoading: false,
+  refetch: refetchPortfolioSummary,
+}
+
+vi.mock('@/features/portfolio/queries', () => ({
+  usePortfolioSummary: () => portfolioSummaryQueryState,
+}))
+
+beforeEach(() => {
+  portfolioSummaryQueryState = {
+    data: portfolioView,
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: refetchPortfolioSummary,
+  }
+})
+
+function renderPortfolio(portfolio: PortfolioView = portfolioView) {
   render(
     <MemoryRouter>
       <PortfolioPageView portfolio={portfolio} />
@@ -23,8 +87,7 @@ describe('PortfolioPage', () => {
     expect(screen.getAllByText('₩128,734,000').length).toBeGreaterThan(0)
     expect(screen.getByText('현금 비중')).toBeVisible()
     expect(screen.getAllByText('22.7%').length).toBeGreaterThan(0)
-    expect(screen.getByText('일간 손익')).toBeVisible()
-    expect(screen.getByText('₩1,292,000')).toBeVisible()
+    expect(screen.queryByText('일간 손익')).not.toBeInTheDocument()
   })
 
   it('renders allocation, sector exposure, and concentration labels', () => {
@@ -63,14 +126,17 @@ describe('PortfolioPage', () => {
     expect(within(table).getByText('NVIDIA Corp.')).toBeVisible()
     expect(within(table).getAllByText('정보기술').length).toBeGreaterThan(0)
     expect(within(table).getByText('15.2%')).toBeVisible()
-    expect(within(table).getByText('+2.64%')).toBeVisible()
+    expect(
+      within(table).queryByRole('columnheader', { name: '일간 변화' }),
+    ).not.toBeInTheDocument()
   })
 
   it('renders an empty state when there are no holdings', () => {
     renderPortfolio({
-      ...mockPortfolio,
+      ...portfolioView,
       totalValue: 0,
       holdings: [],
+      sectorExposure: [],
     })
 
     expect(screen.getAllByText('보유 종목이 없습니다').length).toBeGreaterThan(
@@ -78,6 +144,58 @@ describe('PortfolioPage', () => {
     )
     expect(
       screen.getByText('보유 종목이 추가되면 평가액과 비중을 계산합니다.'),
+    ).toBeVisible()
+  })
+
+  it('renders loading, error, and empty states for PortfolioPage query', async () => {
+    portfolioSummaryQueryState = {
+      ...portfolioSummaryQueryState,
+      data: undefined as never,
+      isLoading: true,
+    }
+    const { unmount } = render(
+      <MemoryRouter>
+        <PortfolioPage />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByRole('heading', { name: '포트폴리오' })).toBeVisible()
+    expect(screen.queryByText('총 자산')).not.toBeInTheDocument()
+
+    unmount()
+    portfolioSummaryQueryState = {
+      ...portfolioSummaryQueryState,
+      data: undefined as never,
+      error: new Error('network failed'),
+      isError: true,
+      isLoading: false,
+    }
+    const { unmount: unmountError } = render(
+      <MemoryRouter>
+        <PortfolioPage />
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '포트폴리오를 불러오지 못했습니다',
+    )
+
+    unmountError()
+    portfolioSummaryQueryState = {
+      ...portfolioSummaryQueryState,
+      data: undefined as never,
+      error: null,
+      isError: false,
+      isLoading: false,
+    }
+    render(
+      <MemoryRouter>
+        <PortfolioPage />
+      </MemoryRouter>,
+    )
+
+    expect(
+      await screen.findByText('포트폴리오 데이터가 없습니다'),
     ).toBeVisible()
   })
 })
