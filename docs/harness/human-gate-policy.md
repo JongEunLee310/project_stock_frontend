@@ -16,6 +16,8 @@ Human approval is required before proceeding when any of the following condition
 - Security-relevant changes.
 - Running Codex (or any implementation agent) with elevated/bypassed sandbox access (e.g., `codex exec --dangerously-bypass-approvals-and-sandbox`, `-s danger-full-access`) because the default sandbox failed.
 
+Automated `codex exec` invocation under the **default** sandbox (`read-only` / `workspace-write`) is **not** a gate condition (per `docs/decisions/ADR-005-allow-claude-code-to-invoke-codex-exec.md`); only elevated/bypassed access is. The conditions above (auth, schema, deps, CI config, etc.) still gate the work **before** the automated implementation step runs.
+
 ## Gate Points in the Workflow
 
 **Pre-handoff**: Claude Code must not produce a Codex handoff when a gate condition applies without documenting the condition and receiving explicit human approval first.

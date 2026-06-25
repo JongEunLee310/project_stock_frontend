@@ -8,9 +8,10 @@ This directory stores Architecture Decision Records.
 
 - `ADR-000-template.md`
 - `ADR-001-separate-claude-code-and-codex-roles.md`
-- `ADR-002-use-manual-codex-execution-instead-of-nested-codex-exec.md`
+- `ADR-002-use-manual-codex-execution-instead-of-nested-codex-exec.md` (superseded by ADR-005)
 - `ADR-003-frontend-foundation-stack.md`
 - `ADR-004-server-state-api-client-adapter.md`
+- `ADR-005-allow-claude-code-to-invoke-codex-exec.md`
 
 ## Writing Rules
 

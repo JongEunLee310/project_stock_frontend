@@ -43,18 +43,19 @@ The dogfooding run could not exercise an automated Claude Code → Codex handoff
 
 ## Replacement Decision
 
-Claude Code does not call Codex CLI directly as a nested implementation agent. Claude Code creates the Codex handoff document only; the human operator runs Codex manually in a separate session or an explicitly approved isolated environment. See `docs/decisions/ADR-002-use-manual-codex-execution-instead-of-nested-codex-exec.md`.
+Originally (ADR-002): Claude Code created the handoff document only, and the human operator ran Codex manually in a separate session. **This has since been superseded by ADR-005**, which allows Claude Code to invoke `codex exec` automatically under the default sandbox once the Codex CLI is pinned to a crash-free version — the retry conditions below were met. Manual execution remains the fallback when automated invocation is unavailable. See `docs/decisions/ADR-005-allow-claude-code-to-invoke-codex-exec.md` and `docs/decisions/ADR-002-use-manual-codex-execution-instead-of-nested-codex-exec.md` (superseded).
 
 ## Retry Conditions
 
-Reconsider direct `codex exec` invocation from Claude Code only if both hold:
+These conditions were the bar for resuming direct `codex exec` invocation; ADR-005 accepts automated invocation now that they hold:
 
-- The upstream SIGTRAP crash is fixed (track [openai/codex#29136](https://github.com/openai/codex/issues/29136) and [openai/codex#28893](https://github.com/openai/codex/issues/28893); requires a Codex CLI release past v0.141.0), confirmed with `read-only` sandbox succeeding on a trivial command.
-- A human-approved, scoped exception process exists for elevated Codex sandbox access (see Human Gate conditions in `docs/harness/human-gate-policy.md`), so any full-access run still requires explicit per-run human approval rather than being silently automated.
+- The sandbox crash is root-caused and avoidable (the SIGTRAP regression was isolated to specific Codex CLI versions per [openai/codex#29136](https://github.com/openai/codex/issues/29136) and [openai/codex#28893](https://github.com/openai/codex/issues/28893); pinning to a crash-free version, 0.140.0, sidesteps it), confirmed with `read-only` sandbox succeeding on a trivial command.
+- Automated invocation stays within the **default** sandbox (`read-only` / `workspace-write`) only. Elevated/full-access runs remain forbidden in automated workflows and a Human Gate condition (`docs/harness/human-gate-policy.md`); the default-sandbox automation in ADR-005 is not such a run.
 
 ## Related Documents
 
-- `docs/decisions/ADR-002-use-manual-codex-execution-instead-of-nested-codex-exec.md`
+- `docs/decisions/ADR-005-allow-claude-code-to-invoke-codex-exec.md`
+- `docs/decisions/ADR-002-use-manual-codex-execution-instead-of-nested-codex-exec.md` (superseded)
 - `docs/harness/handoff-policy.md`
 - `docs/harness/human-gate-policy.md`
 - `docs/harness/autonomy-levels.md`

@@ -42,7 +42,17 @@ Use the fixed headers even when a section is empty (state "None").
 
 ## Handling Review Feedback
 
-When Codex addresses review feedback, it does **not** open a new PR. It pushes the fix to the same feature branch, which updates the existing PR, and the follow-up is recorded as a new comment on the same PR. Do not fragment a single review cycle across multiple PRs.
+When the posted review comment contains a **Blocking** finding or any change the review says must be made, Claude Code does **not** stop and wait for the human. It drives the fix loop:
+
+1. **Hand the required changes to Codex.** Claude Code does not edit implementation code itself (per `agent-role-policy.md`); it writes the review findings into a Codex handoff (or `.codex/prompts/`) stating what must change and why, and triggers Codex.
+2. **Codex pushes to the same feature branch.** It does **not** open a new PR — the push updates the existing PR. Do not fragment a single review cycle across multiple PRs.
+3. **Claude Code re-reviews the updated PR** and posts the follow-up review as a **new comment on the same PR** (`docs/reviews/pr-<number>.md` updated, then `gh pr comment`).
+4. **Repeat** from step 1 while the latest review still has a Blocking finding or required change.
+5. **Then wait.** Once the review converges to no blocking change, Claude Code stops and waits for the human to approve and merge.
+
+This loop is bounded by the review converging. If the same finding recurs without progress after a few cycles, stop the loop and escalate to the human instead of continuing — do not run an unbounded fix loop.
+
+A review with no Blocking finding and no required change goes straight to the wait step; there is nothing to hand to Codex.
 
 ## Approval
 
