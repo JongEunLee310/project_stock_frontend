@@ -1,5 +1,7 @@
 # Issue 6 — 도메인 타입 및 Mock 데이터
 
+Superseded by FE#47 — `47-domain-realignment.md` 참조.
+
 ## Context
 
 백엔드 API 완성 전에도 화면 개발이 가능하도록 핵심 도메인 타입과 Mock 데이터를 정의한다. 타입은 컴포넌트 props의 기준이 되고, Mock은 실제 API로 교체 가능한 구조로 둔다. 아래 필드는 1차 골격이며 페이지 구현 시 확정한다. 이슈 6.
