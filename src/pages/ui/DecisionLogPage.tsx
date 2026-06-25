@@ -1,6 +1,11 @@
 import { useMemo, useState, type FormEvent, type MouseEvent } from 'react'
 import { Link } from 'react-router-dom'
 
+import type { DecisionLog } from '@/features/decision-log/adapters'
+import {
+  useCreateDecisionLog,
+  useDecisionLogs,
+} from '@/features/decision-log/queries'
 import { appRoutePaths } from '@/shared/config/navigation'
 import {
   mockDecisionLogs,
@@ -11,17 +16,16 @@ import {
   cognitiveRisks,
   decisionTypes,
   type CognitiveRisk,
-  type DecisionLog,
-  type DecisionOutcome,
   type DecisionType,
 } from '@/shared/model'
 import {
   Badge,
   Button,
   Card,
+  EmptyState,
+  ErrorState,
   Input,
   Table,
-  type BadgeTone,
   type TableColumn,
 } from '@/shared/ui'
 import { classNames } from '@/shared/ui/classNames'
@@ -44,104 +48,57 @@ const initialFormState: DecisionFormState = {
   note: '',
 }
 
+const decisionTypeWireByLabel: Record<DecisionType, string> = {
+  '관망 유지': 'WATCH_HOLD',
+  '추가 리서치 필요': 'NEEDS_RESEARCH',
+  '매수 검토': 'BUY_REVIEW',
+  '비중 축소 검토': 'REDUCE_REVIEW',
+  '리스크 증가 검토': 'RISK_REVIEW',
+}
+
 const selectClassName =
   'min-h-10 rounded-control border border-cockpit-border bg-cockpit-surface px-3 py-2 text-sm text-cockpit-text outline-none transition-colors focus:border-cockpit-accent focus:ring-2 focus:ring-cockpit-accent/30 disabled:cursor-not-allowed disabled:opacity-60'
 
 const textareaClassName =
   'min-h-24 rounded-control border border-cockpit-border bg-cockpit-surface px-3 py-2 text-sm leading-6 text-cockpit-text outline-none transition-colors placeholder:text-cockpit-text-muted focus:border-cockpit-accent focus:ring-2 focus:ring-cockpit-accent/30'
 
-const outcomeTone: Record<DecisionOutcome, BadgeTone> = {
-  '진행 중': 'info',
-  대기: 'neutral',
-  '리서치 중': 'warning',
-}
-
-const dateTimeFormatter = new Intl.DateTimeFormat('ko-KR', {
-  timeZone: 'Asia/Seoul',
-  month: '2-digit',
-  day: '2-digit',
-  hour: '2-digit',
-  minute: '2-digit',
-  hour12: false,
-})
-
-const memoDateFormatter = new Intl.DateTimeFormat('ko-KR', {
-  timeZone: 'Asia/Seoul',
-  year: 'numeric',
-  month: '2-digit',
-  day: '2-digit',
-})
-
 function getResearchPath(symbol: string) {
   return appRoutePaths.research.replace(':symbol', symbol)
-}
-
-function formatDateTime(value: string) {
-  return dateTimeFormatter.format(new Date(value))
-}
-
-function formatMemoDate(value: string) {
-  return memoDateFormatter.format(new Date(value))
 }
 
 function stopRowNavigation(event: MouseEvent) {
   event.stopPropagation()
 }
 
+function adaptMockDecisionLog(
+  log: (typeof mockDecisionLogs)[number],
+): DecisionLog {
+  return {
+    id: log.id,
+    symbol: log.symbol,
+    decisionType: log.decisionType,
+    decisionStatus:
+      log.outcome === '진행 중'
+        ? '열림'
+        : log.outcome === '리서치 중'
+          ? '검토됨'
+          : '종료됨',
+    rationale: log.rationale,
+    cognitiveRisks: log.cognitiveRisks,
+    createdBy: '사용자',
+    reviewDate: log.reviewDate || null,
+    createdAt: log.createdAt,
+  }
+}
+
 function getRecentThreshold(logs: DecisionLog[]) {
+  if (logs.length === 0) return 0
+
   const latestTimestamp = Math.max(
     ...logs.map((log) => new Date(log.createdAt).getTime()),
   )
 
   return latestTimestamp - 7 * 24 * 60 * 60 * 1000
-}
-
-function MetricCard({
-  label,
-  value,
-  description,
-  icon,
-  tone,
-}: {
-  label: string
-  value: string
-  description: string
-  icon: string
-  tone: 'blue' | 'slate' | 'amber' | 'rose'
-}) {
-  const toneClassNames: Record<typeof tone, string> = {
-    blue: 'border-blue-400/20 bg-blue-500/15 text-blue-300',
-    slate: 'border-slate-300/20 bg-slate-400/10 text-slate-300',
-    amber: 'border-amber-300/20 bg-amber-400/15 text-amber-300',
-    rose: 'border-rose-300/20 bg-rose-400/15 text-rose-300',
-  }
-
-  return (
-    <Card className="min-h-32 border-cockpit-border bg-cockpit-surface/90 p-5 shadow-blue-950/20">
-      <div className="flex h-full items-center gap-4">
-        <span
-          className={classNames(
-            'grid h-12 w-12 shrink-0 place-items-center rounded-full border text-2xl',
-            toneClassNames[tone],
-          )}
-          aria-hidden="true"
-        >
-          {icon}
-        </span>
-        <div className="flex min-w-0 flex-col gap-1">
-          <span className="text-sm font-semibold text-cockpit-text">
-            {label}
-          </span>
-          <strong className="text-3xl font-bold leading-tight text-cockpit-text">
-            {value}
-          </strong>
-          <span className="text-sm font-medium text-cockpit-text-muted">
-            {description}
-          </span>
-        </div>
-      </div>
-    </Card>
-  )
 }
 
 function FieldLabel({
@@ -158,6 +115,28 @@ function FieldLabel({
     >
       {children}
     </label>
+  )
+}
+
+function MetricCard({
+  label,
+  value,
+  description,
+}: {
+  label: string
+  value: string
+  description: string
+}) {
+  return (
+    <Card className="min-h-28 border-cockpit-border bg-cockpit-surface/90 p-5 shadow-blue-950/20">
+      <span className="text-sm font-semibold text-cockpit-text">{label}</span>
+      <strong className="mt-2 block text-3xl font-bold leading-tight text-cockpit-text">
+        {value}
+      </strong>
+      <span className="mt-1 block text-sm font-medium text-cockpit-text-muted">
+        {description}
+      </span>
+    </Card>
   )
 }
 
@@ -179,11 +158,9 @@ function DecisionForm({
   return (
     <Card className="border-cockpit-border bg-cockpit-surface/90 shadow-blue-950/20">
       <form className="flex flex-col gap-4" onSubmit={onSubmit}>
-        <div>
-          <h2 className="text-lg font-semibold text-cockpit-text">
-            새 판단 기록 작성
-          </h2>
-        </div>
+        <h2 className="text-lg font-semibold text-cockpit-text">
+          새 판단 기록 작성
+        </h2>
 
         <div className="flex flex-col gap-2 lg:flex-row">
           <FieldLabel htmlFor="decision-symbol">종목</FieldLabel>
@@ -222,29 +199,21 @@ function DecisionForm({
 
         <div className="flex flex-col gap-2 lg:flex-row">
           <FieldLabel htmlFor="decision-rationale">판단 이유</FieldLabel>
-          <div className="flex min-w-0 flex-1 flex-col gap-1">
-            <textarea
-              id="decision-rationale"
-              className={textareaClassName}
-              maxLength={500}
-              value={form.rationale}
-              placeholder="판단의 핵심 이유를 입력하세요."
-              onChange={(event) =>
-                onChange({ ...form, rationale: event.target.value })
-              }
-            />
-            <span className="text-right text-xs text-cockpit-text-muted">
-              {form.rationale.length} / 500
-            </span>
-          </div>
+          <textarea
+            id="decision-rationale"
+            className={classNames(textareaClassName, 'min-w-0 flex-1')}
+            maxLength={500}
+            value={form.rationale}
+            placeholder="판단의 핵심 이유를 입력하세요."
+            onChange={(event) =>
+              onChange({ ...form, rationale: event.target.value })
+            }
+          />
         </div>
 
         <fieldset className="flex flex-col gap-2 lg:flex-row">
           <legend className="shrink-0 pt-0 text-sm font-semibold text-cockpit-text lg:w-24">
             인지 리스크
-            <span className="mt-1 block text-xs font-medium text-cockpit-text-muted">
-              (복수 선택 가능)
-            </span>
           </legend>
           <div className="grid min-w-0 flex-1 grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
             {cognitiveRisks.map((risk) => (
@@ -280,21 +249,16 @@ function DecisionForm({
 
         <div className="flex flex-col gap-2 lg:flex-row">
           <FieldLabel htmlFor="decision-note">메모 (선택)</FieldLabel>
-          <div className="flex min-w-0 flex-1 flex-col gap-1">
-            <textarea
-              id="decision-note"
-              className={classNames(textareaClassName, 'min-h-20')}
-              maxLength={500}
-              value={form.note}
-              placeholder="추가 메모를 입력하세요."
-              onChange={(event) =>
-                onChange({ ...form, note: event.target.value })
-              }
-            />
-            <span className="text-right text-xs text-cockpit-text-muted">
-              {form.note.length} / 500
-            </span>
-          </div>
+          <textarea
+            id="decision-note"
+            className={classNames(textareaClassName, 'min-h-20 min-w-0 flex-1')}
+            maxLength={500}
+            value={form.note}
+            placeholder="추가 메모를 입력하세요."
+            onChange={(event) =>
+              onChange({ ...form, note: event.target.value })
+            }
+          />
         </div>
 
         {error ? (
@@ -322,21 +286,32 @@ function DecisionForm({
 }
 
 export function DecisionLogPage() {
-  const [logs, setLogs] = useState<DecisionLog[]>(mockDecisionLogs)
+  const decisionLogsQuery = useDecisionLogs()
+  const createDecisionLog = useCreateDecisionLog()
+  const [localLogs, setLocalLogs] = useState<DecisionLog[]>(() =>
+    mockDecisionLogs.map(adaptMockDecisionLog),
+  )
   const [form, setForm] = useState<DecisionFormState>(initialFormState)
   const [formError, setFormError] = useState<string | null>(null)
+  const serverLogs = decisionLogsQuery.data ?? []
+  const logs = serverLogs.length > 0 ? serverLogs : localLogs
 
   const summary = useMemo(() => {
     const recentThreshold = getRecentThreshold(logs)
+    const watchHold = logs.filter(
+      (log) => log.decisionType === '관망 유지',
+    ).length
+    const riskReview = logs.filter(
+      (log) => log.decisionType === '리스크 증가 검토',
+    ).length
 
     return {
       total: logs.length,
       recent: logs.filter(
         (log) => new Date(log.createdAt).getTime() >= recentThreshold,
       ).length,
-      watchHold: logs.filter((log) => log.decisionType === '관망 유지').length,
-      riskReview: logs.filter((log) => log.decisionType === '리스크 증가 검토')
-        .length,
+      watchHold,
+      riskReview,
     }
   }, [logs])
 
@@ -359,7 +334,7 @@ export function DecisionLogPage() {
         header: '날짜/시간',
         cell: (log) => (
           <span className="whitespace-nowrap text-cockpit-text-muted">
-            {formatDateTime(log.createdAt)}
+            {log.createdAt}
           </span>
         ),
       },
@@ -379,7 +354,7 @@ export function DecisionLogPage() {
       {
         key: 'decisionType',
         header: '판단',
-        cell: (log) => <Badge decisionType={log.decisionType} />,
+        cell: (log) => <Badge tone="info">{log.decisionType}</Badge>,
       },
       {
         key: 'rationale',
@@ -415,11 +390,9 @@ export function DecisionLogPage() {
         ),
       },
       {
-        key: 'outcome',
-        header: '결과',
-        cell: (log) => (
-          <Badge tone={outcomeTone[log.outcome]}>{log.outcome}</Badge>
-        ),
+        key: 'decisionStatus',
+        header: '상태',
+        cell: (log) => <Badge tone="neutral">{log.decisionStatus}</Badge>,
       },
     ],
     [],
@@ -449,22 +422,33 @@ export function DecisionLogPage() {
       return
     }
 
+    const risks =
+      form.cognitiveRisks.length > 0 ? form.cognitiveRisks : ['기타']
     const nextLog: DecisionLog = {
       id: `decision-local-${Date.now()}`,
       symbol,
-      decision: `${symbol} ${form.decisionType}`,
       decisionType: form.decisionType,
+      decisionStatus:
+        form.decisionType === '추가 리서치 필요' ? '검토됨' : '열림',
       rationale:
         form.rationale.trim() || '판단 이유를 추가로 정리할 예정입니다.',
-      cognitiveRisks:
-        form.cognitiveRisks.length > 0 ? form.cognitiveRisks : ['기타'],
-      reviewDate: form.reviewDate,
-      outcome:
-        form.decisionType === '추가 리서치 필요' ? '리서치 중' : '진행 중',
+      cognitiveRisks: risks,
+      createdBy: '사용자',
+      reviewDate: form.reviewDate || null,
       createdAt: new Date().toISOString(),
     }
+    const createBody = {
+      symbol,
+      decision_type: decisionTypeWireByLabel[form.decisionType],
+      rationale: nextLog.rationale,
+      cognitive_risks: risks,
+      review_date: form.reviewDate || null,
+    }
 
-    setLogs((currentLogs) => [nextLog, ...currentLogs])
+    // G10 BE 미완 — enabled: false 상태에서는 화면 저장을 로컬 임시 상태로 유지한다.
+    void createBody
+    void createDecisionLog.mutate
+    setLocalLogs((currentLogs) => [nextLog, ...currentLogs])
     resetForm()
   }
 
@@ -474,6 +458,14 @@ export function DecisionLogPage() {
         <h1 className="text-3xl font-bold text-cockpit-text">판단 기록</h1>
       </header>
 
+      {decisionLogsQuery.isError ? (
+        <ErrorState
+          title="판단 기록 API를 불러오지 못했습니다"
+          description={decisionLogsQuery.error.message}
+          className="py-4"
+        />
+      ) : null}
+
       <div className="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_32rem]">
         <main className="flex min-w-0 flex-col gap-4">
           <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
@@ -481,61 +473,46 @@ export function DecisionLogPage() {
               label="총 기록 수"
               value={`${summary.total}건`}
               description="전체 기간 누적"
-              icon="▤"
-              tone="blue"
             />
             <MetricCard
               label="이번 주 기록"
               value={`${summary.recent}건`}
               description="최근 7일 기준"
-              icon="▦"
-              tone="slate"
             />
             <MetricCard
               label="관망 유지"
               value={`${summary.watchHold}건`}
-              description={`${Math.round((summary.watchHold / summary.total) * 100)}%`}
-              icon="◉"
-              tone="amber"
+              description={`${summary.total === 0 ? 0 : Math.round((summary.watchHold / summary.total) * 100)}%`}
             />
             <MetricCard
               label="리스크 증가 검토"
               value={`${summary.riskReview}건`}
-              description={`${Math.round((summary.riskReview / summary.total) * 100)}%`}
-              icon="△"
-              tone="rose"
+              description={`${summary.total === 0 ? 0 : Math.round((summary.riskReview / summary.total) * 100)}%`}
             />
           </div>
 
           <Card className="border-cockpit-border bg-cockpit-surface/80 p-0 shadow-blue-950/20">
             <div className="flex items-center justify-between gap-3 border-b border-cockpit-border px-4 py-3">
-              <div className="flex items-center gap-2">
-                <h2 className="text-xl font-semibold text-cockpit-text">
-                  판단 기록 로그
-                </h2>
-                <span className="grid h-5 w-5 place-items-center rounded-full border border-cockpit-border text-xs text-cockpit-text-muted">
-                  i
-                </span>
-              </div>
-              <Button
-                type="button"
-                variant="ghost"
-                className="min-h-8 border-cockpit-border px-3 py-1 text-xs text-cockpit-text-muted disabled:border-cockpit-border disabled:bg-cockpit-surface-muted/40 disabled:text-cockpit-text-muted/70"
-                disabled
-                title="필터 기능은 후속 데이터 연동 범위에서 활성화됩니다."
-              >
-                필터 ⌯
-              </Button>
+              <h2 className="text-xl font-semibold text-cockpit-text">
+                판단 기록 로그
+              </h2>
+              <span className="text-xs text-cockpit-text-muted">
+                G10 대기: 로컬 임시
+              </span>
             </div>
-            <Table
-              columns={columns}
-              rows={logs}
-              getRowKey={(log) => log.id}
-              emptyMessage="기록된 판단이 없습니다."
-              pagination={{ pageSize: 10 }}
-              aria-label="판단 기록 로그"
-              className="rounded-none border-0 bg-transparent"
-            />
+            {logs.length > 0 ? (
+              <Table
+                columns={columns}
+                rows={logs}
+                getRowKey={(log) => log.id}
+                emptyMessage="기록된 판단이 없습니다."
+                pagination={{ pageSize: 10 }}
+                aria-label="판단 기록 로그"
+                className="rounded-none border-0 bg-transparent"
+              />
+            ) : (
+              <EmptyState title="기록된 판단이 없습니다." />
+            )}
           </Card>
         </main>
 
@@ -553,14 +530,9 @@ export function DecisionLogPage() {
           />
 
           <Card className="border-cockpit-border bg-cockpit-surface/90 shadow-blue-950/20">
-            <div className="mb-4 flex items-center gap-2">
-              <h2 className="text-lg font-semibold text-cockpit-text">
-                자주 나온 판단 패턴
-              </h2>
-              <span className="grid h-5 w-5 place-items-center rounded-full border border-cockpit-border text-xs text-cockpit-text-muted">
-                i
-              </span>
-            </div>
+            <h2 className="mb-4 text-lg font-semibold text-cockpit-text">
+              자주 나온 판단 패턴
+            </h2>
             <ul className="flex flex-col gap-4">
               {sortedPatterns.map((pattern) => {
                 const percent =
@@ -598,39 +570,21 @@ export function DecisionLogPage() {
           </Card>
 
           <Card className="border-cockpit-border bg-cockpit-surface/90 shadow-blue-950/20">
-            <div className="mb-4 flex items-center gap-2">
-              <h2 className="text-lg font-semibold text-cockpit-text">
-                최근 복기 메모
-              </h2>
-              <span className="grid h-5 w-5 place-items-center rounded-full border border-cockpit-border text-xs text-cockpit-text-muted">
-                i
-              </span>
-            </div>
+            <h2 className="mb-4 text-lg font-semibold text-cockpit-text">
+              최근 복기 메모
+            </h2>
+            {/* BE 출처가 없는 복기 메모는 후속 API까지 mock을 유지한다. */}
             <ul className="flex flex-col gap-3">
               {mockReviewMemos.map((memo) => (
                 <li
                   key={memo.id}
                   className="flex flex-col gap-2 rounded-card border border-cockpit-border bg-cockpit-surface-muted/40 p-3"
                 >
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <h3 className="font-semibold text-cockpit-text">
-                        <span className="text-cockpit-text-muted">
-                          {formatMemoDate(memo.reviewedAt)}
-                        </span>{' '}
-                        <span className="text-blue-300">
-                          {memo.symbol} 판단 복기
-                        </span>
-                      </h3>
-                    </div>
-                    <Link
-                      to={appRoutePaths.decisionLog}
-                      aria-label="복기 보기"
-                      className="text-sm font-semibold text-blue-300 hover:text-cockpit-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cockpit-accent"
-                    >
-                      복기 보기 ›
-                    </Link>
-                  </div>
+                  <h3 className="font-semibold text-cockpit-text">
+                    <span className="text-blue-300">
+                      {memo.symbol} 판단 복기
+                    </span>
+                  </h3>
                   <p className="text-sm leading-6 text-cockpit-text-muted">
                     {memo.memo}
                   </p>

@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
+import { vi } from 'vitest'
 
 import { appRouteObjects } from '@/app/router'
 import { AuthProvider } from '@/shared/auth/AuthProvider'
@@ -7,6 +8,22 @@ import {
   setupAuthenticatedUser,
   teardownAuthenticatedUser,
 } from '@/test-utils/authTestSetup'
+
+vi.mock('@/features/decision-log/queries', () => ({
+  useDecisionLogs: () => ({
+    data: [],
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: vi.fn(),
+  }),
+  useCreateDecisionLog: () => ({
+    error: null,
+    isError: false,
+    isPending: false,
+    mutate: vi.fn(),
+  }),
+}))
 
 beforeEach(() => {
   setupAuthenticatedUser()
@@ -44,7 +61,7 @@ describe('DecisionLogPage', () => {
     expect(screen.getByText('13건')).toBeVisible()
   })
 
-  it('renders mock decision rows with symbol, decision type, and outcome badges', async () => {
+  it('renders local decision rows with symbol, decision type, and status badges', async () => {
     renderDecisionLog()
 
     const table = await screen.findByRole('table', { name: '판단 기록 로그' })
@@ -54,7 +71,7 @@ describe('DecisionLogPage', () => {
       '/research/NVDA',
     )
     expect(within(table).getAllByText('관망 유지').length).toBeGreaterThan(0)
-    expect(within(table).getAllByText('진행 중').length).toBeGreaterThan(0)
+    expect(within(table).getAllByText('열림').length).toBeGreaterThan(0)
   })
 
   it('prepends a locally saved decision to the table', async () => {
@@ -135,8 +152,7 @@ describe('DecisionLogPage', () => {
       within(panel as HTMLElement).getByText('NVDA 판단 복기'),
     ).toBeVisible()
     expect(
-      within(panel as HTMLElement).getAllByRole('link', { name: '복기 보기' })
-        .length,
+      within(panel as HTMLElement).getAllByRole('listitem').length,
     ).toBeGreaterThan(0)
   })
 })
