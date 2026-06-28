@@ -15,8 +15,8 @@ const signalRows = [
     assetId: 1,
     symbol: 'NVDA',
     companyName: 'NVIDIA Corp.',
-    signalType: 'EARNINGS_REVISION',
-    signalTypeLabel: 'EARNINGS_REVISION',
+    signalType: 'BUY_CANDIDATE',
+    signalTypeLabel: 'BUY_CANDIDATE',
     score: 86,
     riskLevel: '중간',
     reason: 'Data center demand remains above the prior quarter run rate.',
@@ -101,7 +101,7 @@ describe('SignalsPage', () => {
     renderSignals()
 
     const nvdaCard = await screen.findByRole('article', {
-      name: 'NVDA EARNINGS_REVISION 시그널',
+      name: 'NVDA BUY_CANDIDATE 시그널',
     })
 
     expect(within(nvdaCard).getByRole('link', { name: 'NVDA' })).toBeVisible()
@@ -121,7 +121,7 @@ describe('SignalsPage', () => {
     renderSignals()
 
     await screen.findByRole('article', {
-      name: 'NVDA EARNINGS_REVISION 시그널',
+      name: 'NVDA BUY_CANDIDATE 시그널',
     })
 
     expect(screen.getByText('총 시그널')).toBeVisible()
@@ -135,7 +135,7 @@ describe('SignalsPage', () => {
     renderSignals()
 
     await screen.findByRole('article', {
-      name: 'NVDA EARNINGS_REVISION 시그널',
+      name: 'NVDA BUY_CANDIDATE 시그널',
     })
 
     const signalCards = screen.getAllByRole('article')
@@ -153,7 +153,7 @@ describe('SignalsPage', () => {
     renderSignals()
 
     await screen.findByRole('article', {
-      name: 'NVDA EARNINGS_REVISION 시그널',
+      name: 'NVDA BUY_CANDIDATE 시그널',
     })
 
     fireEvent.change(screen.getByLabelText('검색'), {

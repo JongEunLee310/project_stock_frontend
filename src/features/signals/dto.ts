@@ -8,11 +8,11 @@ export interface SignalDto {
   } | null
   signal_type: string
   score?: string | null
-  risk_level: string
+  risk_level: string | null
   reason: string
-  evidence?: string | null
+  evidence?: Record<string, unknown> | string | null
   created_at: string
-  expires_at: string
+  expires_at: string | null
 }
 
 export type SignalDetailDto = SignalDto
