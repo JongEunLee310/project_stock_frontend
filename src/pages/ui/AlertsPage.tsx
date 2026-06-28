@@ -181,8 +181,9 @@ export function AlertsPage() {
             <button
               key={tab.key}
               type="button"
+              aria-pressed={activeTab === tab.key}
               className={classNames(
-                'min-h-10 rounded-control border px-4 py-2 text-sm font-semibold',
+                'min-h-10 rounded-control border px-4 py-2 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent',
                 activeTab === tab.key
                   ? 'border-app-accent-strong bg-app-accent-strong text-app-accent-text'
                   : 'border-app-border bg-app-surface-muted text-app-text-muted',
