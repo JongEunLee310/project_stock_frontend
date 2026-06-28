@@ -41,6 +41,10 @@ function sortSignals(signals: Signal[], sortKey: SortKey) {
   })
 }
 
+function normalizeScore(score: number) {
+  return Math.min(100, Math.max(0, Math.round(score)))
+}
+
 function SignalSparklineChart({ signal }: { signal: Signal }) {
   const data = signal.sparkline.map((value, index) => ({ index, value }))
 
@@ -68,7 +72,7 @@ function SignalSparklineChart({ signal }: { signal: Signal }) {
 function ScoreRing({ signal }: { signal: Signal }) {
   const radius = 17
   const circumference = 2 * Math.PI * radius
-  const score = Math.min(100, Math.max(0, Math.round(signal.score * 100)))
+  const score = normalizeScore(signal.score)
   const offset = circumference - (score / 100) * circumference
   const isRisk = signal.riskLevel === '높음'
 
@@ -387,7 +391,7 @@ export function SignalsPage() {
                       {signal.symbol}
                     </Link>
                     <span className="font-semibold text-cockpit-text">
-                      {Math.round(signal.score * 100)}%
+                      {normalizeScore(signal.score)}%
                     </span>
                   </li>
                 ))}
