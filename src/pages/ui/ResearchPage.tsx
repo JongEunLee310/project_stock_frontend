@@ -350,7 +350,12 @@ export function ResearchPage() {
   const displaySymbol = getResearchSymbol(symbol)
   const researchQuery = useResearchView(displaySymbol)
   const research = researchQuery.data
-  const [checklist, setChecklist] = useState<ChecklistItem[]>([])
+  // 체크리스트는 현재 자산에 종속된 로컬 편집 상태. 자산이 바뀌면 assetId 불일치로
+  // 자동 폐기되어 서버 데이터로 되돌아간다(effect seeding 타이밍에 의존하지 않음).
+  const [localChecklist, setLocalChecklist] = useState<{
+    assetId: number
+    items: ChecklistItem[]
+  } | null>(null)
   const [memo, setMemo] = useState('')
   const [isFavorite, setIsFavorite] = useState(false)
   const initializedAssetIdRef = useRef<number | null>(null)
@@ -361,16 +366,25 @@ export function ResearchPage() {
     }
 
     initializedAssetIdRef.current = research.assetId
-    setChecklist(research?.buyChecklist ?? [])
     setIsFavorite(false)
   }, [research])
 
   const toggleChecklistItem = (id: string) => {
-    setChecklist((currentChecklist) =>
-      currentChecklist.map((item) =>
-        item.id === id ? { ...item, checked: !item.checked } : item,
-      ),
-    )
+    if (!research) {
+      return
+    }
+    setLocalChecklist((current) => {
+      const base =
+        current && current.assetId === research.assetId
+          ? current.items
+          : research.buyChecklist
+      return {
+        assetId: research.assetId,
+        items: base.map((item) =>
+          item.id === id ? { ...item, checked: !item.checked } : item,
+        ),
+      }
+    })
   }
 
   if (researchQuery.isLoading) {
@@ -404,7 +418,9 @@ export function ResearchPage() {
   }
 
   const displayedChecklist =
-    checklist.length > 0 ? checklist : research.buyChecklist
+    localChecklist && localChecklist.assetId === research.assetId
+      ? localChecklist.items
+      : research.buyChecklist
 
   return (
     <div className="flex flex-col gap-6">
