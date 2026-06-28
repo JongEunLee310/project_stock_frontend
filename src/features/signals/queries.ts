@@ -12,7 +12,7 @@ export function useSignalSparkline(
   return useQuery<number[]>({
     queryKey: ['signals', 'sparkline', symbol],
     enabled: false,
-    // G4 BE 미완 — sparkline 비활성
+    // BE 준비됨 — 활성화 블로커: 심볼→market 매핑 확정 + FE DTO를 PriceSeriesDto{ bars: PriceBarDto[] }로 정렬
     queryFn: async () => {
       if (!symbol) return []
 
@@ -38,7 +38,7 @@ export function useSignals(assetId?: number): UseQueryResult<Signal[]> {
           : `?asset_id=${assetId}&expand=asset`
       const { data } = await apiGet<SignalDto[]>(`/signals${query}`)
 
-      // G4 BE 미완 — sparkline 비활성
+      // BE 준비됨 — 활성화 블로커: 심볼→market 매핑 확정 + FE DTO를 PriceSeriesDto{ bars: PriceBarDto[] }로 정렬
       return data.map((signal) => adaptSignal(signal, []))
     },
   })
@@ -50,7 +50,7 @@ export function useSignalDetail(id: number): UseQueryResult<Signal> {
     queryFn: async () => {
       const { data } = await apiGet<SignalDetailDto>(`/signals/${id}`)
 
-      // G4 BE 미완 — sparkline 비활성
+      // BE 준비됨 — 활성화 블로커: 심볼→market 매핑 확정 + FE DTO를 PriceSeriesDto{ bars: PriceBarDto[] }로 정렬
       return adaptSignalDetail(data, [])
     },
   })

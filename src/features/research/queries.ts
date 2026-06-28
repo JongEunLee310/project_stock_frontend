@@ -65,7 +65,7 @@ export function useResearchView(symbol: string): UseQueryResult<ResearchView> {
         ),
       ])
 
-      // G4 BE 미완 — sparkline 비활성
+      // BE 준비됨 — 활성화 블로커: 심볼→market 매핑 확정 + FE DTO를 PriceSeriesDto{ bars: PriceBarDto[] }로 정렬
       const sparkline: number[] = []
 
       return adaptResearchDetail(
