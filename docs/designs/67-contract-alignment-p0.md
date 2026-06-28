@@ -27,6 +27,7 @@
 - 충돌: FE 목/테스트는 score를 **0~1**(0.86)로 가정. assessment 기준 BE 계약은 **0~100 정수**.
 - 방향(기본 가정 = BE 0~100): SignalsPage의 `* 100` 제거하고 `Math.min(100, Math.max(0, Math.round(signal.score)))`로 정규화. 테스트/목 fixture(`SignalsPage.test.tsx`, `adapters.test.ts`)의 score를 0~100 스케일로 갱신.
 - 안전장치: Codex는 **구현 전 BE 계약(OpenAPI/스키마)으로 score 범위를 먼저 확인**한다. 만약 BE가 실제 0~1을 반환하면 `* 100` 유지가 맞으므로, 그 경우 본 항목은 "FE 목/테스트가 옳음 → 무수정"으로 결론내고 근거를 보고한다. 어느 쪽이든 **FE 표시값이 BE 계약과 일치**하는 것이 완료 기준.
+- 확인 결과(2026-06-28): BE `app/domains/signals/schema.py`의 `SignalCreate.score`는 `Field(ge=0, le=100)`, `SignalResponse.score`는 `int`이며 BE 계약 테스트도 78/80/82/90 등 정수 점수를 검증한다. 따라서 FE score 표시는 0~100 스케일로 정렬한다.
 
 ## 3. 스코프 밖
 

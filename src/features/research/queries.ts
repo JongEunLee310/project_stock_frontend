@@ -60,7 +60,7 @@ export function useResearchView(symbol: string): UseQueryResult<ResearchView> {
         apiGet<ReportDto[]>(`/reports?asset_id=${assetId}`).then(
           (response) => response.data,
         ),
-        apiGet<ThesisDto | null>('/theses/latest').then(
+        apiGet<ThesisDto | null>(`/theses/latest?asset_id=${assetId}`).then(
           (response) => response.data,
         ),
       ])

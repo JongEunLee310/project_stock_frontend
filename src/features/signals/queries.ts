@@ -32,7 +32,10 @@ export function useSignals(assetId?: number): UseQueryResult<Signal[]> {
   return useQuery<Signal[]>({
     queryKey: ['signals', assetId ?? 'all'],
     queryFn: async () => {
-      const query = assetId === undefined ? '' : `?asset_id=${assetId}`
+      const query =
+        assetId === undefined
+          ? '?expand=asset'
+          : `?asset_id=${assetId}&expand=asset`
       const { data } = await apiGet<SignalDto[]>(`/signals${query}`)
 
       // G4 BE 미완 — sparkline 비활성
