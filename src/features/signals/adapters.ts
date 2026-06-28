@@ -27,6 +27,26 @@ function readSymbol(dto: SignalDto) {
   return dto.symbol ?? dto.asset?.symbol ?? 'UNKNOWN'
 }
 
+function formatExpiresAt(value: string | null | undefined): string {
+  return value ? formatKstDateTime(value) : '만료 없음'
+}
+
+function formatEvidence(
+  evidence: Record<string, unknown> | string | null | undefined,
+): string | null {
+  if (!evidence) {
+    return null
+  }
+
+  return typeof evidence === 'string'
+    ? evidence
+    : JSON.stringify(evidence, null, 2)
+}
+
+function formatRiskLevel(value: string | null | undefined): string {
+  return value ? toLabel(riskLevelLabels, value) : '미지정'
+}
+
 export function adaptSignal(dto: SignalDto, sparkline: number[]): Signal {
   return {
     id: String(dto.id),
@@ -36,11 +56,11 @@ export function adaptSignal(dto: SignalDto, sparkline: number[]): Signal {
     signalType: dto.signal_type,
     signalTypeLabel: toLabel({}, dto.signal_type),
     score: parseDecimal(dto.score) ?? 0,
-    riskLevel: toLabel(riskLevelLabels, dto.risk_level),
+    riskLevel: formatRiskLevel(dto.risk_level),
     reason: dto.reason,
-    evidence: dto.evidence ?? null,
+    evidence: formatEvidence(dto.evidence),
     createdAt: formatKstDateTime(dto.created_at),
-    expiresAt: formatKstDateTime(dto.expires_at),
+    expiresAt: formatExpiresAt(dto.expires_at),
     sparkline,
   }
 }

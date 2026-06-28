@@ -7,7 +7,7 @@ const signalDto: SignalDto = {
   id: 7,
   asset_id: 11,
   asset: { symbol: 'NVDA', name: 'NVIDIA Corp.' },
-  signal_type: 'EARNINGS_REVISION',
+  signal_type: 'BUY_CANDIDATE',
   score: '86',
   risk_level: 'MEDIUM',
   reason: 'Data center demand remains above the prior quarter run rate.',
@@ -23,8 +23,8 @@ describe('signals adapters', () => {
       assetId: 11,
       symbol: 'NVDA',
       companyName: 'NVIDIA Corp.',
-      signalType: 'EARNINGS_REVISION',
-      signalTypeLabel: 'EARNINGS_REVISION',
+      signalType: 'BUY_CANDIDATE',
+      signalTypeLabel: 'BUY_CANDIDATE',
       score: 86,
       riskLevel: '중간',
       reason: 'Data center demand remains above the prior quarter run rate.',
@@ -33,23 +33,49 @@ describe('signals adapters', () => {
     })
   })
 
-  it('falls back on nullable decimal, nullable evidence, and missing symbol boundaries', () => {
+  it('falls back on nullable decimal, nullable evidence, nullable expires_at, nullable risk_level, and missing symbol boundaries', () => {
     const signal = adaptSignal(
       {
         ...signalDto,
         asset: null,
         score: '',
-        risk_level: 'UNKNOWN_RISK',
+        risk_level: null,
         evidence: null,
+        expires_at: null,
       },
       [],
     )
 
     expect(signal.symbol).toBe('UNKNOWN')
     expect(signal.score).toBe(0)
-    expect(signal.riskLevel).toBe('UNKNOWN_RISK')
+    expect(signal.riskLevel).toBe('미지정')
     expect(signal.evidence).toBeNull()
+    expect(signal.expiresAt).toBe('만료 없음')
     expect(signal.sparkline).toEqual([])
+  })
+
+  it('serializes object evidence for safe rendering', () => {
+    const signal = adaptSignal(
+      {
+        ...signalDto,
+        evidence: {
+          catalyst: 'Guidance raised',
+          metrics: { score: 86 },
+        },
+      },
+      [],
+    )
+
+    expect(signal.evidence).toBe(
+      JSON.stringify(
+        {
+          catalyst: 'Guidance raised',
+          metrics: { score: 86 },
+        },
+        null,
+        2,
+      ),
+    )
   })
 
   it('maps signal detail through the same pure adapter', () => {

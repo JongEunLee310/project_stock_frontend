@@ -33,7 +33,7 @@ describe('signals queries', () => {
           id: 7,
           asset_id: 11,
           asset: { symbol: 'NVDA', name: 'NVIDIA Corp.' },
-          signal_type: 'EARNINGS_REVISION',
+          signal_type: 'BUY_CANDIDATE',
           score: '86',
           risk_level: 'MEDIUM',
           reason:
