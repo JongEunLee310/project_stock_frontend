@@ -54,24 +54,55 @@ describe('alerts adapters', () => {
     })
   })
 
-  it('maps alert candidate status and candidate type labels', () => {
+  it('maps alert candidate message, nested asset symbol, risk level, status, and candidate type labels', () => {
     expect(
       adaptAlertCandidate({
         id: 2,
         asset_id: 9,
-        symbol: 'MSFT',
         candidate_type: 'SIGNAL_REVIEW',
         title: 'Review candidate',
-        reason: 'New signal.',
+        message: 'New signal.',
+        importance: 'HIGH',
         status: 'CONFIRMED',
         created_at: '2026-05-24T00:00:00.000Z',
+        asset: {
+          symbol: 'MSFT',
+          name: 'Microsoft Corp.',
+          price: '447.22',
+          change_percent: '0.41',
+          sector: 'Technology',
+        },
       }),
     ).toMatchObject({
       id: '2',
       assetId: 9,
       symbol: 'MSFT',
       candidateType: 'SIGNAL_REVIEW',
+      reason: 'New signal.',
+      riskLevel: '높음',
       status: '확인됨',
+    })
+  })
+
+  it('maps alert candidate without expanded asset to a null symbol', () => {
+    expect(
+      adaptAlertCandidate({
+        id: 3,
+        asset_id: null,
+        candidate_type: 'DISCLOSURE_REVIEW',
+        title: 'Disclosure review',
+        message: null,
+        importance: 'MEDIUM',
+        status: 'UNREAD',
+        created_at: '2026-05-24T00:00:00.000Z',
+      }),
+    ).toMatchObject({
+      id: '3',
+      assetId: null,
+      symbol: null,
+      reason: '',
+      riskLevel: '중간',
+      status: '안읽음',
     })
   })
 
