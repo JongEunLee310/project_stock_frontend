@@ -18,7 +18,20 @@ import type { AlertCandidateDto, AlertDto } from './dto'
 
 export const alertQueryKeys = {
   alerts: ['alerts'] as const,
+  unreadSummary: ['alerts', 'unread-summary'] as const,
   candidates: ['alert-candidates'] as const,
+}
+
+const unreadAlertSummaryLimit = 5
+
+export interface UnreadAlertSummary {
+  unreadCount: number
+  recent: Alert[]
+}
+
+export const emptyUnreadAlertSummary: UnreadAlertSummary = {
+  unreadCount: 0,
+  recent: [],
 }
 
 export function useAlerts(): UseQueryResult<Alert[]> {
@@ -28,6 +41,24 @@ export function useAlerts(): UseQueryResult<Alert[]> {
       const { data } = await apiGet<AlertDto[]>('/alerts')
 
       return data.map(adaptAlert)
+    },
+  })
+}
+
+export function useUnreadAlertSummary(): UseQueryResult<UnreadAlertSummary> {
+  return useQuery<UnreadAlertSummary>({
+    queryKey: alertQueryKeys.unreadSummary,
+    queryFn: async () => {
+      try {
+        const { data, meta } = await apiGet<AlertDto[]>('/alerts?status=UNREAD')
+
+        return {
+          unreadCount: meta?.total ?? data.length,
+          recent: data.slice(0, unreadAlertSummaryLimit).map(adaptAlert),
+        }
+      } catch {
+        return emptyUnreadAlertSummary
+      }
     },
   })
 }

@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { alertStatusLabels, riskLevelLabels, toLabel } from './enumLabel'
+import {
+  alertStatusLabels,
+  alertTypeLabels,
+  riskLevelLabels,
+  toLabel,
+} from './enumLabel'
 
 describe('toLabel', () => {
   const map = { HIGH: '높음', MEDIUM: '중간', LOW: '낮음' }
@@ -32,5 +37,16 @@ describe('alertStatusLabels', () => {
     expect(alertStatusLabels['UNREAD']).toBe('안읽음')
     expect(alertStatusLabels['READ']).toBe('읽음')
     expect(alertStatusLabels['DISMISSED']).toBe('무시됨')
+  })
+})
+
+describe('alertTypeLabels', () => {
+  it('BE 051 알림 유형이 매핑되어 있다', () => {
+    expect(alertTypeLabels['WATCH']).toBe('관찰')
+    expect(alertTypeLabels['RISK_ALERT']).toBe('위험 경보')
+    expect(alertTypeLabels['THESIS_BROKEN']).toBe('논거 훼손')
+    expect(alertTypeLabels['BUY_CANDIDATE']).toBe('매수 후보')
+    expect(alertTypeLabels['SELL_REVIEW']).toBe('매도 검토')
+    expect(alertTypeLabels['OVERHEATED']).toBe('과열')
   })
 })

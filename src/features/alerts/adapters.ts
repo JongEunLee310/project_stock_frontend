@@ -1,5 +1,6 @@
 import {
   alertStatusLabels,
+  alertTypeLabels,
   formatKstDateTime,
   riskLevelLabels,
   toLabel,
@@ -17,6 +18,7 @@ export interface Alert {
   message: string
   status: string
   createdAt: string
+  createdAtIso: string
 }
 
 export interface AlertCandidate {
@@ -32,15 +34,21 @@ export interface AlertCandidate {
 }
 
 export function adaptAlert(dto: AlertDto): Alert {
+  const symbol = dto.symbol ?? null
+  const alertType = toLabel(alertTypeLabels, dto.alert_type)
+  const title =
+    dto.title?.trim() || (symbol ? `${symbol} ${alertType}` : alertType)
+
   return {
     id: String(dto.id),
     assetId: dto.asset_id ?? null,
-    symbol: dto.symbol ?? null,
-    alertType: toLabel({}, dto.alert_type),
-    title: dto.title,
-    message: dto.message,
+    symbol,
+    alertType,
+    title,
+    message: dto.message ?? '',
     status: toLabel(alertStatusLabels, dto.status),
     createdAt: formatKstDateTime(dto.created_at),
+    createdAtIso: dto.created_at,
   }
 }
 
