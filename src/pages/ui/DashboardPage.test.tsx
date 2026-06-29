@@ -3,6 +3,7 @@ import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { vi } from 'vitest'
 
 import { appRouteObjects } from '@/app/router'
+import type { AlertCandidate } from '@/features/alerts/adapters'
 import type { DecisionLog } from '@/features/decision-log/adapters'
 import type { Signal } from '@/features/signals/adapters'
 import type { WatchlistAssetRow } from '@/features/watchlist/adapters'
@@ -21,6 +22,7 @@ interface QueryState<T> {
 }
 
 const refetchDashboardSummary = vi.fn()
+const refetchPriorityQueue = vi.fn()
 const refetchSignals = vi.fn()
 const refetchDecisionLogs = vi.fn()
 const refetchWatchlistAssets = vi.fn()
@@ -153,6 +155,53 @@ const watchlistRows: WatchlistAssetRow[] = [
   },
 ]
 
+const priorityQueueRows: AlertCandidate[] = [
+  {
+    id: '1',
+    assetId: 1,
+    symbol: 'NVDA',
+    candidateType: 'SIGNAL_REVIEW',
+    title: '엔비디아 추가 진입 가격 점검',
+    reason: 'AI 반도체 수요는 견조하지만 진입 가격을 다시 확인합니다.',
+    riskLevel: '중간',
+    status: '안읽음',
+    createdAt: '2026. 05. 24. 09:00',
+  },
+  {
+    id: '2',
+    assetId: 2,
+    symbol: 'TSLA',
+    candidateType: 'NEWS_REVIEW',
+    title: '테슬라 뉴스 감성 급락',
+    reason: '뉴스 감성 악화로 포지션 위험을 먼저 점검합니다.',
+    riskLevel: '높음',
+    status: '안읽음',
+    createdAt: '2026. 05. 24. 08:30',
+  },
+  {
+    id: '3',
+    assetId: null,
+    symbol: null,
+    candidateType: 'DISCLOSURE_REVIEW',
+    title: '시장 공시 확인 필요',
+    reason: '연결된 종목 정보 없이도 큐 항목은 표시됩니다.',
+    riskLevel: '높음',
+    status: '읽음',
+    createdAt: '2026. 05. 24. 08:00',
+  },
+  {
+    id: '4',
+    assetId: 3,
+    symbol: 'AAPL',
+    candidateType: 'VALUATION_REVIEW',
+    title: '애플 밸류에이션 유지',
+    reason: '목표 밴드 안에 있어 후순위로 확인합니다.',
+    riskLevel: '낮음',
+    status: '안읽음',
+    createdAt: '2026. 05. 24. 07:30',
+  },
+]
+
 let dashboardSummaryQueryState = {
   data: {
     riskAlertCount: 3,
@@ -176,6 +225,13 @@ let signalsQueryState: QueryState<Signal[]> = {
   isLoading: false,
   refetch: refetchSignals,
 }
+let priorityQueueQueryState: QueryState<AlertCandidate[]> = {
+  data: priorityQueueRows,
+  error: null,
+  isError: false,
+  isLoading: false,
+  refetch: refetchPriorityQueue,
+}
 let decisionLogsQueryState: QueryState<DecisionLog[]> = {
   data: decisionLogRows,
   error: null,
@@ -195,6 +251,10 @@ vi.mock('@/features/dashboard/queries', () => ({
   useDashboardSummary: () => dashboardSummaryQueryState,
 }))
 
+vi.mock('@/features/alerts/queries', () => ({
+  useAlertCandidates: () => priorityQueueQueryState,
+}))
+
 vi.mock('@/features/signals/queries', () => ({
   useSignals: () => signalsQueryState,
 }))
@@ -210,6 +270,7 @@ vi.mock('@/features/watchlist/queries', () => ({
 beforeEach(() => {
   setupAuthenticatedUser()
   refetchDashboardSummary.mockReset()
+  refetchPriorityQueue.mockReset()
   refetchSignals.mockReset()
   refetchDecisionLogs.mockReset()
   refetchWatchlistAssets.mockReset()
@@ -235,6 +296,13 @@ beforeEach(() => {
     isError: false,
     isLoading: false,
     refetch: refetchSignals,
+  }
+  priorityQueueQueryState = {
+    data: priorityQueueRows,
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: refetchPriorityQueue,
   }
   decisionLogsQueryState = {
     data: decisionLogRows,
@@ -398,8 +466,59 @@ describe('DashboardPage', () => {
 
     expect(await screen.findByText('테슬라 뉴스 감성 급락')).toBeVisible()
     expect(screen.getByText('엔비디아 추가 진입 가격 점검')).toBeVisible()
+    expect(screen.getByText('시장 공시 확인 필요')).toBeVisible()
+    expect(screen.queryByText('애플 밸류에이션 유지')).not.toBeInTheDocument()
+    expect(
+      screen.getByRole('link', { name: '테슬라 뉴스 감성 급락' }),
+    ).toHaveAttribute('href', '/research/TSLA')
+    expect(
+      screen.queryByRole('link', { name: '시장 공시 확인 필요' }),
+    ).not.toBeInTheDocument()
     expect(screen.getAllByText('높음').length).toBeGreaterThan(0)
     expect(screen.getAllByText('중간').length).toBeGreaterThan(0)
+  })
+
+  it('renders loading, error, and empty states for priority queue', async () => {
+    priorityQueueQueryState = {
+      ...priorityQueueQueryState,
+      data: undefined,
+      isLoading: true,
+    }
+    const { container, unmount } = renderDashboard()
+
+    expect(
+      await screen.findByRole('heading', { name: 'AI 투자 관제실' }),
+    ).toBeVisible()
+    expect(screen.queryByText('테슬라 뉴스 감성 급락')).not.toBeInTheDocument()
+    expect(container.querySelectorAll('.animate-pulse').length).toBeGreaterThan(
+      0,
+    )
+
+    unmount()
+    priorityQueueQueryState = {
+      ...priorityQueueQueryState,
+      data: undefined,
+      error: new Error('network failed'),
+      isError: true,
+      isLoading: false,
+    }
+    const { unmount: unmountError } = renderDashboard()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '우선 확인 큐를 불러오지 못했습니다',
+    )
+
+    unmountError()
+    priorityQueueQueryState = {
+      ...priorityQueueQueryState,
+      data: [],
+      error: null,
+      isError: false,
+      isLoading: false,
+    }
+    renderDashboard()
+
+    expect(await screen.findByText('우선 확인할 후보가 없습니다')).toBeVisible()
   })
 
   it('renders top signals with score values', async () => {

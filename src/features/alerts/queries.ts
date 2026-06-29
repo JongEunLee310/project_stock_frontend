@@ -36,7 +36,9 @@ export function useAlertCandidates(): UseQueryResult<AlertCandidate[]> {
   return useQuery<AlertCandidate[]>({
     queryKey: alertQueryKeys.candidates,
     queryFn: async () => {
-      const { data } = await apiGet<AlertCandidateDto[]>('/alert-candidates')
+      const { data } = await apiGet<AlertCandidateDto[]>(
+        '/alert-candidates?expand=asset',
+      )
 
       return data.map(adaptAlertCandidate)
     },

@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom'
 
+import type { AlertCandidate } from '@/features/alerts/adapters'
+import { useAlertCandidates } from '@/features/alerts/queries'
 import { useDashboardSummary } from '@/features/dashboard/queries'
 import type { DecisionLog } from '@/features/decision-log/adapters'
 import { useDecisionLogs } from '@/features/decision-log/queries'
@@ -8,7 +10,7 @@ import { useSignals } from '@/features/signals/queries'
 import type { WatchlistAssetRow } from '@/features/watchlist/adapters'
 import { useWatchlistAssets } from '@/features/watchlist/queries'
 import { appRoutePaths } from '@/shared/config/navigation'
-import { mockAiBriefing, mockPriorityQueue } from '@/shared/mock'
+import { mockAiBriefing } from '@/shared/mock'
 import type { DecisionType } from '@/shared/model'
 import {
   Badge,
@@ -112,12 +114,11 @@ const importantNewsBarData = [44, 62, 78, 52, 84, 38, 68, 90, 26].map(
   (value) => ({ value }),
 )
 
-/* TODO: BE 엔드포인트 없음 — mock 유지 */
-const priorityQueue = [...mockPriorityQueue].sort((first, second) => {
-  const riskRank = { 높음: 0, 중간: 1, 낮음: 2 }
-
-  return riskRank[first.risk] - riskRank[second.risk]
-})
+const riskRank: Record<AlertCandidate['riskLevel'], number> = {
+  높음: 0,
+  중간: 1,
+  낮음: 2,
+}
 
 function getResearchPath(symbol: string) {
   return appRoutePaths.research.replace(':symbol', symbol)
@@ -371,6 +372,7 @@ function SignalCard({ signal }: { signal: Signal }) {
 
 export function DashboardPage() {
   const dashboardSummaryQuery = useDashboardSummary()
+  const priorityQueueQuery = useAlertCandidates()
   const signalsQuery = useSignals()
   const decisionLogsQuery = useDecisionLogs()
   const watchlistAssetsQuery = useWatchlistAssets()
@@ -381,6 +383,11 @@ export function DashboardPage() {
     .slice(0, 3)
   const recentDecisionLogs = [...(decisionLogsQuery.data ?? [])]
     .sort((first, second) => second.createdAt.localeCompare(first.createdAt))
+    .slice(0, 3)
+  const priorityQueue = [...(priorityQueueQuery.data ?? [])]
+    .sort(
+      (first, second) => riskRank[first.riskLevel] - riskRank[second.riskLevel],
+    )
     .slice(0, 3)
 
   return (
@@ -532,41 +539,68 @@ export function DashboardPage() {
 
         <Card className="flex flex-col gap-4 bg-cockpit-surface/70 p-5">
           <SectionTitle icon="▤" title="우선 확인 큐" />
-          <ol className="flex flex-col gap-2">
-            {priorityQueue.map((item, index) => (
-              <li
-                key={item.id}
-                className="flex items-start gap-4 rounded-card border border-cockpit-border bg-cockpit-surface-muted/55 p-3"
-              >
-                <span
-                  className={classNames(
-                    'grid h-8 w-8 shrink-0 place-items-center rounded-full text-sm font-bold text-cockpit-accent-text',
-                    index === 0
-                      ? 'bg-rose-500'
-                      : index === 1
-                        ? 'bg-amber-400 text-cockpit-bg'
-                        : 'bg-yellow-400 text-cockpit-bg',
-                  )}
+          {priorityQueueQuery.isLoading ? (
+            <Skeleton
+              className="min-h-44 rounded-card border border-cockpit-border bg-cockpit-surface-muted/45 p-4"
+              lines={5}
+            />
+          ) : priorityQueueQuery.isError ? (
+            <ErrorState
+              title="우선 확인 큐를 불러오지 못했습니다"
+              description={priorityQueueQuery.error.message}
+              onRetry={() => {
+                void priorityQueueQuery.refetch()
+              }}
+              className="rounded-card border border-cockpit-border bg-cockpit-surface-muted/45"
+            />
+          ) : priorityQueue.length > 0 ? (
+            <ol className="flex flex-col gap-2">
+              {priorityQueue.map((item, index) => (
+                <li
+                  key={item.id}
+                  className="flex items-start gap-4 rounded-card border border-cockpit-border bg-cockpit-surface-muted/55 p-3"
                 >
-                  {index + 1}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-start justify-between gap-3">
-                    <Link
-                      to={getResearchPath(item.symbol)}
-                      className="text-base font-bold text-cockpit-text hover:text-cockpit-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cockpit-accent"
-                    >
-                      {item.title}
-                    </Link>
-                    <Badge riskLevel={item.risk}>{item.risk}</Badge>
+                  <span
+                    className={classNames(
+                      'grid h-8 w-8 shrink-0 place-items-center rounded-full text-sm font-bold text-cockpit-accent-text',
+                      index === 0
+                        ? 'bg-rose-500'
+                        : index === 1
+                          ? 'bg-amber-400 text-cockpit-bg'
+                          : 'bg-yellow-400 text-cockpit-bg',
+                    )}
+                  >
+                    {index + 1}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-3">
+                      {item.symbol ? (
+                        <Link
+                          to={getResearchPath(item.symbol)}
+                          className="text-base font-bold text-cockpit-text hover:text-cockpit-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cockpit-accent"
+                        >
+                          {item.title}
+                        </Link>
+                      ) : (
+                        <span className="text-base font-bold text-cockpit-text">
+                          {item.title}
+                        </span>
+                      )}
+                      <Badge riskLevel={item.riskLevel}>{item.riskLevel}</Badge>
+                    </div>
+                    <p className="mt-1 line-clamp-1 text-sm text-cockpit-text-muted">
+                      {item.reason}
+                    </p>
                   </div>
-                  <p className="mt-1 line-clamp-1 text-sm text-cockpit-text-muted">
-                    {item.reason}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ol>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <EmptyState
+              title="우선 확인할 후보가 없습니다"
+              className="rounded-card border border-cockpit-border bg-cockpit-surface-muted/45"
+            />
+          )}
           <div className="mt-auto flex justify-end">
             <SectionLink label="전체 큐 보기" to={appRoutePaths.alerts} />
           </div>
