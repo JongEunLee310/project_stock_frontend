@@ -270,6 +270,13 @@ export function PortfolioPageView({ portfolio }: { portfolio: PortfolioView }) {
           donutRatio={cashRatio}
         />
         <SummaryCard
+          label="일간 변동"
+          value={formatKrw(portfolio.dayChangeValue)}
+          helper={formatPercent(portfolio.dayChangePercent)}
+          visual="delta"
+          positive={portfolio.dayChangeValue >= 0}
+        />
+        <SummaryCard
           label="상위 3 종목 비중"
           value={formatPercent(topThreeShare)}
           helper={
@@ -433,7 +440,7 @@ export function PortfolioPageView({ portfolio }: { portfolio: PortfolioView }) {
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[1.25fr_0.75fr]">
-        {/* dayChange, riskExposures, aiBriefing은 BE 출처가 없어 후속 API까지 mock을 유지한다. */}
+        {/* riskExposures, aiBriefing은 BE 출처가 없어 후속 API까지 mock을 유지한다. */}
         <div className="grid gap-4">
           <Card className="border-cockpit-border bg-cockpit-surface/80">
             <PanelTitle title="리스크 노출 분석" />
