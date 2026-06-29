@@ -3,10 +3,15 @@ import { renderHook, waitFor } from '@testing-library/react'
 import { createElement, type ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { apiPost } from '@/shared/api/client'
+import { apiGet, apiPost } from '@/shared/api/client'
 
 import { adaptAlert, adaptAlertCandidate } from './adapters'
-import { alertQueryKeys, useConfirmCandidate, useReadAlert } from './queries'
+import {
+  alertQueryKeys,
+  useConfirmCandidate,
+  useReadAlert,
+  useUnreadAlertSummary,
+} from './queries'
 
 vi.mock('@/shared/api/client', () => ({
   apiGet: vi.fn(),
@@ -30,6 +35,8 @@ function createTestQueryClient() {
 
 describe('alerts adapters', () => {
   beforeEach(() => {
+    vi.mocked(apiGet).mockReset()
+    vi.mocked(apiPost).mockReset()
     vi.mocked(apiPost).mockResolvedValue({ data: {}, meta: undefined })
   })
 
@@ -39,7 +46,7 @@ describe('alerts adapters', () => {
         id: 1,
         asset_id: null,
         symbol: null,
-        alert_type: 'PRICE_BREAK',
+        alert_type: 'RISK_ALERT',
         title: 'Price break',
         message: 'Breakout detected.',
         status: 'UNREAD',
@@ -49,8 +56,49 @@ describe('alerts adapters', () => {
       id: '1',
       assetId: null,
       symbol: null,
-      alertType: 'PRICE_BREAK',
+      alertType: '위험 경보',
+      title: 'Price break',
+      message: 'Breakout detected.',
       status: '안읽음',
+    })
+  })
+
+  it('derives alert title and falls back missing message and symbol', () => {
+    expect(
+      adaptAlert({
+        id: 4,
+        asset_id: 12,
+        symbol: 'NVDA',
+        alert_type: 'BUY_CANDIDATE',
+        title: null,
+        message: null,
+        status: 'READ',
+        created_at: '2026-05-24T00:00:00.000Z',
+      }),
+    ).toMatchObject({
+      assetId: 12,
+      symbol: 'NVDA',
+      alertType: '매수 후보',
+      title: 'NVDA 매수 후보',
+      message: '',
+      status: '읽음',
+      createdAtIso: '2026-05-24T00:00:00.000Z',
+    })
+
+    expect(
+      adaptAlert({
+        id: 5,
+        asset_id: null,
+        symbol: null,
+        alert_type: 'OVERHEATED',
+        status: 'UNREAD',
+        created_at: '2026-05-24T00:00:00.000Z',
+      }),
+    ).toMatchObject({
+      symbol: null,
+      alertType: '과열',
+      title: '과열',
+      message: '',
     })
   })
 
@@ -133,6 +181,61 @@ describe('alerts adapters', () => {
     )
     expect(invalidate).toHaveBeenCalledWith({
       queryKey: alertQueryKeys.candidates,
+    })
+  })
+
+  it('loads unread alert summary from unread alerts meta and recent items', async () => {
+    vi.mocked(apiGet).mockResolvedValue({
+      data: [
+        {
+          id: 1,
+          asset_id: 10,
+          symbol: 'NVDA',
+          alert_type: 'WATCH',
+          title: null,
+          message: '관찰 필요',
+          status: 'UNREAD',
+          created_at: '2026-05-24T00:00:00.000Z',
+        },
+        {
+          id: 2,
+          asset_id: 11,
+          symbol: 'AAPL',
+          alert_type: 'SELL_REVIEW',
+          title: 'AAPL 점검',
+          message: null,
+          status: 'UNREAD',
+          created_at: '2026-05-24T00:01:00.000Z',
+        },
+      ],
+      meta: { page: 1, size: 20, total: 7 },
+    })
+    const queryClient = createTestQueryClient()
+    const { result } = renderHook(() => useUnreadAlertSummary(), {
+      wrapper: wrapperFor(queryClient),
+    })
+
+    await waitFor(() => {
+      expect(result.current.data).toMatchObject({
+        unreadCount: 7,
+        recent: [
+          { symbol: 'NVDA', alertType: '관찰', title: 'NVDA 관찰' },
+          { symbol: 'AAPL', alertType: '매도 검토', title: 'AAPL 점검' },
+        ],
+      })
+    })
+    expect(apiGet).toHaveBeenCalledWith('/alerts?status=UNREAD')
+  })
+
+  it('falls back to empty unread alert summary when the request fails', async () => {
+    vi.mocked(apiGet).mockRejectedValue(new Error('BE 051 unavailable'))
+    const queryClient = createTestQueryClient()
+    const { result } = renderHook(() => useUnreadAlertSummary(), {
+      wrapper: wrapperFor(queryClient),
+    })
+
+    await waitFor(() => {
+      expect(result.current.data).toEqual({ unreadCount: 0, recent: [] })
     })
   })
 })

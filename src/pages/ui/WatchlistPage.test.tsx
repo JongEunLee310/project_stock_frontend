@@ -3,6 +3,7 @@ import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { vi } from 'vitest'
 
 import { appRouteObjects } from '@/app/router'
+import type { UnreadAlertSummary } from '@/features/alerts/queries'
 import type {
   WatchlistAssetRow,
   WatchlistSummaryView,
@@ -57,6 +58,7 @@ const watchlistRows: WatchlistAssetRow[] = [
 
 const refetchWatchlistAssets = vi.fn()
 const refetchWatchlistSummary = vi.fn()
+const refetchUnreadAlertSummary = vi.fn()
 let watchlistAssetsQueryState = {
   data: watchlistRows,
   error: null as Error | null,
@@ -81,10 +83,47 @@ let watchlistSummaryQueryState = {
   isLoading: false,
   refetch: refetchWatchlistSummary,
 }
+let unreadAlertSummaryQueryState = {
+  data: {
+    unreadCount: 7,
+    recent: [
+      {
+        id: '1',
+        assetId: 1,
+        symbol: 'NVDA',
+        alertType: '위험 경보',
+        title: 'NVDA 위험 경보',
+        message: '뉴스 위험도가 상승했습니다.',
+        status: '안읽음',
+        createdAt: '2026. 5. 24. 오전 9:20',
+        createdAtIso: '2026-05-24T00:20:00.000Z',
+      },
+      {
+        id: '2',
+        assetId: null,
+        symbol: null,
+        alertType: '논거 훼손',
+        title: '논거 훼손',
+        message: '',
+        status: '안읽음',
+        createdAt: '2026. 5. 24. 오전 9:10',
+        createdAtIso: '2026-05-24T00:10:00.000Z',
+      },
+    ],
+  } satisfies UnreadAlertSummary,
+  error: null as Error | null,
+  isError: false,
+  isLoading: false,
+  refetch: refetchUnreadAlertSummary,
+}
 
 vi.mock('@/features/watchlist/queries', () => ({
   useWatchlistAssets: () => watchlistAssetsQueryState,
   useWatchlistSummary: () => watchlistSummaryQueryState,
+}))
+
+vi.mock('@/features/alerts/queries', () => ({
+  useUnreadAlertSummary: () => unreadAlertSummaryQueryState,
 }))
 
 vi.mock('@/features/research/queries', () => ({
@@ -129,6 +168,7 @@ beforeEach(() => {
   setupAuthenticatedUser()
   refetchWatchlistAssets.mockReset()
   refetchWatchlistSummary.mockReset()
+  refetchUnreadAlertSummary.mockReset()
   watchlistAssetsQueryState = {
     data: watchlistRows,
     error: null,
@@ -152,6 +192,39 @@ beforeEach(() => {
     isError: false,
     isLoading: false,
     refetch: refetchWatchlistSummary,
+  }
+  unreadAlertSummaryQueryState = {
+    data: {
+      unreadCount: 7,
+      recent: [
+        {
+          id: '1',
+          assetId: 1,
+          symbol: 'NVDA',
+          alertType: '위험 경보',
+          title: 'NVDA 위험 경보',
+          message: '뉴스 위험도가 상승했습니다.',
+          status: '안읽음',
+          createdAt: '2026. 5. 24. 오전 9:20',
+          createdAtIso: '2026-05-24T00:20:00.000Z',
+        },
+        {
+          id: '2',
+          assetId: null,
+          symbol: null,
+          alertType: '논거 훼손',
+          title: '논거 훼손',
+          message: '',
+          status: '안읽음',
+          createdAt: '2026. 5. 24. 오전 9:10',
+          createdAtIso: '2026-05-24T00:10:00.000Z',
+        },
+      ],
+    },
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: refetchUnreadAlertSummary,
   }
 })
 
@@ -210,9 +283,15 @@ describe('WatchlistPage', () => {
     expect(screen.getByText('Advanced Micro Devices')).toBeVisible()
     expect(screen.queryByText('관망')).not.toBeInTheDocument()
     expect(screen.queryByText('안정')).not.toBeInTheDocument()
-    expect(screen.getByText('빠른 알림 설정')).toBeVisible()
+    expect(screen.getByText('알림 현황')).toBeVisible()
+    expect(screen.getByText('미읽음 알림 7건')).toBeVisible()
+    expect(screen.getByText('위험 경보')).toBeVisible()
+    expect(screen.getAllByText('논거 훼손').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByText('NVDA 위험 경보')).toBeVisible()
+    expect(screen.getByText('종목 없음')).toBeVisible()
+    expect(screen.queryByText('빠른 알림 설정')).not.toBeInTheDocument()
     expect(screen.getByText(/NVDA, TSLA는 최근 뉴스 흐름/)).toBeVisible()
-    expect(screen.getByText('가격 변동')).toBeVisible()
+    expect(screen.queryByText('가격 변동')).not.toBeInTheDocument()
   })
 
   it('renders thin table columns and stock cells', async () => {
@@ -364,6 +443,22 @@ describe('WatchlistPage', () => {
     expect(screen.getAllByText('0').length).toBeGreaterThanOrEqual(2)
     expect(screen.queryByText('관망')).not.toBeInTheDocument()
     expect(screen.getByText(/NVDA, TSLA는 최근 뉴스 흐름/)).toBeVisible()
-    expect(screen.getByText('가격 변동')).toBeVisible()
+    expect(screen.queryByText('가격 변동')).not.toBeInTheDocument()
+  })
+
+  it('renders the unread alert empty state from summary data', async () => {
+    unreadAlertSummaryQueryState = {
+      ...unreadAlertSummaryQueryState,
+      data: {
+        unreadCount: 0,
+        recent: [],
+      },
+    }
+
+    renderWatchlist()
+
+    expect(await screen.findByText('미읽음 알림 0건')).toBeVisible()
+    expect(screen.getByText('새 알림이 없습니다.')).toBeVisible()
+    expect(screen.queryByText('빠른 알림 설정')).not.toBeInTheDocument()
   })
 })

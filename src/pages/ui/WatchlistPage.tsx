@@ -1,15 +1,13 @@
 import { useCallback, useMemo, useState, type MouseEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
+import { useUnreadAlertSummary } from '@/features/alerts/queries'
 import type { WatchlistAssetRow } from '@/features/watchlist/adapters'
 import {
   useWatchlistAssets,
   useWatchlistSummary,
 } from '@/features/watchlist/queries'
-import {
-  mockWatchlistAlertSettings,
-  mockWatchlistObservations,
-} from '@/shared/mock'
+import { mockWatchlistObservations } from '@/shared/mock'
 import {
   Button,
   Card,
@@ -77,6 +75,26 @@ function formatPercent(value: number) {
 
 function formatTime(value: string) {
   return timeFormatter.format(new Date(value))
+}
+
+function formatRelativeTime(value: string) {
+  const createdAt = new Date(value).getTime()
+
+  if (Number.isNaN(createdAt)) return '시간 정보 없음'
+
+  const diffMs = Math.max(0, Date.now() - createdAt)
+  const diffMinutes = Math.floor(diffMs / 60_000)
+
+  if (diffMinutes < 1) return '방금 전'
+  if (diffMinutes < 60) return `${diffMinutes}분 전`
+
+  const diffHours = Math.floor(diffMinutes / 60)
+  if (diffHours < 24) return `${diffHours}시간 전`
+
+  const diffDays = Math.floor(diffHours / 24)
+  if (diffDays < 30) return `${diffDays}일 전`
+
+  return formatTime(value)
 }
 
 const priceFormatter = new Intl.NumberFormat('ko-KR', {
@@ -232,6 +250,7 @@ export function WatchlistPage() {
   const navigate = useNavigate()
   const watchlistAssetsQuery = useWatchlistAssets()
   const watchlistSummaryQuery = useWatchlistSummary()
+  const unreadAlertSummaryQuery = useUnreadAlertSummary()
   const [query, setQuery] = useState('')
   const [sortKey, setSortKey] = useState<SortKey>('custom')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
@@ -311,6 +330,10 @@ export function WatchlistPage() {
       value: summary.riskIncreasingCount,
     },
   ]
+  const alertSummary = unreadAlertSummaryQuery.data ?? {
+    unreadCount: 0,
+    recent: [],
+  }
 
   return (
     <section className="flex flex-col gap-3 text-cockpit-text">
@@ -666,7 +689,7 @@ export function WatchlistPage() {
         </Card>
 
         <aside className="flex flex-col gap-3" aria-label="AI 관찰 레일">
-          {/* BE 출처가 없는 관찰 메모/알림 설정은 후속 API까지 mock을 유지한다. */}
+          {/* BE 출처가 없는 관찰 메모는 후속 API까지 mock을 유지한다. */}
           <Card className="border-cockpit-border bg-cockpit-surface/85 p-4 shadow-blue-950/20">
             <div className="mb-3 flex items-center justify-between gap-3">
               <h2 className="flex items-center gap-2 text-lg font-semibold text-cockpit-text">
@@ -765,58 +788,55 @@ export function WatchlistPage() {
           </Card>
 
           <Card className="border-cockpit-border bg-cockpit-surface/85 p-4 shadow-blue-950/20">
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold text-cockpit-text">
-                빠른 알림 설정
-              </h2>
-              <Button
-                type="button"
-                variant="ghost"
-                className="min-h-8 w-8 px-0 text-cockpit-text-muted"
-                aria-label="빠른 알림 설정 관리"
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold text-cockpit-text">
+                  알림 현황
+                </h2>
+                <p className="mt-1 text-sm text-cockpit-text-muted">
+                  미읽음 알림 {alertSummary.unreadCount}건
+                </p>
+              </div>
+              <span
+                className="rounded-control border border-cockpit-border bg-cockpit-bg/50 px-2.5 py-1 text-sm font-semibold text-cockpit-accent"
+                aria-label={`미읽음 알림 ${alertSummary.unreadCount}건`}
               >
-                ⚙
-              </Button>
+                {alertSummary.unreadCount}
+              </span>
             </div>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-4">
-              {mockWatchlistAlertSettings.map((setting, index) => (
-                <div
-                  key={setting.label}
-                  className="flex min-h-24 flex-col items-center justify-center gap-2 rounded-control border border-cockpit-border bg-cockpit-bg/45 p-3 text-center"
-                >
-                  <span
-                    className={classNames(
-                      'text-3xl leading-none',
-                      index === 0
-                        ? 'text-blue-400'
-                        : index === 1
-                          ? 'text-rose-400'
-                          : index === 2
-                            ? 'text-cyan-300'
-                            : 'text-red-400',
-                    )}
-                    aria-hidden="true"
+            {unreadAlertSummaryQuery.isLoading ? (
+              <Skeleton lines={4} />
+            ) : alertSummary.recent.length === 0 ? (
+              <EmptyState title="새 알림이 없습니다." className="py-6" />
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {alertSummary.recent.map((alert) => (
+                  <li
+                    key={alert.id}
+                    className="rounded-control border border-cockpit-border bg-cockpit-bg/45 px-3 py-2.5"
                   >
-                    {['⌁', '▣', '✾', '♨'][index]}
-                  </span>
-                  <div className="text-sm font-medium text-cockpit-text">
-                    {setting.label}
-                  </div>
-                  <div className="text-sm text-cockpit-text-muted">
-                    {setting.value}
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="mt-2 flex justify-end">
-              <Button
-                type="button"
-                variant="ghost"
-                className="min-h-8 gap-1 px-2 py-1 text-cockpit-text-muted"
-              >
-                알림 설정 관리 <span aria-hidden="true">›</span>
-              </Button>
-            </div>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="rounded-control bg-cockpit-surface-muted px-2 py-0.5 text-xs font-semibold text-cockpit-accent">
+                            {alert.alertType}
+                          </span>
+                          <span className="text-sm font-semibold text-cockpit-text">
+                            {alert.symbol ?? '종목 없음'}
+                          </span>
+                        </div>
+                        <p className="mt-1 truncate text-sm text-cockpit-text-muted">
+                          {alert.title}
+                        </p>
+                      </div>
+                      <span className="shrink-0 whitespace-nowrap text-xs text-cockpit-text-muted">
+                        {formatRelativeTime(alert.createdAtIso)}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
           </Card>
         </aside>
       </div>

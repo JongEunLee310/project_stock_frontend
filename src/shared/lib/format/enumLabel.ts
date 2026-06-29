@@ -19,3 +19,13 @@ export const alertStatusLabels: Record<string, string> = {
   READ: '읽음',
   DISMISSED: '무시됨',
 }
+
+/** BE 051 Alert signal type 와이어 영문 → 한글 라벨 */
+export const alertTypeLabels: Record<string, string> = {
+  WATCH: '관찰',
+  RISK_ALERT: '위험 경보',
+  THESIS_BROKEN: '논거 훼손',
+  BUY_CANDIDATE: '매수 후보',
+  SELL_REVIEW: '매도 검토',
+  OVERHEATED: '과열',
+}

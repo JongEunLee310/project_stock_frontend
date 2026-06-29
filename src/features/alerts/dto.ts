@@ -3,8 +3,8 @@ export interface AlertDto {
   asset_id?: number | null
   symbol?: string | null
   alert_type: string
-  title: string
-  message: string
+  title?: string | null
+  message?: string | null
   status: string
   created_at: string
 }
