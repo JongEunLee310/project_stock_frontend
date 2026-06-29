@@ -3,7 +3,8 @@ import { renderHook, waitFor } from '@testing-library/react'
 import { createElement, type ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { apiPost } from '@/shared/api/client'
+import { apiGet, apiPost } from '@/shared/api/client'
+import { decisionTypeLabels, type DecisionTypeCode } from '@/shared/model'
 
 import { adaptDecisionLog } from './adapters'
 import {
@@ -34,54 +35,113 @@ function createTestQueryClient() {
 
 describe('decision-log adapters', () => {
   beforeEach(() => {
+    vi.mocked(apiGet).mockResolvedValue({
+      data: [
+        {
+          id: 1,
+          user_id: 7,
+          ticker: 'NVDA',
+          decision_type: 'BUY_CONSIDER',
+          decision_status: 'OPEN',
+          reason: 'Track earnings.',
+          cognitive_risks: null,
+          created_by: 'USER',
+          decided_at: '2026-05-24T00:00:00.000Z',
+          reviewed_at: null,
+          closed_at: null,
+          created_at: '2026-05-24T00:00:00.000Z',
+          updated_at: '2026-05-24T00:00:00.000Z',
+        },
+      ],
+      meta: { page: 1, size: 20, total: 1 },
+    })
     vi.mocked(apiPost).mockResolvedValue({
       data: {
         id: 1,
-        symbol: 'NVDA',
-        decision_type: 'BUY_REVIEW',
+        user_id: 7,
+        ticker: 'NVDA',
+        decision_type: 'BUY_CONSIDER',
         decision_status: 'OPEN',
-        rationale: 'Track earnings.',
+        reason: 'Track earnings.',
         cognitive_risks: null,
         created_by: 'USER',
-        review_date: null,
+        decided_at: '2026-05-24T00:00:00.000Z',
+        reviewed_at: null,
+        closed_at: null,
         created_at: '2026-05-24T00:00:00.000Z',
+        updated_at: '2026-05-24T00:00:00.000Z',
       },
       meta: undefined,
     })
   })
 
-  it('maps decision log enum labels and nullable cognitive risks', () => {
+  it('maps backend field names and nullable cognitive risks', () => {
     expect(
       adaptDecisionLog({
         id: 8,
-        symbol: 'AAPL',
-        decision_type: 'RISK_REVIEW',
+        user_id: 7,
+        ticker: 'AAPL',
+        decision_type: 'STOP_LOSS',
         decision_status: 'REVIEWED',
-        rationale: 'Margin risk.',
+        reason: 'Margin risk.',
         cognitive_risks: null,
         created_by: 'AI',
-        review_date: '2026-07-01',
+        decided_at: '2026-05-23T00:00:00.000Z',
+        reviewed_at: '2026-07-01T00:00:00.000Z',
+        closed_at: null,
         created_at: '2026-05-24T00:00:00.000Z',
+        updated_at: '2026-05-24T00:00:00.000Z',
       }),
     ).toMatchObject({
       id: '8',
       symbol: 'AAPL',
-      decisionType: 'RISK_REVIEW',
+      decisionType: '손절',
       decisionStatus: '검토됨',
+      rationale: 'Margin risk.',
       cognitiveRisks: [],
       createdBy: 'AI',
-      reviewDate: '2026-07-01',
+      reviewDate: '2026-07-01T00:00:00.000Z',
     })
   })
 
-  it('keeps decision logs disabled with empty initial result', () => {
+  it('maps all backend decision type enums to Korean labels', () => {
+    for (const [code, label] of Object.entries(decisionTypeLabels)) {
+      expect(
+        adaptDecisionLog({
+          id: 8,
+          user_id: 7,
+          ticker: 'AAPL',
+          decision_type: code as DecisionTypeCode,
+          decision_status: 'OPEN',
+          reason: 'Reason.',
+          cognitive_risks: [],
+          created_by: 'USER',
+          decided_at: '2026-05-23T00:00:00.000Z',
+          reviewed_at: null,
+          closed_at: null,
+          created_at: '2026-05-24T00:00:00.000Z',
+          updated_at: '2026-05-24T00:00:00.000Z',
+        }).decisionType,
+      ).toBe(label)
+    }
+  })
+
+  it('fetches decision logs from the active list query', async () => {
     const queryClient = createTestQueryClient()
     const { result } = renderHook(() => useDecisionLogs(), {
       wrapper: wrapperFor(queryClient),
     })
 
-    expect(result.current.data).toEqual([])
-    expect(result.current.fetchStatus).toBe('idle')
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(apiGet).toHaveBeenCalledWith('/decision-logs')
+    expect(result.current.data).toMatchObject([
+      {
+        symbol: 'NVDA',
+        decisionType: '매수 검토',
+        rationale: 'Track earnings.',
+      },
+    ])
   })
 
   it('posts create body and invalidates decision logs', async () => {
@@ -91,11 +151,10 @@ describe('decision-log adapters', () => {
       wrapper: wrapperFor(queryClient),
     })
     const body = {
-      symbol: 'NVDA',
-      decision_type: 'BUY_REVIEW',
-      rationale: 'Track earnings.',
+      ticker: 'NVDA',
+      decision_type: 'BUY_CONSIDER',
+      reason: 'Track earnings.',
       cognitive_risks: ['밸류에이션'],
-      review_date: null,
     }
 
     result.current.mutate(body)

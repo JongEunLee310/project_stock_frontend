@@ -20,15 +20,19 @@ export const stockStatusClassNames: Record<StockStatus, string> = {
 }
 
 export const decisionTypeClassNames: Record<DecisionType, string> = {
-  '관망 유지':
-    'border-status-watch-hold-border bg-status-watch-hold-bg text-status-watch-hold-text',
-  '추가 리서치 필요':
-    'border-status-research-border bg-status-research-bg text-status-research-text',
+  관망: 'border-status-watch-hold-border bg-status-watch-hold-bg text-status-watch-hold-text',
   '매수 검토': 'border-status-buy-border bg-status-buy-bg text-status-buy-text',
-  '비중 축소 검토':
+  매수: 'border-status-buy-border bg-status-buy-bg text-status-buy-text',
+  '보유 유지':
+    'border-status-watch-hold-border bg-status-watch-hold-bg text-status-watch-hold-text',
+  '매도 검토':
     'border-status-reduce-border bg-status-reduce-bg text-status-reduce-text',
-  '리스크 증가 검토':
-    'border-status-risk-border bg-status-risk-bg text-status-risk-text',
+  매도: 'border-status-reduce-border bg-status-reduce-bg text-status-reduce-text',
+  보류: 'border-status-research-border bg-status-research-bg text-status-research-text',
+  리밸런싱:
+    'border-status-research-border bg-status-research-bg text-status-research-text',
+  '차익 실현': 'border-status-buy-border bg-status-buy-bg text-status-buy-text',
+  손절: 'border-status-risk-border bg-status-risk-bg text-status-risk-text',
 }
 
 export const riskLevelClassNames: Record<RiskLevel, string> = {

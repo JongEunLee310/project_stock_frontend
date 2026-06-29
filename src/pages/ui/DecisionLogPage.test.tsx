@@ -3,30 +3,65 @@ import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { vi } from 'vitest'
 
 import { appRouteObjects } from '@/app/router'
+import type { DecisionLog } from '@/features/decision-log/adapters'
 import { AuthProvider } from '@/shared/auth/AuthProvider'
 import {
   setupAuthenticatedUser,
   teardownAuthenticatedUser,
 } from '@/test-utils/authTestSetup'
 
+const createDecisionLogMutate = vi.fn()
+const decisionLogsFixture: DecisionLog[] = [
+  {
+    id: '1',
+    symbol: 'NVDA',
+    decisionType: '매수 검토',
+    decisionStatus: '열림',
+    rationale: '실적 발표 전 매수 후보로만 추적한다.',
+    cognitiveRisks: ['밸류에이션'],
+    createdBy: '사용자',
+    reviewDate: null,
+    createdAt: '2026. 05. 24. 09:00',
+  },
+  {
+    id: '2',
+    symbol: 'TSLA',
+    decisionType: '매도 검토',
+    decisionStatus: '검토됨',
+    rationale: '마진 둔화 가능성을 확인한다.',
+    cognitiveRisks: ['마진 압박'],
+    createdBy: 'AI',
+    reviewDate: '2026-07-01T00:00:00.000Z',
+    createdAt: '2026. 05. 23. 09:00',
+  },
+]
+
+let decisionLogsState: {
+  data: DecisionLog[]
+  error: Error | null
+  isError: boolean
+  isLoading: boolean
+}
+
 vi.mock('@/features/decision-log/queries', () => ({
-  useDecisionLogs: () => ({
-    data: [],
-    error: null,
-    isError: false,
-    isLoading: false,
-    refetch: vi.fn(),
-  }),
+  useDecisionLogs: () => decisionLogsState,
   useCreateDecisionLog: () => ({
     error: null,
     isError: false,
     isPending: false,
-    mutate: vi.fn(),
+    mutate: createDecisionLogMutate,
   }),
 }))
 
 beforeEach(() => {
   setupAuthenticatedUser()
+  createDecisionLogMutate.mockReset()
+  decisionLogsState = {
+    data: decisionLogsFixture,
+    error: null,
+    isError: false,
+    isLoading: false,
+  }
 })
 
 afterEach(() => {
@@ -56,12 +91,12 @@ describe('DecisionLogPage', () => {
     ).toBeVisible()
     expect(screen.getByText('총 기록 수')).toBeVisible()
     expect(screen.getByText('이번 주 기록')).toBeVisible()
-    expect(screen.getAllByText('관망 유지').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('리스크 증가 검토').length).toBeGreaterThan(0)
-    expect(screen.getByText('13건')).toBeVisible()
+    expect(screen.getAllByText('관망').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('매도 검토').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('2건').length).toBeGreaterThan(0)
   })
 
-  it('renders local decision rows with symbol, decision type, and status badges', async () => {
+  it('renders server decision rows with symbol, decision type, and status badges', async () => {
     renderDecisionLog()
 
     const table = await screen.findByRole('table', { name: '판단 기록 로그' })
@@ -70,11 +105,12 @@ describe('DecisionLogPage', () => {
       'href',
       '/research/NVDA',
     )
-    expect(within(table).getAllByText('관망 유지').length).toBeGreaterThan(0)
+    expect(within(table).getByRole('link', { name: 'TSLA' })).toBeVisible()
+    expect(within(table).getByText('매수 검토')).toBeVisible()
     expect(within(table).getAllByText('열림').length).toBeGreaterThan(0)
   })
 
-  it('prepends a locally saved decision to the table', async () => {
+  it('calls create mutation with the backend create body', async () => {
     renderDecisionLog()
 
     await screen.findByRole('heading', { name: '판단 기록' })
@@ -89,16 +125,26 @@ describe('DecisionLogPage', () => {
       target: { value: '실적 발표 전 매수 후보로만 추적한다.' },
     })
     fireEvent.click(screen.getByLabelText('밸류에이션'))
-    fireEvent.change(screen.getByLabelText('재검토 일정'), {
-      target: { value: '2026-07-15' },
-    })
     fireEvent.click(screen.getByRole('button', { name: '저장' }))
 
-    const table = screen.getByRole('table', { name: '판단 기록 로그' })
-
-    expect(within(table).getByRole('link', { name: 'IBM' })).toBeVisible()
-    expect(screen.getByText('14건')).toBeVisible()
-    expect(screen.getByLabelText('종목')).toHaveValue('')
+    expect(createDecisionLogMutate).toHaveBeenCalledWith(
+      {
+        ticker: 'IBM',
+        decision_type: 'BUY_CONSIDER',
+        reason: '실적 발표 전 매수 후보로만 추적한다.',
+        cognitive_risks: ['밸류에이션'],
+      },
+      expect.objectContaining({
+        onSuccess: expect.any(Function),
+        onError: expect.any(Function),
+      }),
+    )
+    expect(createDecisionLogMutate.mock.calls[0][0]).not.toHaveProperty(
+      'reviewDate',
+    )
+    expect(createDecisionLogMutate.mock.calls[0][0]).not.toHaveProperty(
+      'reviewed_at',
+    )
   })
 
   it('resets form inputs without saving', async () => {
@@ -118,6 +164,20 @@ describe('DecisionLogPage', () => {
     expect(screen.getByLabelText('종목')).toHaveValue('')
     expect(screen.getByLabelText('판단 이유')).toHaveValue('')
     expect(screen.getByLabelText('경쟁 심화')).not.toBeChecked()
+  })
+
+  it('renders empty state when the server returns no decision logs', async () => {
+    decisionLogsState = {
+      data: [],
+      error: null,
+      isError: false,
+      isLoading: false,
+    }
+
+    renderDecisionLog()
+
+    expect(await screen.findByText('기록된 판단이 없습니다.')).toBeVisible()
+    expect(screen.queryByRole('link', { name: 'NVDA' })).not.toBeInTheDocument()
   })
 
   it('renders frequent decision patterns', async () => {

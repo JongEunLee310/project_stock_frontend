@@ -182,8 +182,8 @@ describe('DashboardPage', () => {
 
     expect(within(table).getByRole('link', { name: 'NVDA' })).toBeVisible()
     expect(within(table).getByRole('link', { name: 'TSLA' })).toBeVisible()
-    expect(within(table).getAllByText('관망 유지').length).toBeGreaterThan(0)
-    expect(within(table).getByText('리스크 증가 검토')).toBeVisible()
+    expect(within(table).getAllByText('보유 유지').length).toBeGreaterThan(0)
+    expect(within(table).getByText('매도 검토')).toBeVisible()
   })
 
   it('renders section links to related routes', async () => {
