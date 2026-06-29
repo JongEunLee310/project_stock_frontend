@@ -1,13 +1,17 @@
 import { useMemo, useState, type FormEvent, type MouseEvent } from 'react'
 import { Link } from 'react-router-dom'
 
-import type { DecisionLog } from '@/features/decision-log/adapters'
+import type {
+  DecisionLog,
+  DecisionTypeCount,
+  ReviewedDecision,
+} from '@/features/decision-log/adapters'
 import {
   useCreateDecisionLog,
   useDecisionLogs,
+  useDecisionLogStats,
 } from '@/features/decision-log/queries'
 import { appRoutePaths } from '@/shared/config/navigation'
-import { mockDecisionPatterns, mockReviewMemos } from '@/shared/mock'
 import {
   cognitiveRisks,
   decisionTypeCodeByLabel,
@@ -49,6 +53,8 @@ const textareaClassName =
   'min-h-24 rounded-control border border-cockpit-border bg-cockpit-surface px-3 py-2 text-sm leading-6 text-cockpit-text outline-none transition-colors placeholder:text-cockpit-text-muted focus:border-cockpit-accent focus:ring-2 focus:ring-cockpit-accent/30'
 
 const emptyDecisionLogs: DecisionLog[] = []
+const emptyPatterns: DecisionTypeCount[] = []
+const emptyRecentReviewed: ReviewedDecision[] = []
 
 function getResearchPath(symbol: string) {
   return appRoutePaths.research.replace(':symbol', symbol)
@@ -233,10 +239,14 @@ function DecisionForm({
 
 export function DecisionLogPage() {
   const decisionLogsQuery = useDecisionLogs()
+  const decisionLogStatsQuery = useDecisionLogStats()
   const createDecisionLog = useCreateDecisionLog()
   const [form, setForm] = useState<DecisionFormState>(initialFormState)
   const [formError, setFormError] = useState<string | null>(null)
   const logs = decisionLogsQuery.data ?? emptyDecisionLogs
+  const patterns = decisionLogStatsQuery.data?.patterns ?? emptyPatterns
+  const recentReviewed =
+    decisionLogStatsQuery.data?.recentReviewed ?? emptyRecentReviewed
 
   const summary = useMemo(() => {
     const recentThreshold = getRecentThreshold(logs)
@@ -254,18 +264,6 @@ export function DecisionLogPage() {
       sellConsider,
     }
   }, [logs])
-
-  const sortedPatterns = useMemo(
-    () =>
-      [...mockDecisionPatterns].sort(
-        (first, second) => second.count - first.count,
-      ),
-    [],
-  )
-  const patternTotal = sortedPatterns.reduce(
-    (total, pattern) => total + pattern.count,
-    0,
-  )
 
   const columns = useMemo<Array<TableColumn<DecisionLog>>>(
     () => [
@@ -459,65 +457,74 @@ export function DecisionLogPage() {
             <h2 className="mb-4 text-lg font-semibold text-cockpit-text">
               자주 나온 판단 패턴
             </h2>
-            {/* TODO: BE 미지원. 판단 패턴은 후속 API까지 mock을 유지한다. */}
-            <ul className="flex flex-col gap-4">
-              {sortedPatterns.map((pattern) => {
-                const percent =
-                  patternTotal === 0
-                    ? 0
-                    : Math.round((pattern.count / patternTotal) * 100)
-
-                return (
-                  <li key={pattern.id} className="flex flex-col gap-2">
+            {decisionLogStatsQuery.isLoading ? (
+              <Skeleton lines={4} />
+            ) : decisionLogStatsQuery.isError || patterns.length === 0 ? (
+              <EmptyState title="집계된 판단이 없습니다." className="py-6" />
+            ) : (
+              <ul className="flex flex-col gap-4">
+                {patterns.map((pattern) => (
+                  <li key={pattern.type} className="flex flex-col gap-2">
                     <div className="flex items-center justify-between gap-3 text-sm">
                       <span className="font-medium text-cockpit-text">
                         {pattern.label}
                       </span>
                       <span className="text-cockpit-text-muted">
-                        {percent}% ({pattern.count}건)
+                        {pattern.percent}% ({pattern.count}건)
                       </span>
                     </div>
                     <div
                       className="h-2 rounded-full bg-cockpit-surface-muted"
                       role="meter"
-                      aria-label={`${pattern.label} ${percent}%`}
+                      aria-label={`${pattern.label} ${pattern.percent}%`}
                       aria-valuemin={0}
                       aria-valuemax={100}
-                      aria-valuenow={percent}
+                      aria-valuenow={pattern.percent}
                     >
                       <div
                         className="h-full rounded-full bg-blue-500"
-                        style={{ width: `${percent}%` }}
+                        style={{ width: `${pattern.percent}%` }}
                       />
                     </div>
                   </li>
-                )
-              })}
-            </ul>
+                ))}
+              </ul>
+            )}
           </Card>
 
           <Card className="border-cockpit-border bg-cockpit-surface/90 shadow-blue-950/20">
             <h2 className="mb-4 text-lg font-semibold text-cockpit-text">
-              최근 복기 메모
+              최근 검토한 판단
             </h2>
-            {/* TODO: BE 미지원. 복기 메모는 후속 API까지 mock을 유지한다. */}
-            <ul className="flex flex-col gap-3">
-              {mockReviewMemos.map((memo) => (
-                <li
-                  key={memo.id}
-                  className="flex flex-col gap-2 rounded-card border border-cockpit-border bg-cockpit-surface-muted/40 p-3"
-                >
-                  <h3 className="font-semibold text-cockpit-text">
-                    <span className="text-blue-300">
-                      {memo.symbol} 판단 복기
+            {decisionLogStatsQuery.isLoading ? (
+              <Skeleton lines={5} />
+            ) : decisionLogStatsQuery.isError || recentReviewed.length === 0 ? (
+              <EmptyState title="검토한 판단이 없습니다." className="py-6" />
+            ) : (
+              <ul className="flex flex-col gap-3">
+                {recentReviewed.map((decision) => (
+                  <li
+                    key={decision.id}
+                    className="flex flex-col gap-2 rounded-card border border-cockpit-border bg-cockpit-surface-muted/40 p-3"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <h3 className="font-semibold text-cockpit-text">
+                        <span className="text-blue-300">{decision.symbol}</span>
+                      </h3>
+                      <Badge tone="info" className="min-h-6 text-xs">
+                        {decision.decisionTypeLabel}
+                      </Badge>
+                    </div>
+                    <p className="text-sm leading-6 text-cockpit-text-muted">
+                      {decision.note}
+                    </p>
+                    <span className="text-xs font-medium text-cockpit-text-muted">
+                      {decision.reviewedAt}
                     </span>
-                  </h3>
-                  <p className="text-sm leading-6 text-cockpit-text-muted">
-                    {memo.memo}
-                  </p>
-                </li>
-              ))}
-            </ul>
+                  </li>
+                ))}
+              </ul>
+            )}
           </Card>
         </aside>
       </div>

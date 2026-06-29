@@ -4,6 +4,7 @@ import { vi } from 'vitest'
 
 import { appRouteObjects } from '@/app/router'
 import type { DecisionLog } from '@/features/decision-log/adapters'
+import type { DecisionLogStats } from '@/features/decision-log/queries'
 import { AuthProvider } from '@/shared/auth/AuthProvider'
 import {
   setupAuthenticatedUser,
@@ -42,9 +43,16 @@ let decisionLogsState: {
   isError: boolean
   isLoading: boolean
 }
+let decisionLogStatsState: {
+  data: DecisionLogStats
+  error: Error | null
+  isError: boolean
+  isLoading: boolean
+}
 
 vi.mock('@/features/decision-log/queries', () => ({
   useDecisionLogs: () => decisionLogsState,
+  useDecisionLogStats: () => decisionLogStatsState,
   useCreateDecisionLog: () => ({
     error: null,
     isError: false,
@@ -62,6 +70,36 @@ beforeEach(() => {
     isError: false,
     isLoading: false,
   }
+  decisionLogStatsState = {
+    data: {
+      patterns: [
+        {
+          type: 'BUY_CONSIDER',
+          label: '매수 검토',
+          count: 3,
+          percent: 75,
+        },
+        {
+          type: 'WATCH',
+          label: '관망',
+          count: 1,
+          percent: 25,
+        },
+      ],
+      recentReviewed: [
+        {
+          id: '10',
+          symbol: 'NVDA',
+          decisionTypeLabel: '매수 검토',
+          note: '실적 발표 후 판단을 검토했다.',
+          reviewedAt: '2026. 05. 25. 09:00',
+        },
+      ],
+    },
+    error: null,
+    isError: false,
+    isLoading: false,
+  }
 })
 
 afterEach(() => {
@@ -73,13 +111,13 @@ function renderDecisionLog() {
     initialEntries: ['/decision-log'],
   })
 
-  render(
+  const renderResult = render(
     <AuthProvider>
       <RouterProvider router={router} />
     </AuthProvider>,
   )
 
-  return router
+  return { router, ...renderResult }
 }
 
 describe('DecisionLogPage', () => {
@@ -180,7 +218,7 @@ describe('DecisionLogPage', () => {
     expect(screen.queryByRole('link', { name: 'NVDA' })).not.toBeInTheDocument()
   })
 
-  it('renders frequent decision patterns', async () => {
+  it('renders frequent decision patterns from stats data', async () => {
     renderDecisionLog()
 
     await screen.findByRole('heading', { name: '판단 기록' })
@@ -190,29 +228,82 @@ describe('DecisionLogPage', () => {
       .closest('section')
 
     expect(panel).not.toBeNull()
-    expect(within(panel as HTMLElement).getByText('관망 유지')).toBeVisible()
+    expect(within(panel as HTMLElement).getByText('매수 검토')).toBeVisible()
+    expect(within(panel as HTMLElement).getByText('75% (3건)')).toBeVisible()
     expect(
       within(panel as HTMLElement).getByRole('meter', {
-        name: '관망 유지 38%',
+        name: '매수 검토 75%',
       }),
-    ).toHaveAttribute('aria-valuenow', '38')
+    ).toHaveAttribute('aria-valuenow', '75')
   })
 
-  it('renders recent review memos', async () => {
+  it('renders recent reviewed decisions from stats data', async () => {
     renderDecisionLog()
 
     await screen.findByRole('heading', { name: '판단 기록' })
 
     const panel = screen
-      .getByRole('heading', { name: '최근 복기 메모' })
+      .getByRole('heading', { name: '최근 검토한 판단' })
       .closest('section')
 
     expect(panel).not.toBeNull()
+    expect(within(panel as HTMLElement).getByText('NVDA')).toBeVisible()
+    expect(within(panel as HTMLElement).getByText('매수 검토')).toBeVisible()
     expect(
-      within(panel as HTMLElement).getByText('NVDA 판단 복기'),
+      within(panel as HTMLElement).getByText('실적 발표 후 판단을 검토했다.'),
+    ).toBeVisible()
+    expect(
+      within(panel as HTMLElement).getByText('2026. 05. 25. 09:00'),
     ).toBeVisible()
     expect(
       within(panel as HTMLElement).getAllByRole('listitem').length,
     ).toBeGreaterThan(0)
+  })
+
+  it('renders loading state for stats cards only', async () => {
+    decisionLogStatsState = {
+      data: {
+        patterns: [],
+        recentReviewed: [],
+      },
+      error: null,
+      isError: false,
+      isLoading: true,
+    }
+
+    const { container } = renderDecisionLog()
+
+    await screen.findByRole('heading', { name: '판단 기록' })
+
+    expect(screen.getByRole('table', { name: '판단 기록 로그' })).toBeVisible()
+    expect(container.querySelectorAll('.animate-pulse').length).toBeGreaterThan(
+      0,
+    )
+    expect(
+      screen.queryByText('집계된 판단이 없습니다.'),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByText('검토한 판단이 없습니다.'),
+    ).not.toBeInTheDocument()
+  })
+
+  it('renders empty states when stats data is empty', async () => {
+    decisionLogStatsState = {
+      data: {
+        patterns: [],
+        recentReviewed: [],
+      },
+      error: null,
+      isError: false,
+      isLoading: false,
+    }
+
+    renderDecisionLog()
+
+    await screen.findByRole('heading', { name: '판단 기록' })
+
+    expect(screen.getByText('집계된 판단이 없습니다.')).toBeVisible()
+    expect(screen.getByText('검토한 판단이 없습니다.')).toBeVisible()
+    expect(screen.getByRole('table', { name: '판단 기록 로그' })).toBeVisible()
   })
 })

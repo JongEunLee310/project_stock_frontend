@@ -25,6 +25,22 @@ export interface DecisionLogDto {
   updated_at: string
 }
 
+export interface ReviewedDecisionDto {
+  id: number
+  ticker: string
+  company_name?: string | null
+  decision_type: string
+  reason?: string | null
+  risk_note?: string | null
+  reviewed_at: string
+}
+
+export interface DecisionLogStatsDto {
+  decision_type_counts: Record<string, number>
+  total: number
+  recent_reviewed: ReviewedDecisionDto[]
+}
+
 export interface CreateDecisionLogBody {
   ticker: string
   decision_type: string

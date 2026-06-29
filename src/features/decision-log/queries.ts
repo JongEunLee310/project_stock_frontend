@@ -8,12 +8,29 @@ import {
 
 import { apiGet, apiPost } from '@/shared/api/client'
 
-import { adaptDecisionLog, type DecisionLog } from './adapters'
-import type { CreateDecisionLogBody, DecisionLogDto } from './dto'
+import {
+  adaptDecisionLog,
+  adaptDecisionTypeCounts,
+  adaptReviewedDecision,
+  type DecisionLog,
+  type DecisionTypeCount,
+  type ReviewedDecision,
+} from './adapters'
+import type {
+  CreateDecisionLogBody,
+  DecisionLogDto,
+  DecisionLogStatsDto,
+} from './dto'
 
 export const decisionLogQueryKey = ['decision-logs'] as const
+export const decisionLogStatsQueryKey = ['decision-logs', 'stats'] as const
 
 type DecisionLogListData = DecisionLogDto[] | { items: DecisionLogDto[] }
+
+export interface DecisionLogStats {
+  patterns: DecisionTypeCount[]
+  recentReviewed: ReviewedDecision[]
+}
 
 function extractDecisionLogItems(data: DecisionLogListData): DecisionLogDto[] {
   return Array.isArray(data) ? data : data.items
@@ -26,6 +43,23 @@ export function useDecisionLogs(): UseQueryResult<DecisionLog[]> {
       const { data } = await apiGet<DecisionLogListData>('/decision-logs')
 
       return extractDecisionLogItems(data).map(adaptDecisionLog)
+    },
+  })
+}
+
+export function useDecisionLogStats(): UseQueryResult<DecisionLogStats> {
+  return useQuery<DecisionLogStats>({
+    queryKey: decisionLogStatsQueryKey,
+    queryFn: async () => {
+      const { data } = await apiGet<DecisionLogStatsDto>('/decision-logs/stats')
+
+      return {
+        patterns: adaptDecisionTypeCounts(
+          data.decision_type_counts,
+          data.total,
+        ),
+        recentReviewed: data.recent_reviewed.map(adaptReviewedDecision),
+      }
     },
   })
 }
