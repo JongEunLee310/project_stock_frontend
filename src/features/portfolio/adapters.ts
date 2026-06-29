@@ -1,4 +1,5 @@
 import { parseDecimal } from '@/shared/lib/format'
+import type { PortfolioRiskExposure, RiskLevel } from '@/shared/model'
 
 import type { AssetDto, PortfolioSummaryDto } from './dto'
 
@@ -26,6 +27,15 @@ export interface PortfolioView {
   dayChangePercent: number
   holdings: PortfolioHoldingView[]
   sectorExposure: PortfolioSectorExposure[]
+  riskExposures: PortfolioRiskExposure[]
+}
+
+function toRiskLevel(level: string): RiskLevel {
+  if (level === 'HIGH') {
+    return '높음'
+  }
+
+  return '중간'
 }
 
 export function adaptPortfolioSummary(
@@ -61,5 +71,11 @@ export function adaptPortfolioSummary(
         value: (parseDecimal(sector.weight) ?? 0) * 100,
       }))
       .sort((first, second) => second.value - first.value),
+    riskExposures: (dto.risk_exposures ?? []).map((risk) => ({
+      id: risk.code,
+      label: risk.label,
+      level: toRiskLevel(risk.level),
+      description: risk.description,
+    })),
   }
 }

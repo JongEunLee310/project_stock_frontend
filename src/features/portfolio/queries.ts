@@ -42,6 +42,7 @@ export function usePortfolioSummary() {
           dayChangePercent: 0,
           holdings: [],
           sectorExposure: [],
+          riskExposures: [],
         }
       }
 

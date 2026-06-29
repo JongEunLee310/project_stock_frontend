@@ -440,28 +440,34 @@ export function PortfolioPageView({ portfolio }: { portfolio: PortfolioView }) {
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[1.25fr_0.75fr]">
-        {/* riskExposures, aiBriefing은 BE 출처가 없어 후속 API까지 mock을 유지한다. */}
+        {/* aiBriefing은 BE 출처가 없어 후속 API까지 mock을 유지한다. */}
         <div className="grid gap-4">
           <Card className="border-cockpit-border bg-cockpit-surface/80">
             <PanelTitle title="리스크 노출 분석" />
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-              {mockPortfolio.riskExposures.map((risk) => (
-                <article
-                  key={risk.id}
-                  className="rounded-card border border-cockpit-border bg-cockpit-surface-muted/40 p-4"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <h3 className="font-semibold text-cockpit-text">
-                      {risk.label}
-                    </h3>
-                    <Badge riskLevel={risk.level}>{risk.level}</Badge>
-                  </div>
-                  <p className="mt-3 text-sm leading-6 text-cockpit-text-muted">
-                    {risk.description}
-                  </p>
-                </article>
-              ))}
-            </div>
+            {portfolio.riskExposures.length > 0 ? (
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                {portfolio.riskExposures.map((risk) => (
+                  <article
+                    key={risk.id}
+                    className="rounded-card border border-cockpit-border bg-cockpit-surface-muted/40 p-4"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <h3 className="font-semibold text-cockpit-text">
+                        {risk.label}
+                      </h3>
+                      <Badge riskLevel={risk.level}>{risk.level}</Badge>
+                    </div>
+                    <p className="mt-3 text-sm leading-6 text-cockpit-text-muted">
+                      {risk.description}
+                    </p>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className="rounded-card border border-cockpit-border bg-cockpit-surface-muted/40 p-4 text-sm text-cockpit-text-muted">
+                현재 감지된 리스크 노출이 없습니다.
+              </p>
+            )}
           </Card>
         </div>
 
