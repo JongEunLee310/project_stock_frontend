@@ -9,6 +9,8 @@ import { PortfolioPage, PortfolioPageView } from './PortfolioPage'
 const portfolioView: PortfolioView = {
   totalValue: 128_734_000,
   cash: 29_234_000,
+  dayChangeValue: 1_292_000,
+  dayChangePercent: 1.02,
   holdings: [
     {
       assetId: 1,
@@ -87,7 +89,9 @@ describe('PortfolioPage', () => {
     expect(screen.getAllByText('₩128,734,000').length).toBeGreaterThan(0)
     expect(screen.getByText('현금 비중')).toBeVisible()
     expect(screen.getAllByText('22.7%').length).toBeGreaterThan(0)
-    expect(screen.queryByText('일간 손익')).not.toBeInTheDocument()
+    expect(screen.getByText('일간 변동')).toBeVisible()
+    expect(screen.getByText('₩1,292,000')).toBeVisible()
+    expect(screen.getByText('1%')).toBeVisible()
   })
 
   it('renders allocation, sector exposure, and concentration labels', () => {

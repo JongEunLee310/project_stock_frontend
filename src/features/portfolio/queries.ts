@@ -35,7 +35,14 @@ export function usePortfolioSummary() {
       const firstPortfolio = portfolios[0]
 
       if (!firstPortfolio) {
-        return { totalValue: 0, cash: 0, holdings: [], sectorExposure: [] }
+        return {
+          totalValue: 0,
+          cash: 0,
+          dayChangeValue: 0,
+          dayChangePercent: 0,
+          holdings: [],
+          sectorExposure: [],
+        }
       }
 
       const { data: summary } = await apiGet<PortfolioSummaryDto>(
