@@ -47,6 +47,20 @@ const portfolioView: PortfolioView = {
     { name: '정보기술', amount: 31_400_000, value: 31.6 },
     { name: 'ETF', amount: 45_200_000, value: 45.4 },
   ],
+  riskExposures: [
+    {
+      id: 'sector-semiconductor',
+      label: '반도체 쏠림 위험',
+      level: '높음',
+      description: '반도체 관련 종목 비중이 높습니다.',
+    },
+    {
+      id: 'cash-buffer',
+      label: '현금 완충 부족',
+      level: '중간',
+      description: '현금 비중이 목표보다 낮습니다.',
+    },
+  ],
 }
 
 const refetchPortfolioSummary = vi.fn()
@@ -113,10 +127,21 @@ describe('PortfolioPage', () => {
     expect(screen.getByText('리스크 노출 분석')).toBeVisible()
     expect(screen.getAllByText('반도체 쏠림 위험').length).toBeGreaterThan(0)
     expect(screen.getAllByText('높음').length).toBeGreaterThan(0)
+    expect(screen.getByText('현금 완충 부족')).toBeVisible()
+    expect(screen.getAllByText('중간').length).toBeGreaterThan(0)
     expect(screen.getAllByText('포트폴리오 브리핑').length).toBeGreaterThan(0)
     expect(screen.getByText('권고 요약')).toBeVisible()
     expect(
       screen.getByText(/현금 비중을 25~30% 수준으로 확대 검토/),
+    ).toBeVisible()
+  })
+
+  it('renders an empty state when risk exposures are empty', () => {
+    renderPortfolio({ ...portfolioView, riskExposures: [] })
+
+    expect(screen.getByText('리스크 노출 분석')).toBeVisible()
+    expect(
+      screen.getByText('현재 감지된 리스크 노출이 없습니다.'),
     ).toBeVisible()
   })
 

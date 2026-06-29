@@ -25,6 +25,13 @@ export interface PortfolioSectorWeightDto {
   exceeds_threshold: boolean
 }
 
+export interface RiskExposureDto {
+  code: string
+  label: string
+  level: string
+  description: string
+}
+
 export interface PortfolioSummaryDto {
   portfolio_id: number
   concentration_threshold: string | null
@@ -37,6 +44,7 @@ export interface PortfolioSummaryDto {
   has_sector_concentration: boolean
   positions: PortfolioPositionDto[]
   sector_weights: PortfolioSectorWeightDto[]
+  risk_exposures?: RiskExposureDto[] | null
 }
 
 export interface AssetDto {

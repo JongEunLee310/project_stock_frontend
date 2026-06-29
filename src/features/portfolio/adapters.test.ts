@@ -33,6 +33,20 @@ const summaryDto: PortfolioSummaryDto = {
       exceeds_threshold: true,
     },
   ],
+  risk_exposures: [
+    {
+      code: 'sector-semiconductor',
+      label: '반도체 쏠림 위험',
+      level: 'HIGH',
+      description: '반도체 관련 종목 비중이 높습니다.',
+    },
+    {
+      code: 'cash-buffer',
+      label: '현금 완충 부족',
+      level: 'MEDIUM',
+      description: '현금 비중이 목표보다 낮습니다.',
+    },
+  ],
 }
 
 const assetDto: AssetDto = {
@@ -68,6 +82,20 @@ describe('adaptPortfolioSummary', () => {
       amount: 1956.4,
     })
     expect(view.sectorExposure[0].value).toBeCloseTo(95.1371328535)
+    expect(view.riskExposures).toEqual([
+      {
+        id: 'sector-semiconductor',
+        label: '반도체 쏠림 위험',
+        level: '높음',
+        description: '반도체 관련 종목 비중이 높습니다.',
+      },
+      {
+        id: 'cash-buffer',
+        label: '현금 완충 부족',
+        level: '중간',
+        description: '현금 비중이 목표보다 낮습니다.',
+      },
+    ])
   })
 
   it('falls back to asset id and UNKNOWN when asset lookup is missing', () => {
@@ -133,6 +161,20 @@ describe('adaptPortfolioSummary', () => {
         new Map(),
       ),
     ).toMatchObject({ holdings: [], sectorExposure: [] })
+  })
+
+  it('falls back missing risk exposures to an empty list', () => {
+    const summaryWithoutRiskExposures: Partial<PortfolioSummaryDto> = {
+      ...summaryDto,
+    }
+    delete summaryWithoutRiskExposures.risk_exposures
+
+    expect(
+      adaptPortfolioSummary(
+        summaryWithoutRiskExposures as PortfolioSummaryDto,
+        new Map([[1, assetDto]]),
+      ).riskExposures,
+    ).toEqual([])
   })
 
   it('falls back missing day change fields to zero', () => {
