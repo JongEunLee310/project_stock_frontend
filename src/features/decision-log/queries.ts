@@ -13,17 +13,20 @@ import type { CreateDecisionLogBody, DecisionLogDto } from './dto'
 
 export const decisionLogQueryKey = ['decision-logs'] as const
 
+type DecisionLogListData = DecisionLogDto[] | { items: DecisionLogDto[] }
+
+function extractDecisionLogItems(data: DecisionLogListData): DecisionLogDto[] {
+  return Array.isArray(data) ? data : data.items
+}
+
 export function useDecisionLogs(): UseQueryResult<DecisionLog[]> {
   return useQuery<DecisionLog[]>({
     queryKey: decisionLogQueryKey,
-    enabled: false,
-    // G10 BE 미완 — enabled: false
     queryFn: async () => {
-      const { data } = await apiGet<DecisionLogDto[]>('/decision-logs')
+      const { data } = await apiGet<DecisionLogListData>('/decision-logs')
 
-      return data.map(adaptDecisionLog)
+      return extractDecisionLogItems(data).map(adaptDecisionLog)
     },
-    initialData: [],
   })
 }
 

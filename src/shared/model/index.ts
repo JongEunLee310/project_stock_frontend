@@ -4,8 +4,13 @@ export { cognitiveRisks } from './cognitiveRisk'
 export type { CognitiveRisk } from './cognitiveRisk'
 export { decisionOutcomes } from './decisionOutcome'
 export type { DecisionOutcome } from './decisionOutcome'
-export { decisionTypes } from './decisionType'
-export type { DecisionType } from './decisionType'
+export {
+  decisionTypeCodeByLabel,
+  decisionTypeLabels,
+  decisionTypes,
+  toDecisionTypeLabel,
+} from './decisionType'
+export type { DecisionType, DecisionTypeCode } from './decisionType'
 export { newsCategories } from './newsCategory'
 export type { NewsCategory } from './newsCategory'
 export { riskLevels } from './riskLevel'
