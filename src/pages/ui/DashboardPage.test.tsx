@@ -3,13 +3,156 @@ import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { vi } from 'vitest'
 
 import { appRouteObjects } from '@/app/router'
+import type { DecisionLog } from '@/features/decision-log/adapters'
+import type { Signal } from '@/features/signals/adapters'
+import type { WatchlistAssetRow } from '@/features/watchlist/adapters'
 import { AuthProvider } from '@/shared/auth/AuthProvider'
 import {
   setupAuthenticatedUser,
   teardownAuthenticatedUser,
 } from '@/test-utils/authTestSetup'
 
+interface QueryState<T> {
+  data: T | undefined
+  error: Error | null
+  isError: boolean
+  isLoading: boolean
+  refetch: () => unknown
+}
+
 const refetchDashboardSummary = vi.fn()
+const refetchSignals = vi.fn()
+const refetchDecisionLogs = vi.fn()
+const refetchWatchlistAssets = vi.fn()
+
+const signalRows: Signal[] = [
+  {
+    id: '1',
+    assetId: 1,
+    symbol: 'NVDA',
+    companyName: 'NVIDIA Corp.',
+    signalType: 'BUY_CANDIDATE',
+    signalTypeLabel: '매수 후보',
+    score: 86,
+    riskLevel: '중간',
+    reason: 'Data center demand remains above the prior quarter run rate.',
+    evidence: null,
+    createdAt: '2026. 05. 24. 09:00',
+    expiresAt: '2026. 06. 24. 09:00',
+    sparkline: [],
+  },
+  {
+    id: '2',
+    assetId: 2,
+    symbol: 'TSLA',
+    companyName: 'Tesla Inc.',
+    signalType: 'RISK_REVIEW',
+    signalTypeLabel: '리스크 검토',
+    score: 78,
+    riskLevel: '높음',
+    reason: 'Margin risk needs a fresh review.',
+    evidence: null,
+    createdAt: '2026. 05. 23. 09:00',
+    expiresAt: '2026. 06. 23. 09:00',
+    sparkline: [],
+  },
+  {
+    id: '3',
+    assetId: 3,
+    symbol: 'AAPL',
+    companyName: 'Apple Inc.',
+    signalType: 'VALUATION',
+    signalTypeLabel: '밸류에이션',
+    score: 71,
+    riskLevel: '낮음',
+    reason: 'Valuation remains inside the target band.',
+    evidence: null,
+    createdAt: '2026. 05. 22. 09:00',
+    expiresAt: '2026. 06. 22. 09:00',
+    sparkline: [],
+  },
+  {
+    id: '4',
+    assetId: 4,
+    symbol: 'MSFT',
+    companyName: 'Microsoft Corp.',
+    signalType: 'TECHNICAL',
+    signalTypeLabel: '기술적 점검',
+    score: 64,
+    riskLevel: '중간',
+    reason: 'Trend support needs review.',
+    evidence: null,
+    createdAt: '2026. 05. 21. 09:00',
+    expiresAt: '2026. 06. 21. 09:00',
+    sparkline: [],
+  },
+]
+
+const decisionLogRows: DecisionLog[] = [
+  {
+    id: '1',
+    symbol: 'NVDA',
+    decisionType: '보유 유지',
+    decisionStatus: '열림',
+    rationale: '실적 발표 전 보유 판단을 유지한다.',
+    cognitiveRisks: ['밸류에이션'],
+    createdBy: '사용자',
+    reviewDate: null,
+    createdAt: '2026. 05. 24. 09:00',
+  },
+  {
+    id: '2',
+    symbol: 'TSLA',
+    decisionType: '매도 검토',
+    decisionStatus: '검토됨',
+    rationale: '마진 둔화 가능성을 확인한다.',
+    cognitiveRisks: ['마진 압박'],
+    createdBy: 'AI',
+    reviewDate: null,
+    createdAt: '2026. 05. 23. 09:00',
+  },
+  {
+    id: '3',
+    symbol: 'AAPL',
+    decisionType: '관망',
+    decisionStatus: '종료됨',
+    rationale: '신제품 이벤트 전까지 관망한다.',
+    cognitiveRisks: [],
+    createdBy: '시스템',
+    reviewDate: null,
+    createdAt: '2026. 05. 22. 09:00',
+  },
+]
+
+const watchlistRows: WatchlistAssetRow[] = [
+  {
+    id: 1,
+    symbol: 'NVDA',
+    name: 'NVIDIA Corp.',
+    price: 128.72,
+    changePercent: -0.24,
+    sector: 'Technology',
+    reason: 'Core AI exposure',
+    tags: ['ai'],
+    memo: null,
+    createdAt: '2026-05-24T00:21:00.000Z',
+    isFavorite: true,
+  },
+  {
+    id: 2,
+    symbol: 'AAPL',
+    name: 'Apple Inc.',
+    price: null,
+    changePercent: null,
+    sector: 'Technology',
+    reason: null,
+    tags: [],
+    memo: null,
+    createdAt: '2026-05-24T00:20:00.000Z',
+    isFavorite: true,
+  },
+]
+
 let dashboardSummaryQueryState = {
   data: {
     riskAlertCount: 3,
@@ -26,13 +169,50 @@ let dashboardSummaryQueryState = {
   isLoading: false,
   refetch: refetchDashboardSummary,
 }
+let signalsQueryState: QueryState<Signal[]> = {
+  data: signalRows,
+  error: null,
+  isError: false,
+  isLoading: false,
+  refetch: refetchSignals,
+}
+let decisionLogsQueryState: QueryState<DecisionLog[]> = {
+  data: decisionLogRows,
+  error: null,
+  isError: false,
+  isLoading: false,
+  refetch: refetchDecisionLogs,
+}
+let watchlistAssetsQueryState: QueryState<WatchlistAssetRow[]> = {
+  data: watchlistRows,
+  error: null,
+  isError: false,
+  isLoading: false,
+  refetch: refetchWatchlistAssets,
+}
 
 vi.mock('@/features/dashboard/queries', () => ({
   useDashboardSummary: () => dashboardSummaryQueryState,
 }))
 
+vi.mock('@/features/signals/queries', () => ({
+  useSignals: () => signalsQueryState,
+}))
+
+vi.mock('@/features/decision-log/queries', () => ({
+  useDecisionLogs: () => decisionLogsQueryState,
+}))
+
+vi.mock('@/features/watchlist/queries', () => ({
+  useWatchlistAssets: () => watchlistAssetsQueryState,
+}))
+
 beforeEach(() => {
   setupAuthenticatedUser()
+  refetchDashboardSummary.mockReset()
+  refetchSignals.mockReset()
+  refetchDecisionLogs.mockReset()
+  refetchWatchlistAssets.mockReset()
   dashboardSummaryQueryState = {
     data: {
       riskAlertCount: 3,
@@ -48,6 +228,27 @@ beforeEach(() => {
     isError: false,
     isLoading: false,
     refetch: refetchDashboardSummary,
+  }
+  signalsQueryState = {
+    data: signalRows,
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: refetchSignals,
+  }
+  decisionLogsQueryState = {
+    data: decisionLogRows,
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: refetchDecisionLogs,
+  }
+  watchlistAssetsQueryState = {
+    data: watchlistRows,
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: refetchWatchlistAssets,
   }
 })
 
@@ -129,7 +330,7 @@ describe('DashboardPage', () => {
     ).toBeVisible()
   })
 
-  it('renders watchlist status with research links and PER/PEG metrics', async () => {
+  it('renders watchlist prices and change percentages with research links', async () => {
     renderDashboard()
 
     const table = await screen.findByRole('table', { name: '관심 종목 상태' })
@@ -137,11 +338,59 @@ describe('DashboardPage', () => {
 
     expect(nvdaLink).toHaveAttribute('href', '/research/NVDA')
     expect(within(table).getByText('NVIDIA Corp.')).toBeVisible()
-    expect(within(table).getByText('관망')).toBeVisible()
-    expect(within(table).getAllByText('PER').length).toBeGreaterThan(0)
-    expect(within(table).getByText('60.3')).toBeVisible()
-    expect(within(table).getAllByText('PEG').length).toBeGreaterThan(0)
-    expect(within(table).getByText('1.32')).toBeVisible()
+    expect(within(table).getByText('128.72')).toBeVisible()
+    expect(within(table).getByText('-0.24%')).toBeVisible()
+    expect(within(table).getAllByText('—')).toHaveLength(2)
+    expect(within(table).queryByText('관망')).not.toBeInTheDocument()
+    expect(within(table).queryByText('PER')).not.toBeInTheDocument()
+    expect(within(table).queryByText('PEG')).not.toBeInTheDocument()
+    expect(within(table).queryByText('60.3')).not.toBeInTheDocument()
+    expect(within(table).queryByText('1.32')).not.toBeInTheDocument()
+  })
+
+  it('renders loading, error, and empty states for watchlist assets', async () => {
+    watchlistAssetsQueryState = {
+      ...watchlistAssetsQueryState,
+      data: undefined,
+      isLoading: true,
+    }
+    const { container, unmount } = renderDashboard()
+
+    expect(
+      await screen.findByRole('heading', { name: 'AI 투자 관제실' }),
+    ).toBeVisible()
+    expect(
+      screen.queryByRole('table', { name: '관심 종목 상태' }),
+    ).not.toBeInTheDocument()
+    expect(container.querySelectorAll('.animate-pulse').length).toBeGreaterThan(
+      0,
+    )
+
+    unmount()
+    watchlistAssetsQueryState = {
+      ...watchlistAssetsQueryState,
+      data: undefined,
+      error: new Error('network failed'),
+      isError: true,
+      isLoading: false,
+    }
+    const { unmount: unmountError } = renderDashboard()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '관심 종목을 불러오지 못했습니다',
+    )
+
+    unmountError()
+    watchlistAssetsQueryState = {
+      ...watchlistAssetsQueryState,
+      data: [],
+      error: null,
+      isError: false,
+      isLoading: false,
+    }
+    renderDashboard()
+
+    expect(await screen.findByText('표시할 관심 종목이 없습니다')).toBeVisible()
   })
 
   it('renders priority queue titles and risk badges', async () => {
@@ -153,7 +402,7 @@ describe('DashboardPage', () => {
     expect(screen.getAllByText('중간').length).toBeGreaterThan(0)
   })
 
-  it('renders top signals with confidence values', async () => {
+  it('renders top signals with score values', async () => {
     renderDashboard()
 
     await screen.findByRole('heading', { name: 'AI 투자 관제실' })
@@ -173,9 +422,60 @@ describe('DashboardPage', () => {
         screen.getByRole('article', { name: 'AAPL 대시보드 시그널' }),
       ).getByText('71%'),
     ).toBeVisible()
+    expect(
+      screen.queryByRole('article', { name: 'MSFT 대시보드 시그널' }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByText(/Data center demand remains above the prior quarter/),
+    ).toBeVisible()
   })
 
-  it('renders recent decision logs with symbols and decision types', async () => {
+  it('renders loading, error, and empty states for top signals', async () => {
+    signalsQueryState = {
+      ...signalsQueryState,
+      data: undefined,
+      isLoading: true,
+    }
+    const { container, unmount } = renderDashboard()
+
+    expect(
+      await screen.findByRole('heading', { name: 'AI 투자 관제실' }),
+    ).toBeVisible()
+    expect(
+      screen.queryByRole('article', { name: 'NVDA 대시보드 시그널' }),
+    ).not.toBeInTheDocument()
+    expect(container.querySelectorAll('.animate-pulse').length).toBeGreaterThan(
+      0,
+    )
+
+    unmount()
+    signalsQueryState = {
+      ...signalsQueryState,
+      data: undefined,
+      error: new Error('network failed'),
+      isError: true,
+      isLoading: false,
+    }
+    const { unmount: unmountError } = renderDashboard()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '시그널을 불러오지 못했습니다',
+    )
+
+    unmountError()
+    signalsQueryState = {
+      ...signalsQueryState,
+      data: [],
+      error: null,
+      isError: false,
+      isLoading: false,
+    }
+    renderDashboard()
+
+    expect(await screen.findByText('표시할 시그널이 없습니다')).toBeVisible()
+  })
+
+  it('renders recent decision logs with symbols, decision types, and rationales', async () => {
     renderDashboard()
 
     const table = await screen.findByRole('table', { name: '최근 판단 기록' })
@@ -184,6 +484,58 @@ describe('DashboardPage', () => {
     expect(within(table).getByRole('link', { name: 'TSLA' })).toBeVisible()
     expect(within(table).getAllByText('보유 유지').length).toBeGreaterThan(0)
     expect(within(table).getByText('매도 검토')).toBeVisible()
+    expect(
+      within(table).getByText('실적 발표 전 보유 판단을 유지한다.'),
+    ).toBeVisible()
+    expect(
+      within(table).getByText('마진 둔화 가능성을 확인한다.'),
+    ).toBeVisible()
+    expect(within(table).queryByText('decision')).not.toBeInTheDocument()
+  })
+
+  it('renders loading, error, and empty states for recent decision logs', async () => {
+    decisionLogsQueryState = {
+      ...decisionLogsQueryState,
+      data: undefined,
+      isLoading: true,
+    }
+    const { container, unmount } = renderDashboard()
+
+    expect(
+      await screen.findByRole('heading', { name: 'AI 투자 관제실' }),
+    ).toBeVisible()
+    expect(
+      screen.queryByRole('table', { name: '최근 판단 기록' }),
+    ).not.toBeInTheDocument()
+    expect(container.querySelectorAll('.animate-pulse').length).toBeGreaterThan(
+      0,
+    )
+
+    unmount()
+    decisionLogsQueryState = {
+      ...decisionLogsQueryState,
+      data: undefined,
+      error: new Error('network failed'),
+      isError: true,
+      isLoading: false,
+    }
+    const { unmount: unmountError } = renderDashboard()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '판단 기록을 불러오지 못했습니다',
+    )
+
+    unmountError()
+    decisionLogsQueryState = {
+      ...decisionLogsQueryState,
+      data: [],
+      error: null,
+      isError: false,
+      isLoading: false,
+    }
+    renderDashboard()
+
+    expect(await screen.findByText('최근 판단 기록이 없습니다')).toBeVisible()
   })
 
   it('renders section links to related routes', async () => {

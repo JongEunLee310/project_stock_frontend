@@ -1,15 +1,15 @@
 import { Link } from 'react-router-dom'
 
 import { useDashboardSummary } from '@/features/dashboard/queries'
+import type { DecisionLog } from '@/features/decision-log/adapters'
+import { useDecisionLogs } from '@/features/decision-log/queries'
+import type { Signal } from '@/features/signals/adapters'
+import { useSignals } from '@/features/signals/queries'
+import type { WatchlistAssetRow } from '@/features/watchlist/adapters'
+import { useWatchlistAssets } from '@/features/watchlist/queries'
 import { appRoutePaths } from '@/shared/config/navigation'
-import {
-  mockAiBriefing,
-  mockDecisionLogs,
-  mockPriorityQueue,
-  mockSignals,
-  mockStocks,
-} from '@/shared/mock'
-import type { DecisionLog, Signal, Stock, StockStatus } from '@/shared/model'
+import { mockAiBriefing, mockPriorityQueue } from '@/shared/mock'
+import type { DecisionType } from '@/shared/model'
 import {
   Badge,
   BarChart,
@@ -43,13 +43,8 @@ const percentFormatter = new Intl.NumberFormat('ko-KR', {
   maximumFractionDigits: 2,
 })
 
-const dateTimeFormatter = new Intl.DateTimeFormat('ko-KR', {
-  timeZone: 'Asia/Seoul',
-  month: '2-digit',
-  day: '2-digit',
-  hour: '2-digit',
-  minute: '2-digit',
-  hour12: false,
+const priceFormatter = new Intl.NumberFormat('ko-KR', {
+  maximumFractionDigits: 2,
 })
 
 const todayBriefCards: Array<{
@@ -117,29 +112,12 @@ const importantNewsBarData = [44, 62, 78, 52, 84, 38, 68, 90, 26].map(
   (value) => ({ value }),
 )
 
-const dashboardStocks = mockStocks.slice(0, 4)
-const topSignals = [...mockSignals]
-  .sort((first, second) => first.priority - second.priority)
-  .slice(0, 3)
+/* TODO: BE 엔드포인트 없음 — mock 유지 */
 const priorityQueue = [...mockPriorityQueue].sort((first, second) => {
   const riskRank = { 높음: 0, 중간: 1, 낮음: 2 }
 
   return riskRank[first.risk] - riskRank[second.risk]
 })
-const recentDecisionLogs = [...mockDecisionLogs]
-  .sort(
-    (first, second) =>
-      new Date(second.createdAt).getTime() -
-      new Date(first.createdAt).getTime(),
-  )
-  .slice(0, 3)
-
-const dashboardStatusBySymbol: Partial<Record<string, StockStatus>> = {
-  NVDA: '관망',
-  AAPL: '안정',
-  TSLA: '위험 증가',
-  MSFT: '안정',
-}
 
 function getResearchPath(symbol: string) {
   return appRoutePaths.research.replace(':symbol', symbol)
@@ -149,8 +127,16 @@ function formatPercent(value: number) {
   return `${percentFormatter.format(value)}%`
 }
 
-function formatDateTime(value: string) {
-  return dateTimeFormatter.format(new Date(value))
+function formatPrice(value: number | null) {
+  return value === null ? '—' : priceFormatter.format(value)
+}
+
+function formatNullablePercent(value: number | null) {
+  return value === null ? '—' : formatPercent(value)
+}
+
+function normalizeScore(score: number) {
+  return Math.min(100, Math.max(0, Math.round(score)))
 }
 
 function formatMetricValue(value: number, suffix?: string) {
@@ -209,26 +195,6 @@ function MiniVisual({
   )
 }
 
-function StockSparkline({ stock }: { stock: Stock }) {
-  const series = stock.changeSeries ?? []
-  const data = series.map((value, index) => ({ index, value }))
-
-  return (
-    <Sparkline
-      className={classNames(
-        'h-8 w-20',
-        stock.changePercent >= 0 ? 'text-emerald-400' : 'text-rose-400',
-      )}
-      width={80}
-      height={34}
-      data={data}
-      color="currentColor"
-      ariaLabel={`${stock.symbol} 핵심 지표 추이`}
-      margin={{ top: 4, right: 3, bottom: 2, left: 3 }}
-    />
-  )
-}
-
 function SectionTitle({ icon, title }: { icon: string; title: string }) {
   return (
     <div className="flex items-center gap-3">
@@ -253,7 +219,7 @@ function SectionLink({ label, to }: { label: string; to: string }) {
   )
 }
 
-function StockIdentity({ stock }: { stock: Stock }) {
+function StockIdentity({ stock }: { stock: WatchlistAssetRow }) {
   return (
     <div className="flex min-w-28 flex-col">
       <Link
@@ -269,20 +235,21 @@ function StockIdentity({ stock }: { stock: Stock }) {
   )
 }
 
-const stockColumns: Array<TableColumn<Stock>> = [
+const stockColumns: Array<TableColumn<WatchlistAssetRow>> = [
   {
     key: 'stock',
     header: '종목',
     cell: (stock) => <StockIdentity stock={stock} />,
   },
   {
-    key: 'status',
-    header: '상태',
-    cell: (stock) => {
-      const status = dashboardStatusBySymbol[stock.symbol] ?? stock.status
-
-      return <Badge status={status}>{status}</Badge>
-    },
+    key: 'price',
+    header: '가격',
+    align: 'right',
+    cell: (stock) => (
+      <span className="font-semibold text-cockpit-text">
+        {formatPrice(stock.price)}
+      </span>
+    ),
   },
   {
     key: 'change',
@@ -292,34 +259,15 @@ const stockColumns: Array<TableColumn<Stock>> = [
       <span
         className={classNames(
           'font-semibold',
-          stock.changePercent >= 0 ? 'text-emerald-300' : 'text-rose-300',
+          stock.changePercent === null
+            ? 'text-cockpit-text-muted'
+            : stock.changePercent >= 0
+              ? 'text-emerald-300'
+              : 'text-rose-300',
         )}
       >
-        {formatPercent(stock.changePercent)}
+        {formatNullablePercent(stock.changePercent)}
       </span>
-    ),
-  },
-  {
-    key: 'metrics',
-    header: '핵심 지표',
-    cell: (stock) => (
-      <div className="flex items-center justify-end gap-3">
-        <StockSparkline stock={stock} />
-        <div className="flex min-w-16 flex-col gap-0.5 text-sm leading-tight text-cockpit-text-muted">
-          <span>
-            PER{' '}
-            <strong className="font-medium text-cockpit-text">
-              {stock.per}
-            </strong>
-          </span>
-          <span>
-            PEG{' '}
-            <strong className="font-medium text-cockpit-text">
-              {stock.peg}
-            </strong>
-          </span>
-        </div>
-      </div>
     ),
   },
 ]
@@ -330,7 +278,7 @@ const decisionColumns: Array<TableColumn<DecisionLog>> = [
     header: '시간',
     cell: (log) => (
       <span className="whitespace-nowrap text-cockpit-text-muted">
-        {formatDateTime(log.createdAt)}
+        {log.createdAt}
       </span>
     ),
   },
@@ -350,15 +298,17 @@ const decisionColumns: Array<TableColumn<DecisionLog>> = [
     key: 'decisionType',
     header: '판단',
     cell: (log) => (
-      <Badge decisionType={log.decisionType}>{log.decisionType}</Badge>
+      <Badge decisionType={log.decisionType as DecisionType}>
+        {log.decisionType}
+      </Badge>
     ),
   },
   {
-    key: 'decision',
+    key: 'rationale',
     header: '요약',
     cell: (log) => (
       <span className="line-clamp-2 text-cockpit-text-muted">
-        {log.decision}
+        {log.rationale}
       </span>
     ),
   },
@@ -366,11 +316,13 @@ const decisionColumns: Array<TableColumn<DecisionLog>> = [
 
 function SignalCard({ signal }: { signal: Signal }) {
   const toneClassName =
-    signal.status === '위험 증가'
+    signal.riskLevel === '높음'
       ? 'border-rose-400/70 bg-rose-500/10'
-      : signal.status === '추가 리서치 필요'
-        ? 'border-blue-400/70 bg-blue-500/10'
+      : signal.riskLevel === '낮음'
+        ? 'border-emerald-400/70 bg-emerald-500/10'
         : 'border-amber-400/70 bg-amber-500/10'
+  const score = normalizeScore(signal.score)
+  const reasons = [signal.reason]
 
   return (
     <article
@@ -381,27 +333,25 @@ function SignalCard({ signal }: { signal: Signal }) {
         <h3
           className={classNames(
             'text-lg font-bold',
-            signal.status === '위험 증가'
+            signal.riskLevel === '높음'
               ? 'text-rose-300'
-              : signal.status === '추가 리서치 필요'
-                ? 'text-blue-300'
+              : signal.riskLevel === '낮음'
+                ? 'text-emerald-300'
                 : 'text-amber-300',
           )}
         >
-          {signal.status}
+          {signal.signalTypeLabel}
         </h3>
-        <Badge status={signal.status}>{signal.status}</Badge>
+        <Badge riskLevel={signal.riskLevel as '낮음' | '중간' | '높음'} />
       </div>
       <p className="flex items-center justify-between gap-3 text-sm text-cockpit-text-muted">
-        <span>신뢰도</span>
-        <strong className="text-base text-cockpit-text">
-          {signal.confidence}%
-        </strong>
+        <span>점수</span>
+        <strong className="text-base text-cockpit-text">{score}%</strong>
       </p>
       <div className="mt-3">
         <p className="text-sm text-cockpit-text-muted">근거</p>
         <ul className="mt-1 flex flex-col gap-1 text-sm leading-6 text-cockpit-text-muted">
-          {signal.reasons.slice(0, 3).map((reason) => (
+          {reasons.map((reason) => (
             <li key={reason}>• {reason}</li>
           ))}
         </ul>
@@ -421,6 +371,17 @@ function SignalCard({ signal }: { signal: Signal }) {
 
 export function DashboardPage() {
   const dashboardSummaryQuery = useDashboardSummary()
+  const signalsQuery = useSignals()
+  const decisionLogsQuery = useDecisionLogs()
+  const watchlistAssetsQuery = useWatchlistAssets()
+
+  const dashboardStocks = (watchlistAssetsQuery.data ?? []).slice(0, 4)
+  const topSignals = [...(signalsQuery.data ?? [])]
+    .sort((first, second) => second.score - first.score)
+    .slice(0, 3)
+  const recentDecisionLogs = [...(decisionLogsQuery.data ?? [])]
+    .sort((first, second) => second.createdAt.localeCompare(first.createdAt))
+    .slice(0, 3)
 
   return (
     <div className="flex flex-col gap-3">
@@ -512,14 +473,35 @@ export function DashboardPage() {
       <div className="grid gap-3 xl:grid-cols-[1.15fr_0.95fr_1fr]">
         <Card className="flex flex-col gap-4 bg-cockpit-surface/70 p-5">
           <SectionTitle icon="◷" title="관심 종목 상태" />
-          <Table
-            columns={stockColumns}
-            rows={dashboardStocks}
-            getRowKey={(stock) => stock.symbol}
-            emptyMessage="표시할 관심 종목이 없습니다."
-            aria-label="관심 종목 상태"
-            className="border-cockpit-border/80 bg-transparent [&_thead]:normal-case [&_th]:px-3 [&_th]:py-2 [&_td]:px-3 [&_td]:py-2.5"
-          />
+          {watchlistAssetsQuery.isLoading ? (
+            <Skeleton
+              className="min-h-44 rounded-card border border-cockpit-border bg-cockpit-surface-muted/45 p-4"
+              lines={5}
+            />
+          ) : watchlistAssetsQuery.isError ? (
+            <ErrorState
+              title="관심 종목을 불러오지 못했습니다"
+              description={watchlistAssetsQuery.error.message}
+              onRetry={() => {
+                void watchlistAssetsQuery.refetch()
+              }}
+              className="rounded-card border border-cockpit-border bg-cockpit-surface-muted/45"
+            />
+          ) : dashboardStocks.length > 0 ? (
+            <Table
+              columns={stockColumns}
+              rows={dashboardStocks}
+              getRowKey={(stock) => stock.symbol}
+              emptyMessage="표시할 관심 종목이 없습니다."
+              aria-label="관심 종목 상태"
+              className="border-cockpit-border/80 bg-transparent [&_thead]:normal-case [&_th]:px-3 [&_th]:py-2 [&_td]:px-3 [&_td]:py-2.5"
+            />
+          ) : (
+            <EmptyState
+              title="표시할 관심 종목이 없습니다"
+              className="rounded-card border border-cockpit-border bg-cockpit-surface-muted/45"
+            />
+          )}
           <div className="flex justify-center">
             <SectionLink
               label="더 많은 종목 보기"
@@ -530,6 +512,7 @@ export function DashboardPage() {
 
         <Card className="flex flex-col gap-5 bg-cockpit-surface/70 p-6">
           <SectionTitle icon="✦" title="AI 브리핑" />
+          {/* TODO: BE 엔드포인트 없음 — mock 유지 */}
           <p className="text-base leading-7 text-cockpit-text-muted">
             오늘 시장은 개별 종목의 밸류에이션 부담과 뉴스/센티먼트 변동성
             확대가 주요 리스크로 작용하고 있습니다.
@@ -593,11 +576,37 @@ export function DashboardPage() {
       <div className="grid gap-3 xl:grid-cols-[1.45fr_1fr]">
         <Card className="flex flex-col gap-4 bg-cockpit-surface/70 p-5">
           <SectionTitle icon="⌁" title="시그널" />
-          <div className="grid gap-3 lg:grid-cols-3">
-            {topSignals.map((signal) => (
-              <SignalCard key={signal.id} signal={signal} />
-            ))}
-          </div>
+          {signalsQuery.isLoading ? (
+            <div className="grid gap-3 lg:grid-cols-3">
+              {Array.from({ length: 3 }, (_, index) => (
+                <Skeleton
+                  key={index}
+                  className="min-h-56 rounded-card border border-cockpit-border bg-cockpit-surface-muted/45 p-4"
+                  lines={5}
+                />
+              ))}
+            </div>
+          ) : signalsQuery.isError ? (
+            <ErrorState
+              title="시그널을 불러오지 못했습니다"
+              description={signalsQuery.error.message}
+              onRetry={() => {
+                void signalsQuery.refetch()
+              }}
+              className="rounded-card border border-cockpit-border bg-cockpit-surface-muted/45"
+            />
+          ) : topSignals.length > 0 ? (
+            <div className="grid gap-3 lg:grid-cols-3">
+              {topSignals.map((signal) => (
+                <SignalCard key={signal.id} signal={signal} />
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              title="표시할 시그널이 없습니다"
+              className="rounded-card border border-cockpit-border bg-cockpit-surface-muted/45"
+            />
+          )}
           <div className="flex justify-center">
             <SectionLink label="전체 시그널 보기" to={appRoutePaths.signals} />
           </div>
@@ -607,14 +616,35 @@ export function DashboardPage() {
           <h2 className="text-lg font-bold text-cockpit-text">
             최근 판단 기록
           </h2>
-          <Table
-            columns={decisionColumns}
-            rows={recentDecisionLogs}
-            getRowKey={(log) => log.id}
-            emptyMessage="최근 판단 기록이 없습니다."
-            aria-label="최근 판단 기록"
-            className="border-cockpit-border/80 bg-transparent [&_thead]:normal-case [&_th]:px-3 [&_th]:py-2 [&_td]:px-3 [&_td]:py-3"
-          />
+          {decisionLogsQuery.isLoading ? (
+            <Skeleton
+              className="min-h-44 rounded-card border border-cockpit-border bg-cockpit-surface-muted/45 p-4"
+              lines={5}
+            />
+          ) : decisionLogsQuery.isError ? (
+            <ErrorState
+              title="판단 기록을 불러오지 못했습니다"
+              description={decisionLogsQuery.error.message}
+              onRetry={() => {
+                void decisionLogsQuery.refetch()
+              }}
+              className="rounded-card border border-cockpit-border bg-cockpit-surface-muted/45"
+            />
+          ) : recentDecisionLogs.length > 0 ? (
+            <Table
+              columns={decisionColumns}
+              rows={recentDecisionLogs}
+              getRowKey={(log) => log.id}
+              emptyMessage="최근 판단 기록이 없습니다."
+              aria-label="최근 판단 기록"
+              className="border-cockpit-border/80 bg-transparent [&_thead]:normal-case [&_th]:px-3 [&_th]:py-2 [&_td]:px-3 [&_td]:py-3"
+            />
+          ) : (
+            <EmptyState
+              title="최근 판단 기록이 없습니다"
+              className="rounded-card border border-cockpit-border bg-cockpit-surface-muted/45"
+            />
+          )}
           <div className="flex justify-center">
             <SectionLink
               label="전체 기록 보기"
