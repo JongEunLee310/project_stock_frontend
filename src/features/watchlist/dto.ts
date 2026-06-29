@@ -24,3 +24,15 @@ export interface WatchlistItemDto {
   created_at: string
   asset?: WatchlistItemAssetDto
 }
+
+export interface RecentWatchlistItemDto {
+  symbol: string
+  name: string
+  created_at: string
+}
+
+export interface WatchlistSummaryDto {
+  total_count: number
+  risk_increasing_count: number
+  recent_items?: RecentWatchlistItemDto[]
+}

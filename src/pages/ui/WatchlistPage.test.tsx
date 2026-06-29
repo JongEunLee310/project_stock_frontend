@@ -3,7 +3,10 @@ import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { vi } from 'vitest'
 
 import { appRouteObjects } from '@/app/router'
-import type { WatchlistAssetRow } from '@/features/watchlist/adapters'
+import type {
+  WatchlistAssetRow,
+  WatchlistSummaryView,
+} from '@/features/watchlist/adapters'
 import { AuthProvider } from '@/shared/auth/AuthProvider'
 import {
   setupAuthenticatedUser,
@@ -53,6 +56,7 @@ const watchlistRows: WatchlistAssetRow[] = [
 ]
 
 const refetchWatchlistAssets = vi.fn()
+const refetchWatchlistSummary = vi.fn()
 let watchlistAssetsQueryState = {
   data: watchlistRows,
   error: null as Error | null,
@@ -60,9 +64,27 @@ let watchlistAssetsQueryState = {
   isLoading: false,
   refetch: refetchWatchlistAssets,
 }
+let watchlistSummaryQueryState = {
+  data: {
+    totalCount: 12,
+    riskIncreasingCount: 3,
+    recentItems: [
+      {
+        symbol: 'AMD',
+        name: 'Advanced Micro Devices',
+        addedAt: '2026-05-24T00:16:00.000Z',
+      },
+    ],
+  } satisfies WatchlistSummaryView,
+  error: null as Error | null,
+  isError: false,
+  isLoading: false,
+  refetch: refetchWatchlistSummary,
+}
 
 vi.mock('@/features/watchlist/queries', () => ({
   useWatchlistAssets: () => watchlistAssetsQueryState,
+  useWatchlistSummary: () => watchlistSummaryQueryState,
 }))
 
 vi.mock('@/features/research/queries', () => ({
@@ -105,12 +127,31 @@ vi.mock('@/features/research/queries', () => ({
 
 beforeEach(() => {
   setupAuthenticatedUser()
+  refetchWatchlistAssets.mockReset()
+  refetchWatchlistSummary.mockReset()
   watchlistAssetsQueryState = {
     data: watchlistRows,
     error: null,
     isError: false,
     isLoading: false,
     refetch: refetchWatchlistAssets,
+  }
+  watchlistSummaryQueryState = {
+    data: {
+      totalCount: 12,
+      riskIncreasingCount: 3,
+      recentItems: [
+        {
+          symbol: 'AMD',
+          name: 'Advanced Micro Devices',
+          addedAt: '2026-05-24T00:16:00.000Z',
+        },
+      ],
+    },
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: refetchWatchlistSummary,
   }
 })
 
@@ -149,23 +190,29 @@ describe('WatchlistPage', () => {
     ).toBeVisible()
     expect(screen.getByText('전체 관심 종목')).toBeVisible()
     expect(screen.getByText('위험 증가 종목')).toBeVisible()
-    expect(screen.getByText('추가 리서치 필요')).toBeVisible()
-    expect(screen.getByText('평균 현금 연관도')).toBeVisible()
+    expect(screen.getByText('12')).toBeVisible()
+    expect(screen.getByText('3')).toBeVisible()
+    expect(screen.queryByText('추가 리서치 필요')).not.toBeInTheDocument()
+    expect(screen.queryByText('평균 현금 연관도')).not.toBeInTheDocument()
+    expect(screen.queryByText(/전일 대비/)).not.toBeInTheDocument()
     expect(
       screen.getByRole('img', { name: '전체 관심 종목 추세 차트' }),
     ).toBeVisible()
     expect(
-      screen.getByRole('img', { name: '추가 리서치 필요 막대 차트' }),
-    ).toBeVisible()
-    expect(
-      screen.getByRole('img', { name: '평균 현금 연관도 도넛 차트' }),
+      screen.getByRole('img', { name: '위험 증가 종목 추세 차트' }),
     ).toBeVisible()
     expect(
       screen.getByRole('complementary', { name: 'AI 관찰 레일' }),
     ).toBeVisible()
     expect(screen.getByText('AI 관찰 메모')).toBeVisible()
     expect(screen.getByText('새로 추가된 관심 종목')).toBeVisible()
+    expect(screen.getByText('AMD')).toBeVisible()
+    expect(screen.getByText('Advanced Micro Devices')).toBeVisible()
+    expect(screen.queryByText('관망')).not.toBeInTheDocument()
+    expect(screen.queryByText('안정')).not.toBeInTheDocument()
     expect(screen.getByText('빠른 알림 설정')).toBeVisible()
+    expect(screen.getByText(/NVDA, TSLA는 최근 뉴스 흐름/)).toBeVisible()
+    expect(screen.getByText('가격 변동')).toBeVisible()
   })
 
   it('renders thin table columns and stock cells', async () => {
@@ -297,5 +344,26 @@ describe('WatchlistPage', () => {
     expect(
       await screen.findByText('조건에 맞는 관심 종목이 없습니다.'),
     ).toBeVisible()
+  })
+
+  it('renders the recent watchlist empty state from summary data', async () => {
+    watchlistSummaryQueryState = {
+      ...watchlistSummaryQueryState,
+      data: {
+        totalCount: 0,
+        riskIncreasingCount: 0,
+        recentItems: [],
+      },
+    }
+
+    renderWatchlist()
+
+    expect(
+      await screen.findByText('새로 추가된 관심 종목이 없습니다.'),
+    ).toBeVisible()
+    expect(screen.getAllByText('0').length).toBeGreaterThanOrEqual(2)
+    expect(screen.queryByText('관망')).not.toBeInTheDocument()
+    expect(screen.getByText(/NVDA, TSLA는 최근 뉴스 흐름/)).toBeVisible()
+    expect(screen.getByText('가격 변동')).toBeVisible()
   })
 })
