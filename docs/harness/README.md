@@ -21,6 +21,7 @@ This directory defines the AI-assisted engineering harness used by this template
 - `human-gate-policy.md`
 - `autonomy-levels.md`
 - `orchestration-state-policy.md`
+- `cross-repo-sync-policy.md`
 
 ## Writing Rules
 
