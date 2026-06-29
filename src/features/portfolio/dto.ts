@@ -32,6 +32,8 @@ export interface PortfolioSummaryDto {
   total_value: string | null
   cash_balance: string | null
   cash_weight: string | null
+  day_change_value: string | null
+  day_change_percent: string | null
   has_sector_concentration: boolean
   positions: PortfolioPositionDto[]
   sector_weights: PortfolioSectorWeightDto[]

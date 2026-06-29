@@ -22,6 +22,8 @@ export interface PortfolioSectorExposure {
 export interface PortfolioView {
   totalValue: number
   cash: number
+  dayChangeValue: number
+  dayChangePercent: number
   holdings: PortfolioHoldingView[]
   sectorExposure: PortfolioSectorExposure[]
 }
@@ -33,6 +35,8 @@ export function adaptPortfolioSummary(
   return {
     totalValue: parseDecimal(dto.total_value) ?? 0,
     cash: parseDecimal(dto.cash_balance) ?? 0,
+    dayChangeValue: parseDecimal(dto.day_change_value) ?? 0,
+    dayChangePercent: parseDecimal(dto.day_change_percent) ?? 0,
     holdings: dto.positions
       .map((position) => {
         const asset = assetsById.get(position.asset_id)

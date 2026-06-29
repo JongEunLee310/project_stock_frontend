@@ -10,6 +10,8 @@ const summaryDto: PortfolioSummaryDto = {
   total_value: '2056.4',
   cash_balance: '100',
   cash_weight: '0.048628671465',
+  day_change_value: '12.34',
+  day_change_percent: '1.23',
   has_sector_concentration: true,
   positions: [
     {
@@ -49,6 +51,8 @@ describe('adaptPortfolioSummary', () => {
 
     expect(view.totalValue).toBe(2056.4)
     expect(view.cash).toBe(100)
+    expect(view.dayChangeValue).toBe(12.34)
+    expect(view.dayChangePercent).toBe(1.23)
     expect(view.holdings[0]).toMatchObject({
       assetId: 1,
       symbol: 'AAPL',
@@ -82,6 +86,8 @@ describe('adaptPortfolioSummary', () => {
         ...summaryDto,
         total_value: null,
         cash_balance: '',
+        day_change_value: null,
+        day_change_percent: '',
         positions: [
           {
             ...summaryDto.positions[0],
@@ -105,6 +111,8 @@ describe('adaptPortfolioSummary', () => {
 
     expect(view.totalValue).toBe(0)
     expect(view.cash).toBe(0)
+    expect(view.dayChangeValue).toBe(0)
+    expect(view.dayChangePercent).toBe(0)
     expect(view.holdings[0]).toMatchObject({
       quantity: 0,
       avgPrice: 0,
@@ -125,5 +133,20 @@ describe('adaptPortfolioSummary', () => {
         new Map(),
       ),
     ).toMatchObject({ holdings: [], sectorExposure: [] })
+  })
+
+  it('falls back missing day change fields to zero', () => {
+    const summaryWithoutDayChange: Partial<PortfolioSummaryDto> = {
+      ...summaryDto,
+    }
+    delete summaryWithoutDayChange.day_change_value
+    delete summaryWithoutDayChange.day_change_percent
+
+    expect(
+      adaptPortfolioSummary(
+        summaryWithoutDayChange as PortfolioSummaryDto,
+        new Map([[1, assetDto]]),
+      ),
+    ).toMatchObject({ dayChangeValue: 0, dayChangePercent: 0 })
   })
 })
