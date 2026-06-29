@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { adaptWatchlistAsset } from './adapters'
-import type { WatchlistItemDto } from './dto'
+import { adaptWatchlistAsset, adaptWatchlistSummary } from './adapters'
+import type { WatchlistItemDto, WatchlistSummaryDto } from './dto'
 
 const itemDto: WatchlistItemDto = {
   id: 1,
@@ -57,6 +57,47 @@ describe('adaptWatchlistAsset', () => {
       price: null,
       changePercent: null,
       sector: 'UNKNOWN',
+    })
+  })
+})
+
+describe('adaptWatchlistSummary', () => {
+  const summaryDto: WatchlistSummaryDto = {
+    total_count: 12,
+    risk_increasing_count: 3,
+    recent_items: [
+      {
+        symbol: 'NVDA',
+        name: 'NVIDIA Corp.',
+        created_at: '2026-06-20T03:00:00Z',
+      },
+    ],
+  }
+
+  it('maps watchlist summary and recent additions', () => {
+    expect(adaptWatchlistSummary(summaryDto)).toEqual({
+      totalCount: 12,
+      riskIncreasingCount: 3,
+      recentItems: [
+        {
+          symbol: 'NVDA',
+          name: 'NVIDIA Corp.',
+          addedAt: '2026-06-20T03:00:00Z',
+        },
+      ],
+    })
+  })
+
+  it('falls back to an empty recent item list', () => {
+    expect(
+      adaptWatchlistSummary({
+        total_count: 0,
+        risk_increasing_count: 0,
+      }),
+    ).toEqual({
+      totalCount: 0,
+      riskIncreasingCount: 0,
+      recentItems: [],
     })
   })
 })

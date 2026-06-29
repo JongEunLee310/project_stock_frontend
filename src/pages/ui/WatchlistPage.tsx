@@ -2,19 +2,17 @@ import { useCallback, useMemo, useState, type MouseEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import type { WatchlistAssetRow } from '@/features/watchlist/adapters'
-import { useWatchlistAssets } from '@/features/watchlist/queries'
 import {
-  mockRecentWatchlist,
+  useWatchlistAssets,
+  useWatchlistSummary,
+} from '@/features/watchlist/queries'
+import {
   mockWatchlistAlertSettings,
   mockWatchlistObservations,
-  mockWatchlistSummary,
 } from '@/shared/mock'
 import {
-  BarChart,
-  Badge,
   Button,
   Card,
-  DonutChart,
   EmptyState,
   ErrorState,
   Input,
@@ -48,32 +46,12 @@ const sortLabels: Record<SortKey, string> = {
   createdAt: '추가일',
 }
 
-const summaryToneClassNames = {
-  up: 'text-emerald-300',
-  down: 'text-rose-300',
-  flat: 'text-cockpit-text-muted',
-}
-
 const summaryIconClassNames = [
   'bg-blue-500/20 text-blue-300',
   'bg-rose-500/20 text-rose-300',
-  'bg-blue-500/20 text-blue-300',
-  'bg-emerald-500/20 text-emerald-300',
 ]
 
-const summaryIcons = ['▱', '▣', '⊙', '◌']
-
-const researchBars = [38, 54, 66, 78, 50, 30, 84, 58, 44].map(
-  (value, index) => ({
-    index,
-    value,
-  }),
-)
-
-const cashCorrelationData = [
-  { name: '연관', value: 58 },
-  { name: '기타', value: 42 },
-]
+const summaryIcons = ['▱', '▣']
 
 const summaryLineSeries = [
   [24, 25, 26, 25.6, 26.4, 26.1, 28],
@@ -138,35 +116,6 @@ function stopRowNavigation(event: MouseEvent) {
 }
 
 function SummaryVisual({ index }: { index: number }) {
-  if (index === 3) {
-    return (
-      <DonutChart
-        className="h-16 w-16"
-        data={cashCorrelationData}
-        height={64}
-        width={64}
-        colors={['#62d66f', '#30445f']}
-        innerRadius="64%"
-        outerRadius="100%"
-        ariaLabel="평균 현금 연관도 도넛 차트"
-      />
-    )
-  }
-
-  if (index === 2) {
-    return (
-      <BarChart
-        className="h-16 w-24"
-        data={researchBars}
-        height={64}
-        width={96}
-        color="#2f7df7"
-        ariaLabel="추가 리서치 필요 막대 차트"
-        margin={{ top: 6, right: 0, bottom: 0, left: 0 }}
-      />
-    )
-  }
-
   return (
     <UiSparkline
       className="h-10 w-20"
@@ -282,6 +231,7 @@ function RowMenu({ stock, isOpen, onToggle, onNavigate }: RowMenuProps) {
 export function WatchlistPage() {
   const navigate = useNavigate()
   const watchlistAssetsQuery = useWatchlistAssets()
+  const watchlistSummaryQuery = useWatchlistSummary()
   const [query, setQuery] = useState('')
   const [sortKey, setSortKey] = useState<SortKey>('custom')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
@@ -346,6 +296,21 @@ export function WatchlistPage() {
     { length: Math.min(5, visiblePageCount) },
     (_, index) => index + 1,
   )
+  const summary = watchlistSummaryQuery.data ?? {
+    totalCount: 0,
+    riskIncreasingCount: 0,
+    recentItems: [],
+  }
+  const summaryCards = [
+    {
+      label: '전체 관심 종목',
+      value: summary.totalCount,
+    },
+    {
+      label: '위험 증가 종목',
+      value: summary.riskIncreasingCount,
+    },
+  ]
 
   return (
     <section className="flex flex-col gap-3 text-cockpit-text">
@@ -422,47 +387,57 @@ export function WatchlistPage() {
         </div>
       </Card>
 
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        {/* BE 출처가 없는 watchlist summary 카드들은 후속 API까지 mock을 유지한다. */}
-        {mockWatchlistSummary.map((summaryCard, index) => (
-          <Card
-            key={summaryCard.label}
-            className="min-h-36 border-cockpit-border bg-cockpit-surface/85 p-5 shadow-blue-950/20"
-          >
-            <div className="flex h-full flex-col justify-between gap-4">
-              <div className="flex items-start justify-between gap-3">
-                <span className="text-sm font-semibold text-cockpit-text">
-                  {summaryCard.label}
-                </span>
-                <span
-                  className={classNames(
-                    'grid h-10 w-10 shrink-0 place-items-center rounded-full text-lg',
-                    summaryIconClassNames[index],
-                  )}
-                  aria-hidden="true"
-                >
-                  {summaryIcons[index]}
-                </span>
-              </div>
-              <div className="flex items-end justify-between gap-4">
-                <div className="flex flex-col gap-2">
+      <div className="grid gap-3 md:grid-cols-2">
+        {watchlistSummaryQuery.isLoading ? (
+          <>
+            <Card className="min-h-36 border-cockpit-border bg-cockpit-surface/85 p-5 shadow-blue-950/20">
+              <Skeleton lines={3} />
+            </Card>
+            <Card className="min-h-36 border-cockpit-border bg-cockpit-surface/85 p-5 shadow-blue-950/20">
+              <Skeleton lines={3} />
+            </Card>
+          </>
+        ) : watchlistSummaryQuery.isError ? (
+          <Card className="border-cockpit-border bg-cockpit-surface/85 p-4 shadow-blue-950/20 md:col-span-2">
+            <ErrorState
+              title="관심 종목 요약을 불러오지 못했습니다"
+              description={watchlistSummaryQuery.error.message}
+              onRetry={() => {
+                void watchlistSummaryQuery.refetch()
+              }}
+            />
+          </Card>
+        ) : (
+          summaryCards.map((summaryCard, index) => (
+            <Card
+              key={summaryCard.label}
+              className="min-h-36 border-cockpit-border bg-cockpit-surface/85 p-5 shadow-blue-950/20"
+            >
+              <div className="flex h-full flex-col justify-between gap-4">
+                <div className="flex items-start justify-between gap-3">
+                  <span className="text-sm font-semibold text-cockpit-text">
+                    {summaryCard.label}
+                  </span>
+                  <span
+                    className={classNames(
+                      'grid h-10 w-10 shrink-0 place-items-center rounded-full text-lg',
+                      summaryIconClassNames[index],
+                    )}
+                    aria-hidden="true"
+                  >
+                    {summaryIcons[index]}
+                  </span>
+                </div>
+                <div className="flex items-end justify-between gap-4">
                   <strong className="text-4xl font-semibold tracking-normal text-cockpit-text">
                     {summaryCard.value}
                   </strong>
-                  <span
-                    className={classNames(
-                      'text-sm',
-                      summaryToneClassNames[summaryCard.trend],
-                    )}
-                  >
-                    {summaryCard.deltaLabel}
-                  </span>
+                  <SummaryVisual index={index} />
                 </div>
-                <SummaryVisual index={index} />
               </div>
-            </div>
-          </Card>
-        ))}
+            </Card>
+          ))
+        )}
       </div>
 
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_26rem]">
@@ -691,7 +666,7 @@ export function WatchlistPage() {
         </Card>
 
         <aside className="flex flex-col gap-3" aria-label="AI 관찰 레일">
-          {/* BE 출처가 없는 관찰 메모/최근 추가/알림 설정은 후속 API까지 mock을 유지한다. */}
+          {/* BE 출처가 없는 관찰 메모/알림 설정은 후속 API까지 mock을 유지한다. */}
           <Card className="border-cockpit-border bg-cockpit-surface/85 p-4 shadow-blue-950/20">
             <div className="mb-3 flex items-center justify-between gap-3">
               <h2 className="flex items-center gap-2 text-lg font-semibold text-cockpit-text">
@@ -738,39 +713,55 @@ export function WatchlistPage() {
                 더 보기 <span aria-hidden="true">›</span>
               </Button>
             </div>
-            <ul className="flex flex-col gap-2">
-              {mockRecentWatchlist.map((item) => (
-                <li
-                  key={item.symbol}
-                  className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3"
-                >
-                  <div className="flex min-w-0 items-center gap-2">
-                    <span
-                      className={classNames(
-                        'grid h-6 w-6 shrink-0 place-items-center rounded-sm text-xs font-black',
-                        symbolMarks[item.symbol]?.className ??
-                          'bg-cockpit-surface-muted text-cockpit-accent',
-                      )}
-                      aria-hidden="true"
-                    >
-                      {symbolMarks[item.symbol]?.label ?? item.symbol[0]}
-                    </span>
-                    <div className="min-w-0">
-                      <span className="font-semibold text-cockpit-text">
-                        {item.symbol}
+            {watchlistSummaryQuery.isLoading ? (
+              <Skeleton lines={4} />
+            ) : watchlistSummaryQuery.isError ? (
+              <ErrorState
+                title="새 관심 종목을 불러오지 못했습니다"
+                description={watchlistSummaryQuery.error.message}
+                onRetry={() => {
+                  void watchlistSummaryQuery.refetch()
+                }}
+              />
+            ) : summary.recentItems.length === 0 ? (
+              <EmptyState
+                title="새로 추가된 관심 종목이 없습니다."
+                className="py-6"
+              />
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {summary.recentItems.map((item) => (
+                  <li
+                    key={`${item.symbol}-${item.addedAt}`}
+                    className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3"
+                  >
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span
+                        className={classNames(
+                          'grid h-6 w-6 shrink-0 place-items-center rounded-sm text-xs font-black',
+                          symbolMarks[item.symbol]?.className ??
+                            'bg-cockpit-surface-muted text-cockpit-accent',
+                        )}
+                        aria-hidden="true"
+                      >
+                        {symbolMarks[item.symbol]?.label ?? item.symbol[0]}
                       </span>
-                      <span className="ml-2 truncate text-sm text-cockpit-text-muted">
-                        {item.name}
-                      </span>
+                      <div className="min-w-0">
+                        <span className="font-semibold text-cockpit-text">
+                          {item.symbol}
+                        </span>
+                        <span className="ml-2 truncate text-sm text-cockpit-text-muted">
+                          {item.name}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                  <Badge status={item.status} className="min-h-7 text-xs" />
-                  <span className="whitespace-nowrap text-xs text-cockpit-text-muted">
-                    {formatTime(item.addedAt)}
-                  </span>
-                </li>
-              ))}
-            </ul>
+                    <span className="whitespace-nowrap text-xs text-cockpit-text-muted">
+                      {formatTime(item.addedAt)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </Card>
 
           <Card className="border-cockpit-border bg-cockpit-surface/85 p-4 shadow-blue-950/20">

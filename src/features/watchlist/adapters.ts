@@ -1,6 +1,6 @@
 import { parseDecimal } from '@/shared/lib/format'
 
-import type { WatchlistItemDto } from './dto'
+import type { WatchlistItemDto, WatchlistSummaryDto } from './dto'
 
 export interface WatchlistAssetRow {
   id: number
@@ -14,6 +14,18 @@ export interface WatchlistAssetRow {
   memo: string | null
   createdAt: string
   isFavorite: boolean
+}
+
+export interface RecentWatchlistView {
+  symbol: string
+  name: string
+  addedAt: string
+}
+
+export interface WatchlistSummaryView {
+  totalCount: number
+  riskIncreasingCount: number
+  recentItems: RecentWatchlistView[]
 }
 
 export function adaptWatchlistAsset(
@@ -33,5 +45,19 @@ export function adaptWatchlistAsset(
     memo: item.memo,
     createdAt: item.created_at,
     isFavorite: true,
+  }
+}
+
+export function adaptWatchlistSummary(
+  dto: WatchlistSummaryDto,
+): WatchlistSummaryView {
+  return {
+    totalCount: dto.total_count,
+    riskIncreasingCount: dto.risk_increasing_count,
+    recentItems: (dto.recent_items ?? []).map((item) => ({
+      symbol: item.symbol,
+      name: item.name,
+      addedAt: item.created_at,
+    })),
   }
 }

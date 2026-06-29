@@ -38,6 +38,17 @@ vi.mock('@/features/watchlist/queries', () => ({
     isLoading: false,
     refetch: vi.fn(),
   }),
+  useWatchlistSummary: () => ({
+    data: {
+      totalCount: 0,
+      riskIncreasingCount: 0,
+      recentItems: [],
+    },
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: vi.fn(),
+  }),
 }))
 
 vi.mock('@/features/research/queries', () => ({
