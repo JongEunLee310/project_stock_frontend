@@ -37,6 +37,19 @@ Do not include SQL, query bodies, migrations, or business-logic code. If a detai
 
 The design record is written before the Codex handoff and referenced from the handoff task, so Codex implements against an agreed shape.
 
+## Document Language
+
+설계 문서(`docs/designs/`)·ADR(`docs/decisions/`)·리뷰 기록 등 한국어 산문을 쓰는 문서의
+본문은 한국어로 작성한다. 섹션 헤더와 Status 등 고정 라벨, 그리고 코드 기호(클래스·함수·
+enum 값·파일 경로·설정 키·식별자)는 영어로 유지한다 — 산문만 한국어로 쓰고 정보 밀도는
+보존한다.
+
+한국어로 자연스럽게 읽히는 문장 구조를 쓴다. 영어 직역체, 동사를 명사형으로 끝맺는
+과도한 압축(예: "~ 정리.", "~ 일관."), 절을 화살표(`→`)로 잇는 표기, 여러 수식을 한
+명사에 욱여넣어 한 번에 읽기 어려운 구조를 피한다. 주어와 서술어가 분명한 문장으로
+풀어 쓰되, 기술 식별자와 정보 밀도는 그대로 둔다 — 구조만 자연스럽게 한다. 이 원칙은
+설계·ADR·리뷰·PR·핸드오프 등 한국어 산문을 쓰는 모든 문서에 적용한다.
+
 ## Related
 
 - `handoff-policy.md` — design records are an input to the handoff.
