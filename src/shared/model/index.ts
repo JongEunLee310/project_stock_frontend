@@ -41,6 +41,8 @@ export type {
   SignalKind,
   Stock,
   StockResearch,
+  WatchlistObservationItem,
+  WatchlistObservations,
   WatchlistAlertSetting,
   WatchlistObservation,
   WatchlistSummaryCard,

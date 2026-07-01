@@ -2,12 +2,12 @@ import { useCallback, useMemo, useState, type MouseEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { useUnreadAlertSummary } from '@/features/alerts/queries'
+import { useWatchlistObservations } from '@/features/watchlist-observations/queries'
 import type { WatchlistAssetRow } from '@/features/watchlist/adapters'
 import {
   useWatchlistAssets,
   useWatchlistSummary,
 } from '@/features/watchlist/queries'
-import { mockWatchlistObservations } from '@/shared/mock'
 import {
   Button,
   Card,
@@ -250,6 +250,7 @@ export function WatchlistPage() {
   const navigate = useNavigate()
   const watchlistAssetsQuery = useWatchlistAssets()
   const watchlistSummaryQuery = useWatchlistSummary()
+  const watchlistObservationsQuery = useWatchlistObservations()
   const unreadAlertSummaryQuery = useUnreadAlertSummary()
   const [query, setQuery] = useState('')
   const [sortKey, setSortKey] = useState<SortKey>('custom')
@@ -334,6 +335,7 @@ export function WatchlistPage() {
     unreadCount: 0,
     recent: [],
   }
+  const observations = watchlistObservationsQuery.data
 
   return (
     <section className="flex flex-col gap-3 text-cockpit-text">
@@ -689,7 +691,6 @@ export function WatchlistPage() {
         </Card>
 
         <aside className="flex flex-col gap-3" aria-label="AI 관찰 레일">
-          {/* BE 출처가 없는 관찰 메모는 후속 API까지 mock을 유지한다. */}
           <Card className="border-cockpit-border bg-cockpit-surface/85 p-4 shadow-blue-950/20">
             <div className="mb-3 flex items-center justify-between gap-3">
               <h2 className="flex items-center gap-2 text-lg font-semibold text-cockpit-text">
@@ -702,25 +703,57 @@ export function WatchlistPage() {
                 </span>
               </h2>
             </div>
-            <ul className="flex flex-col gap-3 rounded-card border border-cockpit-border bg-cockpit-bg/40 px-4 py-3 text-sm leading-6 text-cockpit-text-muted">
-              {mockWatchlistObservations.map((observation) => (
-                <li key={observation.id} className="flex gap-2">
-                  <span className="text-cockpit-accent" aria-hidden="true">
-                    •
-                  </span>
-                  <span>{observation.text}</span>
-                </li>
-              ))}
-            </ul>
-            <div className="mt-2 flex justify-end">
-              <Button
-                type="button"
-                variant="ghost"
-                className="min-h-8 gap-1 px-2 py-1 text-cockpit-text-muted"
-              >
-                더 보기 <span aria-hidden="true">›</span>
-              </Button>
-            </div>
+            {watchlistObservationsQuery.isLoading ? (
+              <Skeleton lines={5} />
+            ) : watchlistObservationsQuery.isError ? (
+              <ErrorState
+                title="AI 관찰 메모를 불러오지 못했습니다"
+                description={watchlistObservationsQuery.error.message}
+                onRetry={() => {
+                  void watchlistObservationsQuery.refetch()
+                }}
+              />
+            ) : observations == null ? (
+              <EmptyState
+                title="관찰할 관심 목록이 없습니다."
+                className="py-6"
+              />
+            ) : (
+              <>
+                <div className="rounded-card border border-cockpit-border bg-cockpit-bg/40 px-4 py-3 text-sm leading-6">
+                  <p className="text-cockpit-text">{observations.summary}</p>
+                  {observations.items.length > 0 ? (
+                    <ul className="mt-3 flex flex-col gap-3 text-cockpit-text-muted">
+                      {observations.items.map((item) => (
+                        <li key={item.symbol} className="flex gap-2">
+                          <span
+                            className="text-cockpit-accent"
+                            aria-hidden="true"
+                          >
+                            •
+                          </span>
+                          <span>
+                            <strong className="mr-1 font-semibold text-cockpit-text">
+                              {item.symbol}
+                            </strong>
+                            {item.note}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+                <div className="mt-2 flex justify-end">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="min-h-8 gap-1 px-2 py-1 text-cockpit-text-muted"
+                  >
+                    더 보기 <span aria-hidden="true">›</span>
+                  </Button>
+                </div>
+              </>
+            )}
           </Card>
 
           <Card className="border-cockpit-border bg-cockpit-surface/85 p-4 shadow-blue-950/20">
