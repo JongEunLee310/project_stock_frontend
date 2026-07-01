@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { apiGet } from '@/shared/api/client'
 
-import { useSignals } from './queries'
+import { useSignalSparkline, useSignals } from './queries'
 
 vi.mock('@/shared/api/client', () => ({
   apiGet: vi.fn(),
@@ -32,7 +32,7 @@ describe('signals queries', () => {
         {
           id: 7,
           asset_id: 11,
-          asset: { symbol: 'NVDA', name: 'NVIDIA Corp.' },
+          asset: { symbol: 'NVDA', name: 'NVIDIA Corp.', market: 'NASDAQ' },
           signal_type: 'BUY_CANDIDATE',
           score: '86',
           risk_level: 'MEDIUM',
@@ -67,5 +67,52 @@ describe('signals queries', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
     expect(apiGet).toHaveBeenCalledWith('/signals?asset_id=11&expand=asset')
+  })
+
+  it('loads a parsed signal sparkline from price series bars', async () => {
+    vi.mocked(apiGet).mockResolvedValueOnce({
+      data: {
+        bars: [
+          { close: '128.40' },
+          { close: null },
+          { close: '130.75' },
+          { close: '' },
+        ],
+      },
+      meta: undefined,
+    })
+    const queryClient = createTestQueryClient()
+    const { result } = renderHook(() => useSignalSparkline('NVDA', 'NASDAQ'), {
+      wrapper: wrapperFor(queryClient),
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(apiGet).toHaveBeenCalledWith(
+      '/stocks/NVDA/prices?market=NASDAQ&range=1M&interval=1d',
+    )
+    expect(result.current.data).toEqual([128.4, 130.75])
+  })
+
+  it('does not request sparkline prices when symbol is null', async () => {
+    vi.mocked(apiGet).mockClear()
+    const queryClient = createTestQueryClient()
+    const { result } = renderHook(() => useSignalSparkline(null, 'NASDAQ'), {
+      wrapper: wrapperFor(queryClient),
+    })
+
+    expect(result.current.fetchStatus).toBe('idle')
+    expect(apiGet).not.toHaveBeenCalled()
+  })
+
+  it('does not request sparkline prices when market is null', async () => {
+    vi.mocked(apiGet).mockClear()
+    const queryClient = createTestQueryClient()
+    const { result } = renderHook(() => useSignalSparkline('NVDA', null), {
+      wrapper: wrapperFor(queryClient),
+    })
+
+    expect(result.current.fetchStatus).toBe('idle')
+    expect(apiGet).not.toHaveBeenCalled()
   })
 })

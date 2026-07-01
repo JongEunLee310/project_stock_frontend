@@ -14,6 +14,7 @@ const signalRows = [
     id: '1',
     assetId: 1,
     symbol: 'NVDA',
+    market: 'NASDAQ',
     companyName: 'NVIDIA Corp.',
     signalType: 'BUY_CANDIDATE',
     signalTypeLabel: 'BUY_CANDIDATE',
@@ -23,12 +24,12 @@ const signalRows = [
     evidence: 'Guidance raised.',
     createdAt: '2026. 5. 24. 오전 9:00',
     expiresAt: '2026. 6. 24. 오전 9:00',
-    sparkline: [],
   },
   {
     id: '2',
     assetId: 2,
     symbol: 'AAPL',
+    market: 'NASDAQ',
     companyName: 'Apple Inc.',
     signalType: 'VALUATION',
     signalTypeLabel: 'VALUATION',
@@ -38,12 +39,12 @@ const signalRows = [
     evidence: null,
     createdAt: '2026. 5. 23. 오전 9:00',
     expiresAt: '2026. 6. 23. 오전 9:00',
-    sparkline: [],
   },
   {
     id: '3',
     assetId: 3,
     symbol: 'MSFT',
+    market: null,
     companyName: 'Microsoft Corp.',
     signalType: 'TECHNICAL',
     signalTypeLabel: 'TECHNICAL',
@@ -53,9 +54,22 @@ const signalRows = [
     evidence: null,
     createdAt: '2026. 5. 22. 오전 9:00',
     expiresAt: '2026. 6. 22. 오전 9:00',
-    sparkline: [],
   },
 ]
+
+const signalSparklineStates = vi.hoisted(
+  () =>
+    new Map<
+      string,
+      {
+        data: number[] | undefined
+        error: Error | null
+        isError: boolean
+        isLoading: boolean
+        refetch: ReturnType<typeof vi.fn>
+      }
+    >(),
+)
 
 vi.mock('@/features/market-indices/queries', () => ({
   useMarketIndices: () => ({
@@ -75,17 +89,19 @@ vi.mock('@/features/signals/queries', () => ({
     isLoading: false,
     refetch: vi.fn(),
   }),
-  useSignalSparkline: () => ({
-    data: [],
-    error: null,
-    isError: false,
-    isLoading: false,
-    refetch: vi.fn(),
-  }),
+  useSignalSparkline: (symbol: string | null, market: string | null) =>
+    signalSparklineStates.get(`${symbol ?? 'null'}:${market ?? 'null'}`) ?? {
+      data: [],
+      error: null,
+      isError: false,
+      isLoading: false,
+      refetch: vi.fn(),
+    },
 }))
 
 beforeEach(() => {
   setupAuthenticatedUser()
+  signalSparklineStates.clear()
 })
 
 afterEach(() => {
@@ -192,5 +208,86 @@ describe('SignalsPage', () => {
     expect(screen.getByLabelText('검색')).toHaveValue('')
     expect(screen.getByLabelText('리스크')).toHaveValue('all')
     expect(screen.getAllByRole('article')).toHaveLength(3)
+  })
+
+  it('shows a row-level skeleton while a signal sparkline is loading', async () => {
+    signalSparklineStates.set('NVDA:NASDAQ', {
+      data: undefined,
+      error: null,
+      isError: false,
+      isLoading: true,
+      refetch: vi.fn(),
+    })
+
+    renderSignals()
+
+    const nvdaCard = await screen.findByRole('article', {
+      name: 'NVDA BUY_CANDIDATE 시그널',
+    })
+
+    expect(nvdaCard.querySelector('.animate-pulse')).toBeInTheDocument()
+    expect(
+      within(nvdaCard).queryByText('가격 시계열 대기'),
+    ).not.toBeInTheDocument()
+    expect(
+      within(nvdaCard).queryByRole('img', {
+        name: 'NVDA 시그널 가격 추이',
+      }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('renders a sparkline when row price data is available', async () => {
+    signalSparklineStates.set('NVDA:NASDAQ', {
+      data: [128.4, 130.75],
+      error: null,
+      isError: false,
+      isLoading: false,
+      refetch: vi.fn(),
+    })
+
+    renderSignals()
+
+    const nvdaCard = await screen.findByRole('article', {
+      name: 'NVDA BUY_CANDIDATE 시그널',
+    })
+
+    expect(
+      within(nvdaCard).getByRole('img', {
+        name: 'NVDA 시그널 가격 추이',
+      }),
+    ).toBeVisible()
+  })
+
+  it('keeps the placeholder when row price data is empty, errors, or market is missing', async () => {
+    signalSparklineStates.set('AAPL:NASDAQ', {
+      data: [],
+      error: null,
+      isError: false,
+      isLoading: false,
+      refetch: vi.fn(),
+    })
+    signalSparklineStates.set('NVDA:NASDAQ', {
+      data: undefined,
+      error: new Error('prices unavailable'),
+      isError: true,
+      isLoading: false,
+      refetch: vi.fn(),
+    })
+
+    renderSignals()
+
+    const nvdaCard = await screen.findByRole('article', {
+      name: 'NVDA BUY_CANDIDATE 시그널',
+    })
+    const aaplCard = await screen.findByRole('article', {
+      name: 'AAPL VALUATION 시그널',
+    })
+    const msftCard = screen.getByRole('article', {
+      name: 'MSFT TECHNICAL 시그널',
+    })
+
+    expect(within(nvdaCard).getByText('가격 시계열 대기')).toBeVisible()
+    expect(within(aaplCard).getByText('가격 시계열 대기')).toBeVisible()
+    expect(within(msftCard).getByText('가격 시계열 대기')).toBeVisible()
   })
 })

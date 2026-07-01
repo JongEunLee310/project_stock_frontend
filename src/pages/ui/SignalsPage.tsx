@@ -46,9 +46,15 @@ function normalizeScore(score: number) {
 }
 
 function SignalSparklineChart({ signal }: { signal: Signal }) {
-  const data = signal.sparkline.map((value, index) => ({ index, value }))
+  const sparklineQuery = useSignalSparkline(signal.symbol, signal.market)
 
-  if (data.length === 0) {
+  if (sparklineQuery.isLoading) {
+    return <Skeleton className="h-10 min-w-0 flex-1" />
+  }
+
+  const data = (sparklineQuery.data ?? []).map((value) => ({ value }))
+
+  if (!signal.market || sparklineQuery.isError || data.length === 0) {
     return (
       <div className="flex h-10 min-w-0 flex-1 items-center justify-center rounded-control border border-cockpit-border text-xs text-cockpit-text-muted">
         가격 시계열 대기
@@ -234,7 +240,6 @@ function SignalCard({ signal }: { signal: Signal }) {
 
 export function SignalsPage() {
   const signalsQuery = useSignals()
-  useSignalSparkline(null)
   const [query, setQuery] = useState('')
   const [riskFilter, setRiskFilter] = useState<RiskFilter>('all')
   const [sortKey, setSortKey] = useState<SortKey>('score')

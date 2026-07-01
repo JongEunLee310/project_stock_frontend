@@ -4,27 +4,26 @@ import { apiGet } from '@/shared/api/client'
 import { parseDecimal } from '@/shared/lib/format'
 
 import { adaptSignal, adaptSignalDetail, type Signal } from './adapters'
-import type { PriceBarDto, SignalDetailDto, SignalDto } from './dto'
+import type { PriceSeriesDto, SignalDetailDto, SignalDto } from './dto'
 
 export function useSignalSparkline(
   symbol: string | null,
+  market: string | null,
 ): UseQueryResult<number[]> {
   return useQuery<number[]>({
-    queryKey: ['signals', 'sparkline', symbol],
-    enabled: false,
-    // BE 준비됨 — 활성화 블로커: 심볼→market 매핑 확정 + FE DTO를 PriceSeriesDto{ bars: PriceBarDto[] }로 정렬
+    queryKey: ['signals', 'sparkline', symbol, market],
+    enabled: Boolean(symbol && market),
     queryFn: async () => {
-      if (!symbol) return []
+      if (!symbol || !market) return []
 
-      const { data } = await apiGet<PriceBarDto[]>(
-        `/stocks/${encodeURIComponent(symbol)}/prices?range=1mo&interval=1d`,
+      const { data } = await apiGet<PriceSeriesDto>(
+        `/stocks/${encodeURIComponent(symbol)}/prices?market=${market}&range=1M&interval=1d`,
       )
 
-      return data
+      return data.bars
         .map((bar) => parseDecimal(bar.close))
         .filter((close): close is number => close !== null)
     },
-    initialData: [],
   })
 }
 
@@ -38,8 +37,7 @@ export function useSignals(assetId?: number): UseQueryResult<Signal[]> {
           : `?asset_id=${assetId}&expand=asset`
       const { data } = await apiGet<SignalDto[]>(`/signals${query}`)
 
-      // BE 준비됨 — 활성화 블로커: 심볼→market 매핑 확정 + FE DTO를 PriceSeriesDto{ bars: PriceBarDto[] }로 정렬
-      return data.map((signal) => adaptSignal(signal, []))
+      return data.map((signal) => adaptSignal(signal))
     },
   })
 }
@@ -50,8 +48,7 @@ export function useSignalDetail(id: number): UseQueryResult<Signal> {
     queryFn: async () => {
       const { data } = await apiGet<SignalDetailDto>(`/signals/${id}`)
 
-      // BE 준비됨 — 활성화 블로커: 심볼→market 매핑 확정 + FE DTO를 PriceSeriesDto{ bars: PriceBarDto[] }로 정렬
-      return adaptSignalDetail(data, [])
+      return adaptSignalDetail(data)
     },
   })
 }

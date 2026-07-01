@@ -11,6 +11,7 @@ export interface Signal {
   id: string
   assetId: number
   symbol: string
+  market: string | null
   companyName: string | null
   signalType: string
   signalTypeLabel: string
@@ -20,7 +21,6 @@ export interface Signal {
   evidence: string | null
   createdAt: string
   expiresAt: string
-  sparkline: number[]
 }
 
 function readSymbol(dto: SignalDto) {
@@ -47,11 +47,12 @@ function formatRiskLevel(value: string | null | undefined): string {
   return value ? toLabel(riskLevelLabels, value) : '미지정'
 }
 
-export function adaptSignal(dto: SignalDto, sparkline: number[]): Signal {
+export function adaptSignal(dto: SignalDto): Signal {
   return {
     id: String(dto.id),
     assetId: dto.asset_id,
     symbol: readSymbol(dto),
+    market: dto.asset?.market ?? null,
     companyName: dto.asset?.name ?? null,
     signalType: dto.signal_type,
     signalTypeLabel: toLabel({}, dto.signal_type),
@@ -61,13 +62,9 @@ export function adaptSignal(dto: SignalDto, sparkline: number[]): Signal {
     evidence: formatEvidence(dto.evidence),
     createdAt: formatKstDateTime(dto.created_at),
     expiresAt: formatExpiresAt(dto.expires_at),
-    sparkline,
   }
 }
 
-export function adaptSignalDetail(
-  dto: SignalDetailDto,
-  sparkline: number[],
-): Signal {
-  return adaptSignal(dto, sparkline)
+export function adaptSignalDetail(dto: SignalDetailDto): Signal {
+  return adaptSignal(dto)
 }
