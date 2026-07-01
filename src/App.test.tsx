@@ -51,6 +51,16 @@ vi.mock('@/features/watchlist/queries', () => ({
   }),
 }))
 
+vi.mock('@/features/market-indices/queries', () => ({
+  useMarketIndices: () => ({
+    data: { indices: [], referenceAt: null },
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: vi.fn(),
+  }),
+}))
+
 vi.mock('@/features/research/queries', () => ({
   SymbolNotFoundError: class SymbolNotFoundError extends Error {},
   useResearchView: (symbol: string) => ({

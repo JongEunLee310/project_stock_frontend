@@ -29,6 +29,8 @@ export type {
   DecisionLog,
   DecisionPattern,
   Holding,
+  MarketIndex,
+  MarketIndexBoard,
   NewsItem,
   Portfolio,
   PortfolioRiskExposure,

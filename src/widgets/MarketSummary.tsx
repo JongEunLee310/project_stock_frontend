@@ -1,11 +1,22 @@
-const marketSummaries = [
-  { label: 'S&P 500', value: '5,278.40', change: '+0.47%', trend: 'up' },
-  { label: 'NASDAQ', value: '16,735.02', change: '+0.60%', trend: 'up' },
-  { label: 'KOSPI', value: '2,725.49', change: '-0.16%', trend: 'down' },
-  { label: 'VIX', value: '15.32', change: '-2.11%', trend: 'up' },
-] as const
+import { useMarketIndices } from '@/features/market-indices/queries'
+import {
+  formatKstDateTime,
+  formatMoney,
+  formatPercent,
+} from '@/shared/lib/format'
+import { EmptyState, ErrorState, Skeleton } from '@/shared/ui'
+import { classNames } from '@/shared/ui/classNames'
+
+function formatChangePercent(changePercent: number): string {
+  const formatted = formatPercent(changePercent / 100, 2)
+
+  return changePercent > 0 ? `+${formatted}` : formatted
+}
 
 export function MarketSummary() {
+  const marketIndicesQuery = useMarketIndices()
+  const board = marketIndicesQuery.data
+
   return (
     <section
       aria-label="시장 요약"
@@ -17,35 +28,60 @@ export function MarketSummary() {
           i
         </span>
       </div>
-      <div className="flex flex-col">
-        {marketSummaries.map((item) => (
-          <div
-            key={item.label}
-            className="flex items-end justify-between gap-3 border-b border-cockpit-border/60 py-3 last:border-b-0"
-          >
-            <div className="flex flex-col gap-1">
-              <span className="text-xs text-cockpit-text-muted">
-                {item.label}
-              </span>
-              <strong className="text-lg leading-none text-cockpit-text">
-                {item.value}
-              </strong>
-            </div>
-            <span
-              className={
-                item.change.startsWith('+') || item.trend === 'up'
-                  ? 'text-sm font-medium text-emerald-300'
-                  : 'text-sm font-medium text-rose-300'
-              }
-            >
-              {item.change}
-            </span>
+      {marketIndicesQuery.isLoading ? (
+        <Skeleton lines={8} />
+      ) : marketIndicesQuery.isError ? (
+        <ErrorState
+          title="시장 요약을 불러오지 못했습니다"
+          description={marketIndicesQuery.error.message}
+          onRetry={() => {
+            void marketIndicesQuery.refetch()
+          }}
+          className="py-6"
+        />
+      ) : !board || board.indices.length === 0 ? (
+        <EmptyState title="표시할 시장 지수가 없습니다." className="py-6" />
+      ) : (
+        <>
+          <div className="flex flex-col">
+            {board.indices.map((item) => {
+              const isPositive = item.changePercent >= 0
+
+              return (
+                <div
+                  key={item.symbol}
+                  className="flex items-end justify-between gap-3 border-b border-cockpit-border/60 py-3 last:border-b-0"
+                >
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs text-cockpit-text-muted">
+                      {item.name}
+                    </span>
+                    <strong className="text-lg leading-none text-cockpit-text">
+                      {formatMoney(item.value, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </strong>
+                  </div>
+                  <span
+                    className={classNames(
+                      'text-sm font-medium',
+                      isPositive ? 'text-emerald-300' : 'text-rose-300',
+                    )}
+                  >
+                    {formatChangePercent(item.changePercent)}
+                  </span>
+                </div>
+              )
+            })}
           </div>
-        ))}
-      </div>
-      <p className="mt-5 text-center text-xs text-cockpit-text-muted">
-        데이터 기준 14:31 KST
-      </p>
+          {board.referenceAt ? (
+            <p className="mt-5 text-center text-xs text-cockpit-text-muted">
+              데이터 기준 {formatKstDateTime(board.referenceAt)}
+            </p>
+          ) : null}
+        </>
+      )}
     </section>
   )
 }

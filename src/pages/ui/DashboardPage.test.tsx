@@ -29,6 +29,16 @@ const refetchSignals = vi.fn()
 const refetchDecisionLogs = vi.fn()
 const refetchWatchlistAssets = vi.fn()
 
+vi.mock('@/features/market-indices/queries', () => ({
+  useMarketIndices: () => ({
+    data: { indices: [], referenceAt: null },
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: vi.fn(),
+  }),
+}))
+
 const signalRows: Signal[] = [
   {
     id: '1',
