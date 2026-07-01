@@ -97,6 +97,12 @@ export interface DashboardSummary {
   cashRatioDelta: string
 }
 
+export interface DashboardTrends {
+  riskAlerts: number[]
+  reviewSignals: number[]
+  importantNews: number[]
+}
+
 export interface AiBriefing {
   headline: string
   body: string

@@ -8,7 +8,7 @@ import type { DecisionLog } from '@/features/decision-log/adapters'
 import type { Signal } from '@/features/signals/adapters'
 import type { WatchlistAssetRow } from '@/features/watchlist/adapters'
 import { AuthProvider } from '@/shared/auth/AuthProvider'
-import type { AiBriefing } from '@/shared/model'
+import type { AiBriefing, DashboardTrends } from '@/shared/model'
 import {
   setupAuthenticatedUser,
   teardownAuthenticatedUser,
@@ -23,6 +23,7 @@ interface QueryState<T> {
 }
 
 const refetchDashboardSummary = vi.fn()
+const refetchDashboardTrends = vi.fn()
 const refetchDashboardBriefing = vi.fn()
 const refetchPriorityQueue = vi.fn()
 const refetchSignals = vi.fn()
@@ -38,6 +39,43 @@ vi.mock('@/features/market-indices/queries', () => ({
     refetch: vi.fn(),
   }),
 }))
+
+vi.mock('@/shared/ui', async () => {
+  const actual =
+    await vi.importActual<typeof import('@/shared/ui')>('@/shared/ui')
+
+  return {
+    ...actual,
+    BarChart: ({
+      data,
+      ariaLabel,
+    }: {
+      data: Array<{ value: number }>
+      ariaLabel?: string
+    }) => (
+      <div
+        role="img"
+        aria-label={ariaLabel}
+        data-testid="mock-bar-chart"
+        data-values={data.map((point) => point.value).join(',')}
+      />
+    ),
+    Sparkline: ({
+      data,
+      ariaLabel,
+    }: {
+      data: Array<{ value: number }>
+      ariaLabel?: string
+    }) => (
+      <div
+        role="img"
+        aria-label={ariaLabel}
+        data-testid="mock-sparkline"
+        data-values={data.map((point) => point.value).join(',')}
+      />
+    ),
+  }
+})
 
 const signalRows: Signal[] = [
   {
@@ -230,6 +268,17 @@ let dashboardSummaryQueryState = {
   isLoading: false,
   refetch: refetchDashboardSummary,
 }
+let dashboardTrendsQueryState: QueryState<DashboardTrends> = {
+  data: {
+    riskAlerts: [1, 2, 3],
+    reviewSignals: [4, 5, 6],
+    importantNews: [7, 8, 9],
+  },
+  error: null,
+  isError: false,
+  isLoading: false,
+  refetch: refetchDashboardTrends,
+}
 let dashboardBriefingQueryState: QueryState<AiBriefing> = {
   data: {
     headline: 'AI demand remains resilient',
@@ -273,6 +322,7 @@ let watchlistAssetsQueryState: QueryState<WatchlistAssetRow[]> = {
 
 vi.mock('@/features/dashboard/queries', () => ({
   useDashboardSummary: () => dashboardSummaryQueryState,
+  useDashboardTrends: () => dashboardTrendsQueryState,
 }))
 
 vi.mock('@/features/briefing/queries', () => ({
@@ -298,6 +348,7 @@ vi.mock('@/features/watchlist/queries', () => ({
 beforeEach(() => {
   setupAuthenticatedUser()
   refetchDashboardSummary.mockReset()
+  refetchDashboardTrends.mockReset()
   refetchDashboardBriefing.mockReset()
   refetchPriorityQueue.mockReset()
   refetchSignals.mockReset()
@@ -318,6 +369,17 @@ beforeEach(() => {
     isError: false,
     isLoading: false,
     refetch: refetchDashboardSummary,
+  }
+  dashboardTrendsQueryState = {
+    data: {
+      riskAlerts: [1, 2, 3],
+      reviewSignals: [4, 5, 6],
+      importantNews: [7, 8, 9],
+    },
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: refetchDashboardTrends,
   }
   dashboardBriefingQueryState = {
     data: {
@@ -506,6 +568,83 @@ describe('DashboardPage', () => {
     expect(
       await screen.findByText('Today Brief 데이터가 없습니다'),
     ).toBeVisible()
+  })
+
+  it('renders Today Brief visual skeletons while trends are loading', async () => {
+    dashboardTrendsQueryState = {
+      ...dashboardTrendsQueryState,
+      data: undefined,
+      isLoading: true,
+    }
+    const { container } = renderDashboard()
+
+    expect(
+      await screen.findByRole('heading', { name: 'AI 투자 관제실' }),
+    ).toBeVisible()
+    expect(screen.getByText('22.7%')).toBeVisible()
+    expect(container.querySelectorAll('.h-14.w-24.animate-pulse')).toHaveLength(
+      2,
+    )
+    expect(container.querySelectorAll('.h-12.w-24.animate-pulse')).toHaveLength(
+      1,
+    )
+  })
+
+  it('keeps Today Brief metrics but hides trend visuals on trend error or empty data', async () => {
+    dashboardTrendsQueryState = {
+      ...dashboardTrendsQueryState,
+      data: undefined,
+      error: new Error('trend failed'),
+      isError: true,
+    }
+    const { unmount } = renderDashboard()
+
+    expect(await screen.findByText('22.7%')).toBeVisible()
+    expect(screen.queryByTestId('mock-sparkline')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('mock-bar-chart')).not.toBeInTheDocument()
+
+    unmount()
+    dashboardTrendsQueryState = {
+      ...dashboardTrendsQueryState,
+      data: {
+        riskAlerts: [],
+        reviewSignals: [],
+        importantNews: [],
+      },
+      error: null,
+      isError: false,
+    }
+    renderDashboard()
+
+    expect(await screen.findByText('22.7%')).toBeVisible()
+    expect(screen.queryByTestId('mock-sparkline')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('mock-bar-chart')).not.toBeInTheDocument()
+  })
+
+  it('passes real trend series to Today Brief visuals without fallback decoration data', async () => {
+    dashboardTrendsQueryState = {
+      ...dashboardTrendsQueryState,
+      data: {
+        riskAlerts: [101, 0, 103],
+        reviewSignals: [201, 202, 0],
+        importantNews: [301, 302, 303],
+      },
+    }
+    renderDashboard()
+
+    expect(
+      await screen.findByRole('img', { name: '위험 증가 종목 추이' }),
+    ).toHaveAttribute('data-values', '101,0,103')
+    expect(
+      screen.getByRole('img', { name: '검토 시그널 추이' }),
+    ).toHaveAttribute('data-values', '201,202,0')
+    expect(screen.getByRole('img', { name: '중요 뉴스 추이' })).toHaveAttribute(
+      'data-values',
+      '301,302,303',
+    )
+    expect(
+      screen.getByRole('img', { name: '위험 증가 종목 추이' }),
+    ).not.toHaveAttribute('data-values', '22,24,23,27,26,31,28,34,33,38')
   })
 
   it('renders watchlist prices and change percentages with research links', async () => {

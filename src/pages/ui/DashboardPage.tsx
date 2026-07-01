@@ -3,7 +3,10 @@ import { Link } from 'react-router-dom'
 import type { AlertCandidate } from '@/features/alerts/adapters'
 import { useAlertCandidates } from '@/features/alerts/queries'
 import { useDashboardBriefing } from '@/features/briefing/queries'
-import { useDashboardSummary } from '@/features/dashboard/queries'
+import {
+  useDashboardSummary,
+  useDashboardTrends,
+} from '@/features/dashboard/queries'
 import type { DecisionLog } from '@/features/decision-log/adapters'
 import { useDecisionLogs } from '@/features/decision-log/queries'
 import type { Signal } from '@/features/signals/adapters'
@@ -11,7 +14,7 @@ import { useSignals } from '@/features/signals/queries'
 import type { WatchlistAssetRow } from '@/features/watchlist/adapters'
 import { useWatchlistAssets } from '@/features/watchlist/queries'
 import { appRoutePaths } from '@/shared/config/navigation'
-import type { DecisionType } from '@/shared/model'
+import type { DashboardTrends, DecisionType } from '@/shared/model'
 import {
   Badge,
   BarChart,
@@ -39,6 +42,7 @@ type BriefDeltaKey =
   | 'cashRatioDelta'
 
 type VisualKind = 'spark-risk' | 'bars-news' | 'spark-signal' | 'donut-cash'
+type TrendVisualKind = Exclude<VisualKind, 'donut-cash'>
 
 const percentFormatter = new Intl.NumberFormat('ko-KR', {
   signDisplay: 'always',
@@ -98,22 +102,6 @@ const todayBriefCards: Array<{
   },
 ]
 
-const briefSparklineData: Record<
-  Extract<VisualKind, 'spark-risk' | 'spark-signal'>,
-  Array<{ value: number }>
-> = {
-  'spark-risk': [22, 24, 23, 27, 26, 31, 28, 34, 33, 38].map((value) => ({
-    value,
-  })),
-  'spark-signal': [30, 32, 31, 35, 36, 34, 39, 37, 35, 33].map((value) => ({
-    value,
-  })),
-}
-
-const importantNewsBarData = [44, 62, 78, 52, 84, 38, 68, 90, 26].map(
-  (value) => ({ value }),
-)
-
 const riskRank: Record<AlertCandidate['riskLevel'], number> = {
   높음: 0,
   중간: 1,
@@ -144,23 +132,57 @@ function formatMetricValue(value: number, suffix?: string) {
   return `${value}${suffix ?? ''}`
 }
 
+function getTrendSeries(
+  kind: TrendVisualKind,
+  trends: DashboardTrends | undefined,
+) {
+  if (!trends) {
+    return undefined
+  }
+
+  if (kind === 'spark-risk') {
+    return trends.riskAlerts
+  }
+
+  if (kind === 'spark-signal') {
+    return trends.reviewSignals
+  }
+
+  return trends.importantNews
+}
+
 function MiniVisual({
   kind,
   cashRatio,
+  trendSeries,
+  isTrendLoading,
+  isTrendError,
   className,
 }: {
   kind: VisualKind
   cashRatio?: number
+  trendSeries?: number[]
+  isTrendLoading?: boolean
+  isTrendError?: boolean
   className?: string
 }) {
   if (kind === 'bars-news') {
+    if (isTrendLoading) {
+      return <Skeleton className="h-12 w-24 bg-cockpit-surface-muted/70" />
+    }
+
+    if (isTrendError || !trendSeries || trendSeries.length === 0) {
+      return null
+    }
+
     return (
       <BarChart
         className={classNames('h-12 w-24', className)}
         width={96}
         height={48}
-        data={importantNewsBarData}
+        data={trendSeries.map((value) => ({ value }))}
         color="currentColor"
+        ariaLabel="중요 뉴스 추이"
         margin={{ top: 4, right: 0, bottom: 0, left: 0 }}
       />
     )
@@ -183,13 +205,24 @@ function MiniVisual({
     )
   }
 
+  if (isTrendLoading) {
+    return <Skeleton className="h-14 w-24 bg-cockpit-surface-muted/70" />
+  }
+
+  if (isTrendError || !trendSeries || trendSeries.length === 0) {
+    return null
+  }
+
   return (
     <Sparkline
       className={classNames('h-14 w-24', className)}
       width={96}
       height={56}
-      data={briefSparklineData[kind]}
+      data={trendSeries.map((value) => ({ value }))}
       color="currentColor"
+      ariaLabel={
+        kind === 'spark-risk' ? '위험 증가 종목 추이' : '검토 시그널 추이'
+      }
       margin={{ top: 6, right: 4, bottom: 6, left: 4 }}
       strokeWidth={2.4}
     />
@@ -372,6 +405,7 @@ function SignalCard({ signal }: { signal: Signal }) {
 
 export function DashboardPage() {
   const dashboardSummaryQuery = useDashboardSummary()
+  const dashboardTrendsQuery = useDashboardTrends()
   const dashboardBriefingQuery = useDashboardBriefing()
   const priorityQueueQuery = useAlertCandidates()
   const signalsQuery = useSignals()
@@ -463,6 +497,16 @@ export function DashboardPage() {
                     <MiniVisual
                       kind={card.visual}
                       cashRatio={dashboardSummaryQuery.data.cashRatio}
+                      trendSeries={
+                        card.visual === 'donut-cash'
+                          ? undefined
+                          : getTrendSeries(
+                              card.visual,
+                              dashboardTrendsQuery.data,
+                            )
+                      }
+                      isTrendLoading={dashboardTrendsQuery.isLoading}
+                      isTrendError={dashboardTrendsQuery.isError}
                       className={card.toneClassName}
                     />
                   </div>

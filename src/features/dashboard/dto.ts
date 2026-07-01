@@ -8,3 +8,18 @@ export interface DashboardSummaryDto {
   review_signal_delta: null
   cash_weight_delta: null
 }
+
+export interface DashboardTrendPointDto {
+  date: string
+  count: number
+}
+
+export interface DashboardTrendSeriesItemDto {
+  key: string
+  data: DashboardTrendPointDto[]
+}
+
+export interface DashboardTrendSeriesDto {
+  days: number
+  series: DashboardTrendSeriesItemDto[]
+}

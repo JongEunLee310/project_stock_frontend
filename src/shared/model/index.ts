@@ -26,6 +26,7 @@ export type {
   CatalystItem,
   ChecklistItem,
   DashboardSummary,
+  DashboardTrends,
   DecisionLog,
   DecisionPattern,
   Holding,
