@@ -28,6 +28,17 @@ vi.mock('@/features/dashboard/queries', () => ({
     isLoading: false,
     refetch: vi.fn(),
   }),
+  useDashboardTrends: () => ({
+    data: {
+      riskAlerts: [1, 2, 3],
+      reviewSignals: [4, 5, 6],
+      importantNews: [7, 8, 9],
+    },
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: vi.fn(),
+  }),
 }))
 
 vi.mock('@/features/watchlist/queries', () => ({
