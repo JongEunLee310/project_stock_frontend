@@ -61,6 +61,17 @@ const refetchWatchlistAssets = vi.fn()
 const refetchWatchlistSummary = vi.fn()
 const refetchWatchlistObservations = vi.fn()
 const refetchUnreadAlertSummary = vi.fn()
+
+vi.mock('@/features/market-indices/queries', () => ({
+  useMarketIndices: () => ({
+    data: { indices: [], referenceAt: null },
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: vi.fn(),
+  }),
+}))
+
 let watchlistAssetsQueryState = {
   data: watchlistRows,
   error: null as Error | null,

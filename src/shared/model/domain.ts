@@ -104,6 +104,18 @@ export interface AiBriefing {
   riskChecks?: string[]
 }
 
+export interface MarketIndex {
+  symbol: string
+  name: string
+  value: number
+  changePercent: number
+}
+
+export interface MarketIndexBoard {
+  indices: MarketIndex[]
+  referenceAt: string | null
+}
+
 export interface PriorityQueueItem {
   id: string
   symbol: string

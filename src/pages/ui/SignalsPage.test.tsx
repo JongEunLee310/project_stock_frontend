@@ -57,6 +57,16 @@ const signalRows = [
   },
 ]
 
+vi.mock('@/features/market-indices/queries', () => ({
+  useMarketIndices: () => ({
+    data: { indices: [], referenceAt: null },
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: vi.fn(),
+  }),
+}))
+
 vi.mock('@/features/signals/queries', () => ({
   useSignals: () => ({
     data: signalRows,

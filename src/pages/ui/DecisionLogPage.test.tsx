@@ -50,6 +50,16 @@ let decisionLogStatsState: {
   isLoading: boolean
 }
 
+vi.mock('@/features/market-indices/queries', () => ({
+  useMarketIndices: () => ({
+    data: { indices: [], referenceAt: null },
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: vi.fn(),
+  }),
+}))
+
 vi.mock('@/features/decision-log/queries', () => ({
   useDecisionLogs: () => decisionLogsState,
   useDecisionLogStats: () => decisionLogStatsState,
