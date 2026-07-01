@@ -4,6 +4,7 @@ import { vi } from 'vitest'
 
 import { appRouteObjects } from '@/app/router'
 import type { UnreadAlertSummary } from '@/features/alerts/queries'
+import type { WatchlistObservations } from '@/shared/model'
 import type {
   WatchlistAssetRow,
   WatchlistSummaryView,
@@ -58,6 +59,7 @@ const watchlistRows: WatchlistAssetRow[] = [
 
 const refetchWatchlistAssets = vi.fn()
 const refetchWatchlistSummary = vi.fn()
+const refetchWatchlistObservations = vi.fn()
 const refetchUnreadAlertSummary = vi.fn()
 let watchlistAssetsQueryState = {
   data: watchlistRows,
@@ -82,6 +84,31 @@ let watchlistSummaryQueryState = {
   isError: false,
   isLoading: false,
   refetch: refetchWatchlistSummary,
+}
+let watchlistObservationsQueryState: {
+  data: WatchlistObservations | null | undefined
+  error: Error | null
+  isError: boolean
+  isLoading: boolean
+  refetch: typeof refetchWatchlistObservations
+} = {
+  data: {
+    summary: 'NVDA와 TSLA는 최근 뉴스 흐름상 변동성 확대를 주시해야 합니다.',
+    items: [
+      {
+        symbol: 'NVDA',
+        note: 'AI 수요는 견조하지만 단기 뉴스 위험이 상승했습니다.',
+      },
+      {
+        symbol: 'TSLA',
+        note: '인도량 업데이트 전까지 보수적인 관찰이 필요합니다.',
+      },
+    ],
+  } satisfies WatchlistObservations,
+  error: null as Error | null,
+  isError: false,
+  isLoading: false,
+  refetch: refetchWatchlistObservations,
 }
 let unreadAlertSummaryQueryState = {
   data: {
@@ -120,6 +147,10 @@ let unreadAlertSummaryQueryState = {
 vi.mock('@/features/watchlist/queries', () => ({
   useWatchlistAssets: () => watchlistAssetsQueryState,
   useWatchlistSummary: () => watchlistSummaryQueryState,
+}))
+
+vi.mock('@/features/watchlist-observations/queries', () => ({
+  useWatchlistObservations: () => watchlistObservationsQueryState,
 }))
 
 vi.mock('@/features/alerts/queries', () => ({
@@ -168,6 +199,7 @@ beforeEach(() => {
   setupAuthenticatedUser()
   refetchWatchlistAssets.mockReset()
   refetchWatchlistSummary.mockReset()
+  refetchWatchlistObservations.mockReset()
   refetchUnreadAlertSummary.mockReset()
   watchlistAssetsQueryState = {
     data: watchlistRows,
@@ -192,6 +224,25 @@ beforeEach(() => {
     isError: false,
     isLoading: false,
     refetch: refetchWatchlistSummary,
+  }
+  watchlistObservationsQueryState = {
+    data: {
+      summary: 'NVDA와 TSLA는 최근 뉴스 흐름상 변동성 확대를 주시해야 합니다.',
+      items: [
+        {
+          symbol: 'NVDA',
+          note: 'AI 수요는 견조하지만 단기 뉴스 위험이 상승했습니다.',
+        },
+        {
+          symbol: 'TSLA',
+          note: '인도량 업데이트 전까지 보수적인 관찰이 필요합니다.',
+        },
+      ],
+    },
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: refetchWatchlistObservations,
   }
   unreadAlertSummaryQueryState = {
     data: {
@@ -290,7 +341,9 @@ describe('WatchlistPage', () => {
     expect(screen.getByText('NVDA 위험 경보')).toBeVisible()
     expect(screen.getByText('종목 없음')).toBeVisible()
     expect(screen.queryByText('빠른 알림 설정')).not.toBeInTheDocument()
-    expect(screen.getByText(/NVDA, TSLA는 최근 뉴스 흐름/)).toBeVisible()
+    expect(screen.getByText(/NVDA와 TSLA는 최근 뉴스 흐름/)).toBeVisible()
+    expect(screen.getByText(/AI 수요는 견조하지만/)).toBeVisible()
+    expect(screen.getByText(/인도량 업데이트 전까지/)).toBeVisible()
     expect(screen.queryByText('가격 변동')).not.toBeInTheDocument()
   })
 
@@ -442,8 +495,73 @@ describe('WatchlistPage', () => {
     ).toBeVisible()
     expect(screen.getAllByText('0').length).toBeGreaterThanOrEqual(2)
     expect(screen.queryByText('관망')).not.toBeInTheDocument()
-    expect(screen.getByText(/NVDA, TSLA는 최근 뉴스 흐름/)).toBeVisible()
+    expect(screen.getByText(/NVDA와 TSLA는 최근 뉴스 흐름/)).toBeVisible()
     expect(screen.queryByText('가격 변동')).not.toBeInTheDocument()
+  })
+
+  it('renders watchlist observations loading, error, null, and empty item states', async () => {
+    watchlistObservationsQueryState = {
+      ...watchlistObservationsQueryState,
+      data: undefined,
+      isLoading: true,
+    }
+    const { unmount } = renderWatchlist()
+
+    expect(
+      await screen.findByRole('heading', { name: 'AI 관찰 메모' }),
+    ).toBeVisible()
+    expect(
+      screen.queryByText(/NVDA와 TSLA는 최근 뉴스 흐름/),
+    ).not.toBeInTheDocument()
+
+    unmount()
+    watchlistObservationsQueryState = {
+      ...watchlistObservationsQueryState,
+      data: undefined,
+      error: new Error('observations failed'),
+      isError: true,
+      isLoading: false,
+    }
+    const { unmount: unmountError } = renderWatchlist()
+
+    expect(
+      await screen.findByText('AI 관찰 메모를 불러오지 못했습니다'),
+    ).toBeVisible()
+    expect(screen.getByText('observations failed')).toBeVisible()
+
+    unmountError()
+    watchlistObservationsQueryState = {
+      ...watchlistObservationsQueryState,
+      data: null,
+      error: null,
+      isError: false,
+      isLoading: false,
+    }
+    const { unmount: unmountNull } = renderWatchlist()
+
+    expect(
+      await screen.findByText('관찰할 관심 목록이 없습니다.'),
+    ).toBeVisible()
+
+    unmountNull()
+    watchlistObservationsQueryState = {
+      ...watchlistObservationsQueryState,
+      data: {
+        summary: '관심 목록 전체의 위험 신호는 아직 제한적입니다.',
+        items: [],
+      },
+      error: null,
+      isError: false,
+      isLoading: false,
+    }
+    renderWatchlist()
+
+    expect(
+      await screen.findByText(
+        '관심 목록 전체의 위험 신호는 아직 제한적입니다.',
+      ),
+    ).toBeVisible()
+    expect(screen.queryByText(/AI 수요는 견조하지만/)).not.toBeInTheDocument()
   })
 
   it('renders the unread alert empty state from summary data', async () => {

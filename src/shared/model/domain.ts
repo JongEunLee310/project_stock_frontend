@@ -40,6 +40,16 @@ export interface WatchlistObservation {
   text: string
 }
 
+export interface WatchlistObservationItem {
+  symbol: string
+  note: string
+}
+
+export interface WatchlistObservations {
+  summary: string
+  items: WatchlistObservationItem[]
+}
+
 export interface RecentWatchlistItem {
   symbol: string
   name: string
