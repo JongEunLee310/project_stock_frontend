@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 
 import type { AlertCandidate } from '@/features/alerts/adapters'
 import { useAlertCandidates } from '@/features/alerts/queries'
+import { useDashboardBriefing } from '@/features/briefing/queries'
 import { useDashboardSummary } from '@/features/dashboard/queries'
 import type { DecisionLog } from '@/features/decision-log/adapters'
 import { useDecisionLogs } from '@/features/decision-log/queries'
@@ -10,7 +11,6 @@ import { useSignals } from '@/features/signals/queries'
 import type { WatchlistAssetRow } from '@/features/watchlist/adapters'
 import { useWatchlistAssets } from '@/features/watchlist/queries'
 import { appRoutePaths } from '@/shared/config/navigation'
-import { mockAiBriefing } from '@/shared/mock'
 import type { DecisionType } from '@/shared/model'
 import {
   Badge,
@@ -372,6 +372,7 @@ function SignalCard({ signal }: { signal: Signal }) {
 
 export function DashboardPage() {
   const dashboardSummaryQuery = useDashboardSummary()
+  const dashboardBriefingQuery = useDashboardBriefing()
   const priorityQueueQuery = useAlertCandidates()
   const signalsQuery = useSignals()
   const decisionLogsQuery = useDecisionLogs()
@@ -519,19 +520,44 @@ export function DashboardPage() {
 
         <Card className="flex flex-col gap-5 bg-cockpit-surface/70 p-6">
           <SectionTitle icon="✦" title="AI 브리핑" />
-          {/* TODO: BE 엔드포인트 없음 — mock 유지 */}
-          <p className="text-base leading-7 text-cockpit-text-muted">
-            오늘 시장은 개별 종목의 밸류에이션 부담과 뉴스/센티먼트 변동성
-            확대가 주요 리스크로 작용하고 있습니다.
-          </p>
-          <strong className="text-xl leading-8 text-cockpit-accent">
-            {mockAiBriefing.riskHeadline}를 권고합니다.
-          </strong>
-          <ul className="flex flex-col gap-2 text-sm leading-6 text-cockpit-text-muted">
-            {mockAiBriefing.riskChecks?.map((check) => (
-              <li key={check}>• {check}</li>
-            ))}
-          </ul>
+          {dashboardBriefingQuery.isLoading ? (
+            <Skeleton
+              className="min-h-44 rounded-card border border-cockpit-border bg-cockpit-surface-muted/45 p-4"
+              lines={5}
+            />
+          ) : dashboardBriefingQuery.isError ? (
+            <EmptyState
+              title="AI 브리핑을 불러오지 못했습니다"
+              description="브리핑 API가 준비되면 다시 표시됩니다."
+              className="rounded-card border border-cockpit-border bg-cockpit-surface-muted/45"
+            />
+          ) : dashboardBriefingQuery.data ? (
+            <>
+              <h3 className="text-xl leading-8 font-bold text-cockpit-accent">
+                {dashboardBriefingQuery.data.headline}
+              </h3>
+              <p className="text-base leading-7 text-cockpit-text-muted">
+                {dashboardBriefingQuery.data.body}
+              </p>
+              {dashboardBriefingQuery.data.riskHeadline ? (
+                <strong className="text-lg leading-8 text-cockpit-text">
+                  {dashboardBriefingQuery.data.riskHeadline}
+                </strong>
+              ) : null}
+              {(dashboardBriefingQuery.data.riskChecks ?? []).length > 0 ? (
+                <ul className="flex flex-col gap-2 text-sm leading-6 text-cockpit-text-muted">
+                  {dashboardBriefingQuery.data.riskChecks?.map((check) => (
+                    <li key={check}>• {check}</li>
+                  ))}
+                </ul>
+              ) : null}
+            </>
+          ) : (
+            <EmptyState
+              title="AI 브리핑 데이터가 없습니다"
+              className="rounded-card border border-cockpit-border bg-cockpit-surface-muted/45"
+            />
+          )}
           <div className="mt-auto flex justify-end">
             <SectionLink label="자세히 보기" to="/research/NVDA" />
           </div>

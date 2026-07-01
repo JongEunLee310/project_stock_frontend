@@ -3,8 +3,17 @@ import { MemoryRouter } from 'react-router-dom'
 import { vi } from 'vitest'
 
 import type { PortfolioView } from '@/features/portfolio/adapters'
+import type { AiBriefing } from '@/shared/model'
 
 import { PortfolioPage, PortfolioPageView } from './PortfolioPage'
+
+interface QueryState<T> {
+  data: T | undefined
+  error: Error | null
+  isError: boolean
+  isLoading: boolean
+  refetch: () => unknown
+}
 
 const portfolioView: PortfolioView = {
   totalValue: 128_734_000,
@@ -64,6 +73,7 @@ const portfolioView: PortfolioView = {
 }
 
 const refetchPortfolioSummary = vi.fn()
+const refetchPortfolioBriefing = vi.fn()
 let portfolioSummaryQueryState = {
   data: portfolioView,
   error: null as Error | null,
@@ -71,12 +81,30 @@ let portfolioSummaryQueryState = {
   isLoading: false,
   refetch: refetchPortfolioSummary,
 }
+let portfolioBriefingQueryState: QueryState<AiBriefing | null> = {
+  data: {
+    headline: 'Concentration needs a fresh review',
+    body: 'Top holdings remain large enough to review before adding exposure.',
+    riskHeadline: '권고 요약',
+    riskChecks: ['현금 비중을 25~30% 수준으로 확대 검토', 'QQQ 비중 점검'],
+  },
+  error: null,
+  isError: false,
+  isLoading: false,
+  refetch: refetchPortfolioBriefing,
+}
+
+vi.mock('@/features/briefing/queries', () => ({
+  usePortfolioBriefing: () => portfolioBriefingQueryState,
+}))
 
 vi.mock('@/features/portfolio/queries', () => ({
   usePortfolioSummary: () => portfolioSummaryQueryState,
 }))
 
 beforeEach(() => {
+  refetchPortfolioSummary.mockReset()
+  refetchPortfolioBriefing.mockReset()
   portfolioSummaryQueryState = {
     data: portfolioView,
     error: null,
@@ -84,12 +112,27 @@ beforeEach(() => {
     isLoading: false,
     refetch: refetchPortfolioSummary,
   }
+  portfolioBriefingQueryState = {
+    data: {
+      headline: 'Concentration needs a fresh review',
+      body: 'Top holdings remain large enough to review before adding exposure.',
+      riskHeadline: '권고 요약',
+      riskChecks: ['현금 비중을 25~30% 수준으로 확대 검토', 'QQQ 비중 점검'],
+    },
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: refetchPortfolioBriefing,
+  }
 })
 
 function renderPortfolio(portfolio: PortfolioView = portfolioView) {
   render(
     <MemoryRouter>
-      <PortfolioPageView portfolio={portfolio} />
+      <PortfolioPageView
+        portfolio={portfolio}
+        briefingQuery={portfolioBriefingQueryState}
+      />
     </MemoryRouter>,
   )
 }
@@ -134,6 +177,98 @@ describe('PortfolioPage', () => {
     expect(
       screen.getByText(/현금 비중을 25~30% 수준으로 확대 검토/),
     ).toBeVisible()
+    expect(screen.getByText('Concentration needs a fresh review')).toBeVisible()
+    expect(
+      screen.getByText(
+        'Top holdings remain large enough to review before adding exposure.',
+      ),
+    ).toBeVisible()
+  })
+
+  it('renders loading, error, empty, and no-risk states for portfolio briefing', () => {
+    portfolioBriefingQueryState = {
+      ...portfolioBriefingQueryState,
+      data: undefined,
+      isLoading: true,
+    }
+    const { unmount } = render(
+      <MemoryRouter>
+        <PortfolioPageView
+          portfolio={portfolioView}
+          briefingQuery={portfolioBriefingQueryState}
+        />
+      </MemoryRouter>,
+    )
+
+    expect(
+      screen.queryByText('Concentration needs a fresh review'),
+    ).not.toBeInTheDocument()
+
+    unmount()
+    portfolioBriefingQueryState = {
+      ...portfolioBriefingQueryState,
+      data: undefined,
+      error: new Error('network failed'),
+      isError: true,
+      isLoading: false,
+    }
+    const { unmount: unmountError } = render(
+      <MemoryRouter>
+        <PortfolioPageView
+          portfolio={portfolioView}
+          briefingQuery={portfolioBriefingQueryState}
+        />
+      </MemoryRouter>,
+    )
+
+    expect(
+      screen.getByText('포트폴리오 브리핑을 불러오지 못했습니다'),
+    ).toBeVisible()
+
+    unmountError()
+    portfolioBriefingQueryState = {
+      ...portfolioBriefingQueryState,
+      data: null,
+      error: null,
+      isError: false,
+      isLoading: false,
+    }
+    const { unmount: unmountEmpty } = render(
+      <MemoryRouter>
+        <PortfolioPageView
+          portfolio={portfolioView}
+          briefingQuery={portfolioBriefingQueryState}
+        />
+      </MemoryRouter>,
+    )
+
+    expect(
+      screen.getByText('포트폴리오 브리핑 데이터가 없습니다'),
+    ).toBeVisible()
+
+    unmountEmpty()
+    portfolioBriefingQueryState = {
+      ...portfolioBriefingQueryState,
+      data: {
+        headline: 'Risk checks are quiet',
+        body: 'No urgent portfolio checks are active.',
+        riskChecks: [],
+      },
+    }
+    render(
+      <MemoryRouter>
+        <PortfolioPageView
+          portfolio={portfolioView}
+          briefingQuery={portfolioBriefingQueryState}
+        />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByText('Risk checks are quiet')).toBeVisible()
+    expect(screen.queryByText('권고 요약')).not.toBeInTheDocument()
+    expect(
+      screen.queryByText('현금 비중을 25~30% 수준으로 확대 검토'),
+    ).not.toBeInTheDocument()
   })
 
   it('renders an empty state when risk exposures are empty', () => {

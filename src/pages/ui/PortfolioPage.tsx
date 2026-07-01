@@ -1,12 +1,13 @@
 import { Link } from 'react-router-dom'
 
+import { usePortfolioBriefing } from '@/features/briefing/queries'
 import type {
   PortfolioHoldingView,
   PortfolioView,
 } from '@/features/portfolio/adapters'
 import { usePortfolioSummary } from '@/features/portfolio/queries'
 import { appRoutePaths } from '@/shared/config/navigation'
-import { mockPortfolio } from '@/shared/mock'
+import type { AiBriefing } from '@/shared/model'
 import {
   Badge,
   BarChart,
@@ -28,6 +29,14 @@ interface SectorExposure extends Record<string, string | number> {
   name: string
   value: number
   amount: number
+}
+
+interface BriefingPanelState {
+  data: AiBriefing | null | undefined
+  error: Error | null
+  isError: boolean
+  isLoading: boolean
+  refetch: () => unknown
 }
 
 const krwFormatter = new Intl.NumberFormat('ko-KR', {
@@ -218,7 +227,83 @@ function buildHoldingColumns(): Array<TableColumn<HoldingWeight>> {
   ]
 }
 
-export function PortfolioPageView({ portfolio }: { portfolio: PortfolioView }) {
+function PortfolioBriefingPanel({
+  briefingQuery,
+}: {
+  briefingQuery: BriefingPanelState
+}) {
+  return (
+    <Card className="border-cockpit-border bg-cockpit-surface/80">
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <span className="grid h-7 w-7 place-items-center rounded-full border border-cockpit-accent/40 bg-cockpit-accent/15 text-sm font-bold text-cockpit-accent">
+            AI
+          </span>
+          <h2 className="text-lg font-bold text-cockpit-accent">
+            포트폴리오 브리핑
+          </h2>
+        </div>
+        <span className="text-xs text-cockpit-text-muted">
+          Insight Cockpit AI
+        </span>
+      </div>
+
+      {briefingQuery.isLoading ? (
+        <Skeleton
+          lines={5}
+          className="rounded-card border border-cockpit-border bg-cockpit-bg/40 p-4"
+        />
+      ) : briefingQuery.isError ? (
+        <EmptyState
+          title="포트폴리오 브리핑을 불러오지 못했습니다"
+          description="브리핑 API가 준비되면 다시 표시됩니다."
+          className="rounded-card border border-cockpit-border bg-cockpit-bg/40"
+        />
+      ) : briefingQuery.data ? (
+        <>
+          <div className="rounded-card border border-cockpit-border bg-cockpit-bg/40 p-4">
+            <h3 className="font-bold text-cockpit-text">
+              {briefingQuery.data.headline}
+            </h3>
+            <p className="mt-3 leading-7 text-cockpit-text">
+              {briefingQuery.data.body}
+            </p>
+          </div>
+          {(briefingQuery.data.riskHeadline ||
+            (briefingQuery.data.riskChecks ?? []).length > 0) && (
+            <div className="mt-4 rounded-card border border-cockpit-border bg-cockpit-accent/10 p-4">
+              {briefingQuery.data.riskHeadline ? (
+                <h3 className="font-semibold text-cockpit-text">
+                  {briefingQuery.data.riskHeadline}
+                </h3>
+              ) : null}
+              {(briefingQuery.data.riskChecks ?? []).length > 0 ? (
+                <ul className="mt-3 grid gap-2 text-sm text-cockpit-text-muted">
+                  {briefingQuery.data.riskChecks?.map((check) => (
+                    <li key={check}>• {check}</li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          )}
+        </>
+      ) : (
+        <EmptyState
+          title="포트폴리오 브리핑 데이터가 없습니다"
+          className="rounded-card border border-cockpit-border bg-cockpit-bg/40"
+        />
+      )}
+    </Card>
+  )
+}
+
+export function PortfolioPageView({
+  portfolio,
+  briefingQuery,
+}: {
+  portfolio: PortfolioView
+  briefingQuery: BriefingPanelState
+}) {
   const totalAssets = portfolio.totalValue
   const cashRatio = totalAssets > 0 ? (portfolio.cash / totalAssets) * 100 : 0
   const holdings = getHoldingWeights(portfolio)
@@ -440,7 +525,6 @@ export function PortfolioPageView({ portfolio }: { portfolio: PortfolioView }) {
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[1.25fr_0.75fr]">
-        {/* aiBriefing은 BE 출처가 없어 후속 API까지 mock을 유지한다. */}
         <div className="grid gap-4">
           <Card className="border-cockpit-border bg-cockpit-surface/80">
             <PanelTitle title="리스크 노출 분석" />
@@ -471,41 +555,7 @@ export function PortfolioPageView({ portfolio }: { portfolio: PortfolioView }) {
           </Card>
         </div>
 
-        <Card className="border-cockpit-border bg-cockpit-surface/80">
-          <div className="mb-5 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <span className="grid h-7 w-7 place-items-center rounded-full border border-cockpit-accent/40 bg-cockpit-accent/15 text-sm font-bold text-cockpit-accent">
-                AI
-              </span>
-              <h2 className="text-lg font-bold text-cockpit-accent">
-                포트폴리오 브리핑
-              </h2>
-            </div>
-            <span className="text-xs text-cockpit-text-muted">
-              Insight Cockpit AI
-            </span>
-          </div>
-          <div className="rounded-card border border-cockpit-border bg-cockpit-bg/40 p-4">
-            <h3 className="font-bold text-cockpit-text">
-              {mockPortfolio.aiBriefing.headline}
-            </h3>
-            <p className="mt-3 leading-7 text-cockpit-text">
-              {mockPortfolio.aiBriefing.body}
-            </p>
-          </div>
-          {mockPortfolio.aiBriefing.riskChecks ? (
-            <div className="mt-4 rounded-card border border-cockpit-border bg-cockpit-accent/10 p-4">
-              <h3 className="font-semibold text-cockpit-text">
-                {mockPortfolio.aiBriefing.riskHeadline}
-              </h3>
-              <ul className="mt-3 grid gap-2 text-sm text-cockpit-text-muted">
-                {mockPortfolio.aiBriefing.riskChecks.map((check) => (
-                  <li key={check}>• {check}</li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-        </Card>
+        <PortfolioBriefingPanel briefingQuery={briefingQuery} />
       </section>
 
       <Card className="border-cockpit-border bg-cockpit-surface/80">
@@ -537,6 +587,7 @@ export function PortfolioPageView({ portfolio }: { portfolio: PortfolioView }) {
 
 export function PortfolioPage() {
   const portfolioSummaryQuery = usePortfolioSummary()
+  const portfolioBriefingQuery = usePortfolioBriefing()
 
   if (portfolioSummaryQuery.isLoading) {
     return (
@@ -572,5 +623,10 @@ export function PortfolioPage() {
     )
   }
 
-  return <PortfolioPageView portfolio={portfolioSummaryQuery.data} />
+  return (
+    <PortfolioPageView
+      portfolio={portfolioSummaryQuery.data}
+      briefingQuery={portfolioBriefingQuery}
+    />
+  )
 }

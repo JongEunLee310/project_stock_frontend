@@ -8,6 +8,7 @@ import type { DecisionLog } from '@/features/decision-log/adapters'
 import type { Signal } from '@/features/signals/adapters'
 import type { WatchlistAssetRow } from '@/features/watchlist/adapters'
 import { AuthProvider } from '@/shared/auth/AuthProvider'
+import type { AiBriefing } from '@/shared/model'
 import {
   setupAuthenticatedUser,
   teardownAuthenticatedUser,
@@ -22,6 +23,7 @@ interface QueryState<T> {
 }
 
 const refetchDashboardSummary = vi.fn()
+const refetchDashboardBriefing = vi.fn()
 const refetchPriorityQueue = vi.fn()
 const refetchSignals = vi.fn()
 const refetchDecisionLogs = vi.fn()
@@ -218,6 +220,18 @@ let dashboardSummaryQueryState = {
   isLoading: false,
   refetch: refetchDashboardSummary,
 }
+let dashboardBriefingQueryState: QueryState<AiBriefing> = {
+  data: {
+    headline: 'AI demand remains resilient',
+    body: 'Cash and concentration risk should be checked before new buys.',
+    riskHeadline: '리스크 체크',
+    riskChecks: ['현금 비중 확인', '단일 종목 집중도 확인'],
+  },
+  error: null,
+  isError: false,
+  isLoading: false,
+  refetch: refetchDashboardBriefing,
+}
 let signalsQueryState: QueryState<Signal[]> = {
   data: signalRows,
   error: null,
@@ -251,6 +265,10 @@ vi.mock('@/features/dashboard/queries', () => ({
   useDashboardSummary: () => dashboardSummaryQueryState,
 }))
 
+vi.mock('@/features/briefing/queries', () => ({
+  useDashboardBriefing: () => dashboardBriefingQueryState,
+}))
+
 vi.mock('@/features/alerts/queries', () => ({
   useAlertCandidates: () => priorityQueueQueryState,
 }))
@@ -270,6 +288,7 @@ vi.mock('@/features/watchlist/queries', () => ({
 beforeEach(() => {
   setupAuthenticatedUser()
   refetchDashboardSummary.mockReset()
+  refetchDashboardBriefing.mockReset()
   refetchPriorityQueue.mockReset()
   refetchSignals.mockReset()
   refetchDecisionLogs.mockReset()
@@ -289,6 +308,18 @@ beforeEach(() => {
     isError: false,
     isLoading: false,
     refetch: refetchDashboardSummary,
+  }
+  dashboardBriefingQueryState = {
+    data: {
+      headline: 'AI demand remains resilient',
+      body: 'Cash and concentration risk should be checked before new buys.',
+      riskHeadline: '리스크 체크',
+      riskChecks: ['현금 비중 확인', '단일 종목 집중도 확인'],
+    },
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: refetchDashboardBriefing,
   }
   signalsQueryState = {
     data: signalRows,
@@ -354,6 +385,75 @@ describe('DashboardPage', () => {
     expect(screen.getAllByText('5').length).toBeGreaterThan(0)
     expect(screen.getByText('22.7%')).toBeVisible()
     expect(screen.queryByText('전일 대비 +1')).not.toBeInTheDocument()
+  })
+
+  it('renders dashboard AI briefing from query data', async () => {
+    renderDashboard()
+
+    expect(await screen.findByText('AI demand remains resilient')).toBeVisible()
+    expect(
+      screen.getByText(
+        'Cash and concentration risk should be checked before new buys.',
+      ),
+    ).toBeVisible()
+    expect(screen.getByText('리스크 체크')).toBeVisible()
+    expect(screen.getByText('• 현금 비중 확인')).toBeVisible()
+  })
+
+  it('renders loading, error, empty, and no-risk states for dashboard AI briefing', async () => {
+    dashboardBriefingQueryState = {
+      ...dashboardBriefingQueryState,
+      data: undefined,
+      isLoading: true,
+    }
+    const { unmount } = renderDashboard()
+
+    expect(
+      await screen.findByRole('heading', { name: 'AI 투자 관제실' }),
+    ).toBeVisible()
+    expect(
+      screen.queryByText('AI demand remains resilient'),
+    ).not.toBeInTheDocument()
+
+    unmount()
+    dashboardBriefingQueryState = {
+      ...dashboardBriefingQueryState,
+      data: undefined,
+      error: new Error('network failed'),
+      isError: true,
+      isLoading: false,
+    }
+    const { unmount: unmountError } = renderDashboard()
+
+    expect(
+      await screen.findByText('AI 브리핑을 불러오지 못했습니다'),
+    ).toBeVisible()
+
+    unmountError()
+    dashboardBriefingQueryState = {
+      ...dashboardBriefingQueryState,
+      data: undefined,
+      error: null,
+      isError: false,
+      isLoading: false,
+    }
+    const { unmount: unmountEmpty } = renderDashboard()
+
+    expect(await screen.findByText('AI 브리핑 데이터가 없습니다')).toBeVisible()
+
+    unmountEmpty()
+    dashboardBriefingQueryState = {
+      ...dashboardBriefingQueryState,
+      data: {
+        headline: 'Risk checks are quiet',
+        body: 'No urgent briefing checks are active.',
+        riskChecks: [],
+      },
+    }
+    renderDashboard()
+
+    expect(await screen.findByText('Risk checks are quiet')).toBeVisible()
+    expect(screen.queryByText('• 현금 비중 확인')).not.toBeInTheDocument()
   })
 
   it('renders loading, error, and empty states for Today Brief', async () => {
