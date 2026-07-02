@@ -29,3 +29,9 @@ export const alertTypeLabels: Record<string, string> = {
   SELL_REVIEW: '매도 검토',
   OVERHEATED: '과열',
 }
+
+/** BE research-summary stance 와이어 영문 → 한글 라벨 */
+export const researchStanceLabels: Record<string, string> = {
+  BUY_CANDIDATE: '매수 후보',
+  WATCH: '관찰',
+}

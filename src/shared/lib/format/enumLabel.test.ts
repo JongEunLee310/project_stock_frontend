@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   alertStatusLabels,
   alertTypeLabels,
+  researchStanceLabels,
   riskLevelLabels,
   toLabel,
 } from './enumLabel'
@@ -48,5 +49,12 @@ describe('alertTypeLabels', () => {
     expect(alertTypeLabels['BUY_CANDIDATE']).toBe('매수 후보')
     expect(alertTypeLabels['SELL_REVIEW']).toBe('매도 검토')
     expect(alertTypeLabels['OVERHEATED']).toBe('과열')
+  })
+})
+
+describe('researchStanceLabels', () => {
+  it('research-summary stance가 매핑되어 있다', () => {
+    expect(researchStanceLabels['BUY_CANDIDATE']).toBe('매수 후보')
+    expect(researchStanceLabels['WATCH']).toBe('관찰')
   })
 })
