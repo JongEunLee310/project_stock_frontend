@@ -5,6 +5,7 @@ export interface SignalDto {
   asset?: {
     symbol?: string | null
     name?: string | null
+    market?: string | null
   } | null
   signal_type: string
   score?: string | null
@@ -19,4 +20,8 @@ export type SignalDetailDto = SignalDto
 
 export interface PriceBarDto {
   close?: string | null
+}
+
+export interface PriceSeriesDto {
+  bars: PriceBarDto[]
 }
