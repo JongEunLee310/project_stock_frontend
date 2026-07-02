@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { formatKstDate, formatKstDateTime } from './datetime'
+import { formatKstDate, formatKstDateTime, formatKstTime } from './datetime'
 
 // TZ=UTC 환경에서 실행해야 함. KST(Asia/Seoul, UTC+9)는 항상 하드코딩됨.
 describe('formatKstDate', () => {
@@ -35,5 +35,11 @@ describe('formatKstDateTime', () => {
     // UTC 2026-06-23T03:00:00Z = KST 2026-06-23 12:00 (정오)
     const result = formatKstDateTime('2026-06-23T03:00:00Z')
     expect(result).toContain('12')
+  })
+})
+
+describe('formatKstTime', () => {
+  it('UTC ISO를 KST 시:분으로 변환한다', () => {
+    expect(formatKstTime('2026-07-02T05:32:00Z')).toBe('14:32')
   })
 })

@@ -1,10 +1,12 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
+import { QueryClientProvider } from '@tanstack/react-query'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { vi } from 'vitest'
 
 import { appRouteObjects } from '@/app/router'
 import type { DecisionLog } from '@/features/decision-log/adapters'
 import type { DecisionLogStats } from '@/features/decision-log/queries'
+import { createQueryClient } from '@/shared/api/queryClient'
 import { AuthProvider } from '@/shared/auth/AuthProvider'
 import {
   setupAuthenticatedUser,
@@ -120,11 +122,14 @@ function renderDecisionLog() {
   const router = createMemoryRouter(appRouteObjects, {
     initialEntries: ['/decision-log'],
   })
+  const queryClient = createQueryClient()
 
   const renderResult = render(
-    <AuthProvider>
-      <RouterProvider router={router} />
-    </AuthProvider>,
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>
+    </QueryClientProvider>,
   )
 
   return { router, ...renderResult }

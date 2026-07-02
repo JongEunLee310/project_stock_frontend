@@ -1,8 +1,10 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
+import { QueryClientProvider } from '@tanstack/react-query'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { vi } from 'vitest'
 
 import { appRouteObjects } from '@/app/router'
+import { createQueryClient } from '@/shared/api/queryClient'
 import { AuthProvider } from '@/shared/auth/AuthProvider'
 import {
   setupAuthenticatedUser,
@@ -164,11 +166,14 @@ function renderResearch(path = '/research/NVDA') {
   const router = createMemoryRouter(appRouteObjects, {
     initialEntries: [path],
   })
+  const queryClient = createQueryClient()
 
   render(
-    <AuthProvider>
-      <RouterProvider router={router} />
-    </AuthProvider>,
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>
+    </QueryClientProvider>,
   )
 
   return router

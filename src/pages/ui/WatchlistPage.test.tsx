@@ -1,9 +1,11 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
+import { QueryClientProvider } from '@tanstack/react-query'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { vi } from 'vitest'
 
 import { appRouteObjects } from '@/app/router'
 import type { UnreadAlertSummary } from '@/features/alerts/queries'
+import { createQueryClient } from '@/shared/api/queryClient'
 import type { WatchlistObservations } from '@/shared/model'
 import type {
   WatchlistAssetRow,
@@ -353,11 +355,14 @@ function renderWatchlist() {
   const router = createMemoryRouter(appRouteObjects, {
     initialEntries: ['/watchlist'],
   })
+  const queryClient = createQueryClient()
 
   const renderResult = render(
-    <AuthProvider>
-      <RouterProvider router={router} />
-    </AuthProvider>,
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>
+    </QueryClientProvider>,
   )
 
   return { router, ...renderResult }
