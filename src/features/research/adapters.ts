@@ -86,7 +86,9 @@ export function adaptThesis(dto: ThesisDto): ThesisItem {
   }
 }
 
-function normalizeStanceConfidence(value: string | null | undefined): number | null {
+function normalizeStanceConfidence(
+  value: string | null | undefined,
+): number | null {
   const parsed = parseDecimal(value)
   return parsed === null ? null : parsed * 100
 }
