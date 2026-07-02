@@ -1,4 +1,5 @@
 import { render, screen, within } from '@testing-library/react'
+import { QueryClientProvider } from '@tanstack/react-query'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { vi } from 'vitest'
 
@@ -7,6 +8,7 @@ import type { AlertCandidate } from '@/features/alerts/adapters'
 import type { DecisionLog } from '@/features/decision-log/adapters'
 import type { Signal } from '@/features/signals/adapters'
 import type { WatchlistAssetRow } from '@/features/watchlist/adapters'
+import { createQueryClient } from '@/shared/api/queryClient'
 import { AuthProvider } from '@/shared/auth/AuthProvider'
 import type { AiBriefing, DashboardTrends } from '@/shared/model'
 import {
@@ -331,6 +333,13 @@ vi.mock('@/features/briefing/queries', () => ({
 
 vi.mock('@/features/alerts/queries', () => ({
   useAlertCandidates: () => priorityQueueQueryState,
+  useUnreadAlertSummary: () => ({
+    data: { unreadCount: 0, recent: [] },
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: vi.fn(),
+  }),
 }))
 
 vi.mock('@/features/signals/queries', () => ({
@@ -431,11 +440,14 @@ function renderDashboard() {
   const router = createMemoryRouter(appRouteObjects, {
     initialEntries: ['/'],
   })
+  const queryClient = createQueryClient()
 
   const renderResult = render(
-    <AuthProvider>
-      <RouterProvider router={router} />
-    </AuthProvider>,
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>
+    </QueryClientProvider>,
   )
 
   return { router, ...renderResult }

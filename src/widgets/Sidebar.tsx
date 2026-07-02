@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 
+import { useUnreadAlertSummary } from '@/features/alerts/queries'
 import {
   getActiveNavigationItem,
   navigationItems,
@@ -33,6 +34,8 @@ const navLabels: Record<string, string> = {
 export function Sidebar() {
   const { pathname } = useLocation()
   const activeItem = getActiveNavigationItem(pathname)
+  const { data: unreadAlertSummary } = useUnreadAlertSummary()
+  const unreadAlertCount = unreadAlertSummary?.unreadCount ?? 0
 
   return (
     <aside className="border-b border-cockpit-border bg-cockpit-surface/90 lg:border-b-0 lg:border-r">
@@ -74,9 +77,9 @@ export function Sidebar() {
                   {navIcons[item.id]}
                 </span>
                 <span>{navLabels[item.id]}</span>
-                {item.id === 'alerts' ? (
+                {item.id === 'alerts' && unreadAlertCount > 0 ? (
                   <span className="ml-auto grid h-6 w-6 place-items-center rounded-full bg-cockpit-accent-strong text-xs text-cockpit-accent-text">
-                    6
+                    {unreadAlertCount}
                   </span>
                 ) : null}
               </Link>
