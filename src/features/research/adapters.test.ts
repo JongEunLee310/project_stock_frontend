@@ -27,8 +27,8 @@ const detail: AssetDetailDto = {
 }
 
 const summary: ResearchSummaryDto = {
-  stance: 'Constructive',
-  stance_confidence: '65',
+  stance: 'BUY_CANDIDATE',
+  stance_confidence: '0.72',
   headline: 'AI demand remains durable',
   body: 'Margins remain the key checkpoint.',
   key_risks: [
@@ -84,8 +84,8 @@ describe('research adapters', () => {
       fiftyTwoWeekHigh: null,
       targetPrice: 1145.32,
       targetUpsidePercent: 11.8,
-      stance: 'Constructive',
-      stanceConfidence: 65,
+      stance: '매수 후보',
+      stanceConfidence: 72,
     })
     expect(view).not.toHaveProperty('priceSparkline')
     expect(view.keyRisks[0].level).toBe('중간')
@@ -101,12 +101,18 @@ describe('research adapters', () => {
   it('supports null thesis and empty nested collections', () => {
     const view = adaptResearchDetail(
       detail,
-      { ...summary, key_risks: null, stance_confidence: null },
+      {
+        ...summary,
+        stance: 'UNKNOWN',
+        key_risks: null,
+        stance_confidence: null,
+      },
       { items: null },
       [],
       null,
     )
 
+    expect(view.stance).toBe('판단 보류')
     expect(view.stanceConfidence).toBeNull()
     expect(view.keyRisks).toEqual([])
     expect(view.buyChecklist).toEqual([])
@@ -124,6 +130,19 @@ describe('research adapters', () => {
     )
 
     expect(view.market).toBeNull()
+  })
+
+  it('keeps stance and confidence fallbacks for null or invalid wire values', () => {
+    const view = adaptResearchDetail(
+      detail,
+      { ...summary, stance: null, stance_confidence: 'not-a-number' },
+      checklist,
+      [],
+      null,
+    )
+
+    expect(view.stance).toBe('판단 보류')
+    expect(view.stanceConfidence).toBeNull()
   })
 
   it('maps report and thesis date-bearing DTOs', () => {

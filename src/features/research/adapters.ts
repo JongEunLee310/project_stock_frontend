@@ -1,6 +1,7 @@
 import {
   formatKstDateTime,
   parseDecimal,
+  researchStanceLabels,
   riskLevelLabels,
   toLabel,
 } from '@/shared/lib/format'
@@ -85,6 +86,13 @@ export function adaptThesis(dto: ThesisDto): ThesisItem {
   }
 }
 
+function normalizeStanceConfidence(
+  value: string | null | undefined,
+): number | null {
+  const parsed = parseDecimal(value)
+  return parsed === null ? null : parsed * 100
+}
+
 export function adaptResearchDetail(
   detail: AssetDetailDto,
   summary: ResearchSummaryDto,
@@ -107,8 +115,8 @@ export function adaptResearchDetail(
     targetUpsidePercent: parseDecimal(detail.target_upside_percent),
     nextEarningsDate: detail.next_earnings_date ?? null,
     updatedAt: detail.updated_at ? formatKstDateTime(detail.updated_at) : null,
-    stance: summary.stance ?? '판단 보류',
-    stanceConfidence: parseDecimal(summary.stance_confidence),
+    stance: toLabel(researchStanceLabels, summary.stance ?? '', '판단 보류'),
+    stanceConfidence: normalizeStanceConfidence(summary.stance_confidence),
     briefing: {
       headline: summary.headline ?? '리서치 요약 없음',
       body: summary.body ?? '',
