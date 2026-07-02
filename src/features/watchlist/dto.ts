@@ -36,3 +36,18 @@ export interface WatchlistSummaryDto {
   risk_increasing_count: number
   recent_items?: RecentWatchlistItemDto[]
 }
+
+export interface WatchlistTrendPointDto {
+  date: string
+  count: number
+}
+
+export interface WatchlistTrendSeriesItemDto {
+  key: string
+  data: WatchlistTrendPointDto[]
+}
+
+export interface WatchlistTrendSeriesDto {
+  days: number
+  series: WatchlistTrendSeriesItemDto[]
+}

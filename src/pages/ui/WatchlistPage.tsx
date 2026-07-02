@@ -7,6 +7,7 @@ import type { WatchlistAssetRow } from '@/features/watchlist/adapters'
 import {
   useWatchlistAssets,
   useWatchlistSummary,
+  useWatchlistSummaryTrends,
 } from '@/features/watchlist/queries'
 import {
   Button,
@@ -50,11 +51,6 @@ const summaryIconClassNames = [
 ]
 
 const summaryIcons = ['▱', '▣']
-
-const summaryLineSeries = [
-  [24, 25, 26, 25.6, 26.4, 26.1, 28],
-  [3.2, 3.0, 3.4, 3.3, 3.6, 3.5, 3.9],
-]
 
 const symbolMarks: Record<string, { label: string; className: string }> = {
   NVDA: { label: 'N', className: 'bg-[#76b900] text-black' },
@@ -134,10 +130,24 @@ function stopRowNavigation(event: MouseEvent) {
 }
 
 function SummaryVisual({ index }: { index: number }) {
+  const trendsQuery = useWatchlistSummaryTrends()
+  const counts =
+    index === 1
+      ? trendsQuery.data?.riskIncreasing
+      : trendsQuery.data?.watchlistTotal
+
+  if (trendsQuery.isLoading) {
+    return <Skeleton className="h-10 w-20" />
+  }
+
+  if (trendsQuery.isError || !counts || counts.length === 0) {
+    return null
+  }
+
   return (
     <UiSparkline
       className="h-10 w-20"
-      data={summaryLineSeries[index === 1 ? 1 : 0].map((value, point) => ({
+      data={counts.map((value, point) => ({
         point,
         value,
       }))}

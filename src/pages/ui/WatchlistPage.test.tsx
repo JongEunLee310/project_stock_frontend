@@ -7,6 +7,7 @@ import type { UnreadAlertSummary } from '@/features/alerts/queries'
 import type { WatchlistObservations } from '@/shared/model'
 import type {
   WatchlistAssetRow,
+  WatchlistSummaryTrendsView,
   WatchlistSummaryView,
 } from '@/features/watchlist/adapters'
 import { AuthProvider } from '@/shared/auth/AuthProvider'
@@ -59,8 +60,19 @@ const watchlistRows: WatchlistAssetRow[] = [
 
 const refetchWatchlistAssets = vi.fn()
 const refetchWatchlistSummary = vi.fn()
+const refetchWatchlistSummaryTrends = vi.fn()
 const refetchWatchlistObservations = vi.fn()
 const refetchUnreadAlertSummary = vi.fn()
+const sparklineMock = vi.hoisted(() => vi.fn())
+
+vi.mock('@/shared/ui', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/shared/ui')>()
+
+  return {
+    ...actual,
+    Sparkline: sparklineMock,
+  }
+})
 
 vi.mock('@/features/market-indices/queries', () => ({
   useMarketIndices: () => ({
@@ -95,6 +107,16 @@ let watchlistSummaryQueryState = {
   isError: false,
   isLoading: false,
   refetch: refetchWatchlistSummary,
+}
+let watchlistSummaryTrendsQueryState = {
+  data: {
+    watchlistTotal: [10, 11, 12],
+    riskIncreasing: [1, 2, 3],
+  } satisfies WatchlistSummaryTrendsView,
+  error: null as Error | null,
+  isError: false,
+  isLoading: false,
+  refetch: refetchWatchlistSummaryTrends,
 }
 let watchlistObservationsQueryState: {
   data: WatchlistObservations | null | undefined
@@ -158,6 +180,7 @@ let unreadAlertSummaryQueryState = {
 vi.mock('@/features/watchlist/queries', () => ({
   useWatchlistAssets: () => watchlistAssetsQueryState,
   useWatchlistSummary: () => watchlistSummaryQueryState,
+  useWatchlistSummaryTrends: () => watchlistSummaryTrendsQueryState,
 }))
 
 vi.mock('@/features/watchlist-observations/queries', () => ({
@@ -216,8 +239,24 @@ beforeEach(() => {
   setupAuthenticatedUser()
   refetchWatchlistAssets.mockReset()
   refetchWatchlistSummary.mockReset()
+  refetchWatchlistSummaryTrends.mockReset()
   refetchWatchlistObservations.mockReset()
   refetchUnreadAlertSummary.mockReset()
+  sparklineMock.mockImplementation(
+    ({
+      ariaLabel,
+      data,
+    }: {
+      ariaLabel?: string
+      data: { value: number }[]
+    }) => (
+      <div
+        role="img"
+        aria-label={ariaLabel}
+        data-values={data.map((point) => point.value).join(',')}
+      />
+    ),
+  )
   watchlistAssetsQueryState = {
     data: watchlistRows,
     error: null,
@@ -241,6 +280,16 @@ beforeEach(() => {
     isError: false,
     isLoading: false,
     refetch: refetchWatchlistSummary,
+  }
+  watchlistSummaryTrendsQueryState = {
+    data: {
+      watchlistTotal: [10, 11, 12],
+      riskIncreasing: [1, 2, 3],
+    },
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: refetchWatchlistSummaryTrends,
   }
   watchlistObservationsQueryState = {
     data: {
@@ -362,6 +411,57 @@ describe('WatchlistPage', () => {
     expect(screen.getByText(/AI 수요는 견조하지만/)).toBeVisible()
     expect(screen.getByText(/인도량 업데이트 전까지/)).toBeVisible()
     expect(screen.queryByText('가격 변동')).not.toBeInTheDocument()
+  })
+
+  it('renders skeletons in sparkline slots while summary trends are loading', async () => {
+    watchlistSummaryTrendsQueryState = {
+      ...watchlistSummaryTrendsQueryState,
+      data: undefined as never,
+      isLoading: true,
+    }
+    const { container } = renderWatchlist()
+
+    expect(
+      await screen.findByRole('heading', { name: '관심 종목' }),
+    ).toBeVisible()
+    expect(
+      container.querySelectorAll('[class~="h-10"][class~="w-20"]').length,
+    ).toBeGreaterThanOrEqual(2)
+    expect(
+      screen.queryByRole('img', { name: '전체 관심 종목 추세 차트' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('renders sparklines from summary trends data', async () => {
+    renderWatchlist()
+
+    expect(
+      await screen.findByRole('img', { name: '전체 관심 종목 추세 차트' }),
+    ).toHaveAttribute('data-values', '10,11,12')
+    expect(
+      screen.getByRole('img', { name: '위험 증가 종목 추세 차트' }),
+    ).toHaveAttribute('data-values', '1,2,3')
+  })
+
+  it('hides sparklines when summary trend series are empty while cards remain visible', async () => {
+    watchlistSummaryTrendsQueryState = {
+      ...watchlistSummaryTrendsQueryState,
+      data: {
+        watchlistTotal: [],
+        riskIncreasing: [],
+      },
+    }
+
+    renderWatchlist()
+
+    expect(await screen.findByText('전체 관심 종목')).toBeVisible()
+    expect(screen.getByText('위험 증가 종목')).toBeVisible()
+    expect(
+      screen.queryByRole('img', { name: '전체 관심 종목 추세 차트' }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('img', { name: '위험 증가 종목 추세 차트' }),
+    ).not.toBeInTheDocument()
   })
 
   it('renders thin table columns and stock cells', async () => {

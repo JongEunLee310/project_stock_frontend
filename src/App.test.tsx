@@ -60,6 +60,16 @@ vi.mock('@/features/watchlist/queries', () => ({
     isLoading: false,
     refetch: vi.fn(),
   }),
+  useWatchlistSummaryTrends: () => ({
+    data: {
+      watchlistTotal: [],
+      riskIncreasing: [],
+    },
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: vi.fn(),
+  }),
 }))
 
 vi.mock('@/features/market-indices/queries', () => ({
