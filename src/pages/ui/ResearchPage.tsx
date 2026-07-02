@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import {
   SymbolNotFoundError,
+  useResearchPriceSeries,
   useResearchView,
 } from '@/features/research/queries'
 import type {
@@ -56,12 +57,21 @@ function getHighestRiskLevel(risks: ResearchRisk[]) {
 }
 
 function PriceSparkline({ research }: { research: ResearchView }) {
-  const data = research.priceSparkline.map((close, index) => ({
+  const priceSeriesQuery = useResearchPriceSeries(
+    research.symbol,
+    research.market,
+  )
+
+  if (priceSeriesQuery.isLoading) {
+    return <Skeleton className="h-44 w-full" />
+  }
+
+  const data = (priceSeriesQuery.data ?? []).map((close, index) => ({
     date: String(index + 1),
     close,
   }))
 
-  if (data.length === 0) {
+  if (!research.market || priceSeriesQuery.isError || data.length === 0) {
     return (
       <div
         role="img"

@@ -64,20 +64,20 @@ const thesis: ThesisDto = {
 }
 
 describe('research adapters', () => {
-  it('combines detail, summary, checklist, reports, thesis, and sparkline', () => {
+  it('combines detail, summary, checklist, reports, and thesis', () => {
     const view = adaptResearchDetail(
       detail,
       summary,
       checklist,
       [report],
       thesis,
-      [128.5],
     )
 
     expect(view).toMatchObject({
       assetId: 1,
       symbol: 'NVDA',
       name: 'NVIDIA Corp.',
+      market: 'NASDAQ',
       marketCap: 2540000000000,
       per: 38.4,
       peg: null,
@@ -86,8 +86,8 @@ describe('research adapters', () => {
       targetUpsidePercent: 11.8,
       stance: 'Constructive',
       stanceConfidence: 65,
-      priceSparkline: [128.5],
     })
+    expect(view).not.toHaveProperty('priceSparkline')
     expect(view.keyRisks[0].level).toBe('중간')
     expect(view.buyChecklist[0]).toMatchObject({
       id: 'entry',
@@ -105,14 +105,25 @@ describe('research adapters', () => {
       { items: null },
       [],
       null,
-      [],
     )
 
     expect(view.stanceConfidence).toBeNull()
     expect(view.keyRisks).toEqual([])
     expect(view.buyChecklist).toEqual([])
     expect(view.latestThesis).toBeNull()
-    expect(view.priceSparkline).toEqual([])
+    expect(view).not.toHaveProperty('priceSparkline')
+  })
+
+  it('maps missing market to null', () => {
+    const view = adaptResearchDetail(
+      { ...detail, market: undefined },
+      summary,
+      checklist,
+      [],
+      null,
+    )
+
+    expect(view.market).toBeNull()
   })
 
   it('maps report and thesis date-bearing DTOs', () => {

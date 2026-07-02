@@ -9,6 +9,8 @@ import {
   teardownAuthenticatedUser,
 } from '@/test-utils/authTestSetup'
 
+const mockUseResearchPriceSeries = vi.hoisted(() => vi.fn())
+
 const researchBySymbol = {
   NVDA: {
     assetId: 1,
@@ -70,13 +72,12 @@ const researchBySymbol = {
       },
     ],
     latestThesis: null,
-    priceSparkline: [],
   },
   MSFT: {
     assetId: 2,
     symbol: 'MSFT',
     name: 'Microsoft Corp.',
-    market: 'NASDAQ',
+    market: null,
     sector: 'Technology',
     marketCap: null,
     per: null,
@@ -98,7 +99,6 @@ const researchBySymbol = {
     buyChecklist: [],
     reports: [],
     latestThesis: null,
-    priceSparkline: [],
   },
 }
 
@@ -119,6 +119,7 @@ vi.mock('@/features/research/queries', async () => {
 
   return {
     SymbolNotFoundError: actual.SymbolNotFoundError,
+    useResearchPriceSeries: mockUseResearchPriceSeries,
     useResearchView: (symbol: string) => {
       const data = researchBySymbol[symbol as keyof typeof researchBySymbol]
 
@@ -145,10 +146,18 @@ vi.mock('@/features/research/queries', async () => {
 
 beforeEach(() => {
   setupAuthenticatedUser()
+  mockUseResearchPriceSeries.mockReturnValue({
+    data: [],
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: vi.fn(),
+  })
 })
 
 afterEach(() => {
   teardownAuthenticatedUser()
+  vi.clearAllMocks()
 })
 
 function renderResearch(path = '/research/NVDA') {
@@ -181,6 +190,59 @@ describe('ResearchPage', () => {
     expect(
       screen.getByRole('img', { name: 'NVDA 최근 가격 추이' }),
     ).toBeVisible()
+    expect(mockUseResearchPriceSeries).toHaveBeenCalledWith('NVDA', 'NASDAQ')
+  })
+
+  it('renders a loading skeleton while the price series is loading', async () => {
+    mockUseResearchPriceSeries.mockReturnValue({
+      data: undefined,
+      error: null,
+      isError: false,
+      isLoading: true,
+      refetch: vi.fn(),
+    })
+
+    renderResearch()
+
+    await screen.findByRole('heading', { name: 'NVDA 리서치' })
+
+    expect(
+      screen.queryByRole('img', { name: 'NVDA 최근 가격 추이' }),
+    ).not.toBeInTheDocument()
+    expect(screen.queryByText('가격 시계열 대기')).not.toBeInTheDocument()
+  })
+
+  it('renders the price line chart when price series data is available', async () => {
+    mockUseResearchPriceSeries.mockReturnValue({
+      data: [128.5, 130.25],
+      error: null,
+      isError: false,
+      isLoading: false,
+      refetch: vi.fn(),
+    })
+
+    renderResearch()
+
+    expect(
+      await screen.findByRole('img', { name: 'NVDA 최근 가격 추이' }),
+    ).toBeVisible()
+    expect(screen.queryByText('가격 시계열 대기')).not.toBeInTheDocument()
+  })
+
+  it('keeps the price placeholder when price series errors', async () => {
+    mockUseResearchPriceSeries.mockReturnValue({
+      data: undefined,
+      error: new Error('failed'),
+      isError: true,
+      isLoading: false,
+      refetch: vi.fn(),
+    })
+
+    renderResearch()
+
+    await screen.findByRole('heading', { name: 'NVDA 리서치' })
+
+    expect(screen.getByText('가격 시계열 대기')).toBeVisible()
   })
 
   it('renders stock metric tiles from the research view', async () => {
@@ -265,5 +327,7 @@ describe('ResearchPage', () => {
     expect(
       screen.getByRole('img', { name: 'MSFT 최근 가격 추이' }),
     ).toBeVisible()
+    expect(mockUseResearchPriceSeries).toHaveBeenCalledWith('MSFT', null)
+    expect(screen.getByText('가격 시계열 대기')).toBeVisible()
   })
 })
