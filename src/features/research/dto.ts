@@ -59,3 +59,7 @@ export interface ThesisDto {
 export interface PriceBarDto {
   close?: string | null
 }
+
+export interface PriceSeriesDto {
+  bars: PriceBarDto[]
+}

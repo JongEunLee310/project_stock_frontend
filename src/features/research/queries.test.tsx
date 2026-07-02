@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { apiGet } from '@/shared/api/client'
 
-import { useResearchView } from './queries'
+import { useResearchPriceSeries, useResearchView } from './queries'
 
 vi.mock('@/shared/api/client', () => ({
   apiGet: vi.fn(),
@@ -28,9 +28,11 @@ function createTestQueryClient() {
 function responseFor(path: string) {
   switch (path) {
     case '/assets?symbol=NVDA':
-      return [{ id: 11, symbol: 'NVDA', name: 'NVIDIA Corp.' }]
+      return [
+        { id: 11, symbol: 'NVDA', name: 'NVIDIA Corp.', market: 'NASDAQ' },
+      ]
     case '/assets/11/detail':
-      return { id: 11, symbol: 'NVDA', name: 'NVIDIA Corp.' }
+      return { id: 11, symbol: 'NVDA', name: 'NVIDIA Corp.', market: 'NASDAQ' }
     case '/assets/11/research-summary':
       return {
         headline: 'Demand stays resilient',
@@ -55,6 +57,7 @@ function responseFor(path: string) {
 
 describe('research queries', () => {
   beforeEach(() => {
+    vi.clearAllMocks()
     vi.mocked(apiGet).mockImplementation((async (path: string) => ({
       data: responseFor(path),
       meta: undefined,
@@ -70,5 +73,72 @@ describe('research queries', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
     expect(apiGet).toHaveBeenCalledWith('/theses/latest?asset_id=11')
+    expect(apiGet).not.toHaveBeenCalledWith(
+      expect.stringContaining('/stocks/NVDA/prices'),
+    )
+    expect(result.current.data).not.toHaveProperty('priceSparkline')
+  })
+
+  it('fetches research price series and parses close values', async () => {
+    vi.mocked(apiGet).mockResolvedValue({
+      data: {
+        bars: [{ close: '101.25' }, { close: null }, { close: '102.50' }],
+      },
+      meta: undefined,
+    })
+    const queryClient = createTestQueryClient()
+    const { result } = renderHook(
+      () => useResearchPriceSeries('NVDA', 'NASDAQ'),
+      {
+        wrapper: wrapperFor(queryClient),
+      },
+    )
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(apiGet).toHaveBeenCalledWith(
+      '/stocks/NVDA/prices?market=NASDAQ&range=3M&interval=1d',
+    )
+    expect(result.current.data).toEqual([101.25, 102.5])
+    expect(
+      queryClient
+        .getQueryCache()
+        .find({ queryKey: ['research', 'price-series', 'NVDA', 'NASDAQ'] }),
+    ).toBeDefined()
+  })
+
+  it.each([
+    { symbol: null, market: 'NASDAQ' },
+    { symbol: 'NVDA', market: null },
+  ])(
+    'does not fetch research price series when symbol or market is missing',
+    ({ symbol, market }) => {
+      const queryClient = createTestQueryClient()
+      renderHook(() => useResearchPriceSeries(symbol, market), {
+        wrapper: wrapperFor(queryClient),
+      })
+
+      expect(apiGet).not.toHaveBeenCalled()
+    },
+  )
+
+  it('encodes the stock symbol for research price series requests', async () => {
+    vi.mocked(apiGet).mockResolvedValue({
+      data: { bars: [] },
+      meta: undefined,
+    })
+    const queryClient = createTestQueryClient()
+    const { result } = renderHook(
+      () => useResearchPriceSeries('BRK B', 'NYSE'),
+      {
+        wrapper: wrapperFor(queryClient),
+      },
+    )
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(apiGet).toHaveBeenCalledWith(
+      '/stocks/BRK%20B/prices?market=NYSE&range=3M&interval=1d',
+    )
   })
 })

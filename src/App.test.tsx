@@ -74,6 +74,13 @@ vi.mock('@/features/market-indices/queries', () => ({
 
 vi.mock('@/features/research/queries', () => ({
   SymbolNotFoundError: class SymbolNotFoundError extends Error {},
+  useResearchPriceSeries: () => ({
+    data: [],
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: vi.fn(),
+  }),
   useResearchView: (symbol: string) => ({
     data: {
       assetId: 1,
@@ -101,7 +108,6 @@ vi.mock('@/features/research/queries', () => ({
       buyChecklist: [],
       reports: [],
       latestThesis: null,
-      priceSparkline: [],
     },
     error: null,
     isError: false,

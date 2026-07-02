@@ -64,7 +64,6 @@ export interface ResearchView {
   buyChecklist: ChecklistItem[]
   reports: ReportItem[]
   latestThesis: ThesisItem | null
-  priceSparkline: number[]
 }
 
 export function adaptReport(dto: ReportDto): ReportItem {
@@ -92,7 +91,6 @@ export function adaptResearchDetail(
   checklist: BuyChecklistDto,
   reports: ReportDto[],
   thesis: ThesisDto | null,
-  sparkline: number[],
 ): ResearchView {
   return {
     assetId: detail.id,
@@ -130,6 +128,5 @@ export function adaptResearchDetail(
     })),
     reports: reports.map(adaptReport),
     latestThesis: thesis ? adaptThesis(thesis) : null,
-    priceSparkline: sparkline,
   }
 }

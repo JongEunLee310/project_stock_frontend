@@ -1,12 +1,14 @@
 import { useQuery, type UseQueryResult } from '@tanstack/react-query'
 
 import { apiGet } from '@/shared/api/client'
+import { parseDecimal } from '@/shared/lib/format'
 
 import { adaptResearchDetail, type ResearchView } from './adapters'
 import type {
   AssetDetailDto,
   AssetLookupDto,
   BuyChecklistDto,
+  PriceSeriesDto,
   ReportDto,
   ResearchSummaryDto,
   ThesisDto,
@@ -40,6 +42,27 @@ export function useAssetIdBySymbol(symbol: string): UseQueryResult<number> {
   })
 }
 
+export function useResearchPriceSeries(
+  symbol: string | null,
+  market: string | null,
+): UseQueryResult<number[]> {
+  return useQuery<number[]>({
+    queryKey: ['research', 'price-series', symbol, market],
+    enabled: Boolean(symbol && market),
+    queryFn: async () => {
+      if (!symbol || !market) return []
+
+      const { data } = await apiGet<PriceSeriesDto>(
+        `/stocks/${encodeURIComponent(symbol)}/prices?market=${market}&range=3M&interval=1d`,
+      )
+
+      return data.bars
+        .map((bar) => parseDecimal(bar.close))
+        .filter((close): close is number => close !== null)
+    },
+  })
+}
+
 export function useResearchView(symbol: string): UseQueryResult<ResearchView> {
   const normalizedSymbol = symbol.trim().toUpperCase()
 
@@ -65,17 +88,7 @@ export function useResearchView(symbol: string): UseQueryResult<ResearchView> {
         ),
       ])
 
-      // BE 준비됨 — 활성화 블로커: 심볼→market 매핑 확정 + FE DTO를 PriceSeriesDto{ bars: PriceBarDto[] }로 정렬
-      const sparkline: number[] = []
-
-      return adaptResearchDetail(
-        detail,
-        summary,
-        checklist,
-        reports,
-        thesis,
-        sparkline,
-      )
+      return adaptResearchDetail(detail, summary, checklist, reports, thesis)
     },
   })
 }
