@@ -43,6 +43,17 @@ Claude Code may invoke `codex exec` automatically as the implementation step, su
 - Pin Codex CLI to 0.140.0 and verify a `workspace-write` dry run before relying on automated invocation (`.codex/CODEX_SETUP_NOTES.md`).
 - Re-evaluate the pinned version when a fixed Codex release ships.
 
+## Update (2026-07-03)
+
+Decision point 3 (`Pinned CLI`) is no longer required. The SIGTRAP regression that crashed the
+early runs has since been resolved in current Codex CLI releases, and the installed CLI runs
+`codex exec` correctly without pinning to any specific version. The version-pin item is therefore
+dropped from the automated-invocation prerequisites and replaced by an operational rule: if a run
+appears hung, confirm it is actually stalled and retry only a small bounded number of times before
+falling back to manual execution (see `docs/harness/handoff-policy.md`, `.codex/CODEX_SETUP_NOTES.md`).
+All other conditions (default sandbox only, no privilege escalation, bounded delegation, handoff
+brief required, human gate unchanged) still hold.
+
 ## Related Documents
 
 - `docs/decisions/ADR-001-separate-claude-code-and-codex-roles.md`
