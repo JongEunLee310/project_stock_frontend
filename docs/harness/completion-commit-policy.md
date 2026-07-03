@@ -34,6 +34,19 @@ If a single unit of work mixes unrelated commit types (e.g., a doc update bundle
 - **PR Summary issue grouping.** Group summary bullets by issue. A single-issue PR omits per-bullet issue tags (the title already carries the issue number); a multi-issue PR groups bullets under a bold per-issue header.
 - Claude Code does not approve or merge the PR it opens. Human approval is still required per `local-review-policy.md`.
 
+### PR Body Format
+
+Every PR body uses the same sections in the same order so PRs read consistently no matter who or what opens them. Keep it lean — prose over checklist — and scale each section to the change.
+
+1. **Title** — `type: 제목`, using the same Conventional Commit type as the commit(s).
+2. **`## Summary`** — one to three sentences on what the PR does and why, not a bare label.
+3. **`## Changes`** — the concrete changes as bullets, grouped by issue per the grouping rule above.
+4. **`## Verification`** — the local verification result (this repo's lint/typecheck/test commands and their outcome) and CI status.
+5. **`## Related`** — `Closes #N` for every issue the PR resolves (one per line), plus links to any parallel or stacked PRs.
+6. **Closing line** — `최종 머지 권한은 개발자에게 있습니다.`
+
+This is the same structure as `.github/pull_request_template.md`. Governance gates (protected-file changes, risk level, documentation impact, human gate) stay enforced by their own policies; surface them inside `## Summary` or `## Changes` when they apply rather than as a separate checklist.
+
 ## Step 4: CI Failure Response
 
 When CI fails on a PR:
