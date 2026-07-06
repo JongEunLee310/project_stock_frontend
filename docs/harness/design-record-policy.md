@@ -50,8 +50,13 @@ enum 값·파일 경로·설정 키·식별자)는 영어로 유지한다 — �
 풀어 쓰되, 기술 식별자와 정보 밀도는 그대로 둔다 — 구조만 자연스럽게 한다. 이 원칙은
 설계·ADR·리뷰·PR·핸드오프 등 한국어 산문을 쓰는 모든 문서에 적용한다.
 
+설계 문서의 데이터 계약 리터럴(enum 값·필드 형식·경계값·키 스킴)에는 출처를 명시하고,
+출처를 댈 수 없는 값은 "가정"으로 표기한다. 상세는 `quality-process-policy.md`의 Design
+Fact Grounding을 따른다.
+
 ## Related
 
 - `handoff-policy.md` — design records are an input to the handoff.
+- `quality-process-policy.md` — 리터럴 계약의 출처 명시와 셀프 검토 체크포인트.
 - `docs/decisions/` — ADRs capture *why* a durable decision was made; design records capture *what shape* a specific change takes.
 - `docs/designs/README.md` — directory conventions and skeleton template.
