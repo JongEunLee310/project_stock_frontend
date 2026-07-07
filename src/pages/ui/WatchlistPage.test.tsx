@@ -76,6 +76,8 @@ const refetchUnreadAlertSummary = vi.fn()
 const addAssetToWatchlist = vi.fn()
 const createAsset = vi.fn()
 const sparklineMock = vi.hoisted(() => vi.fn())
+let createAssetIsPending = false
+let addAssetToWatchlistIsPending = false
 
 vi.mock('@/shared/ui', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/shared/ui')>()
@@ -212,11 +214,11 @@ vi.mock('@/features/watchlist/queries', () => ({
   useWatchlistSummaryTrends: () => watchlistSummaryTrendsQueryState,
   useAssetSearch: () => assetSearchQueryState,
   useCreateAsset: () => ({
-    isPending: false,
+    isPending: createAssetIsPending,
     mutateAsync: createAsset,
   }),
   useAddAssetToFirstWatchlist: () => ({
-    isPending: false,
+    isPending: addAssetToWatchlistIsPending,
     mutateAsync: addAssetToWatchlist,
   }),
 }))
@@ -281,6 +283,7 @@ beforeEach(() => {
   refetchWatchlistObservations.mockReset()
   refetchUnreadAlertSummary.mockReset()
   addAssetToWatchlist.mockReset()
+  addAssetToWatchlistIsPending = false
   addAssetToWatchlist.mockResolvedValue({
     id: 99,
     watchlist_id: 1,
@@ -292,6 +295,7 @@ beforeEach(() => {
     created_at: '2026-06-01T00:00:00.000Z',
   })
   createAsset.mockReset()
+  createAssetIsPending = false
   sparklineMock.mockImplementation(
     ({
       ariaLabel,
@@ -617,6 +621,63 @@ describe('WatchlistPage', () => {
         screen.queryByRole('dialog', { name: '종목 추가' }),
       ).not.toBeInTheDocument(),
     )
+  })
+
+  it('moves focus into add stock modal and traps Tab navigation', async () => {
+    renderWatchlist()
+
+    await screen.findByRole('heading', { name: '관심 종목' })
+
+    fireEvent.click(screen.getByRole('button', { name: '+ 종목 추가' }))
+
+    const dialog = screen.getByRole('dialog', { name: '종목 추가' })
+    expect(dialog).toHaveFocus()
+
+    const closeButton = within(dialog).getByRole('button', {
+      name: '종목 추가 닫기',
+    })
+    const cancelButton = within(dialog).getByRole('button', { name: '취소' })
+
+    closeButton.focus()
+    fireEvent.keyDown(dialog, { key: 'Tab', shiftKey: true })
+    expect(cancelButton).toHaveFocus()
+
+    fireEvent.keyDown(dialog, { key: 'Tab' })
+    expect(closeButton).toHaveFocus()
+  })
+
+  it('closes add stock modal with Escape when it is not submitting', async () => {
+    renderWatchlist()
+
+    await screen.findByRole('heading', { name: '관심 종목' })
+
+    fireEvent.click(screen.getByRole('button', { name: '+ 종목 추가' }))
+
+    const dialog = screen.getByRole('dialog', { name: '종목 추가' })
+    fireEvent.keyDown(dialog, { key: 'Escape' })
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('dialog', { name: '종목 추가' }),
+      ).not.toBeInTheDocument(),
+    )
+  })
+
+  it('ignores Escape in add stock modal while submitting', async () => {
+    addAssetToWatchlistIsPending = true
+
+    renderWatchlist()
+
+    await screen.findByRole('heading', { name: '관심 종목' })
+
+    fireEvent.click(screen.getByRole('button', { name: '+ 종목 추가' }))
+
+    const dialog = screen.getByRole('dialog', { name: '종목 추가' })
+    fireEvent.keyDown(dialog, { key: 'Escape' })
+
+    expect(
+      screen.getByRole('dialog', { name: '종목 추가' }),
+    ).toBeInTheDocument()
   })
 
   it('keeps add stock modal open and shows an error when adding fails', async () => {

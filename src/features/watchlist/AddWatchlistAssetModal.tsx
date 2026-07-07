@@ -1,4 +1,5 @@
-import { useEffect, useId, useMemo, useState } from 'react'
+import type { KeyboardEvent } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 
 import { Button, Input, Skeleton } from '@/shared/ui'
 import { classNames } from '@/shared/ui/classNames'
@@ -18,6 +19,14 @@ interface AddWatchlistAssetModalProps {
 type ModalMode = 'search' | 'create'
 
 const searchDebounceMs = 350
+const focusableSelector = [
+  'a[href]',
+  'button:not([disabled])',
+  'input:not([disabled])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  '[tabindex]:not([tabindex="-1"])',
+].join(',')
 
 function useDebouncedValue(value: string, delayMs: number) {
   const [debouncedValue, setDebouncedValue] = useState(value)
@@ -52,6 +61,12 @@ function buildCreateAssetBody(form: CreateAssetBody): CreateAssetBody {
     industry: normalizeOptional(form.industry ?? ''),
     description: normalizeOptional(form.description ?? ''),
   }
+}
+
+function getFocusableElements(container: HTMLElement) {
+  return Array.from(
+    container.querySelectorAll<HTMLElement>(focusableSelector),
+  ).filter((element) => element.getAttribute('aria-hidden') !== 'true')
 }
 
 function AssetResultButton({
@@ -96,6 +111,7 @@ export function AddWatchlistAssetModal({
 }: AddWatchlistAssetModalProps) {
   const titleId = useId()
   const descriptionId = useId()
+  const dialogRef = useRef<HTMLDivElement>(null)
   const [mode, setMode] = useState<ModalMode>('search')
   const [searchInput, setSearchInput] = useState('')
   const [selectedAsset, setSelectedAsset] = useState<AssetDto | null>(null)
@@ -143,12 +159,53 @@ export function AddWatchlistAssetModal({
     })
   }, [isOpen])
 
-  if (!isOpen) return null
+  useEffect(() => {
+    if (!isOpen) return
+
+    dialogRef.current?.focus()
+  }, [isOpen])
 
   const closeModal = () => {
     if (isSubmitting) return
     onClose()
   }
+
+  const handleDialogKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Escape') {
+      event.stopPropagation()
+      closeModal()
+      return
+    }
+
+    if (event.key !== 'Tab') return
+
+    const dialogElement = dialogRef.current
+    if (!dialogElement) return
+
+    const focusableElements = getFocusableElements(dialogElement)
+    if (focusableElements.length === 0) {
+      event.preventDefault()
+      dialogElement.focus()
+      return
+    }
+
+    const firstElement = focusableElements[0]
+    const lastElement = focusableElements[focusableElements.length - 1]
+    const activeElement = document.activeElement
+
+    if (event.shiftKey && activeElement === firstElement) {
+      event.preventDefault()
+      lastElement.focus()
+      return
+    }
+
+    if (!event.shiftKey && activeElement === lastElement) {
+      event.preventDefault()
+      firstElement.focus()
+    }
+  }
+
+  if (!isOpen) return null
 
   const selectAsset = (asset: AssetDto) => {
     setSelectedAsset(asset)
@@ -198,11 +255,14 @@ export function AddWatchlistAssetModal({
       role="presentation"
     >
       <div
+        ref={dialogRef}
         className="flex max-h-[90vh] w-full max-w-xl flex-col overflow-hidden rounded-card border border-cockpit-border bg-cockpit-surface shadow-2xl shadow-black/45"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
+        tabIndex={-1}
+        onKeyDown={handleDialogKeyDown}
       >
         <div className="flex items-start justify-between gap-3 border-b border-cockpit-border p-5">
           <div>
