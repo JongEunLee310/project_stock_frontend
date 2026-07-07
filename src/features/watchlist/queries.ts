@@ -14,6 +14,7 @@ import {
 import type {
   AddWatchlistItemBody,
   AssetDto,
+  AssetLookupResponseDto,
   CreateAssetBody,
   WatchlistDto,
   WatchlistItemDto,
@@ -113,9 +114,38 @@ export function useAssetSearch(
   return useQuery<AssetDto[]>({
     queryKey: ['assets', 'search', trimmedSymbol],
     enabled: enabled && trimmedSymbol.length > 0,
+    queryFn: () => fetchAssetsBySymbol(trimmedSymbol),
+  })
+}
+
+export async function fetchAssetsBySymbol(symbol: string): Promise<AssetDto[]> {
+  const trimmedSymbol = symbol.trim()
+  const { data } = await apiGet<AssetDto[]>(
+    `/assets?symbol=${encodeURIComponent(trimmedSymbol)}&page=1&size=20`,
+  )
+
+  return data
+}
+
+export function useAssetLookup(
+  query: string,
+  market: string | null,
+  enabled = true,
+): UseQueryResult<AssetLookupResponseDto> {
+  const trimmedQuery = query.trim()
+  const marketParam = market?.trim() ?? ''
+  const lookupParams = new URLSearchParams({ query: trimmedQuery })
+
+  if (marketParam.length > 0) {
+    lookupParams.set('market', marketParam)
+  }
+
+  return useQuery<AssetLookupResponseDto>({
+    queryKey: ['assets', 'lookup', trimmedQuery, marketParam],
+    enabled: enabled && trimmedQuery.length > 0,
     queryFn: async () => {
-      const { data } = await apiGet<AssetDto[]>(
-        `/assets?symbol=${encodeURIComponent(trimmedSymbol)}&page=1&size=20`,
+      const { data } = await apiGet<AssetLookupResponseDto>(
+        `/assets/lookup?${lookupParams.toString()}`,
       )
 
       return data
@@ -149,10 +179,14 @@ export function useAddAssetToFirstWatchlist(): UseMutationResult<
       const { data: watchlists } = await apiGet<WatchlistDto[]>(
         '/watchlists?page=1&size=20',
       )
-      const firstWatchlist = watchlists[0]
+      let firstWatchlist = watchlists[0]
 
       if (!firstWatchlist) {
-        throw new Error('관심목록이 없습니다.')
+        const { data: createdWatchlist } = await apiPost<WatchlistDto>(
+          '/watchlists',
+          { name: '관심종목' },
+        )
+        firstWatchlist = createdWatchlist
       }
 
       const { data } = await apiPost<WatchlistItemDto>(

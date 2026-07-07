@@ -10,6 +10,10 @@ describe('errorCodeMessages', () => {
       '요청이 올바르지 않습니다',
     )
     expect(errorCodeMessages['INTERNAL_ERROR']).toBe('서버 오류가 발생했습니다')
+    expect(errorCodeMessages['ASSET_NOT_IN_MARKET']).toBe(
+      '시장 데이터에서 확인되지 않은 종목입니다',
+    )
+    expect(errorCodeMessages['ASSET_DUPLICATE']).toBe('이미 등록된 종목입니다')
   })
 })
 

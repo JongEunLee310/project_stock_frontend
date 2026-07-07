@@ -70,6 +70,14 @@ vi.mock('@/features/watchlist/queries', () => ({
     isLoading: false,
     refetch: vi.fn(),
   }),
+  fetchAssetsBySymbol: () => Promise.resolve([]),
+  useAssetLookup: () => ({
+    data: { items: [] },
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: vi.fn(),
+  }),
   useAssetSearch: () => ({
     data: [],
     error: null,
