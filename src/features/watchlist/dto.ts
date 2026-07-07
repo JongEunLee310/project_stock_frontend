@@ -17,11 +17,19 @@ export interface AssetDto {
 
 export interface CreateAssetBody {
   symbol: string
+  market: string
+}
+
+export interface AssetLookupItemDto {
+  symbol: string
   name: string
   market: string
-  sector?: string | null
-  industry?: string | null
-  description?: string | null
+  sector: string | null
+  registered: boolean
+}
+
+export interface AssetLookupResponseDto {
+  items: AssetLookupItemDto[]
 }
 
 export interface AddWatchlistItemBody {

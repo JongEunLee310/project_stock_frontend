@@ -20,7 +20,7 @@ import type {
   WatchlistSummaryTrendsView,
   WatchlistSummaryView,
 } from '@/features/watchlist/adapters'
-import type { AssetDto } from '@/features/watchlist/dto'
+import type { AssetDto, AssetLookupItemDto } from '@/features/watchlist/dto'
 import { AuthProvider } from '@/shared/auth/AuthProvider'
 import {
   setupAuthenticatedUser,
@@ -77,6 +77,7 @@ const refetchWatchlistRecommendations = vi.fn()
 const refetchUnreadAlertSummary = vi.fn()
 const addAssetToWatchlist = vi.fn()
 const createAsset = vi.fn()
+const fetchAssetsBySymbol = vi.fn()
 const sparklineMock = vi.hoisted(() => vi.fn())
 let createAssetIsPending = false
 let addAssetToWatchlistIsPending = false
@@ -133,6 +134,40 @@ let watchlistSummaryTrendsQueryState = {
   isError: false,
   isLoading: false,
   refetch: refetchWatchlistSummaryTrends,
+}
+let registeredAssetSearchResults: AssetDto[] = [
+  {
+    id: 8,
+    symbol: 'MSFT',
+    name: 'Microsoft Corp.',
+    market: 'NASDAQ',
+    sector: 'Technology',
+    is_active: true,
+    created_at: '2026-06-01T00:00:00.000Z',
+  },
+]
+let assetLookupQueryState: {
+  data: { items: AssetLookupItemDto[] }
+  error: Error | null
+  isError: boolean
+  isLoading: boolean
+  refetch: ReturnType<typeof vi.fn>
+} = {
+  data: {
+    items: [
+      {
+        symbol: 'MSFT',
+        name: 'Microsoft Corp.',
+        market: 'NASDAQ',
+        sector: 'Technology',
+        registered: true,
+      },
+    ],
+  },
+  error: null as Error | null,
+  isError: false,
+  isLoading: false,
+  refetch: vi.fn(),
 }
 let assetSearchQueryState = {
   data: [
@@ -222,6 +257,8 @@ vi.mock('@/features/watchlist/queries', () => ({
   useWatchlistAssets: () => watchlistAssetsQueryState,
   useWatchlistSummary: () => watchlistSummaryQueryState,
   useWatchlistSummaryTrends: () => watchlistSummaryTrendsQueryState,
+  fetchAssetsBySymbol: (symbol: string) => fetchAssetsBySymbol(symbol),
+  useAssetLookup: () => assetLookupQueryState,
   useAssetSearch: () => assetSearchQueryState,
   useCreateAsset: () => ({
     isPending: createAssetIsPending,
@@ -298,6 +335,8 @@ beforeEach(() => {
   refetchWatchlistRecommendations.mockReset()
   refetchUnreadAlertSummary.mockReset()
   addAssetToWatchlist.mockReset()
+  fetchAssetsBySymbol.mockReset()
+  fetchAssetsBySymbol.mockResolvedValue(registeredAssetSearchResults)
   addAssetToWatchlistIsPending = false
   addAssetToWatchlist.mockResolvedValue({
     id: 99,
@@ -310,6 +349,15 @@ beforeEach(() => {
     created_at: '2026-06-01T00:00:00.000Z',
   })
   createAsset.mockReset()
+  createAsset.mockResolvedValue({
+    id: 10,
+    symbol: 'SHOP',
+    name: 'Shopify Inc.',
+    market: 'NYSE',
+    sector: 'Technology',
+    is_active: true,
+    created_at: '2026-06-01T00:00:00.000Z',
+  })
   createAssetIsPending = false
   sparklineMock.mockImplementation(
     ({
@@ -359,6 +407,34 @@ beforeEach(() => {
     isError: false,
     isLoading: false,
     refetch: refetchWatchlistSummaryTrends,
+  }
+  registeredAssetSearchResults = [
+    {
+      id: 8,
+      symbol: 'MSFT',
+      name: 'Microsoft Corp.',
+      market: 'NASDAQ',
+      sector: 'Technology',
+      is_active: true,
+      created_at: '2026-06-01T00:00:00.000Z',
+    },
+  ]
+  assetLookupQueryState = {
+    data: {
+      items: [
+        {
+          symbol: 'MSFT',
+          name: 'Microsoft Corp.',
+          market: 'NASDAQ',
+          sector: 'Technology',
+          registered: true,
+        },
+      ],
+    },
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: vi.fn(),
   }
   assetSearchQueryState = {
     data: [
@@ -618,7 +694,7 @@ describe('WatchlistPage', () => {
     expect(tslaFavoriteButton).toHaveAttribute('aria-pressed', 'true')
   })
 
-  it('opens add stock modal, selects a searched asset, and adds it', async () => {
+  it('opens add stock modal, selects a lookup asset, resolves its id, and adds it', async () => {
     renderWatchlist()
 
     await screen.findByRole('heading', { name: '관심 종목' })
@@ -629,23 +705,81 @@ describe('WatchlistPage', () => {
       screen.getByRole('dialog', { name: '종목 추가' }),
     ).toBeInTheDocument()
 
-    fireEvent.change(screen.getByLabelText('심볼 또는 종목명'), {
-      target: { value: 'MSFT' },
+    fireEvent.change(screen.getByLabelText('심볼'), {
+      target: { value: 'ms' },
     })
 
     await act(async () => {
       await new Promise((resolve) => window.setTimeout(resolve, 400))
     })
 
-    fireEvent.click(await screen.findByRole('button', { name: /MSFT/ }))
+    fireEvent.click(await screen.findByRole('option', { name: /MSFT/ }))
+
+    expect(screen.getByLabelText('심볼')).toHaveValue('MSFT')
+    expect(screen.getByLabelText('종목명')).toHaveValue('Microsoft Corp.')
+
     fireEvent.click(screen.getByRole('button', { name: '관심종목에 추가' }))
 
+    await waitFor(() =>
+      expect(fetchAssetsBySymbol).toHaveBeenCalledWith('MSFT'),
+    )
     expect(addAssetToWatchlist).toHaveBeenCalledWith({ asset_id: 8 })
     await waitFor(() =>
       expect(
         screen.queryByRole('dialog', { name: '종목 추가' }),
       ).not.toBeInTheDocument(),
     )
+  })
+
+  it('creates an unregistered lookup asset before adding it', async () => {
+    assetLookupQueryState = {
+      ...assetLookupQueryState,
+      data: {
+        items: [
+          {
+            symbol: 'SHOP',
+            name: 'Shopify Inc.',
+            market: 'NYSE',
+            sector: 'Technology',
+            registered: false,
+          },
+        ],
+      },
+    }
+    createAsset.mockResolvedValueOnce({
+      id: 10,
+      symbol: 'SHOP',
+      name: 'Shopify Inc.',
+      market: 'NYSE',
+      sector: 'Technology',
+      is_active: true,
+      created_at: '2026-06-01T00:00:00.000Z',
+    })
+
+    renderWatchlist()
+
+    await screen.findByRole('heading', { name: '관심 종목' })
+
+    fireEvent.click(screen.getByRole('button', { name: '+ 종목 추가' }))
+    fireEvent.change(screen.getByLabelText('종목명'), {
+      target: { value: 'shop' },
+    })
+
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 400))
+    })
+
+    fireEvent.click(await screen.findByRole('option', { name: /SHOP/ }))
+    fireEvent.click(screen.getByRole('button', { name: '관심종목에 추가' }))
+
+    await waitFor(() =>
+      expect(createAsset).toHaveBeenCalledWith({
+        symbol: 'SHOP',
+        market: 'NYSE',
+      }),
+    )
+    expect(fetchAssetsBySymbol).not.toHaveBeenCalled()
+    expect(addAssetToWatchlist).toHaveBeenCalledWith({ asset_id: 10 })
   })
 
   it('moves focus into add stock modal and traps Tab navigation', async () => {
@@ -715,7 +849,7 @@ describe('WatchlistPage', () => {
     await screen.findByRole('heading', { name: '관심 종목' })
 
     fireEvent.click(screen.getByRole('button', { name: '+ 종목 추가' }))
-    fireEvent.change(screen.getByLabelText('심볼 또는 종목명'), {
+    fireEvent.change(screen.getByLabelText('심볼'), {
       target: { value: 'MSFT' },
     })
 
@@ -723,7 +857,7 @@ describe('WatchlistPage', () => {
       await new Promise((resolve) => window.setTimeout(resolve, 400))
     })
 
-    fireEvent.click(await screen.findByRole('button', { name: /MSFT/ }))
+    fireEvent.click(await screen.findByRole('option', { name: /MSFT/ }))
     fireEvent.click(screen.getByRole('button', { name: '관심종목에 추가' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
@@ -732,6 +866,74 @@ describe('WatchlistPage', () => {
     expect(
       screen.getByRole('dialog', { name: '종목 추가' }),
     ).toBeInTheDocument()
+  })
+
+  it('shows a market validation error when asset registration fails', async () => {
+    assetLookupQueryState = {
+      ...assetLookupQueryState,
+      data: {
+        items: [
+          {
+            symbol: 'FAKE',
+            name: 'Fake Company',
+            market: 'NASDAQ',
+            sector: null,
+            registered: false,
+          },
+        ],
+      },
+    }
+    createAsset.mockRejectedValueOnce(
+      new Error('시장 데이터에서 확인되지 않은 종목입니다'),
+    )
+
+    renderWatchlist()
+
+    await screen.findByRole('heading', { name: '관심 종목' })
+
+    fireEvent.click(screen.getByRole('button', { name: '+ 종목 추가' }))
+    fireEvent.change(screen.getByLabelText('심볼'), {
+      target: { value: 'fake' },
+    })
+
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 400))
+    })
+
+    fireEvent.click(await screen.findByRole('option', { name: /FAKE/ }))
+    fireEvent.click(screen.getByRole('button', { name: '관심종목에 추가' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '시장 데이터에서 확인되지 않은 종목입니다',
+    )
+    expect(addAssetToWatchlist).not.toHaveBeenCalled()
+  })
+
+  it('shows an empty lookup message without manual registration affordance', async () => {
+    assetLookupQueryState = {
+      ...assetLookupQueryState,
+      data: { items: [] },
+    }
+
+    renderWatchlist()
+
+    await screen.findByRole('heading', { name: '관심 종목' })
+
+    fireEvent.click(screen.getByRole('button', { name: '+ 종목 추가' }))
+    fireEvent.change(screen.getByLabelText('심볼'), {
+      target: { value: 'zzzz' },
+    })
+
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 400))
+    })
+
+    expect(
+      await screen.findByText('해당 시장에서 종목을 찾지 못했습니다.'),
+    ).toBeVisible()
+    expect(
+      screen.queryByRole('button', { name: '신규 종목 등록' }),
+    ).not.toBeInTheDocument()
   })
 
   it('navigates to research from symbol, row, and row menu actions', async () => {
