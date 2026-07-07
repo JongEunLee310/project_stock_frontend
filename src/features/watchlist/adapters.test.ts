@@ -27,6 +27,7 @@ const itemDto: WatchlistItemDto = {
     price: '195.64',
     change_percent: '1.26',
     sector: 'Technology',
+    currency: 'USD',
   },
 }
 
@@ -38,6 +39,7 @@ describe('adaptWatchlistAsset', () => {
       name: 'Apple Inc.',
       price: 195.64,
       changePercent: 1.26,
+      currency: 'USD',
       sector: 'Technology',
       reason: 'Core AI exposure',
       tags: ['ai', 'large-cap'],
@@ -66,6 +68,15 @@ describe('adaptWatchlistAsset', () => {
       price: null,
       changePercent: null,
       sector: 'UNKNOWN',
+    })
+  })
+
+  it('falls back to null currency when the backend omits the field', () => {
+    const asset = { ...itemDto.asset! }
+    delete asset.currency
+
+    expect(adaptWatchlistAsset({ ...itemDto, asset })).toMatchObject({
+      currency: null,
     })
   })
 })

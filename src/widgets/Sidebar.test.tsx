@@ -18,6 +18,10 @@ vi.mock('./MarketSummary', () => ({
   MarketSummary: () => <div data-testid="market-summary" />,
 }))
 
+vi.mock('./FxRateStrip', () => ({
+  FxRateStrip: () => <div data-testid="fx-rate-strip" />,
+}))
+
 function setUnreadAlertSummaryQueryState(
   state: Partial<UnreadAlertSummaryQueryState>,
 ) {
@@ -66,5 +70,18 @@ describe('Sidebar', () => {
 
     expect(screen.getByRole('link', { name: /알림/ })).toBeVisible()
     expect(screen.queryByText('6')).not.toBeInTheDocument()
+  })
+
+  it('renders the fx strip above the market summary', () => {
+    renderSidebar()
+
+    const fxRateStrip = screen.getByTestId('fx-rate-strip')
+    const marketSummary = screen.getByTestId('market-summary')
+
+    expect(fxRateStrip).toBeVisible()
+    expect(
+      fxRateStrip.compareDocumentPosition(marketSummary) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
   })
 })

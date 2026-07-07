@@ -46,6 +46,7 @@ export interface WatchlistItemAssetDto {
   price: string | null
   change_percent: string | null
   sector?: string | null
+  currency?: string | null
 }
 
 export interface WatchlistItemDto {

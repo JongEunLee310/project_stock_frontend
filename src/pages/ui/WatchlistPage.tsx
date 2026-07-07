@@ -2,6 +2,8 @@ import { useCallback, useMemo, useState, type MouseEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { useUnreadAlertSummary } from '@/features/alerts/queries'
+import { findFxRateByPair } from '@/features/fx/adapters'
+import { useFxRates } from '@/features/fx/queries'
 import { useWatchlistObservations } from '@/features/watchlist-observations/queries'
 import { WatchlistRecommendationsSection } from '@/features/watchlist-recommendations/WatchlistRecommendationsSection'
 import { AddWatchlistAssetModal } from '@/features/watchlist/AddWatchlistAssetModal'
@@ -98,6 +100,14 @@ function formatRelativeTime(value: string) {
 const priceFormatter = new Intl.NumberFormat('ko-KR', {
   maximumFractionDigits: 2,
 })
+
+const wonFormatter = new Intl.NumberFormat('ko-KR', {
+  maximumFractionDigits: 0,
+})
+
+function formatWonPrice(usdPrice: number, usdKrwRate: number): string {
+  return `≈ ₩${wonFormatter.format(Math.round(usdPrice * usdKrwRate))}`
+}
 
 function sortWatchlistRows(
   rows: WatchlistAssetRow[],
@@ -261,6 +271,7 @@ function RowMenu({ stock, isOpen, onToggle, onNavigate }: RowMenuProps) {
 export function WatchlistPage() {
   const navigate = useNavigate()
   const watchlistAssetsQuery = useWatchlistAssets()
+  const fxRatesQuery = useFxRates()
   const watchlistSummaryQuery = useWatchlistSummary()
   const watchlistObservationsQuery = useWatchlistObservations()
   const unreadAlertSummaryQuery = useUnreadAlertSummary()
@@ -349,6 +360,9 @@ export function WatchlistPage() {
     recent: [],
   }
   const observations = watchlistObservationsQuery.data
+  const usdKrwRate = fxRatesQuery.isError
+    ? undefined
+    : findFxRateByPair(fxRatesQuery.data, 'USD/KRW')
 
   return (
     <section className="flex flex-col gap-3 text-cockpit-text">
@@ -600,9 +614,23 @@ export function WatchlistPage() {
                             </span>
                           </td>
                           <td className="px-3 py-2.5">
-                            {stock.price == null
-                              ? '—'
-                              : priceFormatter.format(stock.price)}
+                            {stock.price == null ? (
+                              '—'
+                            ) : (
+                              <span className="flex flex-col gap-1">
+                                <span>
+                                  {priceFormatter.format(stock.price)}
+                                </span>
+                                {stock.currency === 'USD' && usdKrwRate ? (
+                                  <span className="text-xs text-cockpit-text-muted">
+                                    {formatWonPrice(
+                                      stock.price,
+                                      usdKrwRate.rate,
+                                    )}
+                                  </span>
+                                ) : null}
+                              </span>
+                            )}
                           </td>
                           <td className="px-3 py-2.5">
                             <span
