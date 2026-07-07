@@ -1,4 +1,11 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react'
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { vi } from 'vitest'
@@ -12,6 +19,7 @@ import type {
   WatchlistSummaryTrendsView,
   WatchlistSummaryView,
 } from '@/features/watchlist/adapters'
+import type { AssetDto } from '@/features/watchlist/dto'
 import { AuthProvider } from '@/shared/auth/AuthProvider'
 import {
   setupAuthenticatedUser,
@@ -65,6 +73,8 @@ const refetchWatchlistSummary = vi.fn()
 const refetchWatchlistSummaryTrends = vi.fn()
 const refetchWatchlistObservations = vi.fn()
 const refetchUnreadAlertSummary = vi.fn()
+const addAssetToWatchlist = vi.fn()
+const createAsset = vi.fn()
 const sparklineMock = vi.hoisted(() => vi.fn())
 
 vi.mock('@/shared/ui', async (importOriginal) => {
@@ -119,6 +129,23 @@ let watchlistSummaryTrendsQueryState = {
   isError: false,
   isLoading: false,
   refetch: refetchWatchlistSummaryTrends,
+}
+let assetSearchQueryState = {
+  data: [
+    {
+      id: 8,
+      symbol: 'MSFT',
+      name: 'Microsoft Corp.',
+      market: 'NASDAQ',
+      sector: 'Technology',
+      is_active: true,
+      created_at: '2026-06-01T00:00:00.000Z',
+    },
+  ] satisfies AssetDto[],
+  error: null as Error | null,
+  isError: false,
+  isLoading: false,
+  refetch: vi.fn(),
 }
 let watchlistObservationsQueryState: {
   data: WatchlistObservations | null | undefined
@@ -183,6 +210,15 @@ vi.mock('@/features/watchlist/queries', () => ({
   useWatchlistAssets: () => watchlistAssetsQueryState,
   useWatchlistSummary: () => watchlistSummaryQueryState,
   useWatchlistSummaryTrends: () => watchlistSummaryTrendsQueryState,
+  useAssetSearch: () => assetSearchQueryState,
+  useCreateAsset: () => ({
+    isPending: false,
+    mutateAsync: createAsset,
+  }),
+  useAddAssetToFirstWatchlist: () => ({
+    isPending: false,
+    mutateAsync: addAssetToWatchlist,
+  }),
 }))
 
 vi.mock('@/features/watchlist-observations/queries', () => ({
@@ -244,6 +280,18 @@ beforeEach(() => {
   refetchWatchlistSummaryTrends.mockReset()
   refetchWatchlistObservations.mockReset()
   refetchUnreadAlertSummary.mockReset()
+  addAssetToWatchlist.mockReset()
+  addAssetToWatchlist.mockResolvedValue({
+    id: 99,
+    watchlist_id: 1,
+    asset_id: 8,
+    priority: 0,
+    reason: null,
+    tags: [],
+    memo: null,
+    created_at: '2026-06-01T00:00:00.000Z',
+  })
+  createAsset.mockReset()
   sparklineMock.mockImplementation(
     ({
       ariaLabel,
@@ -292,6 +340,23 @@ beforeEach(() => {
     isError: false,
     isLoading: false,
     refetch: refetchWatchlistSummaryTrends,
+  }
+  assetSearchQueryState = {
+    data: [
+      {
+        id: 8,
+        symbol: 'MSFT',
+        name: 'Microsoft Corp.',
+        market: 'NASDAQ',
+        sector: 'Technology',
+        is_active: true,
+        created_at: '2026-06-01T00:00:00.000Z',
+      },
+    ],
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: vi.fn(),
   }
   watchlistObservationsQueryState = {
     data: {
@@ -522,6 +587,65 @@ describe('WatchlistPage', () => {
     fireEvent.click(tslaFavoriteButton)
 
     expect(tslaFavoriteButton).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('opens add stock modal, selects a searched asset, and adds it', async () => {
+    renderWatchlist()
+
+    await screen.findByRole('heading', { name: '관심 종목' })
+
+    fireEvent.click(screen.getByRole('button', { name: '+ 종목 추가' }))
+
+    expect(
+      screen.getByRole('dialog', { name: '종목 추가' }),
+    ).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('심볼 또는 종목명'), {
+      target: { value: 'MSFT' },
+    })
+
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 400))
+    })
+
+    fireEvent.click(await screen.findByRole('button', { name: /MSFT/ }))
+    fireEvent.click(screen.getByRole('button', { name: '관심종목에 추가' }))
+
+    expect(addAssetToWatchlist).toHaveBeenCalledWith({ asset_id: 8 })
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('dialog', { name: '종목 추가' }),
+      ).not.toBeInTheDocument(),
+    )
+  })
+
+  it('keeps add stock modal open and shows an error when adding fails', async () => {
+    addAssetToWatchlist.mockRejectedValueOnce(
+      new Error('이미 관심종목에 있습니다.'),
+    )
+
+    renderWatchlist()
+
+    await screen.findByRole('heading', { name: '관심 종목' })
+
+    fireEvent.click(screen.getByRole('button', { name: '+ 종목 추가' }))
+    fireEvent.change(screen.getByLabelText('심볼 또는 종목명'), {
+      target: { value: 'MSFT' },
+    })
+
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 400))
+    })
+
+    fireEvent.click(await screen.findByRole('button', { name: /MSFT/ }))
+    fireEvent.click(screen.getByRole('button', { name: '관심종목에 추가' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '이미 관심종목에 있습니다.',
+    )
+    expect(
+      screen.getByRole('dialog', { name: '종목 추가' }),
+    ).toBeInTheDocument()
   })
 
   it('navigates to research from symbol, row, and row menu actions', async () => {

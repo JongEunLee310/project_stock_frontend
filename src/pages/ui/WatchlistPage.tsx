@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 
 import { useUnreadAlertSummary } from '@/features/alerts/queries'
 import { useWatchlistObservations } from '@/features/watchlist-observations/queries'
+import { AddWatchlistAssetModal } from '@/features/watchlist/AddWatchlistAssetModal'
 import type { WatchlistAssetRow } from '@/features/watchlist/adapters'
 import {
   useWatchlistAssets,
@@ -269,6 +270,7 @@ export function WatchlistPage() {
     Record<string, boolean>
   >({})
   const [openMenuSymbol, setOpenMenuSymbol] = useState<string | null>(null)
+  const [isAddAssetModalOpen, setIsAddAssetModalOpen] = useState(false)
 
   const stocks = useMemo(
     () =>
@@ -415,6 +417,7 @@ export function WatchlistPage() {
             <Button
               type="button"
               className="min-h-10 border-blue-600 bg-blue-600 px-4 text-white hover:bg-blue-500"
+              onClick={() => setIsAddAssetModalOpen(true)}
             >
               + 종목 추가
             </Button>
@@ -883,6 +886,11 @@ export function WatchlistPage() {
           </Card>
         </aside>
       </div>
+
+      <AddWatchlistAssetModal
+        isOpen={isAddAssetModalOpen}
+        onClose={() => setIsAddAssetModalOpen(false)}
+      />
     </section>
   )
 }

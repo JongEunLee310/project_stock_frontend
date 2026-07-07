@@ -70,6 +70,21 @@ vi.mock('@/features/watchlist/queries', () => ({
     isLoading: false,
     refetch: vi.fn(),
   }),
+  useAssetSearch: () => ({
+    data: [],
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: vi.fn(),
+  }),
+  useCreateAsset: () => ({
+    isPending: false,
+    mutateAsync: vi.fn(),
+  }),
+  useAddAssetToFirstWatchlist: () => ({
+    isPending: false,
+    mutateAsync: vi.fn(),
+  }),
 }))
 
 vi.mock('@/features/market-indices/queries', () => ({
