@@ -12,6 +12,7 @@ import { vi } from 'vitest'
 
 import { appRouteObjects } from '@/app/router'
 import type { UnreadAlertSummary } from '@/features/alerts/queries'
+import type { WatchlistRecommendationsDto } from '@/features/watchlist-recommendations/dto'
 import { createQueryClient } from '@/shared/api/queryClient'
 import type { WatchlistObservations } from '@/shared/model'
 import type {
@@ -72,6 +73,7 @@ const refetchWatchlistAssets = vi.fn()
 const refetchWatchlistSummary = vi.fn()
 const refetchWatchlistSummaryTrends = vi.fn()
 const refetchWatchlistObservations = vi.fn()
+const refetchWatchlistRecommendations = vi.fn()
 const refetchUnreadAlertSummary = vi.fn()
 const addAssetToWatchlist = vi.fn()
 const createAsset = vi.fn()
@@ -174,6 +176,14 @@ let watchlistObservationsQueryState: {
   isLoading: false,
   refetch: refetchWatchlistObservations,
 }
+let watchlistRecommendationsQueryState = {
+  data: undefined as WatchlistRecommendationsDto | undefined,
+  error: null as Error | null,
+  isError: false,
+  isFetching: false,
+  isSuccess: false,
+  refetch: refetchWatchlistRecommendations,
+}
 let unreadAlertSummaryQueryState = {
   data: {
     unreadCount: 7,
@@ -225,6 +235,10 @@ vi.mock('@/features/watchlist/queries', () => ({
 
 vi.mock('@/features/watchlist-observations/queries', () => ({
   useWatchlistObservations: () => watchlistObservationsQueryState,
+}))
+
+vi.mock('@/features/watchlist-recommendations/queries', () => ({
+  useWatchlistRecommendations: () => watchlistRecommendationsQueryState,
 }))
 
 vi.mock('@/features/alerts/queries', () => ({
@@ -281,6 +295,7 @@ beforeEach(() => {
   refetchWatchlistSummary.mockReset()
   refetchWatchlistSummaryTrends.mockReset()
   refetchWatchlistObservations.mockReset()
+  refetchWatchlistRecommendations.mockReset()
   refetchUnreadAlertSummary.mockReset()
   addAssetToWatchlist.mockReset()
   addAssetToWatchlistIsPending = false
@@ -380,6 +395,14 @@ beforeEach(() => {
     isError: false,
     isLoading: false,
     refetch: refetchWatchlistObservations,
+  }
+  watchlistRecommendationsQueryState = {
+    data: undefined,
+    error: null,
+    isError: false,
+    isFetching: false,
+    isSuccess: false,
+    refetch: refetchWatchlistRecommendations,
   }
   unreadAlertSummaryQueryState = {
     data: {
@@ -485,6 +508,8 @@ describe('WatchlistPage', () => {
     expect(screen.getByText(/AI 수요는 견조하지만/)).toBeVisible()
     expect(screen.getByText(/인도량 업데이트 전까지/)).toBeVisible()
     expect(screen.queryByText('가격 변동')).not.toBeInTheDocument()
+    expect(screen.getByText('추천 종목')).toBeVisible()
+    expect(screen.getByRole('button', { name: '추천 받기' })).toBeVisible()
   })
 
   it('renders skeletons in sparkline slots while summary trends are loading', async () => {
