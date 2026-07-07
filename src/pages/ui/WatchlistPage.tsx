@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 
 import { useUnreadAlertSummary } from '@/features/alerts/queries'
 import { useWatchlistObservations } from '@/features/watchlist-observations/queries'
+import { WatchlistRecommendationsSection } from '@/features/watchlist-recommendations/WatchlistRecommendationsSection'
 import { AddWatchlistAssetModal } from '@/features/watchlist/AddWatchlistAssetModal'
 import type { WatchlistAssetRow } from '@/features/watchlist/adapters'
 import {
@@ -886,6 +887,8 @@ export function WatchlistPage() {
           </Card>
         </aside>
       </div>
+
+      <WatchlistRecommendationsSection />
 
       <AddWatchlistAssetModal
         isOpen={isAddAssetModalOpen}
