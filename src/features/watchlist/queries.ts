@@ -1,7 +1,7 @@
-import { useQuery } from '@tanstack/react-query'
-import type { UseQueryResult } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query'
 
-import { apiGet } from '@/shared/api/client'
+import { apiGet, apiPost } from '@/shared/api/client'
 
 import {
   adaptWatchlistAsset,
@@ -12,11 +12,16 @@ import {
   type WatchlistSummaryView,
 } from './adapters'
 import type {
+  AddWatchlistItemBody,
+  AssetDto,
+  CreateAssetBody,
   WatchlistDto,
   WatchlistItemDto,
   WatchlistSummaryDto,
   WatchlistTrendSeriesDto,
 } from './dto'
+
+export const watchlistQueryKey = ['watchlist'] as const
 
 export const emptyWatchlistSummary: WatchlistSummaryView = {
   totalCount: 0,
@@ -31,7 +36,7 @@ export const emptyWatchlistSummaryTrends: WatchlistSummaryTrendsView = {
 
 export function useWatchlistAssets() {
   return useQuery<WatchlistAssetRow[]>({
-    queryKey: ['watchlist', 'assets'],
+    queryKey: [...watchlistQueryKey, 'assets'],
     queryFn: async () => {
       const { data: watchlists } = await apiGet<WatchlistDto[]>(
         '/watchlists?page=1&size=20',
@@ -53,7 +58,7 @@ export function useWatchlistAssets() {
 
 export function useWatchlistSummary() {
   return useQuery<WatchlistSummaryView>({
-    queryKey: ['watchlist', 'summary'],
+    queryKey: [...watchlistQueryKey, 'summary'],
     queryFn: async () => {
       try {
         const { data: watchlists } = await apiGet<WatchlistDto[]>(
@@ -77,7 +82,7 @@ export function useWatchlistSummary() {
 
 export function useWatchlistSummaryTrends(): UseQueryResult<WatchlistSummaryTrendsView> {
   return useQuery<WatchlistSummaryTrendsView>({
-    queryKey: ['watchlist', 'summary', 'trends'],
+    queryKey: [...watchlistQueryKey, 'summary', 'trends'],
     queryFn: async () => {
       try {
         const { data: watchlists } = await apiGet<WatchlistDto[]>(
@@ -95,6 +100,70 @@ export function useWatchlistSummaryTrends(): UseQueryResult<WatchlistSummaryTren
       } catch {
         return emptyWatchlistSummaryTrends
       }
+    },
+  })
+}
+
+export function useAssetSearch(
+  symbol: string,
+  enabled = true,
+): UseQueryResult<AssetDto[]> {
+  const trimmedSymbol = symbol.trim()
+
+  return useQuery<AssetDto[]>({
+    queryKey: ['assets', 'search', trimmedSymbol],
+    enabled: enabled && trimmedSymbol.length > 0,
+    queryFn: async () => {
+      const { data } = await apiGet<AssetDto[]>(
+        `/assets?symbol=${encodeURIComponent(trimmedSymbol)}&page=1&size=20`,
+      )
+
+      return data
+    },
+  })
+}
+
+export function useCreateAsset(): UseMutationResult<
+  AssetDto,
+  Error,
+  CreateAssetBody
+> {
+  return useMutation<AssetDto, Error, CreateAssetBody>({
+    mutationFn: async (body) => {
+      const { data } = await apiPost<AssetDto>('/assets', body)
+
+      return data
+    },
+  })
+}
+
+export function useAddAssetToFirstWatchlist(): UseMutationResult<
+  WatchlistItemDto,
+  Error,
+  AddWatchlistItemBody
+> {
+  const queryClient = useQueryClient()
+
+  return useMutation<WatchlistItemDto, Error, AddWatchlistItemBody>({
+    mutationFn: async (body) => {
+      const { data: watchlists } = await apiGet<WatchlistDto[]>(
+        '/watchlists?page=1&size=20',
+      )
+      const firstWatchlist = watchlists[0]
+
+      if (!firstWatchlist) {
+        throw new Error('관심목록이 없습니다.')
+      }
+
+      const { data } = await apiPost<WatchlistItemDto>(
+        `/watchlists/${firstWatchlist.id}/items`,
+        body,
+      )
+
+      return data
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: watchlistQueryKey })
     },
   })
 }

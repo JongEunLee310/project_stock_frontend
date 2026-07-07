@@ -3,12 +3,19 @@ import { renderHook, waitFor } from '@testing-library/react'
 import { createElement, type ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { apiGet } from '@/shared/api/client'
+import { apiGet, apiPost } from '@/shared/api/client'
 
-import { useWatchlistSummaryTrends } from './queries'
+import {
+  useAddAssetToFirstWatchlist,
+  useAssetSearch,
+  useCreateAsset,
+  useWatchlistSummaryTrends,
+  watchlistQueryKey,
+} from './queries'
 
 vi.mock('@/shared/api/client', () => ({
   apiGet: vi.fn(),
+  apiPost: vi.fn(),
 }))
 
 function wrapperFor(queryClient: QueryClient) {
@@ -138,5 +145,136 @@ describe('useWatchlistSummaryTrends', () => {
       watchlistTotal: [10, 12],
       riskIncreasing: [2, 3],
     })
+  })
+})
+
+describe('useAssetSearch', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(apiGet).mockResolvedValue({
+      data: [
+        {
+          id: 8,
+          symbol: 'MSFT',
+          name: 'Microsoft Corp.',
+          market: 'NASDAQ',
+          sector: 'Technology',
+          is_active: true,
+          created_at: '2026-06-01T00:00:00.000Z',
+        },
+      ],
+      meta: undefined,
+    })
+  })
+
+  it('searches assets with an encoded symbol filter', async () => {
+    const queryClient = createTestQueryClient()
+    const { result } = renderHook(() => useAssetSearch('BRK B'), {
+      wrapper: wrapperFor(queryClient),
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(apiGet).toHaveBeenCalledWith('/assets?symbol=BRK%20B&page=1&size=20')
+    expect(result.current.data?.[0]).toMatchObject({
+      id: 8,
+      symbol: 'MSFT',
+      name: 'Microsoft Corp.',
+    })
+  })
+
+  it('does not request assets when search is disabled', () => {
+    const queryClient = createTestQueryClient()
+    const { result } = renderHook(() => useAssetSearch('MSFT', false), {
+      wrapper: wrapperFor(queryClient),
+    })
+
+    expect(result.current.fetchStatus).toBe('idle')
+    expect(apiGet).not.toHaveBeenCalled()
+  })
+})
+
+describe('watchlist asset mutations', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('creates a new asset with the provided body', async () => {
+    vi.mocked(apiPost).mockResolvedValue({
+      data: {
+        id: 10,
+        symbol: 'SHOP',
+        name: 'Shopify Inc.',
+        market: 'NYSE',
+        sector: 'Technology',
+        is_active: true,
+        created_at: '2026-06-01T00:00:00.000Z',
+      },
+      meta: undefined,
+    })
+    const body = {
+      symbol: 'SHOP',
+      name: 'Shopify Inc.',
+      market: 'NYSE',
+      sector: 'Technology',
+    }
+    const queryClient = createTestQueryClient()
+    const { result } = renderHook(() => useCreateAsset(), {
+      wrapper: wrapperFor(queryClient),
+    })
+
+    result.current.mutate(body)
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(apiPost).toHaveBeenCalledWith('/assets', body)
+    expect(result.current.data).toMatchObject({ id: 10, symbol: 'SHOP' })
+  })
+
+  it('adds an asset to the first watchlist and invalidates watchlist queries', async () => {
+    vi.mocked(apiGet).mockResolvedValue({
+      data: [{ id: 7, user_id: 1, name: 'Primary', created_at: '2026-06-01' }],
+      meta: undefined,
+    })
+    vi.mocked(apiPost).mockResolvedValue({
+      data: {
+        id: 11,
+        watchlist_id: 7,
+        asset_id: 8,
+        priority: 0,
+        reason: null,
+        tags: [],
+        memo: null,
+        created_at: '2026-06-01T00:00:00.000Z',
+      },
+      meta: undefined,
+    })
+    const queryClient = createTestQueryClient()
+    const invalidate = vi.spyOn(queryClient, 'invalidateQueries')
+    const { result } = renderHook(() => useAddAssetToFirstWatchlist(), {
+      wrapper: wrapperFor(queryClient),
+    })
+
+    result.current.mutate({ asset_id: 8 })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(apiGet).toHaveBeenCalledWith('/watchlists?page=1&size=20')
+    expect(apiPost).toHaveBeenCalledWith('/watchlists/7/items', {
+      asset_id: 8,
+    })
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: watchlistQueryKey })
+  })
+
+  it('fails without posting when there is no watchlist', async () => {
+    vi.mocked(apiGet).mockResolvedValue({ data: [], meta: undefined })
+    const queryClient = createTestQueryClient()
+    const { result } = renderHook(() => useAddAssetToFirstWatchlist(), {
+      wrapper: wrapperFor(queryClient),
+    })
+
+    result.current.mutate({ asset_id: 8 })
+
+    await waitFor(() => expect(result.current.isError).toBe(true))
+    expect(result.current.error).toEqual(new Error('관심목록이 없습니다.'))
+    expect(apiPost).not.toHaveBeenCalled()
   })
 })

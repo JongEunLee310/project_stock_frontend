@@ -5,6 +5,33 @@ export interface WatchlistDto {
   created_at: string
 }
 
+export interface AssetDto {
+  id: number
+  symbol: string
+  name: string
+  market: string
+  sector: string | null
+  is_active: boolean
+  created_at: string
+}
+
+export interface CreateAssetBody {
+  symbol: string
+  name: string
+  market: string
+  sector?: string | null
+  industry?: string | null
+  description?: string | null
+}
+
+export interface AddWatchlistItemBody {
+  asset_id: number
+  priority?: number
+  reason?: string | null
+  tags?: string[]
+  memo?: string | null
+}
+
 export interface WatchlistItemAssetDto {
   symbol: string
   name: string
