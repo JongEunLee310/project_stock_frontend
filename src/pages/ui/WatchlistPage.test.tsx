@@ -12,6 +12,7 @@ import { vi } from 'vitest'
 
 import { appRouteObjects } from '@/app/router'
 import type { UnreadAlertSummary } from '@/features/alerts/queries'
+import type { FxRate } from '@/features/fx/adapters'
 import type { WatchlistRecommendationsDto } from '@/features/watchlist-recommendations/dto'
 import { createQueryClient } from '@/shared/api/queryClient'
 import type { WatchlistObservations } from '@/shared/model'
@@ -34,6 +35,7 @@ const watchlistRows: WatchlistAssetRow[] = [
     name: 'NVIDIA Corp.',
     price: 128.72,
     changePercent: -0.24,
+    currency: 'USD',
     sector: 'Technology',
     reason: 'Core AI exposure',
     tags: ['ai'],
@@ -47,6 +49,7 @@ const watchlistRows: WatchlistAssetRow[] = [
     name: 'Apple Inc.',
     price: 214.3,
     changePercent: 0.32,
+    currency: 'KRW',
     sector: 'Technology',
     reason: null,
     tags: [],
@@ -60,6 +63,7 @@ const watchlistRows: WatchlistAssetRow[] = [
     name: 'Tesla Inc.',
     price: 182.64,
     changePercent: -2.15,
+    currency: null,
     sector: 'Consumer Discretionary',
     reason: null,
     tags: [],
@@ -75,6 +79,7 @@ const refetchWatchlistSummaryTrends = vi.fn()
 const refetchWatchlistObservations = vi.fn()
 const refetchWatchlistRecommendations = vi.fn()
 const refetchUnreadAlertSummary = vi.fn()
+const refetchFxRates = vi.fn()
 const addAssetToWatchlist = vi.fn()
 const createAsset = vi.fn()
 const fetchAssetsBySymbol = vi.fn()
@@ -252,6 +257,24 @@ let unreadAlertSummaryQueryState = {
   isLoading: false,
   refetch: refetchUnreadAlertSummary,
 }
+let fxRatesQueryState = {
+  data: [
+    {
+      pair: 'USD/KRW',
+      rate: 1400,
+      changePercent: 0.35,
+      referenceAt: '2026-07-07T01:00:00Z',
+    },
+  ] satisfies FxRate[],
+  error: null as Error | null,
+  isError: false,
+  isLoading: false,
+  refetch: refetchFxRates,
+}
+
+vi.mock('@/features/fx/queries', () => ({
+  useFxRates: () => fxRatesQueryState,
+}))
 
 vi.mock('@/features/watchlist/queries', () => ({
   useWatchlistAssets: () => watchlistAssetsQueryState,
@@ -334,6 +357,7 @@ beforeEach(() => {
   refetchWatchlistObservations.mockReset()
   refetchWatchlistRecommendations.mockReset()
   refetchUnreadAlertSummary.mockReset()
+  refetchFxRates.mockReset()
   addAssetToWatchlist.mockReset()
   fetchAssetsBySymbol.mockReset()
   fetchAssetsBySymbol.mockResolvedValue(registeredAssetSearchResults)
@@ -513,6 +537,20 @@ beforeEach(() => {
     isLoading: false,
     refetch: refetchUnreadAlertSummary,
   }
+  fxRatesQueryState = {
+    data: [
+      {
+        pair: 'USD/KRW',
+        rate: 1400,
+        changePercent: 0.35,
+        referenceAt: '2026-07-07T01:00:00Z',
+      },
+    ],
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: refetchFxRates,
+  }
 })
 
 afterEach(() => {
@@ -657,6 +695,31 @@ describe('WatchlistPage', () => {
     expect(within(table).getByText('-0.24%')).toBeVisible()
     expect(within(table).getAllByText(/09:21/).length).toBeGreaterThan(0)
     expect(within(table).getAllByText('Technology').length).toBeGreaterThan(0)
+  })
+
+  it('shows converted KRW only for USD current prices', async () => {
+    renderWatchlist()
+    const table = await screen.findByRole('table', { name: '관심 종목' })
+
+    expect(within(table).getByText('128.72')).toBeVisible()
+    expect(within(table).getByText('≈ ₩180,208')).toBeVisible()
+    expect(within(table).getByText('214.3')).toBeVisible()
+    expect(within(table).queryByText('≈ ₩300,020')).not.toBeInTheDocument()
+  })
+
+  it('keeps USD current prices without KRW conversion when fx lookup fails', async () => {
+    fxRatesQueryState = {
+      ...fxRatesQueryState,
+      data: undefined as never,
+      error: new Error('fx failed'),
+      isError: true,
+    }
+
+    renderWatchlist()
+    const table = await screen.findByRole('table', { name: '관심 종목' })
+
+    expect(within(table).getByText('128.72')).toBeVisible()
+    expect(within(table).queryByText('≈ ₩180,208')).not.toBeInTheDocument()
   })
 
   it('narrows rows by search, then resets filters', async () => {

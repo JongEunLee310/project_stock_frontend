@@ -12,6 +12,7 @@ export interface WatchlistAssetRow {
   name: string
   price: number | null
   changePercent: number | null
+  currency: string | null
   sector: string
   reason: string | null
   tags: string[]
@@ -48,6 +49,7 @@ export function adaptWatchlistAsset(
     name: item.asset.name,
     price: parseDecimal(item.asset.price),
     changePercent: parseDecimal(item.asset.change_percent),
+    currency: item.asset.currency ?? null,
     sector: item.asset.sector ?? 'UNKNOWN',
     reason: item.reason,
     tags: item.tags,

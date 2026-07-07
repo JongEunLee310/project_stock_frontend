@@ -7,6 +7,7 @@ import {
 } from '@/shared/config/navigation'
 import { classNames } from '@/shared/ui/classNames'
 
+import { FxRateStrip } from './FxRateStrip'
 import { MarketSummary } from './MarketSummary'
 
 const navIcons: Record<string, string> = {
@@ -87,7 +88,8 @@ export function Sidebar() {
           })}
         </nav>
 
-        <div className="mt-auto">
+        <div className="mt-auto flex flex-col gap-3">
+          <FxRateStrip />
           <MarketSummary />
         </div>
       </div>
