@@ -17,6 +17,7 @@ import { createQueryClient } from '@/shared/api/queryClient'
 import type { WatchlistObservations } from '@/shared/model'
 import type {
   WatchlistAssetRow,
+  WatchlistEvaluationMap,
   WatchlistSummaryTrendsView,
   WatchlistSummaryView,
 } from '@/features/watchlist/adapters'
@@ -76,6 +77,7 @@ const watchlistRows: WatchlistAssetRow[] = [
 ]
 
 const refetchWatchlistAssets = vi.fn()
+const refetchWatchlistEvaluations = vi.fn()
 const refetchWatchlistSummary = vi.fn()
 const refetchWatchlistSummaryTrends = vi.fn()
 const refetchWatchlistObservations = vi.fn()
@@ -118,7 +120,13 @@ let watchlistAssetsQueryState = {
   isLoading: false,
   refetch: refetchWatchlistAssets,
 }
-let watchlistSummaryQueryState = {
+let watchlistSummaryQueryState: {
+  data: WatchlistSummaryView
+  error: Error | null
+  isError: boolean
+  isLoading: boolean
+  refetch: typeof refetchWatchlistSummary
+} = {
   data: {
     totalCount: 12,
     riskIncreasingCount: 3,
@@ -129,11 +137,43 @@ let watchlistSummaryQueryState = {
         addedAt: '2026-05-24T00:16:00.000Z',
       },
     ],
+    buyReadiness: {
+      level: 'LIMITED', // app/domains/watchlists/types.py
+      levelLabel: '제한적',
+      cashWeight: 0.12,
+      buyCandidateCount: 1,
+      message: '현금 비중이 낮아 신규 매수 여력이 제한적입니다.',
+    },
   } satisfies WatchlistSummaryView,
   error: null as Error | null,
   isError: false,
   isLoading: false,
   refetch: refetchWatchlistSummary,
+}
+let watchlistEvaluationsQueryState = {
+  data: {
+    map: {
+      NVDA: {
+        symbol: 'NVDA',
+        newsRisk: 'HIGH', // app/domains/watchlists/types.py
+        valuationBurden: 'HIGH', // app/domains/watchlists/types.py
+        themeHeat: 'OVERHEATED', // app/domains/watchlists/types.py
+        aiJudgment: 'RISK_INCREASING', // app/domains/watchlists/types.py
+      },
+      AAPL: {
+        symbol: 'AAPL',
+        newsRisk: 'LOW',
+        valuationBurden: 'MODERATE',
+        themeHeat: 'NEUTRAL',
+        aiJudgment: 'STABLE',
+      },
+    } satisfies WatchlistEvaluationMap,
+    needsResearchCount: 2,
+  },
+  error: null as Error | null,
+  isError: false,
+  isLoading: false,
+  refetch: refetchWatchlistEvaluations,
 }
 let watchlistSummaryTrendsQueryState = {
   data: {
@@ -297,6 +337,7 @@ vi.mock('@/features/watchlist/queries', () => ({
     return watchlistAssetsQueryState
   },
   useWatchlistSummary: () => watchlistSummaryQueryState,
+  useWatchlistEvaluations: () => watchlistEvaluationsQueryState,
   useWatchlistSummaryTrends: () => watchlistSummaryTrendsQueryState,
   useWatchlistSparklines: () => watchlistSparklinesQueryState,
   fetchAssetsBySymbol: (symbol: string) => fetchAssetsBySymbol(symbol),
@@ -375,6 +416,7 @@ vi.mock('@/features/research/queries', () => ({
 beforeEach(() => {
   setupAuthenticatedUser()
   refetchWatchlistAssets.mockReset()
+  refetchWatchlistEvaluations.mockReset()
   refetchWatchlistSummary.mockReset()
   refetchWatchlistSummaryTrends.mockReset()
   refetchWatchlistObservations.mockReset()
@@ -443,11 +485,43 @@ beforeEach(() => {
           addedAt: '2026-05-24T00:16:00.000Z',
         },
       ],
+      buyReadiness: {
+        level: 'LIMITED',
+        levelLabel: '제한적',
+        cashWeight: 0.12,
+        buyCandidateCount: 1,
+        message: '현금 비중이 낮아 신규 매수 여력이 제한적입니다.',
+      },
     },
     error: null,
     isError: false,
     isLoading: false,
     refetch: refetchWatchlistSummary,
+  }
+  watchlistEvaluationsQueryState = {
+    data: {
+      map: {
+        NVDA: {
+          symbol: 'NVDA',
+          newsRisk: 'HIGH',
+          valuationBurden: 'HIGH',
+          themeHeat: 'OVERHEATED',
+          aiJudgment: 'RISK_INCREASING',
+        },
+        AAPL: {
+          symbol: 'AAPL',
+          newsRisk: 'LOW',
+          valuationBurden: 'MODERATE',
+          themeHeat: 'NEUTRAL',
+          aiJudgment: 'STABLE',
+        },
+      },
+      needsResearchCount: 2,
+    },
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: refetchWatchlistEvaluations,
   }
   watchlistSummaryTrendsQueryState = {
     data: {
@@ -630,8 +704,13 @@ describe('WatchlistPage', () => {
     expect(screen.getByText('위험 증가 종목')).toBeVisible()
     expect(screen.getByText('12')).toBeVisible()
     expect(screen.getAllByText('3').length).toBeGreaterThan(0)
-    expect(screen.queryByText('추가 리서치 필요')).not.toBeInTheDocument()
-    expect(screen.queryByText('평균 현금 연관도')).not.toBeInTheDocument()
+    expect(screen.getByText('추가 리서치 필요')).toBeVisible()
+    expect(screen.getByText('신규 매수 여력')).toBeVisible()
+    expect(screen.getAllByText('2').length).toBeGreaterThan(0)
+    expect(screen.getByText('제한적')).toBeVisible()
+    expect(
+      screen.getByText('현금 비중이 낮아 신규 매수 여력이 제한적입니다.'),
+    ).toBeVisible()
     expect(screen.getAllByText('전일 대비 +1').length).toBeGreaterThan(0)
     expect(
       screen.getByRole('img', { name: '전체 관심 종목 추세 차트' }),
@@ -647,7 +726,7 @@ describe('WatchlistPage', () => {
     expect(screen.getByText('AMD')).toBeVisible()
     expect(screen.getByText('Advanced Micro Devices')).toBeVisible()
     expect(screen.getByText('관망')).toBeVisible()
-    expect(screen.getByText('안정')).toBeVisible()
+    expect(screen.getAllByText('안정').length).toBeGreaterThan(0)
     expect(screen.queryByText('알림 현황')).not.toBeInTheDocument()
     expect(screen.queryByText('미읽음 알림 7건')).not.toBeInTheDocument()
     expect(screen.queryByText('빠른 알림 설정')).not.toBeInTheDocument()
@@ -724,6 +803,18 @@ describe('WatchlistPage', () => {
       within(table).getByRole('columnheader', { name: '상태' }),
     ).toBeVisible()
     expect(
+      within(table).getByRole('columnheader', { name: '뉴스 위험도' }),
+    ).toBeVisible()
+    expect(
+      within(table).getByRole('columnheader', { name: '밸류에이션' }),
+    ).toBeVisible()
+    expect(
+      within(table).getByRole('columnheader', { name: '테마 과열' }),
+    ).toBeVisible()
+    expect(
+      within(table).getByRole('columnheader', { name: 'AI 판단' }),
+    ).toBeVisible()
+    expect(
       within(table).getByRole('columnheader', { name: '변화(1D)' }),
     ).toBeVisible()
     expect(
@@ -739,12 +830,80 @@ describe('WatchlistPage', () => {
     expect(within(table).getByText('NVIDIA Corp.')).toBeVisible()
     expect(within(table).getByText('-0.24%')).toBeVisible()
     expect(within(table).getAllByText(/09:21/).length).toBeGreaterThan(0)
-    expect(within(table).getByText('위험 증가')).toBeVisible()
+    expect(within(table).getAllByText('위험 증가').length).toBeGreaterThan(0)
+    expect(within(table).getByText('높음')).toBeVisible()
+    expect(within(table).getByText('고평가')).toBeVisible()
+    expect(within(table).getByText('과열')).toBeVisible()
     expect(within(table).getAllByText('—').length).toBeGreaterThan(0)
     expect(
       within(table).getByRole('img', { name: 'NVDA 변화 추세' }),
     ).toHaveAttribute('data-values', '126,128.72')
     expect(within(table).getAllByText('Technology').length).toBeGreaterThan(0)
+  })
+
+  it('renders skeletons only in evaluation badge cells while evaluations load', async () => {
+    watchlistEvaluationsQueryState = {
+      ...watchlistEvaluationsQueryState,
+      data: undefined as never,
+      isLoading: true,
+    }
+    const { container } = renderWatchlist()
+    const table = await screen.findByRole('table', { name: '관심 종목' })
+
+    expect(within(table).getByRole('link', { name: 'NVDA' })).toBeVisible()
+    expect(within(table).getByText('위험 증가')).toBeVisible()
+    expect(within(table).getByText('128.72')).toBeVisible()
+    expect(
+      container.querySelectorAll('[class~="h-4"][class~="w-12"]').length,
+    ).toBeGreaterThanOrEqual(4)
+  })
+
+  it('keeps the table rendered and shows dashes when evaluations fail', async () => {
+    watchlistEvaluationsQueryState = {
+      ...watchlistEvaluationsQueryState,
+      data: undefined as never,
+      error: new Error('evaluations failed'),
+      isError: true,
+    }
+    renderWatchlist()
+    const table = await screen.findByRole('table', { name: '관심 종목' })
+    const nvdaRow = within(table)
+      .getByRole('link', { name: 'NVDA' })
+      .closest('tr')
+
+    expect(nvdaRow).not.toBeNull()
+    expect(within(table).getByRole('link', { name: 'AAPL' })).toBeVisible()
+    expect(
+      within(nvdaRow as HTMLTableRowElement).getAllByText('—').length,
+    ).toBeGreaterThanOrEqual(4)
+  })
+
+  it('shows dashes for evaluation cells when the symbol is missing from the map', async () => {
+    renderWatchlist()
+    const table = await screen.findByRole('table', { name: '관심 종목' })
+    const tslaRow = within(table)
+      .getByRole('link', { name: 'TSLA' })
+      .closest('tr')
+
+    expect(tslaRow).not.toBeNull()
+    expect(
+      within(tslaRow as HTMLTableRowElement).getAllByText('—').length,
+    ).toBeGreaterThanOrEqual(4)
+  })
+
+  it('renders the buy readiness portfolio fallback when summary has no projection', async () => {
+    watchlistSummaryQueryState = {
+      ...watchlistSummaryQueryState,
+      data: {
+        ...watchlistSummaryQueryState.data,
+        buyReadiness: null,
+      },
+    }
+
+    renderWatchlist()
+
+    expect(await screen.findByText('신규 매수 여력')).toBeVisible()
+    expect(screen.getByText('포트폴리오 없음')).toBeVisible()
   })
 
   it('shows converted KRW only for USD current prices', async () => {
@@ -1216,6 +1375,7 @@ describe('WatchlistPage', () => {
         totalCount: 0,
         riskIncreasingCount: 0,
         recentItems: [],
+        buyReadiness: null,
       },
     }
 

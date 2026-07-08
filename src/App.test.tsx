@@ -54,6 +54,17 @@ vi.mock('@/features/watchlist/queries', () => ({
       totalCount: 0,
       riskIncreasingCount: 0,
       recentItems: [],
+      buyReadiness: null,
+    },
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: vi.fn(),
+  }),
+  useWatchlistEvaluations: () => ({
+    data: {
+      map: {},
+      needsResearchCount: 0,
     },
     error: null,
     isError: false,

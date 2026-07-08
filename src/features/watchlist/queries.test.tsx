@@ -13,6 +13,7 @@ import {
   useCreateAsset,
   useRemoveWatchlistItem,
   useWatchlistAssets,
+  useWatchlistEvaluations,
   useWatchlistSparklines,
   useWatchlistSummaryTrends,
   watchlistQueryKey,
@@ -285,6 +286,100 @@ describe('useWatchlistSparklines', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
     expect(result.current.data).toEqual({})
+  })
+})
+
+describe('useWatchlistEvaluations', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(apiGet)
+      .mockResolvedValueOnce({
+        data: [
+          { id: 7, user_id: 1, name: 'Primary', created_at: '2026-06-01' },
+        ],
+        meta: undefined,
+      })
+      .mockResolvedValueOnce({
+        data: {
+          generated_at: '2026-07-08T00:00:00Z',
+          needs_research_count: 2,
+          items: [
+            {
+              symbol: 'NVDA',
+              news_risk: 'HIGH', // app/domains/watchlists/types.py
+              valuation_burden: 'HIGH', // app/domains/watchlists/types.py
+              theme_heat: 'OVERHEATED', // app/domains/watchlists/types.py
+              ai_judgment: 'RISK_INCREASING', // app/domains/watchlists/types.py
+            },
+            {
+              symbol: 'AAPL',
+              news_risk: 'LOW',
+              valuation_burden: 'MODERATE',
+              theme_heat: 'NEUTRAL',
+              ai_judgment: 'STABLE',
+            },
+          ],
+        },
+        meta: undefined,
+      })
+  })
+
+  it('returns symbol keyed evaluations and research count', async () => {
+    const queryClient = createTestQueryClient()
+    const { result } = renderHook(() => useWatchlistEvaluations(), {
+      wrapper: wrapperFor(queryClient),
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(apiGet).toHaveBeenNthCalledWith(1, '/watchlists?page=1&size=20')
+    expect(apiGet).toHaveBeenNthCalledWith(2, '/watchlists/7/evaluations')
+    expect(result.current.data).toMatchObject({
+      needsResearchCount: 2,
+      map: {
+        NVDA: {
+          symbol: 'NVDA',
+          newsRisk: 'HIGH',
+          valuationBurden: 'HIGH',
+          themeHeat: 'OVERHEATED',
+          aiJudgment: 'RISK_INCREASING',
+        },
+        AAPL: {
+          symbol: 'AAPL',
+          newsRisk: 'LOW',
+        },
+      },
+    })
+  })
+
+  it('returns an empty evaluation map when the response has no items', async () => {
+    vi.mocked(apiGet).mockReset()
+    vi.mocked(apiGet)
+      .mockResolvedValueOnce({
+        data: [
+          { id: 7, user_id: 1, name: 'Primary', created_at: '2026-06-01' },
+        ],
+        meta: undefined,
+      })
+      .mockResolvedValueOnce({
+        data: {
+          generated_at: '2026-07-08T00:00:00Z',
+          needs_research_count: 0,
+          items: [],
+        },
+        meta: undefined,
+      })
+    const queryClient = createTestQueryClient()
+    const { result } = renderHook(() => useWatchlistEvaluations(), {
+      wrapper: wrapperFor(queryClient),
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(result.current.data).toEqual({
+      map: {},
+      needsResearchCount: 0,
+    })
   })
 })
 

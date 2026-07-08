@@ -7,12 +7,18 @@ import { useWatchlistObservations } from '@/features/watchlist-observations/quer
 import { WatchlistRecommendationsSection } from '@/features/watchlist-recommendations/WatchlistRecommendationsSection'
 import { AddWatchlistAssetModal } from '@/features/watchlist/AddWatchlistAssetModal'
 import {
+  resolveAiJudgmentBadge,
+  resolveNewsRiskBadge,
   resolveStatusBadge,
+  resolveThemeHeatBadge,
+  resolveValuationBadge,
+  type WatchlistEvaluationRow,
   type WatchlistAssetRow,
 } from '@/features/watchlist/adapters'
 import {
   useRemoveWatchlistItem,
   useWatchlistAssets,
+  useWatchlistEvaluations,
   useWatchlistSparklines,
   useWatchlistSummary,
   useWatchlistSummaryTrends,
@@ -64,9 +70,11 @@ const statusFilterOptions: Exclude<StatusFilter, ''>[] = [
 const summaryIconClassNames = [
   'bg-blue-500/20 text-blue-300',
   'bg-rose-500/20 text-rose-300',
+  'bg-amber-500/20 text-amber-200',
+  'bg-emerald-500/20 text-emerald-200',
 ]
 
-const summaryIcons = ['▱', '▣']
+const summaryIcons = ['▱', '▣', '⌕', '↗']
 const emptyWatchlistRows: WatchlistAssetRow[] = []
 
 const symbolMarks: Record<string, { label: string; className: string }> = {
@@ -292,6 +300,49 @@ function RowMenu({
   )
 }
 
+interface EvaluationBadgeCellProps {
+  row: WatchlistEvaluationRow | undefined
+  field: keyof Omit<WatchlistEvaluationRow, 'symbol'>
+  isLoading: boolean
+  isError: boolean
+  resolveBadge: (value: string) => { label: string; className: string }
+}
+
+function EvaluationBadgeCell({
+  row,
+  field,
+  isLoading,
+  isError,
+  resolveBadge,
+}: EvaluationBadgeCellProps) {
+  if (isLoading) {
+    return (
+      <td className="px-3 py-2.5">
+        <Skeleton className="h-4 w-12" />
+      </td>
+    )
+  }
+
+  if (isError || !row) {
+    return <td className="px-3 py-2.5 text-cockpit-text-muted">—</td>
+  }
+
+  const badge = resolveBadge(row[field])
+
+  return (
+    <td className="px-3 py-2.5">
+      <span
+        className={classNames(
+          'inline-flex min-w-16 items-center justify-center rounded-full border px-2 py-1 text-xs font-semibold',
+          badge.className,
+        )}
+      >
+        {badge.label}
+      </span>
+    </td>
+  )
+}
+
 export function WatchlistPage() {
   const navigate = useNavigate()
   const [page, setPage] = useState(1)
@@ -301,6 +352,7 @@ export function WatchlistPage() {
   const watchlistSparklinesQuery = useWatchlistSparklines()
   const fxRatesQuery = useFxRates()
   const watchlistSummaryQuery = useWatchlistSummary()
+  const watchlistEvaluationsQuery = useWatchlistEvaluations()
   const watchlistObservationsQuery = useWatchlistObservations()
   const [query, setQuery] = useState('')
   const [sortKey, setSortKey] = useState<SortKey>('custom')
@@ -377,6 +429,7 @@ export function WatchlistPage() {
     totalCount: 0,
     riskIncreasingCount: 0,
     recentItems: [],
+    buyReadiness: null,
   }
   const summaryCards = [
     {
@@ -507,7 +560,7 @@ export function WatchlistPage() {
         </div>
       </Card>
 
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         {watchlistSummaryQuery.isLoading ? (
           <>
             <Card className="min-h-36 border-cockpit-border bg-cockpit-surface/85 p-5 shadow-blue-950/20">
@@ -516,9 +569,15 @@ export function WatchlistPage() {
             <Card className="min-h-36 border-cockpit-border bg-cockpit-surface/85 p-5 shadow-blue-950/20">
               <Skeleton lines={3} />
             </Card>
+            <Card className="min-h-36 border-cockpit-border bg-cockpit-surface/85 p-5 shadow-blue-950/20">
+              <Skeleton lines={3} />
+            </Card>
+            <Card className="min-h-36 border-cockpit-border bg-cockpit-surface/85 p-5 shadow-blue-950/20">
+              <Skeleton lines={3} />
+            </Card>
           </>
         ) : watchlistSummaryQuery.isError ? (
-          <Card className="border-cockpit-border bg-cockpit-surface/85 p-4 shadow-blue-950/20 md:col-span-2">
+          <Card className="border-cockpit-border bg-cockpit-surface/85 p-4 shadow-blue-950/20 md:col-span-2 xl:col-span-4">
             <ErrorState
               title="관심 종목 요약을 불러오지 못했습니다"
               description={watchlistSummaryQuery.error.message}
@@ -528,35 +587,100 @@ export function WatchlistPage() {
             />
           </Card>
         ) : (
-          summaryCards.map((summaryCard, index) => (
-            <Card
-              key={summaryCard.label}
-              className="min-h-36 border-cockpit-border bg-cockpit-surface/85 p-5 shadow-blue-950/20"
-            >
+          <>
+            {summaryCards.map((summaryCard, index) => (
+              <Card
+                key={summaryCard.label}
+                className="min-h-36 border-cockpit-border bg-cockpit-surface/85 p-5 shadow-blue-950/20"
+              >
+                <div className="flex h-full flex-col justify-between gap-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="text-sm font-semibold text-cockpit-text">
+                      {summaryCard.label}
+                    </span>
+                    <span
+                      className={classNames(
+                        'grid h-10 w-10 shrink-0 place-items-center rounded-full text-lg',
+                        summaryIconClassNames[index],
+                      )}
+                      aria-hidden="true"
+                    >
+                      {summaryIcons[index]}
+                    </span>
+                  </div>
+                  <div className="flex items-end justify-between gap-4">
+                    <strong className="text-4xl font-semibold tracking-normal text-cockpit-text">
+                      {summaryCard.value}
+                    </strong>
+                    <SummaryVisual index={index} />
+                  </div>
+                </div>
+              </Card>
+            ))}
+            <Card className="min-h-36 border-cockpit-border bg-cockpit-surface/85 p-5 shadow-blue-950/20">
               <div className="flex h-full flex-col justify-between gap-4">
                 <div className="flex items-start justify-between gap-3">
                   <span className="text-sm font-semibold text-cockpit-text">
-                    {summaryCard.label}
+                    추가 리서치 필요
                   </span>
                   <span
                     className={classNames(
                       'grid h-10 w-10 shrink-0 place-items-center rounded-full text-lg',
-                      summaryIconClassNames[index],
+                      summaryIconClassNames[2],
                     )}
                     aria-hidden="true"
                   >
-                    {summaryIcons[index]}
+                    {summaryIcons[2]}
                   </span>
                 </div>
                 <div className="flex items-end justify-between gap-4">
-                  <strong className="text-4xl font-semibold tracking-normal text-cockpit-text">
-                    {summaryCard.value}
-                  </strong>
-                  <SummaryVisual index={index} />
+                  {watchlistEvaluationsQuery.isLoading ? (
+                    <Skeleton className="h-10 w-16" />
+                  ) : watchlistEvaluationsQuery.isError ? (
+                    <strong className="text-4xl font-semibold tracking-normal text-cockpit-text-muted">
+                      —
+                    </strong>
+                  ) : (
+                    <strong className="text-4xl font-semibold tracking-normal text-cockpit-text">
+                      {watchlistEvaluationsQuery.data?.needsResearchCount ?? 0}
+                    </strong>
+                  )}
                 </div>
               </div>
             </Card>
-          ))
+            <Card className="min-h-36 border-cockpit-border bg-cockpit-surface/85 p-5 shadow-blue-950/20">
+              <div className="flex h-full flex-col justify-between gap-4">
+                <div className="flex items-start justify-between gap-3">
+                  <span className="text-sm font-semibold text-cockpit-text">
+                    신규 매수 여력
+                  </span>
+                  <span
+                    className={classNames(
+                      'grid h-10 w-10 shrink-0 place-items-center rounded-full text-lg',
+                      summaryIconClassNames[3],
+                    )}
+                    aria-hidden="true"
+                  >
+                    {summaryIcons[3]}
+                  </span>
+                </div>
+                {summary.buyReadiness ? (
+                  <div className="flex flex-col gap-2">
+                    <strong className="text-3xl font-semibold tracking-normal text-cockpit-text">
+                      {summary.buyReadiness.levelLabel}
+                    </strong>
+                    <p className="text-sm leading-5 text-cockpit-text-muted">
+                      {summary.buyReadiness.message}
+                    </p>
+                  </div>
+                ) : (
+                  <strong className="text-3xl font-semibold tracking-normal text-cockpit-text-muted">
+                    포트폴리오 없음
+                  </strong>
+                )}
+              </div>
+            </Card>
+          </>
         )}
       </div>
 
@@ -614,7 +738,7 @@ export function WatchlistPage() {
             ) : (
               <div className="overflow-x-auto">
                 <table
-                  className="min-w-[58rem] border-collapse text-sm"
+                  className="min-w-[82rem] border-collapse text-sm"
                   aria-label="관심 종목"
                 >
                   <thead className="bg-cockpit-surface-muted/70 text-xs font-semibold text-cockpit-text-muted">
@@ -622,6 +746,10 @@ export function WatchlistPage() {
                       {[
                         '종목',
                         '상태',
+                        '뉴스 위험도',
+                        '밸류에이션',
+                        '테마 과열',
+                        'AI 판단',
                         '섹터',
                         '현재가',
                         '변화율',
@@ -644,6 +772,8 @@ export function WatchlistPage() {
                       visibleStocks.map((stock) => {
                         const statusBadge = resolveStatusBadge(stock.status)
                         const stockSparkline = sparklines[stock.symbol] ?? []
+                        const evaluationRow =
+                          watchlistEvaluationsQuery.data?.map[stock.symbol]
 
                         return (
                           <tr
@@ -671,6 +801,34 @@ export function WatchlistPage() {
                                 {statusBadge.label}
                               </span>
                             </td>
+                            <EvaluationBadgeCell
+                              row={evaluationRow}
+                              field="newsRisk"
+                              isLoading={watchlistEvaluationsQuery.isLoading}
+                              isError={watchlistEvaluationsQuery.isError}
+                              resolveBadge={resolveNewsRiskBadge}
+                            />
+                            <EvaluationBadgeCell
+                              row={evaluationRow}
+                              field="valuationBurden"
+                              isLoading={watchlistEvaluationsQuery.isLoading}
+                              isError={watchlistEvaluationsQuery.isError}
+                              resolveBadge={resolveValuationBadge}
+                            />
+                            <EvaluationBadgeCell
+                              row={evaluationRow}
+                              field="themeHeat"
+                              isLoading={watchlistEvaluationsQuery.isLoading}
+                              isError={watchlistEvaluationsQuery.isError}
+                              resolveBadge={resolveThemeHeatBadge}
+                            />
+                            <EvaluationBadgeCell
+                              row={evaluationRow}
+                              field="aiJudgment"
+                              isLoading={watchlistEvaluationsQuery.isLoading}
+                              isError={watchlistEvaluationsQuery.isError}
+                              resolveBadge={resolveAiJudgmentBadge}
+                            />
                             <td className="px-3 py-2.5">
                               <span className="text-cockpit-text-muted">
                                 {stock.sector}
@@ -771,7 +929,7 @@ export function WatchlistPage() {
                     ) : (
                       <tr>
                         <td
-                          colSpan={8}
+                          colSpan={12}
                           className="px-4 py-6 text-center text-sm text-cockpit-text-muted"
                         >
                           <EmptyState
