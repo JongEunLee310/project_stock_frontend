@@ -41,6 +41,25 @@ const itemDto: WatchlistItemDto = {
   },
 }
 
+const dangerIndicator = {
+  kind: 'glyph',
+  className: 'text-rose-400',
+  glyph: '⚠︎',
+} as const
+const warningIndicator = {
+  kind: 'glyph',
+  className: 'text-amber-400 font-bold',
+  glyph: '!',
+} as const
+const safeIndicator = {
+  kind: 'dot',
+  className: 'bg-emerald-400',
+} as const
+const neutralIndicator = {
+  kind: 'dot',
+  className: 'bg-slate-400',
+} as const
+
 describe('adaptWatchlistAsset', () => {
   it('maps expanded asset item into a thin watchlist row', () => {
     expect(adaptWatchlistAsset(itemDto)).toEqual({
@@ -104,82 +123,149 @@ describe('adaptWatchlistAsset', () => {
 
 describe('resolveStatusBadge', () => {
   it.each([
-    ['NORMAL', '안정'],
-    ['WATCH', '관망'],
-    ['BUY_CANDIDATE', '관망'],
-    ['RISK_ALERT', '위험 증가'],
-    ['THESIS_BROKEN', '위험 증가'],
-    ['SELL_REVIEW', '위험 증가'],
-    ['OVERHEATED', '위험 증가'],
+    [
+      'NORMAL',
+      {
+        label: '안정',
+        className: 'bg-emerald-500/10 text-emerald-300',
+        indicator: safeIndicator,
+      },
+    ],
+    [
+      'WATCH',
+      {
+        label: '관망',
+        className: 'bg-amber-500/10 text-amber-300',
+        indicator: warningIndicator,
+      },
+    ],
+    [
+      'BUY_CANDIDATE',
+      {
+        label: '관망',
+        className: 'bg-amber-500/10 text-amber-300',
+        indicator: warningIndicator,
+      },
+    ],
+    [
+      'RISK_ALERT',
+      {
+        label: '위험 증가',
+        className: 'bg-rose-500/10 text-rose-300',
+        indicator: dangerIndicator,
+      },
+    ],
+    [
+      'THESIS_BROKEN',
+      {
+        label: '위험 증가',
+        className: 'bg-rose-500/10 text-rose-300',
+        indicator: dangerIndicator,
+      },
+    ],
+    [
+      'SELL_REVIEW',
+      {
+        label: '위험 증가',
+        className: 'bg-rose-500/10 text-rose-300',
+        indicator: dangerIndicator,
+      },
+    ],
+    [
+      'OVERHEATED',
+      {
+        label: '위험 증가',
+        className: 'bg-rose-500/10 text-rose-300',
+        indicator: dangerIndicator,
+      },
+    ],
     // app/domains/signals/types.py:4-13
-  ] as const)('maps %s to %s', (status, label) => {
-    const badge = resolveStatusBadge(status)
-
-    expect(badge.label).toBe(label)
-    expect(badge.className).toContain('status-')
+  ] as const)('maps %s to %s', (status, expectedBadge) => {
+    expect(resolveStatusBadge(status)).toEqual(expectedBadge)
   })
 
   it('falls back to stable for an unknown status', () => {
-    expect(resolveStatusBadge('UNKNOWN')).toMatchObject({
+    expect(resolveStatusBadge('UNKNOWN')).toEqual({
       label: '안정',
-      className:
-        'border-status-stable-border bg-status-stable-bg text-status-stable-text',
+      className: 'bg-emerald-500/10 text-emerald-300',
+      indicator: safeIndicator,
     })
   })
 })
 
 describe('watchlist evaluation badge resolvers', () => {
   it.each([
-    ['HIGH', '높음', 'rose'],
-    ['MEDIUM', '중간', 'amber'],
-    ['LOW', '낮음', 'emerald'],
-    ['UNKNOWN', '중간', 'slate'],
+    ['HIGH', '높음', 'bg-rose-500/10 text-rose-300', dangerIndicator],
+    ['MEDIUM', '중간', 'bg-amber-500/10 text-amber-300', warningIndicator],
+    ['LOW', '낮음', 'bg-emerald-500/10 text-emerald-300', safeIndicator],
+    ['UNKNOWN', '중간', 'bg-slate-500/10 text-slate-300', neutralIndicator],
     // app/domains/watchlists/types.py
-  ] as const)('maps news risk %s to %s', (value, label, classToken) => {
-    const badge = resolveNewsRiskBadge(value)
-
-    expect(badge.label).toBe(label)
-    expect(badge.className).toContain(classToken)
-  })
+  ] as const)(
+    'maps news risk %s to %s',
+    (value, label, className, indicator) => {
+      expect(resolveNewsRiskBadge(value)).toEqual({
+        label,
+        className,
+        indicator,
+      })
+    },
+  )
 
   it.each([
-    ['HIGH', '고평가', 'rose'],
-    ['MODERATE', '적정', 'slate'],
-    ['LOW', '저평가', 'emerald'],
-    ['UNKNOWN', '적정', 'slate'],
+    ['HIGH', '고평가', 'bg-rose-500/10 text-rose-300', dangerIndicator],
+    ['MODERATE', '적정', 'bg-slate-500/10 text-slate-300', neutralIndicator],
+    ['LOW', '저평가', 'bg-emerald-500/10 text-emerald-300', safeIndicator],
+    ['UNKNOWN', '적정', 'bg-slate-500/10 text-slate-300', neutralIndicator],
     // app/domains/watchlists/types.py
-  ] as const)('maps valuation burden %s to %s', (value, label, classToken) => {
-    const badge = resolveValuationBadge(value)
-
-    expect(badge.label).toBe(label)
-    expect(badge.className).toContain(classToken)
-  })
+  ] as const)(
+    'maps valuation burden %s to %s',
+    (value, label, className, indicator) => {
+      expect(resolveValuationBadge(value)).toEqual({
+        label,
+        className,
+        indicator,
+      })
+    },
+  )
 
   it.each([
-    ['OVERHEATED', '과열', 'rose'],
-    ['NEUTRAL', '중립', 'slate'],
-    ['COLD', '냉각', 'emerald'],
-    ['UNKNOWN', '중립', 'slate'],
+    ['OVERHEATED', '과열', 'bg-rose-500/10 text-rose-300', dangerIndicator],
+    ['NEUTRAL', '중립', 'bg-slate-500/10 text-slate-300', neutralIndicator],
+    ['COLD', '냉각', 'bg-emerald-500/10 text-emerald-300', safeIndicator],
+    ['UNKNOWN', '중립', 'bg-slate-500/10 text-slate-300', neutralIndicator],
     // app/domains/watchlists/types.py
-  ] as const)('maps theme heat %s to %s', (value, label, classToken) => {
-    const badge = resolveThemeHeatBadge(value)
-
-    expect(badge.label).toBe(label)
-    expect(badge.className).toContain(classToken)
-  })
+  ] as const)(
+    'maps theme heat %s to %s',
+    (value, label, className, indicator) => {
+      expect(resolveThemeHeatBadge(value)).toEqual({
+        label,
+        className,
+        indicator,
+      })
+    },
+  )
 
   it.each([
-    ['RISK_INCREASING', '위험 증가', 'rose'],
-    ['WATCH', '관망', 'amber'],
-    ['STABLE', '안정', 'emerald'],
-    ['UNKNOWN', '안정', 'emerald'],
+    [
+      'RISK_INCREASING',
+      '위험 증가',
+      'bg-rose-500/10 text-rose-300',
+      dangerIndicator,
+    ],
+    ['WATCH', '관망', 'bg-amber-500/10 text-amber-300', warningIndicator],
+    ['STABLE', '안정', 'bg-emerald-500/10 text-emerald-300', safeIndicator],
+    ['UNKNOWN', '안정', 'bg-emerald-500/10 text-emerald-300', safeIndicator],
     // app/domains/watchlists/types.py
-  ] as const)('maps AI judgment %s to %s', (value, label, classToken) => {
-    const badge = resolveAiJudgmentBadge(value)
-
-    expect(badge.label).toBe(label)
-    expect(badge.className).toContain(classToken)
-  })
+  ] as const)(
+    'maps AI judgment %s to %s',
+    (value, label, className, indicator) => {
+      expect(resolveAiJudgmentBadge(value)).toEqual({
+        label,
+        className,
+        indicator,
+      })
+    },
+  )
 })
 
 describe('adaptWatchlistEvaluations', () => {

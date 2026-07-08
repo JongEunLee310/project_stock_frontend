@@ -13,6 +13,7 @@ import {
   resolveStatusBadge,
   resolveThemeHeatBadge,
   resolveValuationBadge,
+  type WatchlistBadgeIndicator,
   type WatchlistEvaluationRow,
   type WatchlistAssetRow,
 } from '@/features/watchlist/adapters'
@@ -306,7 +307,46 @@ interface EvaluationBadgeCellProps {
   field: keyof Omit<WatchlistEvaluationRow, 'symbol'>
   isLoading: boolean
   isError: boolean
-  resolveBadge: (value: string) => { label: string; className: string }
+  resolveBadge: (value: string) => {
+    label: string
+    className: string
+    indicator: WatchlistBadgeIndicator
+  }
+}
+
+interface TableBadgeProps {
+  label: string
+  className: string
+  indicator: WatchlistBadgeIndicator
+}
+
+function TableBadge({ label, className, indicator }: TableBadgeProps) {
+  return (
+    <span
+      className={classNames(
+        'inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium',
+        className,
+      )}
+    >
+      {indicator.kind === 'dot' ? (
+        <span
+          aria-hidden="true"
+          className={classNames(
+            'h-1.5 w-1.5 rounded-full',
+            indicator.className,
+          )}
+        />
+      ) : (
+        <span
+          aria-hidden="true"
+          className={classNames('text-[11px]', indicator.className)}
+        >
+          {indicator.glyph}
+        </span>
+      )}
+      {label}
+    </span>
+  )
 }
 
 function EvaluationBadgeCell({
@@ -318,28 +358,27 @@ function EvaluationBadgeCell({
 }: EvaluationBadgeCellProps) {
   if (isLoading) {
     return (
-      <td className="px-3 py-2.5">
-        <Skeleton className="h-4 w-12" />
+      <td className="px-3 py-2.5 text-center">
+        <Skeleton className="mx-auto h-4 w-12" />
       </td>
     )
   }
 
   if (isError || !row) {
-    return <td className="px-3 py-2.5 text-cockpit-text-muted">—</td>
+    return (
+      <td className="px-3 py-2.5 text-center text-cockpit-text-muted">—</td>
+    )
   }
 
   const badge = resolveBadge(row[field])
 
   return (
-    <td className="px-3 py-2.5">
-      <span
-        className={classNames(
-          'inline-flex min-w-16 items-center justify-center rounded-full border px-2 py-1 text-xs font-semibold',
-          badge.className,
-        )}
-      >
-        {badge.label}
-      </span>
+    <td className="px-3 py-2.5 text-center">
+      <TableBadge
+        label={badge.label}
+        className={badge.className}
+        indicator={badge.indicator}
+      />
     </td>
   )
 }
@@ -451,113 +490,109 @@ export function WatchlistPage() {
     <section className="flex flex-col gap-3 text-cockpit-text">
       <h1 className="px-0 pb-2 pt-1 text-3xl font-bold">관심 종목</h1>
 
-      <Card className="border-cockpit-border bg-cockpit-surface/80 p-4 shadow-blue-950/20">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-          <div className="grid flex-1 gap-3 md:grid-cols-2 xl:grid-cols-[minmax(18rem,1.2fr)_minmax(10rem,auto)_minmax(10rem,auto)]">
-            <label className="relative flex flex-col text-sm font-medium text-cockpit-text">
-              <span className="sr-only">검색</span>
-              <Input
-                aria-label="검색"
-                type="search"
-                value={query}
-                placeholder="종목명 또는 티커 검색"
-                className="min-h-11 border-cockpit-border bg-cockpit-bg/70 pr-10 text-cockpit-text placeholder:text-cockpit-text-muted focus:border-cockpit-accent focus:ring-cockpit-accent/30"
-                onChange={(event) => setQuery(event.target.value)}
-              />
-              <span
-                className="pointer-events-none absolute right-3 top-2.5 text-xl text-cockpit-text-muted"
-                aria-hidden="true"
-              >
-                ⌕
-              </span>
-            </label>
+      <Card className="border-cockpit-border bg-cockpit-surface/80 p-3 shadow-blue-950/20">
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="relative flex min-w-[14rem] max-w-sm flex-1 flex-col text-sm font-medium text-cockpit-text">
+            <span className="sr-only">검색</span>
+            <Input
+              aria-label="검색"
+              type="search"
+              value={query}
+              placeholder="종목명 또는 티커 검색"
+              className="min-h-9 border-cockpit-border bg-cockpit-bg/70 pr-10 text-cockpit-text placeholder:text-cockpit-text-muted focus:border-cockpit-accent focus:ring-cockpit-accent/30"
+              onChange={(event) => setQuery(event.target.value)}
+            />
+            <span
+              className="pointer-events-none absolute right-3 top-1.5 text-xl text-cockpit-text-muted"
+              aria-hidden="true"
+            >
+              ⌕
+            </span>
+          </label>
 
-            <label className="flex flex-col text-sm font-medium text-cockpit-text">
-              <span className="sr-only">정렬</span>
-              <select
-                aria-label="정렬"
-                className="min-h-11 rounded-control border border-cockpit-border bg-cockpit-bg/70 px-3 py-2 text-sm text-cockpit-text outline-none transition-colors focus:border-cockpit-accent focus:ring-2 focus:ring-cockpit-accent/30"
-                value={sortKey}
-                onChange={(event) => setSortKey(event.target.value as SortKey)}
-              >
-                {Object.entries(sortLabels).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    정렬: {label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex flex-col text-sm font-medium text-cockpit-text">
-              <span className="sr-only">시장</span>
-              <select
-                aria-label="시장"
-                className="min-h-11 rounded-control border border-cockpit-border bg-cockpit-bg/70 px-3 py-2 text-sm text-cockpit-text outline-none transition-colors focus:border-cockpit-accent focus:ring-2 focus:ring-cockpit-accent/30"
-                value={marketFilter}
-                onChange={(event) => {
-                  setMarketFilter(event.target.value)
-                  setPage(1)
-                }}
-              >
-                <option value="">시장: 전체</option>
-                {marketOptions.map((market) => (
-                  <option key={market} value={market}>
-                    시장: {market}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="flex flex-col text-sm font-medium text-cockpit-text">
-              <span className="sr-only">위험</span>
-              <select
-                aria-label="위험"
-                className="min-h-11 rounded-control border border-cockpit-border bg-cockpit-bg/70 px-3 py-2 text-sm text-cockpit-text outline-none transition-colors focus:border-cockpit-accent focus:ring-2 focus:ring-cockpit-accent/30"
-                value={statusFilter}
-                onChange={(event) => {
-                  setStatusFilter(event.target.value as StatusFilter)
-                  setPage(1)
-                }}
-              >
-                <option value="">위험: 전체</option>
-                {statusFilterOptions.map((status) => (
-                  <option key={status} value={status}>
-                    위험: {status}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
+          <label className="flex w-auto flex-col text-sm font-medium text-cockpit-text">
+            <span className="sr-only">정렬</span>
+            <select
+              aria-label="정렬"
+              className="min-h-9 w-auto rounded-control border border-cockpit-border bg-cockpit-bg/70 px-3 py-2 text-sm text-cockpit-text outline-none transition-colors focus:border-cockpit-accent focus:ring-2 focus:ring-cockpit-accent/30"
+              value={sortKey}
+              onChange={(event) => setSortKey(event.target.value as SortKey)}
+            >
+              {Object.entries(sortLabels).map(([value, label]) => (
+                <option key={value} value={value}>
+                  정렬: {label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex w-auto flex-col text-sm font-medium text-cockpit-text">
+            <span className="sr-only">시장</span>
+            <select
+              aria-label="시장"
+              className="min-h-9 w-auto rounded-control border border-cockpit-border bg-cockpit-bg/70 px-3 py-2 text-sm text-cockpit-text outline-none transition-colors focus:border-cockpit-accent focus:ring-2 focus:ring-cockpit-accent/30"
+              value={marketFilter}
+              onChange={(event) => {
+                setMarketFilter(event.target.value)
+                setPage(1)
+              }}
+            >
+              <option value="">시장: 전체</option>
+              {marketOptions.map((market) => (
+                <option key={market} value={market}>
+                  시장: {market}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex w-auto flex-col text-sm font-medium text-cockpit-text">
+            <span className="sr-only">위험</span>
+            <select
+              aria-label="위험"
+              className="min-h-9 w-auto rounded-control border border-cockpit-border bg-cockpit-bg/70 px-3 py-2 text-sm text-cockpit-text outline-none transition-colors focus:border-cockpit-accent focus:ring-2 focus:ring-cockpit-accent/30"
+              value={statusFilter}
+              onChange={(event) => {
+                setStatusFilter(event.target.value as StatusFilter)
+                setPage(1)
+              }}
+            >
+              <option value="">위험: 전체</option>
+              {statusFilterOptions.map((status) => (
+                <option key={status} value={status}>
+                  위험: {status}
+                </option>
+              ))}
+            </select>
+          </label>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              type="button"
-              variant="ghost"
-              className="min-h-10 gap-2 text-cockpit-text-muted hover:bg-cockpit-surface-muted hover:text-cockpit-text"
-              onClick={() =>
-                setSortDirection((current) =>
-                  current === 'desc' ? 'asc' : 'desc',
-                )
-              }
-              aria-label="정렬 방향 변경"
-              title="정렬 방향 변경"
-            >
-              ↕
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              className="min-h-10 gap-2 text-cockpit-text-muted hover:bg-cockpit-surface-muted hover:text-cockpit-text"
-              onClick={resetFilters}
-            >
-              필터 초기화 <span aria-hidden="true">↻</span>
-            </Button>
-            <Button
-              type="button"
-              className="min-h-10 border-blue-600 bg-blue-600 px-4 text-white hover:bg-blue-500"
-              onClick={() => setIsAddAssetModalOpen(true)}
-            >
-              + 종목 추가
-            </Button>
-          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            className="ml-auto min-h-9 gap-2 text-cockpit-text-muted hover:bg-cockpit-surface-muted hover:text-cockpit-text"
+            onClick={() =>
+              setSortDirection((current) =>
+                current === 'desc' ? 'asc' : 'desc',
+              )
+            }
+            aria-label="정렬 방향 변경"
+            title="정렬 방향 변경"
+          >
+            ↕
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            className="min-h-9 gap-2 text-cockpit-text-muted hover:bg-cockpit-surface-muted hover:text-cockpit-text"
+            onClick={resetFilters}
+          >
+            필터 초기화 <span aria-hidden="true">↻</span>
+          </Button>
+          <Button
+            type="button"
+            className="min-h-9 border-blue-600 bg-blue-600 px-4 text-white hover:bg-blue-500"
+            onClick={() => setIsAddAssetModalOpen(true)}
+          >
+            + 종목 추가
+          </Button>
         </div>
       </Card>
 
@@ -761,7 +796,7 @@ export function WatchlistPage() {
                         <th
                           key={`${header}-${index}`}
                           scope="col"
-                          className="border-b border-cockpit-border px-3 py-3 text-left first:w-10 last:w-10"
+                          className="border-b border-cockpit-border px-3 py-3 text-center first:w-10 last:w-10"
                         >
                           {header}
                         </th>
@@ -792,15 +827,12 @@ export function WatchlistPage() {
                             <td className="px-3 py-2.5">
                               <StockIdentity stock={stock} />
                             </td>
-                            <td className="px-3 py-2.5">
-                              <span
-                                className={classNames(
-                                  'inline-flex min-w-16 items-center justify-center rounded-full border px-2 py-1 text-xs font-semibold',
-                                  statusBadge.className,
-                                )}
-                              >
-                                {statusBadge.label}
-                              </span>
+                            <td className="px-3 py-2.5 text-center">
+                              <TableBadge
+                                label={statusBadge.label}
+                                className={statusBadge.className}
+                                indicator={statusBadge.indicator}
+                              />
                             </td>
                             <EvaluationBadgeCell
                               row={evaluationRow}
