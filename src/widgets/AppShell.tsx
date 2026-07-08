@@ -1,11 +1,13 @@
 import { Outlet } from 'react-router-dom'
 
+import { FloatingMarketCard } from './FloatingMarketCard'
 import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
 
 export function AppShell() {
   return (
     <div className="min-h-screen bg-cockpit-bg text-cockpit-text">
+      <FloatingMarketCard />
       <div className="grid min-h-screen lg:grid-cols-[16rem_minmax(0,1fr)]">
         <Sidebar />
         <div className="flex min-w-0 flex-col">

@@ -24,6 +24,7 @@ const itemDto: WatchlistItemDto = {
   asset: {
     symbol: 'AAPL',
     name: 'Apple Inc.',
+    market: 'NASDAQ',
     price: '195.64',
     change_percent: '1.26',
     sector: 'Technology',
@@ -36,6 +37,7 @@ describe('adaptWatchlistAsset', () => {
     expect(adaptWatchlistAsset(itemDto)).toEqual({
       id: 1,
       symbol: 'AAPL',
+      market: 'NASDAQ',
       name: 'Apple Inc.',
       price: 195.64,
       changePercent: 1.26,
@@ -45,7 +47,6 @@ describe('adaptWatchlistAsset', () => {
       tags: ['ai', 'large-cap'],
       memo: 'Watch earnings.',
       createdAt: '2026-06-19T00:00:00Z',
-      isFavorite: true,
     })
   })
 
@@ -77,6 +78,15 @@ describe('adaptWatchlistAsset', () => {
 
     expect(adaptWatchlistAsset({ ...itemDto, asset })).toMatchObject({
       currency: null,
+    })
+  })
+
+  it('falls back to UNKNOWN market when the backend omits the field', () => {
+    const asset = { ...itemDto.asset! }
+    delete asset.market
+
+    expect(adaptWatchlistAsset({ ...itemDto, asset })).toMatchObject({
+      market: 'UNKNOWN',
     })
   })
 })

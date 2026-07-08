@@ -3,7 +3,7 @@ import { renderHook, waitFor } from '@testing-library/react'
 import { createElement, type ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { apiGet, apiPost } from '@/shared/api/client'
+import { apiDelete, apiGet, apiPost } from '@/shared/api/client'
 
 import {
   fetchAssetsBySymbol,
@@ -11,11 +11,14 @@ import {
   useAssetLookup,
   useAssetSearch,
   useCreateAsset,
+  useRemoveWatchlistItem,
+  useWatchlistAssets,
   useWatchlistSummaryTrends,
   watchlistQueryKey,
 } from './queries'
 
 vi.mock('@/shared/api/client', () => ({
+  apiDelete: vi.fn(),
   apiGet: vi.fn(),
   apiPost: vi.fn(),
 }))
@@ -146,6 +149,62 @@ describe('useWatchlistSummaryTrends', () => {
     expect(result.current.data).toEqual({
       watchlistTotal: [10, 12],
       riskIncreasing: [2, 3],
+    })
+  })
+})
+
+describe('useWatchlistAssets', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(apiGet)
+      .mockResolvedValueOnce({
+        data: [
+          { id: 7, user_id: 1, name: 'Primary', created_at: '2026-06-01' },
+        ],
+        meta: undefined,
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            id: 11,
+            watchlist_id: 7,
+            asset_id: 8,
+            priority: 0,
+            reason: null,
+            tags: [],
+            memo: null,
+            created_at: '2026-06-01T00:00:00.000Z',
+            asset: {
+              symbol: 'MSFT',
+              market: 'NASDAQ',
+              name: 'Microsoft Corp.',
+              price: '425.5',
+              change_percent: '1.25',
+              sector: 'Technology',
+              currency: 'USD',
+            },
+          },
+        ],
+        meta: { page: 2, size: 25, total: 51 },
+      })
+  })
+
+  it('requests watchlist items with server pagination and returns rows with meta', async () => {
+    const queryClient = createTestQueryClient()
+    const { result } = renderHook(() => useWatchlistAssets(2, 25), {
+      wrapper: wrapperFor(queryClient),
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(apiGet).toHaveBeenNthCalledWith(1, '/watchlists?page=1&size=20')
+    expect(apiGet).toHaveBeenNthCalledWith(
+      2,
+      '/watchlists/7/items?page=2&size=25&sort=priority&expand=asset',
+    )
+    expect(result.current.data).toMatchObject({
+      meta: { page: 2, size: 25, total: 51 },
+      rows: [{ id: 11, symbol: 'MSFT', market: 'NASDAQ' }],
     })
   })
 })
@@ -389,6 +448,29 @@ describe('watchlist asset mutations', () => {
     })
     expect(apiPost).toHaveBeenNthCalledWith(2, '/watchlists/12/items', {
       asset_id: 8,
+    })
+  })
+
+  it('removes an item from the first watchlist and invalidates list and summary queries', async () => {
+    vi.mocked(apiGet).mockResolvedValue({
+      data: [{ id: 7, user_id: 1, name: 'Primary', created_at: '2026-06-01' }],
+      meta: undefined,
+    })
+    vi.mocked(apiDelete).mockResolvedValue({ data: null, meta: undefined })
+    const queryClient = createTestQueryClient()
+    const invalidate = vi.spyOn(queryClient, 'invalidateQueries')
+    const { result } = renderHook(() => useRemoveWatchlistItem(), {
+      wrapper: wrapperFor(queryClient),
+    })
+
+    result.current.mutate({ itemId: 11 })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(apiGet).toHaveBeenCalledWith('/watchlists?page=1&size=20')
+    expect(apiDelete).toHaveBeenCalledWith('/watchlists/7/items/11')
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: watchlistQueryKey })
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: [...watchlistQueryKey, 'summary'],
     })
   })
 })

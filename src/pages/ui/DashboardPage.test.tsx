@@ -182,6 +182,7 @@ const watchlistRows: WatchlistAssetRow[] = [
   {
     id: 1,
     symbol: 'NVDA',
+    market: 'NASDAQ',
     name: 'NVIDIA Corp.',
     price: 128.72,
     changePercent: -0.24,
@@ -191,11 +192,11 @@ const watchlistRows: WatchlistAssetRow[] = [
     tags: ['ai'],
     memo: null,
     createdAt: '2026-05-24T00:21:00.000Z',
-    isFavorite: true,
   },
   {
     id: 2,
     symbol: 'AAPL',
+    market: 'NASDAQ',
     name: 'Apple Inc.',
     price: null,
     changePercent: null,
@@ -205,7 +206,6 @@ const watchlistRows: WatchlistAssetRow[] = [
     tags: [],
     memo: null,
     createdAt: '2026-05-24T00:20:00.000Z',
-    isFavorite: true,
   },
 ]
 
@@ -316,8 +316,11 @@ let decisionLogsQueryState: QueryState<DecisionLog[]> = {
   isLoading: false,
   refetch: refetchDecisionLogs,
 }
-let watchlistAssetsQueryState: QueryState<WatchlistAssetRow[]> = {
-  data: watchlistRows,
+let watchlistAssetsQueryState: QueryState<{
+  rows: WatchlistAssetRow[]
+  meta: { page: number; size: number; total: number }
+}> = {
+  data: { rows: watchlistRows, meta: { page: 1, size: 4, total: 2 } },
   error: null,
   isError: false,
   isLoading: false,
@@ -426,7 +429,7 @@ beforeEach(() => {
     refetch: refetchDecisionLogs,
   }
   watchlistAssetsQueryState = {
-    data: watchlistRows,
+    data: { rows: watchlistRows, meta: { page: 1, size: 4, total: 2 } },
     error: null,
     isError: false,
     isLoading: false,
@@ -714,7 +717,7 @@ describe('DashboardPage', () => {
     unmountError()
     watchlistAssetsQueryState = {
       ...watchlistAssetsQueryState,
-      data: [],
+      data: { rows: [], meta: { page: 1, size: 4, total: 0 } },
       error: null,
       isError: false,
       isLoading: false,

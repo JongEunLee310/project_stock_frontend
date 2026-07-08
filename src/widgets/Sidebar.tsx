@@ -7,9 +7,6 @@ import {
 } from '@/shared/config/navigation'
 import { classNames } from '@/shared/ui/classNames'
 
-import { FxRateStrip } from './FxRateStrip'
-import { MarketSummary } from './MarketSummary'
-
 const navIcons: Record<string, string> = {
   dashboard: '▦',
   watchlist: '☆',
@@ -87,11 +84,6 @@ export function Sidebar() {
             )
           })}
         </nav>
-
-        <div className="mt-auto flex flex-col gap-3">
-          <FxRateStrip />
-          <MarketSummary />
-        </div>
       </div>
     </aside>
   )

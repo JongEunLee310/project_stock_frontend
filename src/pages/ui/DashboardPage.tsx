@@ -410,9 +410,9 @@ export function DashboardPage() {
   const priorityQueueQuery = useAlertCandidates()
   const signalsQuery = useSignals()
   const decisionLogsQuery = useDecisionLogs()
-  const watchlistAssetsQuery = useWatchlistAssets()
+  const watchlistAssetsQuery = useWatchlistAssets(1, 4)
 
-  const dashboardStocks = (watchlistAssetsQuery.data ?? []).slice(0, 4)
+  const dashboardStocks = watchlistAssetsQuery.data?.rows ?? []
   const topSignals = [...(signalsQuery.data ?? [])]
     .sort((first, second) => second.score - first.score)
     .slice(0, 3)

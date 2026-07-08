@@ -1,7 +1,6 @@
 import { useCallback, useMemo, useState, type MouseEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
-import { useUnreadAlertSummary } from '@/features/alerts/queries'
 import { findFxRateByPair } from '@/features/fx/adapters'
 import { useFxRates } from '@/features/fx/queries'
 import { useWatchlistObservations } from '@/features/watchlist-observations/queries'
@@ -9,10 +8,12 @@ import { WatchlistRecommendationsSection } from '@/features/watchlist-recommenda
 import { AddWatchlistAssetModal } from '@/features/watchlist/AddWatchlistAssetModal'
 import type { WatchlistAssetRow } from '@/features/watchlist/adapters'
 import {
+  useRemoveWatchlistItem,
   useWatchlistAssets,
   useWatchlistSummary,
   useWatchlistSummaryTrends,
 } from '@/features/watchlist/queries'
+import { appRoutePaths } from '@/shared/config/navigation'
 import {
   Button,
   Card,
@@ -26,6 +27,7 @@ import { classNames } from '@/shared/ui/classNames'
 
 type SortKey = 'custom' | 'changePercent' | 'price' | 'symbol' | 'createdAt'
 type SortDirection = 'asc' | 'desc'
+type WatchlistPageSize = 10 | 25 | 50
 
 const percentFormatter = new Intl.NumberFormat('ko-KR', {
   signDisplay: 'always',
@@ -55,6 +57,7 @@ const summaryIconClassNames = [
 ]
 
 const summaryIcons = ['▱', '▣']
+const emptyWatchlistRows: WatchlistAssetRow[] = []
 
 const symbolMarks: Record<string, { label: string; className: string }> = {
   NVDA: { label: 'N', className: 'bg-[#76b900] text-black' },
@@ -75,26 +78,6 @@ function formatPercent(value: number) {
 
 function formatTime(value: string) {
   return timeFormatter.format(new Date(value))
-}
-
-function formatRelativeTime(value: string) {
-  const createdAt = new Date(value).getTime()
-
-  if (Number.isNaN(createdAt)) return '시간 정보 없음'
-
-  const diffMs = Math.max(0, Date.now() - createdAt)
-  const diffMinutes = Math.floor(diffMs / 60_000)
-
-  if (diffMinutes < 1) return '방금 전'
-  if (diffMinutes < 60) return `${diffMinutes}분 전`
-
-  const diffHours = Math.floor(diffMinutes / 60)
-  if (diffHours < 24) return `${diffHours}시간 전`
-
-  const diffDays = Math.floor(diffHours / 24)
-  if (diffDays < 30) return `${diffDays}일 전`
-
-  return formatTime(value)
 }
 
 const priceFormatter = new Intl.NumberFormat('ko-KR', {
@@ -209,14 +192,33 @@ function StockIdentity({ stock }: { stock: WatchlistAssetRow }) {
 interface RowMenuProps {
   stock: WatchlistAssetRow
   isOpen: boolean
+  isRemoving: boolean
   onToggle: (symbol: string) => void
   onNavigate: (symbol: string) => void
+  onDecisionLog: () => void
+  onRemove: (itemId: number) => void
 }
 
-function RowMenu({ stock, isOpen, onToggle, onNavigate }: RowMenuProps) {
+function RowMenu({
+  stock,
+  isOpen,
+  isRemoving,
+  onToggle,
+  onNavigate,
+  onDecisionLog,
+  onRemove,
+}: RowMenuProps) {
   const openResearch = (event: MouseEvent<HTMLButtonElement>) => {
     stopRowNavigation(event)
     onNavigate(stock.symbol)
+  }
+  const openDecisionLog = (event: MouseEvent<HTMLButtonElement>) => {
+    stopRowNavigation(event)
+    onDecisionLog()
+  }
+  const removeItem = (event: MouseEvent<HTMLButtonElement>) => {
+    stopRowNavigation(event)
+    onRemove(stock.id)
   }
 
   return (
@@ -250,15 +252,16 @@ function RowMenu({ stock, isOpen, onToggle, onNavigate }: RowMenuProps) {
             type="button"
             className="rounded-control px-3 py-2 text-left text-sm text-cockpit-text-muted hover:bg-cockpit-surface-muted hover:text-cockpit-text focus-visible:outline-2 focus-visible:outline-cockpit-accent"
             role="menuitem"
-            onClick={stopRowNavigation}
+            onClick={openDecisionLog}
           >
             결정 기록
           </button>
           <button
             type="button"
-            className="rounded-control px-3 py-2 text-left text-sm text-cockpit-text-muted hover:bg-cockpit-surface-muted hover:text-cockpit-text focus-visible:outline-2 focus-visible:outline-cockpit-accent"
+            className="rounded-control px-3 py-2 text-left text-sm text-cockpit-text-muted hover:bg-cockpit-surface-muted hover:text-cockpit-text focus-visible:outline-2 focus-visible:outline-cockpit-accent disabled:cursor-not-allowed disabled:opacity-50"
             role="menuitem"
-            onClick={stopRowNavigation}
+            disabled={isRemoving}
+            onClick={removeItem}
           >
             관심 해제
           </button>
@@ -270,27 +273,25 @@ function RowMenu({ stock, isOpen, onToggle, onNavigate }: RowMenuProps) {
 
 export function WatchlistPage() {
   const navigate = useNavigate()
-  const watchlistAssetsQuery = useWatchlistAssets()
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState<WatchlistPageSize>(10)
+  const watchlistAssetsQuery = useWatchlistAssets(page, pageSize)
+  const removeWatchlistItem = useRemoveWatchlistItem()
   const fxRatesQuery = useFxRates()
   const watchlistSummaryQuery = useWatchlistSummary()
   const watchlistObservationsQuery = useWatchlistObservations()
-  const unreadAlertSummaryQuery = useUnreadAlertSummary()
   const [query, setQuery] = useState('')
   const [sortKey, setSortKey] = useState<SortKey>('custom')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
-  const [favoriteBySymbol, setFavoriteBySymbol] = useState<
-    Record<string, boolean>
-  >({})
+  const [marketFilter, setMarketFilter] = useState('')
   const [openMenuSymbol, setOpenMenuSymbol] = useState<string | null>(null)
   const [isAddAssetModalOpen, setIsAddAssetModalOpen] = useState(false)
 
-  const stocks = useMemo(
-    () =>
-      (watchlistAssetsQuery.data ?? []).map((stock) => ({
-        ...stock,
-        isFavorite: favoriteBySymbol[stock.symbol] ?? stock.isFavorite,
-      })),
-    [favoriteBySymbol, watchlistAssetsQuery.data],
+  const stocks = watchlistAssetsQuery.data?.rows ?? emptyWatchlistRows
+  const meta = watchlistAssetsQuery.data?.meta
+  const marketOptions = useMemo(
+    () => Array.from(new Set(stocks.map((stock) => stock.market))).sort(),
+    [stocks],
   )
 
   const visibleStocks = useMemo(() => {
@@ -301,12 +302,14 @@ export function WatchlistPage() {
         stock.symbol.toLowerCase().includes(normalizedQuery) ||
         stock.name.toLowerCase().includes(normalizedQuery) ||
         stock.sector.toLowerCase().includes(normalizedQuery)
+      const matchesMarket =
+        marketFilter.length === 0 || stock.market === marketFilter
 
-      return matchesQuery
+      return matchesQuery && matchesMarket
     })
 
     return sortWatchlistRows(filteredStocks, sortKey, sortDirection)
-  }, [query, sortDirection, sortKey, stocks])
+  }, [marketFilter, query, sortDirection, sortKey, stocks])
 
   const openResearch = useCallback(
     (symbol: string) => {
@@ -319,27 +322,27 @@ export function WatchlistPage() {
     setQuery('')
     setSortKey('custom')
     setSortDirection('desc')
+    setMarketFilter('')
   }
 
-  const toggleFavorite = useCallback((symbol: string) => {
-    setFavoriteBySymbol((current) => ({
-      ...current,
-      [symbol]: !current[symbol],
-    }))
-  }, [])
-
-  const pageSize = 10
-  const displayedStocks = visibleStocks.slice(0, pageSize)
-  const displayedStart = visibleStocks.length > 0 ? 1 : 0
-  const displayedEnd = displayedStocks.length
-  const visiblePageCount = Math.max(
+  const totalRows = meta?.total ?? visibleStocks.length
+  const currentPage = meta?.page ?? page
+  const currentPageSize = meta?.size ?? pageSize
+  const displayedStart =
+    totalRows > 0 ? (currentPage - 1) * currentPageSize + 1 : 0
+  const displayedEnd =
+    totalRows > 0
+      ? Math.min(displayedStart + visibleStocks.length - 1, totalRows)
+      : 0
+  const visiblePageCount = Math.max(1, Math.ceil(totalRows / currentPageSize))
+  const pageWindowStart = Math.max(
     1,
-    Math.ceil(visibleStocks.length / pageSize),
+    Math.min(currentPage - 2, Math.max(1, visiblePageCount - 4)),
   )
   const visiblePageNumbers = Array.from(
     { length: Math.min(5, visiblePageCount) },
-    (_, index) => index + 1,
-  )
+    (_, index) => pageWindowStart + index,
+  ).filter((pageNumber) => pageNumber <= visiblePageCount)
   const summary = watchlistSummaryQuery.data ?? {
     totalCount: 0,
     riskIncreasingCount: 0,
@@ -355,10 +358,6 @@ export function WatchlistPage() {
       value: summary.riskIncreasingCount,
     },
   ]
-  const alertSummary = unreadAlertSummaryQuery.data ?? {
-    unreadCount: 0,
-    recent: [],
-  }
   const observations = watchlistObservationsQuery.data
   const usdKrwRate = fxRatesQuery.isError
     ? undefined
@@ -400,6 +399,22 @@ export function WatchlistPage() {
                 {Object.entries(sortLabels).map(([value, label]) => (
                   <option key={value} value={value}>
                     정렬: {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col text-sm font-medium text-cockpit-text">
+              <span className="sr-only">시장</span>
+              <select
+                aria-label="시장"
+                className="min-h-11 rounded-control border border-cockpit-border bg-cockpit-bg/70 px-3 py-2 text-sm text-cockpit-text outline-none transition-colors focus:border-cockpit-accent focus:ring-2 focus:ring-cockpit-accent/30"
+                value={marketFilter}
+                onChange={(event) => setMarketFilter(event.target.value)}
+              >
+                <option value="">시장: 전체</option>
+                {marketOptions.map((market) => (
+                  <option key={market} value={market}>
+                    시장: {market}
                   </option>
                 ))}
               </select>
@@ -552,28 +567,22 @@ export function WatchlistPage() {
                 >
                   <thead className="bg-cockpit-surface-muted/70 text-xs font-semibold text-cockpit-text-muted">
                     <tr>
-                      {[
-                        '',
-                        '종목',
-                        '섹터',
-                        '현재가',
-                        '변화율',
-                        '추가일',
-                        '',
-                      ].map((header, index) => (
-                        <th
-                          key={`${header}-${index}`}
-                          scope="col"
-                          className="border-b border-cockpit-border px-3 py-3 text-left first:w-10 last:w-10"
-                        >
-                          {header}
-                        </th>
-                      ))}
+                      {['종목', '섹터', '현재가', '변화율', '추가일', ''].map(
+                        (header, index) => (
+                          <th
+                            key={`${header}-${index}`}
+                            scope="col"
+                            className="border-b border-cockpit-border px-3 py-3 text-left first:w-10 last:w-10"
+                          >
+                            {header}
+                          </th>
+                        ),
+                      )}
                     </tr>
                   </thead>
                   <tbody>
-                    {displayedStocks.length > 0 ? (
-                      displayedStocks.map((stock) => (
+                    {visibleStocks.length > 0 ? (
+                      visibleStocks.map((stock) => (
                         <tr
                           key={stock.symbol}
                           className="border-b border-cockpit-border/80 last:border-b-0 hover:bg-cockpit-surface-muted/45"
@@ -586,25 +595,6 @@ export function WatchlistPage() {
                             }
                           }}
                         >
-                          <td className="px-3 py-2.5">
-                            <button
-                              type="button"
-                              className={classNames(
-                                'inline-flex h-7 w-7 items-center justify-center rounded-control text-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cockpit-accent',
-                                stock.isFavorite
-                                  ? 'text-cockpit-accent'
-                                  : 'text-cockpit-text-muted hover:text-cockpit-text',
-                              )}
-                              aria-label={`${stock.symbol} 즐겨찾기`}
-                              aria-pressed={stock.isFavorite}
-                              onClick={(event) => {
-                                stopRowNavigation(event)
-                                toggleFavorite(stock.symbol)
-                              }}
-                            >
-                              {stock.isFavorite ? '★' : '☆'}
-                            </button>
-                          </td>
                           <td className="px-3 py-2.5">
                             <StockIdentity stock={stock} />
                           </td>
@@ -653,12 +643,19 @@ export function WatchlistPage() {
                             <RowMenu
                               stock={stock}
                               isOpen={openMenuSymbol === stock.symbol}
+                              isRemoving={removeWatchlistItem.isPending}
                               onToggle={(symbol) =>
                                 setOpenMenuSymbol((current) =>
                                   current === symbol ? null : symbol,
                                 )
                               }
                               onNavigate={openResearch}
+                              onDecisionLog={() =>
+                                navigate(appRoutePaths.decisionLog)
+                              }
+                              onRemove={(itemId) => {
+                                removeWatchlistItem.mutate({ itemId })
+                              }}
                             />
                           </td>
                         </tr>
@@ -682,15 +679,15 @@ export function WatchlistPage() {
             )}
             <div className="flex flex-wrap items-center justify-between gap-3 border-t border-cockpit-border px-3 py-3 text-sm text-cockpit-text-muted">
               <span>
-                전체 {visibleStocks.length}개 중 {displayedStart}-{displayedEnd}{' '}
-                표시
+                전체 {totalRows}개 중 {displayedStart}-{displayedEnd} 표시
               </span>
               <div className="flex items-center gap-2">
                 <Button
                   type="button"
                   variant="ghost"
                   className="h-9 min-h-9 w-9 px-0 text-cockpit-text-muted"
-                  disabled
+                  disabled={currentPage <= 1}
+                  onClick={() => setPage((current) => Math.max(1, current - 1))}
                 >
                   ‹
                 </Button>
@@ -698,14 +695,15 @@ export function WatchlistPage() {
                   <Button
                     key={page}
                     type="button"
-                    variant={page === 1 ? 'primary' : 'ghost'}
+                    variant={page === currentPage ? 'primary' : 'ghost'}
                     className={classNames(
                       'h-9 min-h-9 w-9 px-0',
-                      page === 1
+                      page === currentPage
                         ? 'border-blue-700 bg-blue-700 text-white'
                         : 'text-cockpit-text-muted hover:bg-cockpit-surface-muted',
                     )}
-                    disabled={page !== 1}
+                    disabled={page === currentPage}
+                    onClick={() => setPage(page)}
                   >
                     {page}
                   </Button>
@@ -714,7 +712,12 @@ export function WatchlistPage() {
                   type="button"
                   variant="ghost"
                   className="h-9 min-h-9 w-9 px-0 text-cockpit-text-muted"
-                  disabled={visiblePageCount <= 1}
+                  disabled={currentPage >= visiblePageCount}
+                  onClick={() =>
+                    setPage((current) =>
+                      Math.min(visiblePageCount, current + 1),
+                    )
+                  }
                 >
                   ›
                 </Button>
@@ -722,10 +725,17 @@ export function WatchlistPage() {
               <label className="flex items-center gap-2">
                 <span>표시 개수</span>
                 <select
-                  className="min-h-9 rounded-control border border-cockpit-border bg-cockpit-bg/60 px-3 py-1 text-cockpit-text disabled:cursor-not-allowed disabled:opacity-50"
-                  disabled
+                  aria-label="표시 개수"
+                  className="min-h-9 rounded-control border border-cockpit-border bg-cockpit-bg/60 px-3 py-1 text-cockpit-text"
+                  value={pageSize}
+                  onChange={(event) => {
+                    setPageSize(Number(event.target.value) as WatchlistPageSize)
+                    setPage(1)
+                  }}
                 >
-                  <option>10</option>
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
                 </select>
               </label>
             </div>
@@ -856,58 +866,6 @@ export function WatchlistPage() {
                     <span className="whitespace-nowrap text-xs text-cockpit-text-muted">
                       {formatTime(item.addedAt)}
                     </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
-
-          <Card className="border-cockpit-border bg-cockpit-surface/85 p-4 shadow-blue-950/20">
-            <div className="mb-3 flex items-start justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-semibold text-cockpit-text">
-                  알림 현황
-                </h2>
-                <p className="mt-1 text-sm text-cockpit-text-muted">
-                  미읽음 알림 {alertSummary.unreadCount}건
-                </p>
-              </div>
-              <span
-                className="rounded-control border border-cockpit-border bg-cockpit-bg/50 px-2.5 py-1 text-sm font-semibold text-cockpit-accent"
-                aria-label={`미읽음 알림 ${alertSummary.unreadCount}건`}
-              >
-                {alertSummary.unreadCount}
-              </span>
-            </div>
-            {unreadAlertSummaryQuery.isLoading ? (
-              <Skeleton lines={4} />
-            ) : alertSummary.recent.length === 0 ? (
-              <EmptyState title="새 알림이 없습니다." className="py-6" />
-            ) : (
-              <ul className="flex flex-col gap-2">
-                {alertSummary.recent.map((alert) => (
-                  <li
-                    key={alert.id}
-                    className="rounded-control border border-cockpit-border bg-cockpit-bg/45 px-3 py-2.5"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="rounded-control bg-cockpit-surface-muted px-2 py-0.5 text-xs font-semibold text-cockpit-accent">
-                            {alert.alertType}
-                          </span>
-                          <span className="text-sm font-semibold text-cockpit-text">
-                            {alert.symbol ?? '종목 없음'}
-                          </span>
-                        </div>
-                        <p className="mt-1 truncate text-sm text-cockpit-text-muted">
-                          {alert.title}
-                        </p>
-                      </div>
-                      <span className="shrink-0 whitespace-nowrap text-xs text-cockpit-text-muted">
-                        {formatRelativeTime(alert.createdAtIso)}
-                      </span>
-                    </div>
                   </li>
                 ))}
               </ul>

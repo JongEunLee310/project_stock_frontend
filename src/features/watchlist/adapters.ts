@@ -9,6 +9,7 @@ import type {
 export interface WatchlistAssetRow {
   id: number
   symbol: string
+  market: string
   name: string
   price: number | null
   changePercent: number | null
@@ -18,7 +19,6 @@ export interface WatchlistAssetRow {
   tags: string[]
   memo: string | null
   createdAt: string
-  isFavorite: boolean
 }
 
 export interface RecentWatchlistView {
@@ -46,6 +46,7 @@ export function adaptWatchlistAsset(
   return {
     id: item.id,
     symbol: item.asset.symbol,
+    market: item.asset.market ?? 'UNKNOWN',
     name: item.asset.name,
     price: parseDecimal(item.asset.price),
     changePercent: parseDecimal(item.asset.change_percent),
@@ -55,7 +56,6 @@ export function adaptWatchlistAsset(
     tags: item.tags,
     memo: item.memo,
     createdAt: item.created_at,
-    isFavorite: true,
   }
 }
 
