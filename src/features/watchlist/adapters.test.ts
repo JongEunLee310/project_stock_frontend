@@ -5,6 +5,7 @@ import {
   adaptWatchlistSummary,
   adaptWatchlistSummaryTrends,
   getWatchlistTrendCounts,
+  resolveStatusBadge,
 } from './adapters'
 import type {
   WatchlistItemDto,
@@ -21,6 +22,7 @@ const itemDto: WatchlistItemDto = {
   tags: ['ai', 'large-cap'],
   memo: 'Watch earnings.',
   created_at: '2026-06-19T00:00:00Z',
+  status: 'NORMAL', // app/domains/signals/types.py:4-13
   asset: {
     symbol: 'AAPL',
     name: 'Apple Inc.',
@@ -29,6 +31,7 @@ const itemDto: WatchlistItemDto = {
     change_percent: '1.26',
     sector: 'Technology',
     currency: 'USD',
+    reference_at: '2026-06-20T00:00:00Z',
   },
 }
 
@@ -46,8 +49,10 @@ describe('adaptWatchlistAsset', () => {
       reason: 'Core AI exposure',
       tags: ['ai', 'large-cap'],
       memo: 'Watch earnings.',
-      createdAt: '2026-06-19T00:00:00Z',
+      status: 'NORMAL',
+      referenceAt: '2026-06-20T00:00:00Z',
     })
+    expect(adaptWatchlistAsset(itemDto)).not.toHaveProperty('createdAt')
   })
 
   it('skips items when expand=asset was not provided', () => {
@@ -87,6 +92,32 @@ describe('adaptWatchlistAsset', () => {
 
     expect(adaptWatchlistAsset({ ...itemDto, asset })).toMatchObject({
       market: 'UNKNOWN',
+    })
+  })
+})
+
+describe('resolveStatusBadge', () => {
+  it.each([
+    ['NORMAL', '안정'],
+    ['WATCH', '관망'],
+    ['BUY_CANDIDATE', '관망'],
+    ['RISK_ALERT', '위험 증가'],
+    ['THESIS_BROKEN', '위험 증가'],
+    ['SELL_REVIEW', '위험 증가'],
+    ['OVERHEATED', '위험 증가'],
+    // app/domains/signals/types.py:4-13
+  ] as const)('maps %s to %s', (status, label) => {
+    const badge = resolveStatusBadge(status)
+
+    expect(badge.label).toBe(label)
+    expect(badge.className).toContain('status-')
+  })
+
+  it('falls back to stable for an unknown status', () => {
+    expect(resolveStatusBadge('UNKNOWN')).toMatchObject({
+      label: '안정',
+      className:
+        'border-status-stable-border bg-status-stable-bg text-status-stable-text',
     })
   })
 })

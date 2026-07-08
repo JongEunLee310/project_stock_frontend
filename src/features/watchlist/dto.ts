@@ -48,6 +48,7 @@ export interface WatchlistItemAssetDto {
   change_percent: string | null
   sector?: string | null
   currency?: string | null
+  reference_at?: string | null
 }
 
 export interface WatchlistItemDto {
@@ -59,7 +60,22 @@ export interface WatchlistItemDto {
   tags: string[]
   memo: string | null
   created_at: string
+  status: string
   asset?: WatchlistItemAssetDto
+}
+
+export interface WatchlistSparklineBarDto {
+  date: string
+  close: string
+}
+
+export interface WatchlistSparklineItemDto {
+  symbol: string
+  bars: WatchlistSparklineBarDto[]
+}
+
+export interface WatchlistSparklineResponseDto {
+  items: WatchlistSparklineItemDto[]
 }
 
 export interface RecentWatchlistItemDto {

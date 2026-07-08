@@ -191,7 +191,8 @@ const watchlistRows: WatchlistAssetRow[] = [
     reason: 'Core AI exposure',
     tags: ['ai'],
     memo: null,
-    createdAt: '2026-05-24T00:21:00.000Z',
+    status: 'RISK_ALERT',
+    referenceAt: '2026-05-24T00:21:00.000Z',
   },
   {
     id: 2,
@@ -205,7 +206,8 @@ const watchlistRows: WatchlistAssetRow[] = [
     reason: null,
     tags: [],
     memo: null,
-    createdAt: '2026-05-24T00:20:00.000Z',
+    status: 'NORMAL',
+    referenceAt: '2026-05-24T00:20:00.000Z',
   },
 ]
 

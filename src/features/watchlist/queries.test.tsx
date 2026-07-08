@@ -13,6 +13,7 @@ import {
   useCreateAsset,
   useRemoveWatchlistItem,
   useWatchlistAssets,
+  useWatchlistSparklines,
   useWatchlistSummaryTrends,
   watchlistQueryKey,
 } from './queries'
@@ -174,6 +175,7 @@ describe('useWatchlistAssets', () => {
             tags: [],
             memo: null,
             created_at: '2026-06-01T00:00:00.000Z',
+            status: 'NORMAL',
             asset: {
               symbol: 'MSFT',
               market: 'NASDAQ',
@@ -182,6 +184,7 @@ describe('useWatchlistAssets', () => {
               change_percent: '1.25',
               sector: 'Technology',
               currency: 'USD',
+              reference_at: '2026-06-02T00:00:00.000Z',
             },
           },
         ],
@@ -206,6 +209,82 @@ describe('useWatchlistAssets', () => {
       meta: { page: 2, size: 25, total: 51 },
       rows: [{ id: 11, symbol: 'MSFT', market: 'NASDAQ' }],
     })
+  })
+})
+
+describe('useWatchlistSparklines', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(apiGet)
+      .mockResolvedValueOnce({
+        data: [
+          { id: 7, user_id: 1, name: 'Primary', created_at: '2026-06-01' },
+        ],
+        meta: undefined,
+      })
+      .mockResolvedValueOnce({
+        data: {
+          items: [
+            {
+              symbol: 'AAPL',
+              bars: [
+                { date: '2026-06-01', close: '134' },
+                { date: '2026-06-02', close: '136' },
+              ],
+            },
+            {
+              symbol: 'NVDA',
+              bars: [
+                { date: '2026-06-01', close: '450' },
+                { date: '2026-06-02', close: '460' },
+              ],
+            },
+          ],
+        },
+        meta: undefined,
+      })
+  })
+
+  it('returns symbol keyed sparkline close values', async () => {
+    const queryClient = createTestQueryClient()
+    const { result } = renderHook(() => useWatchlistSparklines(), {
+      wrapper: wrapperFor(queryClient),
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(apiGet).toHaveBeenNthCalledWith(1, '/watchlists?page=1&size=20')
+    expect(apiGet).toHaveBeenNthCalledWith(
+      2,
+      '/watchlists/7/sparklines?range=1M',
+    )
+    expect(result.current.data).toEqual({
+      AAPL: [134, 136],
+      NVDA: [450, 460],
+    })
+  })
+
+  it('returns an empty record when the response has no items', async () => {
+    vi.mocked(apiGet).mockReset()
+    vi.mocked(apiGet)
+      .mockResolvedValueOnce({
+        data: [
+          { id: 7, user_id: 1, name: 'Primary', created_at: '2026-06-01' },
+        ],
+        meta: undefined,
+      })
+      .mockResolvedValueOnce({
+        data: { items: [] },
+        meta: undefined,
+      })
+    const queryClient = createTestQueryClient()
+    const { result } = renderHook(() => useWatchlistSparklines(), {
+      wrapper: wrapperFor(queryClient),
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(result.current.data).toEqual({})
   })
 })
 
@@ -391,6 +470,7 @@ describe('watchlist asset mutations', () => {
         tags: [],
         memo: null,
         created_at: '2026-06-01T00:00:00.000Z',
+        status: 'NORMAL',
       },
       meta: undefined,
     })
@@ -432,6 +512,7 @@ describe('watchlist asset mutations', () => {
           tags: [],
           memo: null,
           created_at: '2026-06-01T00:00:00.000Z',
+          status: 'NORMAL',
         },
         meta: undefined,
       })
