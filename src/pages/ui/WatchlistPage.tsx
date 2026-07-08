@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 
 import { findFxRateByPair } from '@/features/fx/adapters'
 import { useFxRates } from '@/features/fx/queries'
+import { QuickWatchPanel } from '@/features/watchlist-alert-templates/QuickWatchPanel'
 import { useWatchlistObservations } from '@/features/watchlist-observations/queries'
 import { WatchlistRecommendationsSection } from '@/features/watchlist-recommendations/WatchlistRecommendationsSection'
 import { AddWatchlistAssetModal } from '@/features/watchlist/AddWatchlistAssetModal'
@@ -1137,6 +1138,8 @@ export function WatchlistPage() {
               </ul>
             )}
           </Card>
+
+          <QuickWatchPanel />
         </aside>
       </div>
 

@@ -358,6 +358,7 @@ vi.mock('@/features/decision-log/queries', () => ({
 }))
 
 vi.mock('@/features/watchlist/queries', () => ({
+  watchlistQueryKey: ['watchlist'],
   useWatchlistAssets: () => watchlistAssetsQueryState,
 }))
 
