@@ -42,6 +42,7 @@ export interface AddWatchlistItemBody {
 
 export interface WatchlistItemAssetDto {
   symbol: string
+  market?: string
   name: string
   price: string | null
   change_percent: string | null

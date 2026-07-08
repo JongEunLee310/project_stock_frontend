@@ -11,7 +11,6 @@ import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { vi } from 'vitest'
 
 import { appRouteObjects } from '@/app/router'
-import type { UnreadAlertSummary } from '@/features/alerts/queries'
 import type { FxRate } from '@/features/fx/adapters'
 import type { WatchlistRecommendationsDto } from '@/features/watchlist-recommendations/dto'
 import { createQueryClient } from '@/shared/api/queryClient'
@@ -32,6 +31,7 @@ const watchlistRows: WatchlistAssetRow[] = [
   {
     id: 1,
     symbol: 'NVDA',
+    market: 'NASDAQ',
     name: 'NVIDIA Corp.',
     price: 128.72,
     changePercent: -0.24,
@@ -41,11 +41,11 @@ const watchlistRows: WatchlistAssetRow[] = [
     tags: ['ai'],
     memo: null,
     createdAt: '2026-05-24T00:21:00.000Z',
-    isFavorite: true,
   },
   {
     id: 2,
     symbol: 'AAPL',
+    market: 'NASDAQ',
     name: 'Apple Inc.',
     price: 214.3,
     changePercent: 0.32,
@@ -55,11 +55,11 @@ const watchlistRows: WatchlistAssetRow[] = [
     tags: [],
     memo: null,
     createdAt: '2026-05-24T00:20:00.000Z',
-    isFavorite: true,
   },
   {
     id: 3,
     symbol: 'TSLA',
+    market: 'NYSE',
     name: 'Tesla Inc.',
     price: 182.64,
     changePercent: -2.15,
@@ -69,7 +69,6 @@ const watchlistRows: WatchlistAssetRow[] = [
     tags: [],
     memo: null,
     createdAt: '2026-05-24T00:19:00.000Z',
-    isFavorite: false,
   },
 ]
 
@@ -83,9 +82,12 @@ const refetchFxRates = vi.fn()
 const addAssetToWatchlist = vi.fn()
 const createAsset = vi.fn()
 const fetchAssetsBySymbol = vi.fn()
+const removeWatchlistItem = vi.fn()
+const useWatchlistAssetsMock = vi.hoisted(() => vi.fn())
 const sparklineMock = vi.hoisted(() => vi.fn())
 let createAssetIsPending = false
 let addAssetToWatchlistIsPending = false
+let removeWatchlistItemIsPending = false
 
 vi.mock('@/shared/ui', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/shared/ui')>()
@@ -107,7 +109,7 @@ vi.mock('@/features/market-indices/queries', () => ({
 }))
 
 let watchlistAssetsQueryState = {
-  data: watchlistRows,
+  data: { rows: watchlistRows, meta: { page: 1, size: 10, total: 31 } },
   error: null as Error | null,
   isError: false,
   isLoading: false,
@@ -251,7 +253,7 @@ let unreadAlertSummaryQueryState = {
         createdAtIso: '2026-05-24T00:10:00.000Z',
       },
     ],
-  } satisfies UnreadAlertSummary,
+  },
   error: null as Error | null,
   isError: false,
   isLoading: false,
@@ -277,7 +279,10 @@ vi.mock('@/features/fx/queries', () => ({
 }))
 
 vi.mock('@/features/watchlist/queries', () => ({
-  useWatchlistAssets: () => watchlistAssetsQueryState,
+  useWatchlistAssets: (page: number, size: number) => {
+    useWatchlistAssetsMock(page, size)
+    return watchlistAssetsQueryState
+  },
   useWatchlistSummary: () => watchlistSummaryQueryState,
   useWatchlistSummaryTrends: () => watchlistSummaryTrendsQueryState,
   fetchAssetsBySymbol: (symbol: string) => fetchAssetsBySymbol(symbol),
@@ -290,6 +295,10 @@ vi.mock('@/features/watchlist/queries', () => ({
   useAddAssetToFirstWatchlist: () => ({
     isPending: addAssetToWatchlistIsPending,
     mutateAsync: addAssetToWatchlist,
+  }),
+  useRemoveWatchlistItem: () => ({
+    isPending: removeWatchlistItemIsPending,
+    mutate: removeWatchlistItem,
   }),
 }))
 
@@ -358,7 +367,9 @@ beforeEach(() => {
   refetchWatchlistRecommendations.mockReset()
   refetchUnreadAlertSummary.mockReset()
   refetchFxRates.mockReset()
+  useWatchlistAssetsMock.mockReset()
   addAssetToWatchlist.mockReset()
+  removeWatchlistItem.mockReset()
   fetchAssetsBySymbol.mockReset()
   fetchAssetsBySymbol.mockResolvedValue(registeredAssetSearchResults)
   addAssetToWatchlistIsPending = false
@@ -383,6 +394,7 @@ beforeEach(() => {
     created_at: '2026-06-01T00:00:00.000Z',
   })
   createAssetIsPending = false
+  removeWatchlistItemIsPending = false
   sparklineMock.mockImplementation(
     ({
       ariaLabel,
@@ -399,7 +411,7 @@ beforeEach(() => {
     ),
   )
   watchlistAssetsQueryState = {
-    data: watchlistRows,
+    data: { rows: watchlistRows, meta: { page: 1, size: 10, total: 31 } },
     error: null,
     isError: false,
     isLoading: false,
@@ -592,7 +604,7 @@ describe('WatchlistPage', () => {
     expect(screen.getByText('전체 관심 종목')).toBeVisible()
     expect(screen.getByText('위험 증가 종목')).toBeVisible()
     expect(screen.getByText('12')).toBeVisible()
-    expect(screen.getByText('3')).toBeVisible()
+    expect(screen.getAllByText('3').length).toBeGreaterThan(0)
     expect(screen.queryByText('추가 리서치 필요')).not.toBeInTheDocument()
     expect(screen.queryByText('평균 현금 연관도')).not.toBeInTheDocument()
     expect(screen.queryByText(/전일 대비/)).not.toBeInTheDocument()
@@ -611,12 +623,8 @@ describe('WatchlistPage', () => {
     expect(screen.getByText('Advanced Micro Devices')).toBeVisible()
     expect(screen.queryByText('관망')).not.toBeInTheDocument()
     expect(screen.queryByText('안정')).not.toBeInTheDocument()
-    expect(screen.getByText('알림 현황')).toBeVisible()
-    expect(screen.getByText('미읽음 알림 7건')).toBeVisible()
-    expect(screen.getByText('위험 경보')).toBeVisible()
-    expect(screen.getAllByText('논거 훼손').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getByText('NVDA 위험 경보')).toBeVisible()
-    expect(screen.getByText('종목 없음')).toBeVisible()
+    expect(screen.queryByText('알림 현황')).not.toBeInTheDocument()
+    expect(screen.queryByText('미읽음 알림 7건')).not.toBeInTheDocument()
     expect(screen.queryByText('빠른 알림 설정')).not.toBeInTheDocument()
     expect(screen.getByText(/NVDA와 TSLA는 최근 뉴스 흐름/)).toBeVisible()
     expect(screen.getByText(/AI 수요는 견조하지만/)).toBeVisible()
@@ -688,8 +696,8 @@ describe('WatchlistPage', () => {
       within(table).getByRole('columnheader', { name: '현재가' }),
     ).toBeVisible()
     expect(
-      within(table).getByRole('button', { name: 'NVDA 즐겨찾기' }),
-    ).toHaveAttribute('aria-pressed', 'true')
+      within(table).queryByRole('button', { name: 'NVDA 즐겨찾기' }),
+    ).not.toBeInTheDocument()
     expect(within(table).getByRole('link', { name: 'NVDA' })).toBeVisible()
     expect(within(table).getByText('NVIDIA Corp.')).toBeVisible()
     expect(within(table).getByText('-0.24%')).toBeVisible()
@@ -741,20 +749,64 @@ describe('WatchlistPage', () => {
     expect(screen.getByRole('link', { name: 'AAPL' })).toBeVisible()
   })
 
-  it('toggles the favorite marker locally', async () => {
+  it('filters rows by market, then resets filters', async () => {
     renderWatchlist()
 
     await screen.findByRole('heading', { name: '관심 종목' })
 
-    const tslaFavoriteButton = screen.getByRole('button', {
-      name: 'TSLA 즐겨찾기',
+    fireEvent.change(screen.getByLabelText('시장'), {
+      target: { value: 'NYSE' },
     })
 
-    expect(tslaFavoriteButton).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByRole('link', { name: 'TSLA' })).toBeVisible()
+    expect(screen.queryByRole('link', { name: 'NVDA' })).not.toBeInTheDocument()
 
-    fireEvent.click(tslaFavoriteButton)
+    fireEvent.click(screen.getByRole('button', { name: '필터 초기화' }))
 
-    expect(tslaFavoriteButton).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByLabelText('시장')).toHaveValue('')
+    expect(screen.getByRole('link', { name: 'NVDA' })).toBeVisible()
+  })
+
+  it('requests server pagination with the selected page size and resets to page 1', async () => {
+    renderWatchlist()
+
+    await screen.findByRole('heading', { name: '관심 종목' })
+
+    expect(useWatchlistAssetsMock).toHaveBeenLastCalledWith(1, 10)
+
+    fireEvent.click(screen.getByRole('button', { name: '2' }))
+
+    await waitFor(() =>
+      expect(useWatchlistAssetsMock).toHaveBeenLastCalledWith(2, 10),
+    )
+
+    fireEvent.change(screen.getByLabelText('표시 개수'), {
+      target: { value: '25' },
+    })
+
+    await waitFor(() =>
+      expect(useWatchlistAssetsMock).toHaveBeenLastCalledWith(1, 25),
+    )
+  })
+
+  it('removes a watchlist item from the row menu and disables the action while pending', async () => {
+    const { unmount } = renderWatchlist()
+
+    await screen.findByRole('heading', { name: '관심 종목' })
+
+    fireEvent.click(screen.getByRole('button', { name: 'NVDA 행 메뉴' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: '관심 해제' }))
+
+    expect(removeWatchlistItem).toHaveBeenCalledWith({ itemId: 1 })
+
+    unmount()
+    removeWatchlistItemIsPending = true
+    renderWatchlist()
+
+    await screen.findByRole('heading', { name: '관심 종목' })
+    fireEvent.click(screen.getByRole('button', { name: 'NVDA 행 메뉴' }))
+
+    expect(screen.getByRole('menuitem', { name: '관심 해제' })).toBeDisabled()
   })
 
   it('opens add stock modal, selects a lookup asset, resolves its id, and adds it', async () => {
@@ -1029,6 +1081,13 @@ describe('WatchlistPage', () => {
 
     expect(rendered.router.state.location.pathname).toBe('/research/NVDA')
     expect(await screen.findByRole('heading', { name: 'NVDA' })).toBeVisible()
+
+    await returnToWatchlist(rendered)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'NVDA 행 메뉴' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: '결정 기록' }))
+
+    expect(rendered.router.state.location.pathname).toBe('/decision-log')
   })
 
   it('renders loading, error, and empty states for connected rows', async () => {
@@ -1063,7 +1122,7 @@ describe('WatchlistPage', () => {
     unmountError()
     watchlistAssetsQueryState = {
       ...watchlistAssetsQueryState,
-      data: [],
+      data: { rows: [], meta: { page: 1, size: 10, total: 0 } },
       error: null,
       isError: false,
       isLoading: false,
@@ -1159,21 +1218,5 @@ describe('WatchlistPage', () => {
       ),
     ).toBeVisible()
     expect(screen.queryByText(/AI 수요는 견조하지만/)).not.toBeInTheDocument()
-  })
-
-  it('renders the unread alert empty state from summary data', async () => {
-    unreadAlertSummaryQueryState = {
-      ...unreadAlertSummaryQueryState,
-      data: {
-        unreadCount: 0,
-        recent: [],
-      },
-    }
-
-    renderWatchlist()
-
-    expect(await screen.findByText('미읽음 알림 0건')).toBeVisible()
-    expect(screen.getByText('새 알림이 없습니다.')).toBeVisible()
-    expect(screen.queryByText('빠른 알림 설정')).not.toBeInTheDocument()
   })
 })

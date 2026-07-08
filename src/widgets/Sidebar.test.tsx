@@ -14,14 +14,6 @@ vi.mock('@/features/alerts/queries', () => ({
   useUnreadAlertSummary: () => unreadAlertSummaryQueryState,
 }))
 
-vi.mock('./MarketSummary', () => ({
-  MarketSummary: () => <div data-testid="market-summary" />,
-}))
-
-vi.mock('./FxRateStrip', () => ({
-  FxRateStrip: () => <div data-testid="fx-rate-strip" />,
-}))
-
 function setUnreadAlertSummaryQueryState(
   state: Partial<UnreadAlertSummaryQueryState>,
 ) {
@@ -72,16 +64,10 @@ describe('Sidebar', () => {
     expect(screen.queryByText('6')).not.toBeInTheDocument()
   })
 
-  it('renders the fx strip above the market summary', () => {
+  it('does not render the floating market widgets inside the sidebar', () => {
     renderSidebar()
 
-    const fxRateStrip = screen.getByTestId('fx-rate-strip')
-    const marketSummary = screen.getByTestId('market-summary')
-
-    expect(fxRateStrip).toBeVisible()
-    expect(
-      fxRateStrip.compareDocumentPosition(marketSummary) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy()
+    expect(screen.queryByTestId('fx-rate-strip')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('market-summary')).not.toBeInTheDocument()
   })
 })

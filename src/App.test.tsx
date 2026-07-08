@@ -43,7 +43,7 @@ vi.mock('@/features/dashboard/queries', () => ({
 
 vi.mock('@/features/watchlist/queries', () => ({
   useWatchlistAssets: () => ({
-    data: [],
+    data: { rows: [], meta: { page: 1, size: 10, total: 0 } },
     error: null,
     isError: false,
     isLoading: false,
@@ -92,6 +92,10 @@ vi.mock('@/features/watchlist/queries', () => ({
   useAddAssetToFirstWatchlist: () => ({
     isPending: false,
     mutateAsync: vi.fn(),
+  }),
+  useRemoveWatchlistItem: () => ({
+    isPending: false,
+    mutate: vi.fn(),
   }),
 }))
 
@@ -226,6 +230,6 @@ describe('App', () => {
         screen.getByRole('heading', { name: 'Page not found' }),
       ).toBeInTheDocument()
     })
-    expect(screen.getByLabelText('시장 요약')).toBeInTheDocument()
+    expect(screen.getAllByLabelText('시장 요약').length).toBeGreaterThan(0)
   })
 })

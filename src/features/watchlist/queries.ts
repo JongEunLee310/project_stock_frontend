@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query'
 
-import { apiGet, apiPost } from '@/shared/api/client'
+import { apiDelete, apiGet, apiPost } from '@/shared/api/client'
+import type { ApiMeta } from '@/shared/api/envelope'
 
 import {
   adaptWatchlistAsset,
@@ -24,6 +25,11 @@ import type {
 
 export const watchlistQueryKey = ['watchlist'] as const
 
+export interface WatchlistAssetsResult {
+  rows: WatchlistAssetRow[]
+  meta?: ApiMeta
+}
+
 export const emptyWatchlistSummary: WatchlistSummaryView = {
   totalCount: 0,
   riskIncreasingCount: 0,
@@ -35,24 +41,30 @@ export const emptyWatchlistSummaryTrends: WatchlistSummaryTrendsView = {
   riskIncreasing: [],
 }
 
-export function useWatchlistAssets() {
-  return useQuery<WatchlistAssetRow[]>({
-    queryKey: [...watchlistQueryKey, 'assets'],
+export function useWatchlistAssets(
+  page = 1,
+  size = 20,
+): UseQueryResult<WatchlistAssetsResult> {
+  return useQuery<WatchlistAssetsResult>({
+    queryKey: [...watchlistQueryKey, 'assets', page, size],
     queryFn: async () => {
       const { data: watchlists } = await apiGet<WatchlistDto[]>(
         '/watchlists?page=1&size=20',
       )
       const firstWatchlist = watchlists[0]
 
-      if (!firstWatchlist) return []
+      if (!firstWatchlist) return { rows: [] }
 
-      const { data: items } = await apiGet<WatchlistItemDto[]>(
-        `/watchlists/${firstWatchlist.id}/items?page=1&size=20&sort=priority&expand=asset`,
+      const { data: items, meta } = await apiGet<WatchlistItemDto[]>(
+        `/watchlists/${firstWatchlist.id}/items?page=${page}&size=${size}&sort=priority&expand=asset`,
       )
 
-      return items
-        .map((item) => adaptWatchlistAsset(item))
-        .filter((row): row is WatchlistAssetRow => row !== null)
+      return {
+        rows: items
+          .map((item) => adaptWatchlistAsset(item))
+          .filter((row): row is WatchlistAssetRow => row !== null),
+        meta,
+      }
     },
   })
 }
@@ -198,6 +210,33 @@ export function useAddAssetToFirstWatchlist(): UseMutationResult<
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: watchlistQueryKey })
+    },
+  })
+}
+
+export function useRemoveWatchlistItem(): UseMutationResult<
+  void,
+  Error,
+  { itemId: number }
+> {
+  const queryClient = useQueryClient()
+
+  return useMutation<void, Error, { itemId: number }>({
+    mutationFn: async ({ itemId }) => {
+      const { data: watchlists } = await apiGet<WatchlistDto[]>(
+        '/watchlists?page=1&size=20',
+      )
+      const firstWatchlist = watchlists[0]
+
+      if (!firstWatchlist) return
+
+      await apiDelete<null>(`/watchlists/${firstWatchlist.id}/items/${itemId}`)
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: watchlistQueryKey })
+      void queryClient.invalidateQueries({
+        queryKey: [...watchlistQueryKey, 'summary'],
+      })
     },
   })
 }
