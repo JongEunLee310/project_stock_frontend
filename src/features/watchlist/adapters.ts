@@ -1,4 +1,5 @@
 import { parseDecimal } from '@/shared/lib/format'
+import { stockStatusClassNames } from '@/shared/ui/stockStatus'
 
 import type {
   WatchlistItemDto,
@@ -18,7 +19,8 @@ export interface WatchlistAssetRow {
   reason: string | null
   tags: string[]
   memo: string | null
-  createdAt: string
+  status: string
+  referenceAt: string | null
 }
 
 export interface RecentWatchlistView {
@@ -38,6 +40,29 @@ export interface WatchlistSummaryTrendsView {
   riskIncreasing: number[]
 }
 
+export function resolveStatusBadge(status: string): {
+  label: '안정' | '관망' | '위험 증가'
+  className: string
+} {
+  if (status === 'WATCH' || status === 'BUY_CANDIDATE') {
+    return { label: '관망', className: stockStatusClassNames['관망'] }
+  }
+
+  if (
+    status === 'RISK_ALERT' ||
+    status === 'THESIS_BROKEN' ||
+    status === 'SELL_REVIEW' ||
+    status === 'OVERHEATED'
+  ) {
+    return {
+      label: '위험 증가',
+      className: stockStatusClassNames['위험 증가'],
+    }
+  }
+
+  return { label: '안정', className: stockStatusClassNames['안정'] }
+}
+
 export function adaptWatchlistAsset(
   item: WatchlistItemDto,
 ): WatchlistAssetRow | null {
@@ -55,7 +80,8 @@ export function adaptWatchlistAsset(
     reason: item.reason,
     tags: item.tags,
     memo: item.memo,
-    createdAt: item.created_at,
+    status: item.status,
+    referenceAt: item.asset.reference_at ?? null,
   }
 }
 

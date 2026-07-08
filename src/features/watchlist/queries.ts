@@ -3,6 +3,7 @@ import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query'
 
 import { apiDelete, apiGet, apiPost } from '@/shared/api/client'
 import type { ApiMeta } from '@/shared/api/envelope'
+import { parseDecimal } from '@/shared/lib/format'
 
 import {
   adaptWatchlistAsset,
@@ -19,6 +20,7 @@ import type {
   CreateAssetBody,
   WatchlistDto,
   WatchlistItemDto,
+  WatchlistSparklineResponseDto,
   WatchlistSummaryDto,
   WatchlistTrendSeriesDto,
 } from './dto'
@@ -113,6 +115,35 @@ export function useWatchlistSummaryTrends(): UseQueryResult<WatchlistSummaryTren
       } catch {
         return emptyWatchlistSummaryTrends
       }
+    },
+  })
+}
+
+export function useWatchlistSparklines(
+  range = '1M',
+): UseQueryResult<Record<string, number[]>> {
+  return useQuery<Record<string, number[]>>({
+    queryKey: [...watchlistQueryKey, 'sparklines', range],
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const { data: watchlists } = await apiGet<WatchlistDto[]>(
+        '/watchlists?page=1&size=20',
+      )
+      const firstWatchlist = watchlists[0]
+
+      if (!firstWatchlist) return {}
+
+      const { data: sparklines } = await apiGet<WatchlistSparklineResponseDto>(
+        `/watchlists/${firstWatchlist.id}/sparklines?range=${range}`,
+      )
+
+      return sparklines.items.reduce<Record<string, number[]>>((acc, item) => {
+        acc[item.symbol] = item.bars
+          .map((bar) => parseDecimal(bar.close))
+          .filter((value): value is number => value !== null)
+
+        return acc
+      }, {})
     },
   })
 }

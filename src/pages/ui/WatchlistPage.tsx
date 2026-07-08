@@ -6,10 +6,14 @@ import { useFxRates } from '@/features/fx/queries'
 import { useWatchlistObservations } from '@/features/watchlist-observations/queries'
 import { WatchlistRecommendationsSection } from '@/features/watchlist-recommendations/WatchlistRecommendationsSection'
 import { AddWatchlistAssetModal } from '@/features/watchlist/AddWatchlistAssetModal'
-import type { WatchlistAssetRow } from '@/features/watchlist/adapters'
+import {
+  resolveStatusBadge,
+  type WatchlistAssetRow,
+} from '@/features/watchlist/adapters'
 import {
   useRemoveWatchlistItem,
   useWatchlistAssets,
+  useWatchlistSparklines,
   useWatchlistSummary,
   useWatchlistSummaryTrends,
 } from '@/features/watchlist/queries'
@@ -25,9 +29,10 @@ import {
 } from '@/shared/ui'
 import { classNames } from '@/shared/ui/classNames'
 
-type SortKey = 'custom' | 'changePercent' | 'price' | 'symbol' | 'createdAt'
+type SortKey = 'custom' | 'changePercent' | 'price' | 'symbol'
 type SortDirection = 'asc' | 'desc'
 type WatchlistPageSize = 10 | 25 | 50
+type StatusFilter = '' | '안정' | '관망' | '위험 증가'
 
 const percentFormatter = new Intl.NumberFormat('ko-KR', {
   signDisplay: 'always',
@@ -48,8 +53,13 @@ const sortLabels: Record<SortKey, string> = {
   changePercent: '변화율',
   price: '현재가',
   symbol: '심볼',
-  createdAt: '추가일',
 }
+
+const statusFilterOptions: Exclude<StatusFilter, ''>[] = [
+  '안정',
+  '관망',
+  '위험 증가',
+]
 
 const summaryIconClassNames = [
   'bg-blue-500/20 text-blue-300',
@@ -108,14 +118,6 @@ function sortWatchlistRows(
       return first.symbol.localeCompare(second.symbol) * direction
     }
 
-    if (sortKey === 'createdAt') {
-      return (
-        (new Date(first.createdAt).getTime() -
-          new Date(second.createdAt).getTime()) *
-        direction
-      )
-    }
-
     return ((first[sortKey] ?? 0) - (second[sortKey] ?? 0)) * direction
   })
 }
@@ -139,20 +141,39 @@ function SummaryVisual({ index }: { index: number }) {
     return null
   }
 
+  const delta =
+    counts.length >= 2
+      ? counts[counts.length - 1] - counts[counts.length - 2]
+      : null
+  const formattedDelta =
+    delta == null
+      ? null
+      : delta === 0
+        ? '±0'
+        : delta > 0
+          ? `+${delta}`
+          : `${delta}`
+
   return (
-    <UiSparkline
-      className="h-10 w-20"
-      data={counts.map((value, point) => ({
-        point,
-        value,
-      }))}
-      height={40}
-      width={80}
-      color={index === 1 ? '#ff4d57' : '#2f7df7'}
-      ariaLabel={`${index === 1 ? '위험 증가 종목' : '전체 관심 종목'} 추세 차트`}
-      margin={{ top: 2, right: 2, bottom: 2, left: 2 }}
-      strokeWidth={2}
-    />
+    <div className="flex flex-col items-end gap-1">
+      <UiSparkline
+        className="h-10 w-20"
+        data={counts.map((value) => ({
+          value,
+        }))}
+        height={40}
+        width={80}
+        color={index === 1 ? '#ff4d57' : '#2f7df7'}
+        ariaLabel={`${index === 1 ? '위험 증가 종목' : '전체 관심 종목'} 추세 차트`}
+        margin={{ top: 2, right: 2, bottom: 2, left: 2 }}
+        strokeWidth={2}
+      />
+      {formattedDelta ? (
+        <span className="text-xs font-semibold text-cockpit-text-muted">
+          전일 대비 {formattedDelta}
+        </span>
+      ) : null}
+    </div>
   )
 }
 
@@ -277,6 +298,7 @@ export function WatchlistPage() {
   const [pageSize, setPageSize] = useState<WatchlistPageSize>(10)
   const watchlistAssetsQuery = useWatchlistAssets(page, pageSize)
   const removeWatchlistItem = useRemoveWatchlistItem()
+  const watchlistSparklinesQuery = useWatchlistSparklines()
   const fxRatesQuery = useFxRates()
   const watchlistSummaryQuery = useWatchlistSummary()
   const watchlistObservationsQuery = useWatchlistObservations()
@@ -284,10 +306,13 @@ export function WatchlistPage() {
   const [sortKey, setSortKey] = useState<SortKey>('custom')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
   const [marketFilter, setMarketFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('')
   const [openMenuSymbol, setOpenMenuSymbol] = useState<string | null>(null)
+  const [removingItemId, setRemovingItemId] = useState<number | null>(null)
   const [isAddAssetModalOpen, setIsAddAssetModalOpen] = useState(false)
 
   const stocks = watchlistAssetsQuery.data?.rows ?? emptyWatchlistRows
+  const sparklines = watchlistSparklinesQuery.data ?? {}
   const meta = watchlistAssetsQuery.data?.meta
   const marketOptions = useMemo(
     () => Array.from(new Set(stocks.map((stock) => stock.market))).sort(),
@@ -304,12 +329,15 @@ export function WatchlistPage() {
         stock.sector.toLowerCase().includes(normalizedQuery)
       const matchesMarket =
         marketFilter.length === 0 || stock.market === marketFilter
+      const matchesStatus =
+        statusFilter.length === 0 ||
+        resolveStatusBadge(stock.status).label === statusFilter
 
-      return matchesQuery && matchesMarket
+      return matchesQuery && matchesMarket && matchesStatus
     })
 
     return sortWatchlistRows(filteredStocks, sortKey, sortDirection)
-  }, [marketFilter, query, sortDirection, sortKey, stocks])
+  }, [marketFilter, query, sortDirection, sortKey, statusFilter, stocks])
 
   const openResearch = useCallback(
     (symbol: string) => {
@@ -323,6 +351,8 @@ export function WatchlistPage() {
     setSortKey('custom')
     setSortDirection('desc')
     setMarketFilter('')
+    setStatusFilter('')
+    setPage(1)
   }
 
   const totalRows = meta?.total ?? visibleStocks.length
@@ -369,7 +399,7 @@ export function WatchlistPage() {
 
       <Card className="border-cockpit-border bg-cockpit-surface/80 p-4 shadow-blue-950/20">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-          <div className="grid flex-1 gap-3 md:grid-cols-2 xl:grid-cols-[minmax(18rem,1.2fr)_minmax(10rem,auto)]">
+          <div className="grid flex-1 gap-3 md:grid-cols-2 xl:grid-cols-[minmax(18rem,1.2fr)_minmax(10rem,auto)_minmax(10rem,auto)]">
             <label className="relative flex flex-col text-sm font-medium text-cockpit-text">
               <span className="sr-only">검색</span>
               <Input
@@ -409,12 +439,34 @@ export function WatchlistPage() {
                 aria-label="시장"
                 className="min-h-11 rounded-control border border-cockpit-border bg-cockpit-bg/70 px-3 py-2 text-sm text-cockpit-text outline-none transition-colors focus:border-cockpit-accent focus:ring-2 focus:ring-cockpit-accent/30"
                 value={marketFilter}
-                onChange={(event) => setMarketFilter(event.target.value)}
+                onChange={(event) => {
+                  setMarketFilter(event.target.value)
+                  setPage(1)
+                }}
               >
                 <option value="">시장: 전체</option>
                 {marketOptions.map((market) => (
                   <option key={market} value={market}>
                     시장: {market}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col text-sm font-medium text-cockpit-text">
+              <span className="sr-only">위험</span>
+              <select
+                aria-label="위험"
+                className="min-h-11 rounded-control border border-cockpit-border bg-cockpit-bg/70 px-3 py-2 text-sm text-cockpit-text outline-none transition-colors focus:border-cockpit-accent focus:ring-2 focus:ring-cockpit-accent/30"
+                value={statusFilter}
+                onChange={(event) => {
+                  setStatusFilter(event.target.value as StatusFilter)
+                  setPage(1)
+                }}
+              >
+                <option value="">위험: 전체</option>
+                {statusFilterOptions.map((status) => (
+                  <option key={status} value={status}>
+                    위험: {status}
                   </option>
                 ))}
               </select>
@@ -562,108 +614,164 @@ export function WatchlistPage() {
             ) : (
               <div className="overflow-x-auto">
                 <table
-                  className="min-w-[44rem] border-collapse text-sm"
+                  className="min-w-[58rem] border-collapse text-sm"
                   aria-label="관심 종목"
                 >
                   <thead className="bg-cockpit-surface-muted/70 text-xs font-semibold text-cockpit-text-muted">
                     <tr>
-                      {['종목', '섹터', '현재가', '변화율', '추가일', ''].map(
-                        (header, index) => (
-                          <th
-                            key={`${header}-${index}`}
-                            scope="col"
-                            className="border-b border-cockpit-border px-3 py-3 text-left first:w-10 last:w-10"
-                          >
-                            {header}
-                          </th>
-                        ),
-                      )}
+                      {[
+                        '종목',
+                        '상태',
+                        '섹터',
+                        '현재가',
+                        '변화율',
+                        '변화(1D)',
+                        '마지막 갱신',
+                        '',
+                      ].map((header, index) => (
+                        <th
+                          key={`${header}-${index}`}
+                          scope="col"
+                          className="border-b border-cockpit-border px-3 py-3 text-left first:w-10 last:w-10"
+                        >
+                          {header}
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
                     {visibleStocks.length > 0 ? (
-                      visibleStocks.map((stock) => (
-                        <tr
-                          key={stock.symbol}
-                          className="border-b border-cockpit-border/80 last:border-b-0 hover:bg-cockpit-surface-muted/45"
-                          tabIndex={0}
-                          onClick={() => openResearch(stock.symbol)}
-                          onKeyDown={(event) => {
-                            if (event.key === 'Enter' || event.key === ' ') {
-                              event.preventDefault()
-                              openResearch(stock.symbol)
-                            }
-                          }}
-                        >
-                          <td className="px-3 py-2.5">
-                            <StockIdentity stock={stock} />
-                          </td>
-                          <td className="px-3 py-2.5">
-                            <span className="text-cockpit-text-muted">
-                              {stock.sector}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2.5">
-                            {stock.price == null ? (
-                              '—'
-                            ) : (
-                              <span className="flex flex-col gap-1">
-                                <span>
-                                  {priceFormatter.format(stock.price)}
-                                </span>
-                                {stock.currency === 'USD' && usdKrwRate ? (
-                                  <span className="text-xs text-cockpit-text-muted">
-                                    {formatWonPrice(
-                                      stock.price,
-                                      usdKrwRate.rate,
-                                    )}
-                                  </span>
-                                ) : null}
+                      visibleStocks.map((stock) => {
+                        const statusBadge = resolveStatusBadge(stock.status)
+                        const stockSparkline = sparklines[stock.symbol] ?? []
+
+                        return (
+                          <tr
+                            key={stock.symbol}
+                            className="border-b border-cockpit-border/80 last:border-b-0 hover:bg-cockpit-surface-muted/45"
+                            tabIndex={0}
+                            onClick={() => openResearch(stock.symbol)}
+                            onKeyDown={(event) => {
+                              if (event.key === 'Enter' || event.key === ' ') {
+                                event.preventDefault()
+                                openResearch(stock.symbol)
+                              }
+                            }}
+                          >
+                            <td className="px-3 py-2.5">
+                              <StockIdentity stock={stock} />
+                            </td>
+                            <td className="px-3 py-2.5">
+                              <span
+                                className={classNames(
+                                  'inline-flex min-w-16 items-center justify-center rounded-full border px-2 py-1 text-xs font-semibold',
+                                  statusBadge.className,
+                                )}
+                              >
+                                {statusBadge.label}
                               </span>
-                            )}
-                          </td>
-                          <td className="px-3 py-2.5">
-                            <span
-                              className={classNames(
-                                'min-w-14 font-semibold',
-                                (stock.changePercent ?? 0) >= 0
-                                  ? 'text-emerald-300'
-                                  : 'text-rose-300',
+                            </td>
+                            <td className="px-3 py-2.5">
+                              <span className="text-cockpit-text-muted">
+                                {stock.sector}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2.5">
+                              {stock.price == null ? (
+                                '—'
+                              ) : (
+                                <span className="flex flex-col gap-1">
+                                  <span>
+                                    {priceFormatter.format(stock.price)}
+                                  </span>
+                                  {stock.currency === 'USD' && usdKrwRate ? (
+                                    <span className="text-xs text-cockpit-text-muted">
+                                      {formatWonPrice(
+                                        stock.price,
+                                        usdKrwRate.rate,
+                                      )}
+                                    </span>
+                                  ) : null}
+                                </span>
                               )}
-                            >
-                              {stock.changePercent == null
-                                ? '—'
-                                : formatPercent(stock.changePercent)}
-                            </span>
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-2.5 text-cockpit-text-muted">
-                            {formatTime(stock.createdAt)}
-                          </td>
-                          <td className="px-3 py-2.5">
-                            <RowMenu
-                              stock={stock}
-                              isOpen={openMenuSymbol === stock.symbol}
-                              isRemoving={removeWatchlistItem.isPending}
-                              onToggle={(symbol) =>
-                                setOpenMenuSymbol((current) =>
-                                  current === symbol ? null : symbol,
-                                )
-                              }
-                              onNavigate={openResearch}
-                              onDecisionLog={() =>
-                                navigate(appRoutePaths.decisionLog)
-                              }
-                              onRemove={(itemId) => {
-                                removeWatchlistItem.mutate({ itemId })
-                              }}
-                            />
-                          </td>
-                        </tr>
-                      ))
+                            </td>
+                            <td className="px-3 py-2.5">
+                              <span
+                                className={classNames(
+                                  'min-w-14 font-semibold',
+                                  (stock.changePercent ?? 0) >= 0
+                                    ? 'text-emerald-300'
+                                    : 'text-rose-300',
+                                )}
+                              >
+                                {stock.changePercent == null
+                                  ? '—'
+                                  : formatPercent(stock.changePercent)}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2.5">
+                              {stockSparkline.length > 0 ? (
+                                <UiSparkline
+                                  className="h-8 w-24 text-cockpit-accent"
+                                  data={stockSparkline.map((value) => ({
+                                    value,
+                                  }))}
+                                  height={32}
+                                  width={96}
+                                  ariaLabel={`${stock.symbol} 변화 추세`}
+                                  margin={{
+                                    top: 2,
+                                    right: 2,
+                                    bottom: 2,
+                                    left: 2,
+                                  }}
+                                  strokeWidth={2}
+                                />
+                              ) : (
+                                <span className="text-cockpit-text-muted">
+                                  —
+                                </span>
+                              )}
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-2.5 text-cockpit-text-muted">
+                              {stock.referenceAt
+                                ? formatTime(stock.referenceAt)
+                                : '—'}
+                            </td>
+                            <td className="px-3 py-2.5">
+                              <RowMenu
+                                stock={stock}
+                                isOpen={openMenuSymbol === stock.symbol}
+                                isRemoving={removingItemId === stock.id}
+                                onToggle={(symbol) =>
+                                  setOpenMenuSymbol((current) =>
+                                    current === symbol ? null : symbol,
+                                  )
+                                }
+                                onNavigate={openResearch}
+                                onDecisionLog={() =>
+                                  navigate(appRoutePaths.decisionLog)
+                                }
+                                onRemove={(itemId) => {
+                                  setRemovingItemId(itemId)
+                                  removeWatchlistItem.mutate(
+                                    { itemId },
+                                    {
+                                      onSettled: () => {
+                                        setRemovingItemId(null)
+                                      },
+                                    },
+                                  )
+                                }}
+                              />
+                            </td>
+                          </tr>
+                        )
+                      })
                     ) : (
                       <tr>
                         <td
-                          colSpan={6}
+                          colSpan={8}
                           className="px-4 py-6 text-center text-sm text-cockpit-text-muted"
                         >
                           <EmptyState
