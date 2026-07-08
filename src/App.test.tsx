@@ -42,6 +42,7 @@ vi.mock('@/features/dashboard/queries', () => ({
 }))
 
 vi.mock('@/features/watchlist/queries', () => ({
+  watchlistQueryKey: ['watchlist'],
   useWatchlistAssets: () => ({
     data: { rows: [], meta: { page: 1, size: 10, total: 0 } },
     error: null,
@@ -113,6 +114,19 @@ vi.mock('@/features/watchlist/queries', () => ({
   }),
   useRemoveWatchlistItem: () => ({
     isPending: false,
+    mutate: vi.fn(),
+  }),
+}))
+
+vi.mock('@/features/watchlist-alert-templates/queries', () => ({
+  useWatchlistAlertTemplates: () => ({
+    data: [],
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: vi.fn(),
+  }),
+  useApplyWatchlistAlertTemplate: () => ({
     mutate: vi.fn(),
   }),
 }))
