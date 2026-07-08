@@ -114,6 +114,38 @@ bg-*-400`. border는 제거한다.
   — 배지 라벨 기반 단언은 그대로 통과해야 한다 (라벨 변경 없음).
     클래스 문자열을 직접 단언하는 테스트가 있으면 새 스타일로 갱신한다.
 
+## Revision R1 — 배지 인디케이터 기호 분화
+
+개발자 피드백: 빨간색(danger) 배지는 점 대신 경고 기호를, 노란색(warning) 배지는
+주의 기호를 사용한다. safe·neutral 톤은 dot을 유지한다.
+
+### 결정
+
+- 톤별 인디케이터를 분화한다:
+
+| tone | indicator | 표기 |
+|---|---|---|
+| danger | glyph `⚠︎` (U+26A0 U+FE0E, 텍스트 표현 강제) | `text-rose-400` |
+| warning | glyph `!` | `text-amber-400 font-bold` |
+| safe | dot | `bg-emerald-400` (기존 유지) |
+| neutral | dot | `bg-slate-400` (기존 유지) |
+
+- resolver 5종의 반환 타입을 `{ label, className, indicator }`로 바꾼다.
+  `indicator`는 `{ kind: 'dot' | 'glyph'; className: string; glyph?: string }`.
+  기존 `dotClassName` 필드는 제거한다 (소비처는 `TableBadge`와 테스트뿐).
+- `TableBadge`는 `indicator.kind`에 따라 분기한다: `dot`이면 기존
+  `h-1.5 w-1.5 rounded-full` span, `glyph`면 `<span aria-hidden="true"
+  className={indicator.className}>{indicator.glyph}</span>` (크기는 `text-[11px]`
+  수준으로 배지 텍스트보다 작거나 같게). 두 경우 모두 `aria-hidden`을 유지하고
+  상태 의미는 라벨 텍스트가 전달한다.
+- 라벨·톤 배경/텍스트 클래스·폴백 규칙은 R0과 동일하다.
+
+### 테스트 영향
+
+- `adapters.test.ts` — resolver 단언을 `indicator` 형태로 갱신. danger 톤이
+  glyph `⚠︎`, warning 톤이 glyph `!`, safe·neutral이 dot인지 단언한다.
+- `WatchlistPage.test.tsx` — 라벨 기반 단언은 그대로 통과해야 한다.
+
 ## Out of Scope
 
 - `stockStatusClassNames` 등 공유 토큰 변경 (다른 페이지 영향)

@@ -60,16 +60,20 @@ export interface WatchlistSummaryTrendsView {
   riskIncreasing: number[]
 }
 
+export type WatchlistBadgeIndicator =
+  | { kind: 'dot'; className: string }
+  | { kind: 'glyph'; className: string; glyph: string }
+
 export function resolveStatusBadge(status: string): {
   label: '안정' | '관망' | '위험 증가'
   className: string
-  dotClassName: string
+  indicator: WatchlistBadgeIndicator
 } {
   if (status === 'WATCH' || status === 'BUY_CANDIDATE') {
     return {
       label: '관망',
       className: evaluationBadgeClassNames.warning,
-      dotClassName: evaluationBadgeDotClassNames.warning,
+      indicator: evaluationBadgeIndicators.warning,
     }
   }
 
@@ -82,14 +86,14 @@ export function resolveStatusBadge(status: string): {
     return {
       label: '위험 증가',
       className: evaluationBadgeClassNames.danger,
-      dotClassName: evaluationBadgeDotClassNames.danger,
+      indicator: evaluationBadgeIndicators.danger,
     }
   }
 
   return {
     label: '안정',
     className: evaluationBadgeClassNames.safe,
-    dotClassName: evaluationBadgeDotClassNames.safe,
+    indicator: evaluationBadgeIndicators.safe,
   }
 }
 
@@ -100,23 +104,37 @@ const evaluationBadgeClassNames = {
   neutral: 'bg-slate-500/10 text-slate-300',
 } as const
 
-const evaluationBadgeDotClassNames = {
-  danger: 'bg-rose-400',
-  warning: 'bg-amber-400',
-  safe: 'bg-emerald-400',
-  neutral: 'bg-slate-400',
+const evaluationBadgeIndicators = {
+  danger: {
+    kind: 'glyph',
+    className: 'text-rose-400',
+    glyph: '⚠︎',
+  },
+  warning: {
+    kind: 'glyph',
+    className: 'text-amber-400 font-bold',
+    glyph: '!',
+  },
+  safe: {
+    kind: 'dot',
+    className: 'bg-emerald-400',
+  },
+  neutral: {
+    kind: 'dot',
+    className: 'bg-slate-400',
+  },
 } as const
 
 export function resolveNewsRiskBadge(value: string): {
   label: string
   className: string
-  dotClassName: string
+  indicator: WatchlistBadgeIndicator
 } {
   if (value === 'HIGH') {
     return {
       label: '높음',
       className: evaluationBadgeClassNames.danger,
-      dotClassName: evaluationBadgeDotClassNames.danger,
+      indicator: evaluationBadgeIndicators.danger,
     }
   }
 
@@ -124,7 +142,7 @@ export function resolveNewsRiskBadge(value: string): {
     return {
       label: '낮음',
       className: evaluationBadgeClassNames.safe,
-      dotClassName: evaluationBadgeDotClassNames.safe,
+      indicator: evaluationBadgeIndicators.safe,
     }
   }
 
@@ -132,27 +150,27 @@ export function resolveNewsRiskBadge(value: string): {
     return {
       label: '중간',
       className: evaluationBadgeClassNames.warning,
-      dotClassName: evaluationBadgeDotClassNames.warning,
+      indicator: evaluationBadgeIndicators.warning,
     }
   }
 
   return {
     label: '중간',
     className: evaluationBadgeClassNames.neutral,
-    dotClassName: evaluationBadgeDotClassNames.neutral,
+    indicator: evaluationBadgeIndicators.neutral,
   }
 }
 
 export function resolveValuationBadge(value: string): {
   label: string
   className: string
-  dotClassName: string
+  indicator: WatchlistBadgeIndicator
 } {
   if (value === 'HIGH') {
     return {
       label: '고평가',
       className: evaluationBadgeClassNames.danger,
-      dotClassName: evaluationBadgeDotClassNames.danger,
+      indicator: evaluationBadgeIndicators.danger,
     }
   }
 
@@ -160,27 +178,27 @@ export function resolveValuationBadge(value: string): {
     return {
       label: '저평가',
       className: evaluationBadgeClassNames.safe,
-      dotClassName: evaluationBadgeDotClassNames.safe,
+      indicator: evaluationBadgeIndicators.safe,
     }
   }
 
   return {
     label: '적정',
     className: evaluationBadgeClassNames.neutral,
-    dotClassName: evaluationBadgeDotClassNames.neutral,
+    indicator: evaluationBadgeIndicators.neutral,
   }
 }
 
 export function resolveThemeHeatBadge(value: string): {
   label: string
   className: string
-  dotClassName: string
+  indicator: WatchlistBadgeIndicator
 } {
   if (value === 'OVERHEATED') {
     return {
       label: '과열',
       className: evaluationBadgeClassNames.danger,
-      dotClassName: evaluationBadgeDotClassNames.danger,
+      indicator: evaluationBadgeIndicators.danger,
     }
   }
 
@@ -188,27 +206,27 @@ export function resolveThemeHeatBadge(value: string): {
     return {
       label: '냉각',
       className: evaluationBadgeClassNames.safe,
-      dotClassName: evaluationBadgeDotClassNames.safe,
+      indicator: evaluationBadgeIndicators.safe,
     }
   }
 
   return {
     label: '중립',
     className: evaluationBadgeClassNames.neutral,
-    dotClassName: evaluationBadgeDotClassNames.neutral,
+    indicator: evaluationBadgeIndicators.neutral,
   }
 }
 
 export function resolveAiJudgmentBadge(value: string): {
   label: string
   className: string
-  dotClassName: string
+  indicator: WatchlistBadgeIndicator
 } {
   if (value === 'RISK_INCREASING') {
     return {
       label: '위험 증가',
       className: evaluationBadgeClassNames.danger,
-      dotClassName: evaluationBadgeDotClassNames.danger,
+      indicator: evaluationBadgeIndicators.danger,
     }
   }
 
@@ -216,14 +234,14 @@ export function resolveAiJudgmentBadge(value: string): {
     return {
       label: '관망',
       className: evaluationBadgeClassNames.warning,
-      dotClassName: evaluationBadgeDotClassNames.warning,
+      indicator: evaluationBadgeIndicators.warning,
     }
   }
 
   return {
     label: '안정',
     className: evaluationBadgeClassNames.safe,
-    dotClassName: evaluationBadgeDotClassNames.safe,
+    indicator: evaluationBadgeIndicators.safe,
   }
 }
 

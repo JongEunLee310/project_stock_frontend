@@ -13,6 +13,7 @@ import {
   resolveStatusBadge,
   resolveThemeHeatBadge,
   resolveValuationBadge,
+  type WatchlistBadgeIndicator,
   type WatchlistEvaluationRow,
   type WatchlistAssetRow,
 } from '@/features/watchlist/adapters'
@@ -309,17 +310,17 @@ interface EvaluationBadgeCellProps {
   resolveBadge: (value: string) => {
     label: string
     className: string
-    dotClassName: string
+    indicator: WatchlistBadgeIndicator
   }
 }
 
 interface TableBadgeProps {
   label: string
   className: string
-  dotClassName: string
+  indicator: WatchlistBadgeIndicator
 }
 
-function TableBadge({ label, className, dotClassName }: TableBadgeProps) {
+function TableBadge({ label, className, indicator }: TableBadgeProps) {
   return (
     <span
       className={classNames(
@@ -327,10 +328,22 @@ function TableBadge({ label, className, dotClassName }: TableBadgeProps) {
         className,
       )}
     >
-      <span
-        aria-hidden="true"
-        className={classNames('h-1.5 w-1.5 rounded-full', dotClassName)}
-      />
+      {indicator.kind === 'dot' ? (
+        <span
+          aria-hidden="true"
+          className={classNames(
+            'h-1.5 w-1.5 rounded-full',
+            indicator.className,
+          )}
+        />
+      ) : (
+        <span
+          aria-hidden="true"
+          className={classNames('text-[11px]', indicator.className)}
+        >
+          {indicator.glyph}
+        </span>
+      )}
       {label}
     </span>
   )
@@ -364,7 +377,7 @@ function EvaluationBadgeCell({
       <TableBadge
         label={badge.label}
         className={badge.className}
-        dotClassName={badge.dotClassName}
+        indicator={badge.indicator}
       />
     </td>
   )
@@ -818,7 +831,7 @@ export function WatchlistPage() {
                               <TableBadge
                                 label={statusBadge.label}
                                 className={statusBadge.className}
-                                dotClassName={statusBadge.dotClassName}
+                                indicator={statusBadge.indicator}
                               />
                             </td>
                             <EvaluationBadgeCell
