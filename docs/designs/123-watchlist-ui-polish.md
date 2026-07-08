@@ -98,7 +98,8 @@ bg-*-400`. border는 제거한다.
 
 - `src/features/watchlist/adapters.ts`
   — `evaluationBadgeClassNames` 스타일 교체, `evaluationBadgeDotClassNames` 추가
-  — resolver 5종 반환 타입에 `dotClassName` 추가,
+    (R1에서 `indicator` 맵으로 대체됨 — Revision R1 절 참조)
+  — resolver 5종 반환 타입에 `dotClassName` 추가 (R1에서 `indicator`로 대체됨),
     `resolveStatusBadge`의 `stockStatusClassNames` 의존 제거
 - `src/pages/ui/WatchlistPage.tsx`
   — 툴바 단일 flex 행 재구성 (Decisions §1)
