@@ -6,9 +6,11 @@ import type { ApiMeta } from '@/shared/api/envelope'
 import { parseDecimal } from '@/shared/lib/format'
 
 import {
+  adaptWatchlistEvaluations,
   adaptWatchlistAsset,
   adaptWatchlistSummary,
   adaptWatchlistSummaryTrends,
+  type WatchlistEvaluationMap,
   type WatchlistAssetRow,
   type WatchlistSummaryTrendsView,
   type WatchlistSummaryView,
@@ -19,6 +21,7 @@ import type {
   AssetLookupResponseDto,
   CreateAssetBody,
   WatchlistDto,
+  WatchlistEvaluationsResponseDto,
   WatchlistItemDto,
   WatchlistSparklineResponseDto,
   WatchlistSummaryDto,
@@ -32,10 +35,16 @@ export interface WatchlistAssetsResult {
   meta?: ApiMeta
 }
 
+export interface WatchlistEvaluationsResult {
+  map: WatchlistEvaluationMap
+  needsResearchCount: number
+}
+
 export const emptyWatchlistSummary: WatchlistSummaryView = {
   totalCount: 0,
   riskIncreasingCount: 0,
   recentItems: [],
+  buyReadiness: null,
 }
 
 export const emptyWatchlistSummaryTrends: WatchlistSummaryTrendsView = {
@@ -91,6 +100,28 @@ export function useWatchlistSummary() {
       } catch {
         return emptyWatchlistSummary
       }
+    },
+  })
+}
+
+export function useWatchlistEvaluations(): UseQueryResult<WatchlistEvaluationsResult> {
+  return useQuery<WatchlistEvaluationsResult>({
+    queryKey: [...watchlistQueryKey, 'evaluations'],
+    staleTime: 10 * 60 * 1000,
+    queryFn: async () => {
+      const { data: watchlists } = await apiGet<WatchlistDto[]>(
+        '/watchlists?page=1&size=20',
+      )
+      const firstWatchlist = watchlists[0]
+
+      if (!firstWatchlist) return { map: {}, needsResearchCount: 0 }
+
+      const { data: evaluations } =
+        await apiGet<WatchlistEvaluationsResponseDto>(
+          `/watchlists/${firstWatchlist.id}/evaluations`,
+        )
+
+      return adaptWatchlistEvaluations(evaluations)
     },
   })
 }

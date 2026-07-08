@@ -1,13 +1,19 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  adaptWatchlistEvaluations,
   adaptWatchlistAsset,
   adaptWatchlistSummary,
   adaptWatchlistSummaryTrends,
   getWatchlistTrendCounts,
+  resolveAiJudgmentBadge,
+  resolveNewsRiskBadge,
   resolveStatusBadge,
+  resolveThemeHeatBadge,
+  resolveValuationBadge,
 } from './adapters'
 import type {
+  WatchlistEvaluationsResponseDto,
   WatchlistItemDto,
   WatchlistSummaryDto,
   WatchlistTrendSeriesDto,
@@ -122,6 +128,101 @@ describe('resolveStatusBadge', () => {
   })
 })
 
+describe('watchlist evaluation badge resolvers', () => {
+  it.each([
+    ['HIGH', '높음', 'rose'],
+    ['MEDIUM', '중간', 'amber'],
+    ['LOW', '낮음', 'emerald'],
+    ['UNKNOWN', '중간', 'slate'],
+    // app/domains/watchlists/types.py
+  ] as const)('maps news risk %s to %s', (value, label, classToken) => {
+    const badge = resolveNewsRiskBadge(value)
+
+    expect(badge.label).toBe(label)
+    expect(badge.className).toContain(classToken)
+  })
+
+  it.each([
+    ['HIGH', '고평가', 'rose'],
+    ['MODERATE', '적정', 'slate'],
+    ['LOW', '저평가', 'emerald'],
+    ['UNKNOWN', '적정', 'slate'],
+    // app/domains/watchlists/types.py
+  ] as const)('maps valuation burden %s to %s', (value, label, classToken) => {
+    const badge = resolveValuationBadge(value)
+
+    expect(badge.label).toBe(label)
+    expect(badge.className).toContain(classToken)
+  })
+
+  it.each([
+    ['OVERHEATED', '과열', 'rose'],
+    ['NEUTRAL', '중립', 'slate'],
+    ['COLD', '냉각', 'emerald'],
+    ['UNKNOWN', '중립', 'slate'],
+    // app/domains/watchlists/types.py
+  ] as const)('maps theme heat %s to %s', (value, label, classToken) => {
+    const badge = resolveThemeHeatBadge(value)
+
+    expect(badge.label).toBe(label)
+    expect(badge.className).toContain(classToken)
+  })
+
+  it.each([
+    ['RISK_INCREASING', '위험 증가', 'rose'],
+    ['WATCH', '관망', 'amber'],
+    ['STABLE', '안정', 'emerald'],
+    ['UNKNOWN', '안정', 'emerald'],
+    // app/domains/watchlists/types.py
+  ] as const)('maps AI judgment %s to %s', (value, label, classToken) => {
+    const badge = resolveAiJudgmentBadge(value)
+
+    expect(badge.label).toBe(label)
+    expect(badge.className).toContain(classToken)
+  })
+})
+
+describe('adaptWatchlistEvaluations', () => {
+  it('maps evaluation items into a symbol keyed record', () => {
+    const dto: WatchlistEvaluationsResponseDto = {
+      generated_at: '2026-07-08T00:00:00Z',
+      needs_research_count: 2,
+      items: [
+        {
+          symbol: 'NVDA',
+          news_risk: 'HIGH', // app/domains/watchlists/types.py
+          valuation_burden: 'HIGH', // app/domains/watchlists/types.py
+          theme_heat: 'OVERHEATED', // app/domains/watchlists/types.py
+          ai_judgment: 'RISK_INCREASING', // app/domains/watchlists/types.py
+        },
+        {
+          symbol: 'AAPL',
+          news_risk: 'LOW',
+          valuation_burden: 'MODERATE',
+          theme_heat: 'NEUTRAL',
+          ai_judgment: 'STABLE',
+        },
+      ],
+    }
+
+    const result = adaptWatchlistEvaluations(dto)
+
+    expect(result.needsResearchCount).toBe(2)
+    expect(result.map.NVDA).toMatchObject({
+      symbol: 'NVDA',
+      newsRisk: 'HIGH',
+      valuationBurden: 'HIGH',
+      themeHeat: 'OVERHEATED',
+      aiJudgment: 'RISK_INCREASING',
+    })
+    expect(result.map.AAPL).toMatchObject({
+      symbol: 'AAPL',
+      newsRisk: 'LOW',
+    })
+    expect(result.map.TSLA).toBeUndefined()
+  })
+})
+
 describe('adaptWatchlistSummary', () => {
   const summaryDto: WatchlistSummaryDto = {
     total_count: 12,
@@ -133,6 +234,13 @@ describe('adaptWatchlistSummary', () => {
         created_at: '2026-06-20T03:00:00Z',
       },
     ],
+    buy_readiness: {
+      level: 'LIMITED', // app/domains/watchlists/types.py
+      level_label: '제한적',
+      cash_weight: '0.12',
+      buy_candidate_count: 1,
+      message: '현금 비중이 낮아 신규 매수 여력이 제한적입니다.',
+    },
   }
 
   it('maps watchlist summary and recent additions', () => {
@@ -146,6 +254,13 @@ describe('adaptWatchlistSummary', () => {
           addedAt: '2026-06-20T03:00:00Z',
         },
       ],
+      buyReadiness: {
+        level: 'LIMITED',
+        levelLabel: '제한적',
+        cashWeight: 0.12,
+        buyCandidateCount: 1,
+        message: '현금 비중이 낮아 신규 매수 여력이 제한적입니다.',
+      },
     })
   })
 
@@ -159,7 +274,17 @@ describe('adaptWatchlistSummary', () => {
       totalCount: 0,
       riskIncreasingCount: 0,
       recentItems: [],
+      buyReadiness: null,
     })
+  })
+
+  it('maps null buy readiness as null', () => {
+    expect(
+      adaptWatchlistSummary({
+        ...summaryDto,
+        buy_readiness: null,
+      }).buyReadiness,
+    ).toBeNull()
   })
 })
 

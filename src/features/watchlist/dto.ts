@@ -78,16 +78,39 @@ export interface WatchlistSparklineResponseDto {
   items: WatchlistSparklineItemDto[]
 }
 
+export interface WatchlistItemEvaluationDto {
+  symbol: string
+  news_risk: string
+  valuation_burden: string
+  theme_heat: string
+  ai_judgment: string
+}
+
+export interface WatchlistEvaluationsResponseDto {
+  items: WatchlistItemEvaluationDto[]
+  needs_research_count: number
+  generated_at: string
+}
+
 export interface RecentWatchlistItemDto {
   symbol: string
   name: string
   created_at: string
 }
 
+export interface BuyReadinessDto {
+  level: string
+  level_label: string
+  cash_weight: string
+  buy_candidate_count: number
+  message: string
+}
+
 export interface WatchlistSummaryDto {
   total_count: number
   risk_increasing_count: number
   recent_items?: RecentWatchlistItemDto[]
+  buy_readiness?: BuyReadinessDto | null
 }
 
 export interface WatchlistTrendPointDto {
