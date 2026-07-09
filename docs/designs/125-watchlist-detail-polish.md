@@ -220,6 +220,27 @@ symbol·name·created_at)에 market이 없어 한국 종목(005930)이 접미사
 - `WatchlistPage.test.tsx` — 툴팁 hover 시 정의·판단 요소·배지 레전드(낮음/중간/높음)·
   주의 문구가 표시되는 시나리오 추가.
 
+## Revision R4 — 툴팁 패널 포털 배치
+
+개발자 피드백: 툴팁을 열면 테이블에 스크롤이 생기고, 잘린 내용을 보려고 스크롤하면
+호버가 풀려 툴팁이 닫힌다. 원인은 툴팁 패널이 테이블의 가로 스크롤 컨테이너
+(`overflow-x-auto`) 내부에 absolute로 렌더링되어 스크롤 영역을 넓히기 때문이다.
+
+### 결정
+
+- 툴팁 패널을 `createPortal(document.body)`로 렌더링하고 `position: fixed`로
+  배치한다. 열릴 때 버튼의 `getBoundingClientRect()`로 좌표를 계산한다
+  (top = 버튼 하단 + 8px, left = 버튼 중심, 패널 반폭 160px + 여백 8px 기준으로
+  뷰포트 좌우 클램프).
+- 트리거 동작(hover/focus 표시, Escape 닫기)·`aria-describedby` 연결·콘텐츠는
+  변경하지 않는다. 포털이어도 같은 document라 aria 연결이 유지된다.
+- 열림 상태 boolean 대신 좌표 state(`position | null`)로 통합한다.
+
+### 테스트 영향
+
+- `InfoTooltip.test.tsx` — 툴팁이 `document.body` 직하위에 렌더링되는지 단언 추가.
+  기존 시나리오는 변경 없이 통과한다.
+
 ## Out of Scope
 
 - 셀 클릭 시 종목별 근거 팝오버 — BE 평가 계약(summary·factors) 확장 필요, 후속 작업
