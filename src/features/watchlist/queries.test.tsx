@@ -248,7 +248,7 @@ describe('useWatchlistSparklines', () => {
 
   it('returns symbol keyed sparkline close values', async () => {
     const queryClient = createTestQueryClient()
-    const { result } = renderHook(() => useWatchlistSparklines(), {
+    const { result } = renderHook(() => useWatchlistSparklines('1D'), {
       wrapper: wrapperFor(queryClient),
     })
 
@@ -257,7 +257,7 @@ describe('useWatchlistSparklines', () => {
     expect(apiGet).toHaveBeenNthCalledWith(1, '/watchlists?page=1&size=20')
     expect(apiGet).toHaveBeenNthCalledWith(
       2,
-      '/watchlists/7/sparklines?range=1M',
+      '/watchlists/7/sparklines?range=1D',
     )
     expect(result.current.data).toEqual({
       AAPL: [134, 136],

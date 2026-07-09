@@ -750,6 +750,48 @@ describe('WatchlistPage', () => {
     expect(screen.queryByText('가격 변동')).not.toBeInTheDocument()
     expect(screen.getByText('추천 종목')).toBeVisible()
     expect(screen.getByRole('button', { name: '추천 받기' })).toBeVisible()
+    expect(
+      screen.getByRole('button', { name: '뉴스 위험도 지표 설명' }),
+    ).toBeVisible()
+    expect(
+      screen.getByRole('button', { name: '밸류에이션 지표 설명' }),
+    ).toBeVisible()
+    expect(
+      screen.getByRole('button', { name: '테마 과열 지표 설명' }),
+    ).toBeVisible()
+  })
+
+  it('toggles a long observation note independently', async () => {
+    const longNote = '장기 관찰이 필요한 위험 신호입니다. '.repeat(8)
+    watchlistObservationsQueryState = {
+      ...watchlistObservationsQueryState,
+      data: {
+        summary: '관심 목록을 관찰하고 있습니다.',
+        items: [
+          { symbol: 'NVDA', note: longNote },
+          { symbol: 'AAPL', note: '짧은 관찰 메모입니다.' },
+        ],
+      },
+    }
+    renderWatchlist()
+
+    const toggle = await screen.findByRole('button', { name: '더보기' })
+    const observationRail = screen.getByRole('complementary', {
+      name: 'AI 관찰 레일',
+    })
+    const note = within(observationRail).getByText('NVDA').parentElement
+    expect(note).not.toBeNull()
+    expect(note).toHaveClass('line-clamp-3')
+    expect(
+      screen.queryByRole('button', { name: '접기' }),
+    ).not.toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: '더보기' })).toHaveLength(1)
+
+    fireEvent.click(toggle)
+
+    expect(note).not.toHaveClass('line-clamp-3')
+    expect(screen.getByRole('button', { name: '접기' })).toBeVisible()
+    expect(observationRail).toHaveTextContent('짧은 관찰 메모입니다.')
   })
 
   it('renders skeletons in sparkline slots while summary trends are loading', async () => {
