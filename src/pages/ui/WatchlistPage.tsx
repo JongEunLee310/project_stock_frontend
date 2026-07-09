@@ -1,4 +1,10 @@
-import { useCallback, useMemo, useState, type MouseEvent } from 'react'
+import {
+  useCallback,
+  useMemo,
+  useState,
+  type MouseEvent,
+  type ReactNode,
+} from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { findFxRateByPair } from '@/features/fx/adapters'
@@ -31,9 +37,11 @@ import {
   Card,
   EmptyState,
   ErrorState,
+  InfoTooltip,
   Input,
   Skeleton,
   Sparkline as UiSparkline,
+  StockLogo,
 } from '@/shared/ui'
 import { classNames } from '@/shared/ui/classNames'
 
@@ -78,15 +86,6 @@ const summaryIconClassNames = [
 
 const summaryIcons = ['▱', '▣', '⌕', '↗']
 const emptyWatchlistRows: WatchlistAssetRow[] = []
-
-const symbolMarks: Record<string, { label: string; className: string }> = {
-  NVDA: { label: 'N', className: 'bg-[#76b900] text-black' },
-  AAPL: { label: '●', className: 'bg-white text-black' },
-  TSLA: { label: 'T', className: 'bg-[#e82127] text-white' },
-  MSFT: { label: '■', className: 'bg-[#00a4ef] text-white' },
-  AMZN: { label: 'a', className: 'bg-[#ff9900] text-black' },
-  GOOGL: { label: 'G', className: 'bg-white text-[#4285f4]' },
-}
 
 function getResearchPath(symbol: string) {
   return `/research/${symbol}`
@@ -188,22 +187,9 @@ function SummaryVisual({ index }: { index: number }) {
 }
 
 function StockIdentity({ stock }: { stock: WatchlistAssetRow }) {
-  const mark = symbolMarks[stock.symbol] ?? {
-    label: stock.symbol[0],
-    className: 'bg-cockpit-surface-muted text-cockpit-accent',
-  }
-
   return (
     <div className="flex items-center gap-2.5">
-      <div
-        className={classNames(
-          'grid h-6 w-6 shrink-0 place-items-center rounded-sm text-xs font-black leading-none',
-          mark.className,
-        )}
-        aria-hidden="true"
-      >
-        {mark.label}
-      </div>
+      <StockLogo symbol={stock.symbol} market={stock.market} />
       <div className="flex min-w-0 flex-col gap-1">
         <Link
           to={getResearchPath(stock.symbol)}
@@ -320,6 +306,173 @@ interface TableBadgeProps {
   indicator: WatchlistBadgeIndicator
 }
 
+interface MetricTooltipGuideProps {
+  definition: string
+  factors: string[]
+  legend: { badge: TableBadgeProps; description: string }[]
+  note: string
+}
+
+function MetricTooltipGuide({
+  definition,
+  factors,
+  legend,
+  note,
+}: MetricTooltipGuideProps) {
+  return (
+    <span className="flex flex-col gap-2.5">
+      <span>{definition}</span>
+      <span className="flex flex-col gap-1">
+        <span className="font-semibold text-cockpit-text">판단 요소</span>
+        <span className="flex flex-col gap-0.5 text-cockpit-text-muted">
+          {factors.map((factor) => (
+            <span key={factor}>· {factor}</span>
+          ))}
+        </span>
+      </span>
+      <span className="flex flex-col gap-1.5">
+        {legend.map(({ badge, description }) => (
+          <span key={badge.label} className="flex items-center gap-2">
+            <TableBadge {...badge} />
+            <span className="text-cockpit-text-muted">{description}</span>
+          </span>
+        ))}
+      </span>
+      <span className="border-t border-cockpit-border pt-2 text-cockpit-text-muted">
+        {note}
+      </span>
+    </span>
+  )
+}
+
+// legend의 등급 값은 app/domains/watchlists/types.py의 enum과 일치해야 한다
+const watchlistTableHeaders: { label: string; info?: ReactNode }[] = [
+  { label: '종목' },
+  { label: '상태' },
+  {
+    label: '뉴스 위험도',
+    info: (
+      <MetricTooltipGuide
+        definition="최근 뉴스, 공시, 실적 발표, 규제 이슈에서 부정적 이벤트가 얼마나 강하게 감지되는지 나타냅니다."
+        factors={[
+          '부정 뉴스 비율',
+          '뉴스 발생량 증가 속도',
+          '실적·규제·소송·수요 둔화 등 주요 이벤트',
+          '출처 신뢰도와 최근성',
+        ]}
+        legend={[
+          {
+            badge: resolveNewsRiskBadge('LOW'),
+            description: '위험 신호가 약합니다.',
+          },
+          {
+            badge: resolveNewsRiskBadge('MEDIUM'),
+            description: '관찰이 필요합니다.',
+          },
+          {
+            badge: resolveNewsRiskBadge('HIGH'),
+            description: '추가 확인이 필요합니다.',
+          },
+        ]}
+        note="높음은 즉시 매도 신호가 아니라 추가 확인이 필요한 상태를 의미합니다."
+      />
+    ),
+  },
+  {
+    label: '밸류에이션',
+    info: (
+      <MetricTooltipGuide
+        definition="현재 주가가 실적, 성장률, 과거 평균, 동종 기업 대비 얼마나 부담스러운 수준인지 나타냅니다."
+        factors={[
+          'PER · Forward PER · PSR',
+          'EV/EBITDA · PEG',
+          '최근 3~5년 밸류에이션 밴드',
+          '동종 기업·섹터 평균 비교',
+        ]}
+        legend={[
+          {
+            badge: resolveValuationBadge('LOW'),
+            description: '가격 부담이 낮은 구간입니다.',
+          },
+          {
+            badge: resolveValuationBadge('MODERATE'),
+            description: '평균 수준의 가격입니다.',
+          },
+          {
+            badge: resolveValuationBadge('HIGH'),
+            description: '기대가 가격에 많이 반영되어 있습니다.',
+          },
+        ]}
+        note="고평가는 나쁜 회사라는 뜻이 아니라 진입 시 가격 부담을 의미합니다."
+      />
+    ),
+  },
+  {
+    label: '테마 과열',
+    info: (
+      <MetricTooltipGuide
+        definition="종목이 속한 테마에 시장 관심과 자금이 얼마나 과도하게 몰려 있는지 나타냅니다."
+        factors={[
+          '테마 관련 뉴스 급증',
+          '관련 종목 동반 상승',
+          '단기 가격 모멘텀·거래량 급증',
+          '실적 대비 밸류에이션 확장',
+        ]}
+        legend={[
+          {
+            badge: resolveThemeHeatBadge('COLD'),
+            description: '시장 관심이 낮은 상태입니다.',
+          },
+          {
+            badge: resolveThemeHeatBadge('NEUTRAL'),
+            description: '평상 수준의 관심입니다.',
+          },
+          {
+            badge: resolveThemeHeatBadge('OVERHEATED'),
+            description: 'FOMO 매수·단기 변동성 위험이 커졌습니다.',
+          },
+        ]}
+        note="과열은 기업이 나쁘다는 뜻이 아니라 단기 변동성 위험이 커졌다는 의미입니다."
+      />
+    ),
+  },
+  {
+    label: 'AI 판단',
+    info: (
+      <MetricTooltipGuide
+        definition="종목 상태와 기초 지표를 종합해 AI가 내린 현재 관찰 판단입니다."
+        factors={[
+          '활성 시그널 기반 종목 상태',
+          'PER · PEG 등 기초 지표',
+          '당일 가격 변동률',
+          '뉴스 위험도·밸류에이션·테마 과열 종합',
+        ]}
+        legend={[
+          {
+            badge: resolveAiJudgmentBadge('STABLE'),
+            description: '특별한 위험 신호가 없는 상태입니다.',
+          },
+          {
+            badge: resolveAiJudgmentBadge('WATCH'),
+            description: '판단을 보류하고 흐름을 관찰할 단계입니다.',
+          },
+          {
+            badge: resolveAiJudgmentBadge('RISK_INCREASING'),
+            description: '리스크 요인 점검이 필요합니다.',
+          },
+        ]}
+        note="위험 증가는 매도 지시가 아니라 확인이 필요한 관찰 신호입니다. 최종 판단은 사용자의 몫입니다."
+      />
+    ),
+  },
+  { label: '섹터' },
+  { label: '현재가' },
+  { label: '변화율' },
+  { label: '변화(1D)' },
+  { label: '마지막 갱신' },
+  { label: '' },
+]
+
 function TableBadge({ label, className, indicator }: TableBadgeProps) {
   return (
     <span
@@ -389,7 +542,7 @@ export function WatchlistPage() {
   const [pageSize, setPageSize] = useState<WatchlistPageSize>(10)
   const watchlistAssetsQuery = useWatchlistAssets(page, pageSize)
   const removeWatchlistItem = useRemoveWatchlistItem()
-  const watchlistSparklinesQuery = useWatchlistSparklines()
+  const watchlistSparklinesQuery = useWatchlistSparklines('1D')
   const fxRatesQuery = useFxRates()
   const watchlistSummaryQuery = useWatchlistSummary()
   const watchlistEvaluationsQuery = useWatchlistEvaluations()
@@ -402,6 +555,7 @@ export function WatchlistPage() {
   const [openMenuSymbol, setOpenMenuSymbol] = useState<string | null>(null)
   const [removingItemId, setRemovingItemId] = useState<number | null>(null)
   const [isAddAssetModalOpen, setIsAddAssetModalOpen] = useState(false)
+  const [isObservationsExpanded, setIsObservationsExpanded] = useState(false)
 
   const stocks = watchlistAssetsQuery.data?.rows ?? emptyWatchlistRows
   const sparklines = watchlistSparklinesQuery.data ?? {}
@@ -779,26 +933,22 @@ export function WatchlistPage() {
                 >
                   <thead className="bg-cockpit-surface-muted/70 text-xs font-semibold text-cockpit-text-muted">
                     <tr>
-                      {[
-                        '종목',
-                        '상태',
-                        '뉴스 위험도',
-                        '밸류에이션',
-                        '테마 과열',
-                        'AI 판단',
-                        '섹터',
-                        '현재가',
-                        '변화율',
-                        '변화(1D)',
-                        '마지막 갱신',
-                        '',
-                      ].map((header, index) => (
+                      {watchlistTableHeaders.map((header, index) => (
                         <th
-                          key={`${header}-${index}`}
+                          key={`${header.label}-${index}`}
                           scope="col"
+                          aria-label={header.label || undefined}
                           className="border-b border-cockpit-border px-3 py-3 text-center first:w-10 last:w-10"
                         >
-                          {header}
+                          <span className="inline-flex items-center justify-center gap-1">
+                            {header.label}
+                            {header.info ? (
+                              <InfoTooltip
+                                label={`${header.label} 지표 설명`}
+                                content={header.info}
+                              />
+                            ) : null}
+                          </span>
                         </th>
                       ))}
                     </tr>
@@ -1071,7 +1221,12 @@ export function WatchlistPage() {
               />
             ) : (
               <>
-                <div className="rounded-card border border-cockpit-border bg-cockpit-bg/40 px-4 py-3 text-sm leading-6">
+                <div
+                  className={classNames(
+                    'rounded-card border border-cockpit-border bg-cockpit-bg/40 px-4 py-3 text-sm leading-6',
+                    !isObservationsExpanded && 'max-h-56 overflow-hidden',
+                  )}
+                >
                   <p className="text-cockpit-text">{observations.summary}</p>
                   {observations.items.length > 0 ? (
                     <ul className="mt-3 flex flex-col gap-3 text-cockpit-text-muted">
@@ -1099,8 +1254,19 @@ export function WatchlistPage() {
                     type="button"
                     variant="ghost"
                     className="min-h-8 gap-1 px-2 py-1 text-cockpit-text-muted"
+                    onClick={() =>
+                      setIsObservationsExpanded((current) => !current)
+                    }
                   >
-                    더 보기 <span aria-hidden="true">›</span>
+                    {isObservationsExpanded ? (
+                      <>
+                        접기 <span aria-hidden="true">‹</span>
+                      </>
+                    ) : (
+                      <>
+                        더 보기 <span aria-hidden="true">›</span>
+                      </>
+                    )}
                   </Button>
                 </div>
               </>
@@ -1143,16 +1309,7 @@ export function WatchlistPage() {
                     className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3"
                   >
                     <div className="flex min-w-0 items-center gap-2">
-                      <span
-                        className={classNames(
-                          'grid h-6 w-6 shrink-0 place-items-center rounded-sm text-xs font-black',
-                          symbolMarks[item.symbol]?.className ??
-                            'bg-cockpit-surface-muted text-cockpit-accent',
-                        )}
-                        aria-hidden="true"
-                      >
-                        {symbolMarks[item.symbol]?.label ?? item.symbol[0]}
-                      </span>
+                      <StockLogo symbol={item.symbol} />
                       <div className="min-w-0">
                         <span className="font-semibold text-cockpit-text">
                           {item.symbol}

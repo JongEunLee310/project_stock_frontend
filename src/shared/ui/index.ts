@@ -9,9 +9,11 @@ export {
   Sparkline,
 } from './charts'
 export { Input } from './Input'
+export { InfoTooltip } from './InfoTooltip'
 export { EmptyState } from './EmptyState'
 export { ErrorState } from './ErrorState'
 export { Skeleton } from './Skeleton'
+export { StockLogo } from './StockLogo'
 export { Table } from './Table'
 export {
   badgeToneClassNames,

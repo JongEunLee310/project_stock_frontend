@@ -750,6 +750,70 @@ describe('WatchlistPage', () => {
     expect(screen.queryByText('가격 변동')).not.toBeInTheDocument()
     expect(screen.getByText('추천 종목')).toBeVisible()
     expect(screen.getByRole('button', { name: '추천 받기' })).toBeVisible()
+    expect(
+      screen.getByRole('button', { name: '뉴스 위험도 지표 설명' }),
+    ).toBeVisible()
+    expect(
+      screen.getByRole('button', { name: '밸류에이션 지표 설명' }),
+    ).toBeVisible()
+    expect(
+      screen.getByRole('button', { name: '테마 과열 지표 설명' }),
+    ).toBeVisible()
+    expect(
+      screen.getByRole('button', { name: 'AI 판단 지표 설명' }),
+    ).toBeVisible()
+  })
+
+  it('shows a structured metric guide with badge legend in the header tooltip', async () => {
+    renderWatchlist()
+
+    const infoButton = await screen.findByRole('button', {
+      name: '뉴스 위험도 지표 설명',
+    })
+    fireEvent.mouseEnter(infoButton)
+
+    const tooltip = screen.getByRole('tooltip')
+    expect(tooltip).toHaveTextContent('부정적 이벤트가 얼마나 강하게')
+    expect(tooltip).toHaveTextContent('판단 요소')
+    expect(within(tooltip).getByText('낮음')).toBeVisible()
+    expect(within(tooltip).getByText('중간')).toBeVisible()
+    expect(within(tooltip).getByText('높음')).toBeVisible()
+    expect(tooltip).toHaveTextContent(
+      '높음은 즉시 매도 신호가 아니라 추가 확인이 필요한 상태를 의미합니다.',
+    )
+  })
+
+  it('expands and collapses the observation memo with the footer toggle', async () => {
+    renderWatchlist()
+
+    const observationRail = await screen.findByRole('complementary', {
+      name: 'AI 관찰 레일',
+    })
+    const summary = within(observationRail).getByText(
+      'NVDA와 TSLA는 최근 뉴스 흐름상 변동성 확대를 주시해야 합니다.',
+    )
+    const memoBox = summary.parentElement
+    expect(memoBox).not.toBeNull()
+    expect(memoBox).toHaveClass('max-h-56', 'overflow-hidden')
+    expect(
+      within(observationRail).queryByRole('button', { name: '접기' }),
+    ).not.toBeInTheDocument()
+
+    const [memoToggle] = within(observationRail).getAllByRole('button', {
+      name: '더 보기',
+    })
+    fireEvent.click(memoToggle)
+
+    expect(memoBox).not.toHaveClass('max-h-56')
+    expect(memoBox).not.toHaveClass('overflow-hidden')
+    const collapseToggle = within(observationRail).getByRole('button', {
+      name: '접기',
+    })
+    expect(collapseToggle).toBeVisible()
+
+    fireEvent.click(collapseToggle)
+
+    expect(memoBox).toHaveClass('max-h-56', 'overflow-hidden')
   })
 
   it('renders skeletons in sparkline slots while summary trends are loading', async () => {
