@@ -14,6 +14,7 @@ describe('InfoTooltip', () => {
     const tooltip = screen.getByRole('tooltip')
     expect(tooltip).toHaveTextContent('지표 정의')
     expect(button).toHaveAttribute('aria-describedby', tooltip.id)
+    expect(tooltip.parentElement).toBe(document.body)
 
     fireEvent.mouseLeave(button)
 
