@@ -382,23 +382,7 @@ export function WatchlistPage() {
   const [openMenuSymbol, setOpenMenuSymbol] = useState<string | null>(null)
   const [removingItemId, setRemovingItemId] = useState<number | null>(null)
   const [isAddAssetModalOpen, setIsAddAssetModalOpen] = useState(false)
-  const [expandedObservationSymbols, setExpandedObservationSymbols] = useState<
-    Set<string>
-  >(new Set())
-  const [isObservationSummaryExpanded, setIsObservationSummaryExpanded] =
-    useState(false)
-
-  const toggleObservation = useCallback((symbol: string) => {
-    setExpandedObservationSymbols((current) => {
-      const next = new Set(current)
-      if (next.has(symbol)) {
-        next.delete(symbol)
-      } else {
-        next.add(symbol)
-      }
-      return next
-    })
-  }, [])
+  const [isObservationsExpanded, setIsObservationsExpanded] = useState(false)
 
   const stocks = watchlistAssetsQuery.data?.rows ?? emptyWatchlistRows
   const sparklines = watchlistSparklinesQuery.data ?? {}
@@ -1086,68 +1070,31 @@ export function WatchlistPage() {
               />
             ) : (
               <>
-                <div className="rounded-card border border-cockpit-border bg-cockpit-bg/40 px-4 py-3 text-sm leading-6">
-                  <p
-                    className={classNames(
-                      'text-cockpit-text',
-                      !isObservationSummaryExpanded &&
-                        observations.summary.length > 120 &&
-                        'line-clamp-3',
-                    )}
-                  >
-                    {observations.summary}
-                  </p>
-                  {observations.summary.length > 120 ? (
-                    <button
-                      type="button"
-                      className="mt-1 block text-xs font-semibold text-cockpit-accent hover:text-cockpit-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cockpit-accent"
-                      onClick={() =>
-                        setIsObservationSummaryExpanded((current) => !current)
-                      }
-                    >
-                      {isObservationSummaryExpanded ? '접기' : '더보기'}
-                    </button>
-                  ) : null}
+                <div
+                  className={classNames(
+                    'rounded-card border border-cockpit-border bg-cockpit-bg/40 px-4 py-3 text-sm leading-6',
+                    !isObservationsExpanded && 'max-h-56 overflow-hidden',
+                  )}
+                >
+                  <p className="text-cockpit-text">{observations.summary}</p>
                   {observations.items.length > 0 ? (
                     <ul className="mt-3 flex flex-col gap-3 text-cockpit-text-muted">
-                      {observations.items.map((item) => {
-                        const isLong = item.note.length > 120
-                        const isExpanded = expandedObservationSymbols.has(
-                          item.symbol,
-                        )
-
-                        return (
-                          <li key={item.symbol} className="flex gap-2">
-                            <span
-                              className="text-cockpit-accent"
-                              aria-hidden="true"
-                            >
-                              •
-                            </span>
-                            <span className="min-w-0">
-                              <span
-                                className={classNames(
-                                  !isExpanded && isLong && 'line-clamp-3',
-                                )}
-                              >
-                                <strong className="mr-1 font-semibold text-cockpit-text">
-                                  {item.symbol}
-                                </strong>
-                                {item.note}
-                              </span>
-                              {isLong ? (
-                                <button
-                                  type="button"
-                                  className="mt-1 block text-xs font-semibold text-cockpit-accent hover:text-cockpit-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cockpit-accent"
-                                  onClick={() => toggleObservation(item.symbol)}
-                                >
-                                  {isExpanded ? '접기' : '더보기'}
-                                </button>
-                              ) : null}
-                            </span>
-                          </li>
-                        )
-                      })}
+                      {observations.items.map((item) => (
+                        <li key={item.symbol} className="flex gap-2">
+                          <span
+                            className="text-cockpit-accent"
+                            aria-hidden="true"
+                          >
+                            •
+                          </span>
+                          <span>
+                            <strong className="mr-1 font-semibold text-cockpit-text">
+                              {item.symbol}
+                            </strong>
+                            {item.note}
+                          </span>
+                        </li>
+                      ))}
                     </ul>
                   ) : null}
                 </div>
@@ -1156,8 +1103,19 @@ export function WatchlistPage() {
                     type="button"
                     variant="ghost"
                     className="min-h-8 gap-1 px-2 py-1 text-cockpit-text-muted"
+                    onClick={() =>
+                      setIsObservationsExpanded((current) => !current)
+                    }
                   >
-                    더 보기 <span aria-hidden="true">›</span>
+                    {isObservationsExpanded ? (
+                      <>
+                        접기 <span aria-hidden="true">‹</span>
+                      </>
+                    ) : (
+                      <>
+                        더 보기 <span aria-hidden="true">›</span>
+                      </>
+                    )}
                   </Button>
                 </div>
               </>

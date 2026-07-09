@@ -761,89 +761,37 @@ describe('WatchlistPage', () => {
     ).toBeVisible()
   })
 
-  it('toggles a long observation note independently', async () => {
-    const longNote = '장기 관찰이 필요한 위험 신호입니다. '.repeat(8)
-    watchlistObservationsQueryState = {
-      ...watchlistObservationsQueryState,
-      data: {
-        summary: '관심 목록을 관찰하고 있습니다.',
-        items: [
-          { symbol: 'NVDA', note: longNote },
-          { symbol: 'AAPL', note: '짧은 관찰 메모입니다.' },
-        ],
-      },
-    }
-    renderWatchlist()
-
-    const toggle = await screen.findByRole('button', { name: '더보기' })
-    const observationRail = screen.getByRole('complementary', {
-      name: 'AI 관찰 레일',
-    })
-    const note = within(observationRail).getByText('NVDA').parentElement
-    expect(note).not.toBeNull()
-    expect(note).toHaveClass('line-clamp-3')
-    expect(
-      screen.queryByRole('button', { name: '접기' }),
-    ).not.toBeInTheDocument()
-    expect(screen.getAllByRole('button', { name: '더보기' })).toHaveLength(1)
-
-    fireEvent.click(toggle)
-
-    expect(note).not.toHaveClass('line-clamp-3')
-    expect(screen.getByRole('button', { name: '접기' })).toBeVisible()
-    expect(observationRail).toHaveTextContent('짧은 관찰 메모입니다.')
-  })
-
-  it('toggles a long observation summary and hides the toggle for short summaries', async () => {
-    const longSummary =
-      '관심 목록 전반의 위험 신호를 관찰하고 있습니다. '.repeat(6)
-    watchlistObservationsQueryState = {
-      ...watchlistObservationsQueryState,
-      data: {
-        summary: longSummary,
-        items: [{ symbol: 'AAPL', note: '짧은 관찰 메모입니다.' }],
-      },
-    }
-    renderWatchlist()
-
-    const toggle = await screen.findByRole('button', { name: '더보기' })
-    const observationRail = screen.getByRole('complementary', {
-      name: 'AI 관찰 레일',
-    })
-    const summary = within(observationRail).getByText((content) =>
-      content.startsWith('관심 목록 전반의 위험 신호'),
-    )
-    expect(summary).toHaveClass('line-clamp-3')
-
-    fireEvent.click(toggle)
-
-    expect(summary).not.toHaveClass('line-clamp-3')
-    expect(screen.getByRole('button', { name: '접기' })).toBeVisible()
-
-    fireEvent.click(screen.getByRole('button', { name: '접기' }))
-
-    expect(summary).toHaveClass('line-clamp-3')
-  })
-
-  it('renders a short observation summary without a toggle', async () => {
-    watchlistObservationsQueryState = {
-      ...watchlistObservationsQueryState,
-      data: {
-        summary: '관심 목록을 관찰하고 있습니다.',
-        items: [{ symbol: 'AAPL', note: '짧은 관찰 메모입니다.' }],
-      },
-    }
+  it('expands and collapses the observation memo with the footer toggle', async () => {
     renderWatchlist()
 
     const observationRail = await screen.findByRole('complementary', {
       name: 'AI 관찰 레일',
     })
+    const summary = within(observationRail).getByText(
+      'NVDA와 TSLA는 최근 뉴스 흐름상 변동성 확대를 주시해야 합니다.',
+    )
+    const memoBox = summary.parentElement
+    expect(memoBox).not.toBeNull()
+    expect(memoBox).toHaveClass('max-h-56', 'overflow-hidden')
     expect(
-      within(observationRail).getByText('관심 목록을 관찰하고 있습니다.'),
-    ).not.toHaveClass('line-clamp-3')
-    expect(
-      within(observationRail).queryByRole('button', { name: '더보기' }),
+      within(observationRail).queryByRole('button', { name: '접기' }),
     ).not.toBeInTheDocument()
+
+    const [memoToggle] = within(observationRail).getAllByRole('button', {
+      name: '더 보기',
+    })
+    fireEvent.click(memoToggle)
+
+    expect(memoBox).not.toHaveClass('max-h-56')
+    expect(memoBox).not.toHaveClass('overflow-hidden')
+    const collapseToggle = within(observationRail).getByRole('button', {
+      name: '접기',
+    })
+    expect(collapseToggle).toBeVisible()
+
+    fireEvent.click(collapseToggle)
+
+    expect(memoBox).toHaveClass('max-h-56', 'overflow-hidden')
   })
 
   it('renders skeletons in sparkline slots while summary trends are loading', async () => {
