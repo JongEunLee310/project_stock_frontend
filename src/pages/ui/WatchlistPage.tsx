@@ -93,9 +93,9 @@ const summaryCardIcons = [
 function SummaryCardTitle({ index, label }: { index: number; label: string }) {
   const { Icon, className } = summaryCardIcons[index]
   return (
-    <span className="flex items-center gap-2 text-sm font-semibold text-cockpit-text">
+    <span className="flex items-center gap-2 text-base font-semibold text-cockpit-text">
       <Icon
-        className={classNames('h-4 w-4 shrink-0', className)}
+        className={classNames('h-4.5 w-4.5 shrink-0', className)}
         aria-hidden="true"
       />
       {label}
