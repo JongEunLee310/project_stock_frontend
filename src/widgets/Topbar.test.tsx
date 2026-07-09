@@ -121,9 +121,28 @@ describe('Topbar', () => {
     )
   })
 
+  it('skips analysis and still completes synchronization when the watchlist is empty', async () => {
+    apiGetMock.mockResolvedValue({ data: [] })
+    const queryClient = new QueryClient()
+    const invalidateQueries = vi
+      .spyOn(queryClient, 'invalidateQueries')
+      .mockResolvedValue()
+
+    renderTopbar(queryClient)
+
+    vi.setSystemTime(new Date('2026-07-02T06:45:00Z'))
+    await clickRefresh()
+
+    expect(triggerAnalysisMock).not.toHaveBeenCalled()
+    expect(invalidateQueries).toHaveBeenCalledWith()
+    expect(screen.getByText(/동기화/)).toHaveTextContent('동기화 15:45')
+    expect(screen.queryByText('14:32')).not.toBeInTheDocument()
+  })
+
   it('renders the rate-limit message and still invalidates queries', async () => {
     triggerAnalysisMock.mockRejectedValue(
       new ApiError(
+        // BE contract: project_stock PR #244; docs/designs/129-sync-analysis-trigger.md §2.
         'RATE_LIMIT_EXCEEDED',
         '잠시 후 다시 시도해 주세요 (약 60초)',
       ),
