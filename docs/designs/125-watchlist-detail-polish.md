@@ -241,6 +241,16 @@ symbol·name·created_at)에 market이 없어 한국 종목(005930)이 접미사
 - `InfoTooltip.test.tsx` — 툴팁이 `document.body` 직하위에 렌더링되는지 단언 추가.
   기존 시나리오는 변경 없이 통과한다.
 
+## Revision R5 — AI 판단 헤더 툴팁 추가
+
+개발자 요청. AI 판단 헤더에도 R3 구조(`MetricTooltipGuide`)의 ⓘ 툴팁을 추가한다.
+
+- 판단 요소는 BE가 LLM 평가에 실제로 전달하는 스냅샷 항목
+  (`WatchlistEvaluationItem`: status·per·peg·daily_change_percent)을 근거로 기술한다.
+- 배지 레전드는 `resolveAiJudgmentBadge`의 STABLE(안정)/WATCH(관망)/
+  RISK_INCREASING(위험 증가)을 사용한다 (`app/domains/watchlists/types.py`).
+- 주의 문구: 위험 증가는 매도 지시가 아닌 관찰 신호임을 명시한다.
+
 ## Out of Scope
 
 - 셀 클릭 시 종목별 근거 팝오버 — BE 평가 계약(summary·factors) 확장 필요, 후속 작업
