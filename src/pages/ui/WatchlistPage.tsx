@@ -5,6 +5,12 @@ import {
   type MouseEvent,
   type ReactNode,
 } from 'react'
+import {
+  LuBookmark,
+  LuHistory,
+  LuSearch,
+  LuTriangleAlert,
+} from 'react-icons/lu'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { findFxRateByPair } from '@/features/fx/adapters'
@@ -77,14 +83,25 @@ const statusFilterOptions: Exclude<StatusFilter, ''>[] = [
   '위험 증가',
 ]
 
-const summaryIconClassNames = [
-  'bg-blue-500/20 text-blue-300',
-  'bg-rose-500/20 text-rose-300',
-  'bg-amber-500/20 text-amber-200',
-  'bg-emerald-500/20 text-emerald-200',
+const summaryCardIcons = [
+  { Icon: LuBookmark, className: 'text-blue-300' },
+  { Icon: LuTriangleAlert, className: 'text-rose-300' },
+  { Icon: LuSearch, className: 'text-amber-200' },
+  { Icon: LuHistory, className: 'text-emerald-200' },
 ]
 
-const summaryIcons = ['▱', '▣', '⌕', '↗']
+function SummaryCardTitle({ index, label }: { index: number; label: string }) {
+  const { Icon, className } = summaryCardIcons[index]
+  return (
+    <span className="flex items-center gap-2 text-sm font-semibold text-cockpit-text">
+      <Icon
+        className={classNames('h-4 w-4 shrink-0', className)}
+        aria-hidden="true"
+      />
+      {label}
+    </span>
+  )
+}
 const emptyWatchlistRows: WatchlistAssetRow[] = []
 
 function getResearchPath(symbol: string) {
@@ -784,20 +801,7 @@ export function WatchlistPage() {
                 className="min-h-36 border-cockpit-border bg-cockpit-surface/85 p-5 shadow-blue-950/20"
               >
                 <div className="flex h-full flex-col justify-between gap-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <span className="text-sm font-semibold text-cockpit-text">
-                      {summaryCard.label}
-                    </span>
-                    <span
-                      className={classNames(
-                        'grid h-10 w-10 shrink-0 place-items-center rounded-full text-lg',
-                        summaryIconClassNames[index],
-                      )}
-                      aria-hidden="true"
-                    >
-                      {summaryIcons[index]}
-                    </span>
-                  </div>
+                  <SummaryCardTitle index={index} label={summaryCard.label} />
                   <div className="flex items-end justify-between gap-4">
                     <strong className="text-4xl font-semibold tracking-normal text-cockpit-text">
                       {summaryCard.value}
@@ -809,20 +813,7 @@ export function WatchlistPage() {
             ))}
             <Card className="min-h-36 border-cockpit-border bg-cockpit-surface/85 p-5 shadow-blue-950/20">
               <div className="flex h-full flex-col justify-between gap-4">
-                <div className="flex items-start justify-between gap-3">
-                  <span className="text-sm font-semibold text-cockpit-text">
-                    추가 리서치 필요
-                  </span>
-                  <span
-                    className={classNames(
-                      'grid h-10 w-10 shrink-0 place-items-center rounded-full text-lg',
-                      summaryIconClassNames[2],
-                    )}
-                    aria-hidden="true"
-                  >
-                    {summaryIcons[2]}
-                  </span>
-                </div>
+                <SummaryCardTitle index={2} label="추가 리서치 필요" />
                 <div className="flex items-end justify-between gap-4">
                   {watchlistEvaluationsQuery.isLoading ? (
                     <Skeleton className="h-10 w-16" />
@@ -840,20 +831,7 @@ export function WatchlistPage() {
             </Card>
             <Card className="min-h-36 border-cockpit-border bg-cockpit-surface/85 p-5 shadow-blue-950/20">
               <div className="flex h-full flex-col justify-between gap-4">
-                <div className="flex items-start justify-between gap-3">
-                  <span className="text-sm font-semibold text-cockpit-text">
-                    신규 매수 여력
-                  </span>
-                  <span
-                    className={classNames(
-                      'grid h-10 w-10 shrink-0 place-items-center rounded-full text-lg',
-                      summaryIconClassNames[3],
-                    )}
-                    aria-hidden="true"
-                  >
-                    {summaryIcons[3]}
-                  </span>
-                </div>
+                <SummaryCardTitle index={3} label="신규 매수 여력" />
                 {summary.buyReadiness ? (
                   <div className="flex flex-col gap-2">
                     <strong className="text-3xl font-semibold tracking-normal text-cockpit-text">
