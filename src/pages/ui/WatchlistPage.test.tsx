@@ -759,6 +759,9 @@ describe('WatchlistPage', () => {
     expect(
       screen.getByRole('button', { name: '테마 과열 지표 설명' }),
     ).toBeVisible()
+    expect(
+      screen.getByRole('button', { name: 'AI 판단 지표 설명' }),
+    ).toBeVisible()
   })
 
   it('shows a structured metric guide with badge legend in the header tooltip', async () => {

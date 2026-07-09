@@ -436,7 +436,35 @@ const watchlistTableHeaders: { label: string; info?: ReactNode }[] = [
       />
     ),
   },
-  { label: 'AI 판단' },
+  {
+    label: 'AI 판단',
+    info: (
+      <MetricTooltipGuide
+        definition="종목 상태와 기초 지표를 종합해 AI가 내린 현재 관찰 판단입니다."
+        factors={[
+          '활성 시그널 기반 종목 상태',
+          'PER · PEG 등 기초 지표',
+          '당일 가격 변동률',
+          '뉴스 위험도·밸류에이션·테마 과열 종합',
+        ]}
+        legend={[
+          {
+            badge: resolveAiJudgmentBadge('STABLE'),
+            description: '특별한 위험 신호가 없는 상태입니다.',
+          },
+          {
+            badge: resolveAiJudgmentBadge('WATCH'),
+            description: '판단을 보류하고 흐름을 관찰할 단계입니다.',
+          },
+          {
+            badge: resolveAiJudgmentBadge('RISK_INCREASING'),
+            description: '리스크 요인 점검이 필요합니다.',
+          },
+        ]}
+        note="위험 증가는 매도 지시가 아니라 확인이 필요한 관찰 신호입니다. 최종 판단은 사용자의 몫입니다."
+      />
+    ),
+  },
   { label: '섹터' },
   { label: '현재가' },
   { label: '변화율' },
