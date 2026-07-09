@@ -385,6 +385,8 @@ export function WatchlistPage() {
   const [expandedObservationSymbols, setExpandedObservationSymbols] = useState<
     Set<string>
   >(new Set())
+  const [isObservationSummaryExpanded, setIsObservationSummaryExpanded] =
+    useState(false)
 
   const toggleObservation = useCallback((symbol: string) => {
     setExpandedObservationSymbols((current) => {
@@ -1085,7 +1087,27 @@ export function WatchlistPage() {
             ) : (
               <>
                 <div className="rounded-card border border-cockpit-border bg-cockpit-bg/40 px-4 py-3 text-sm leading-6">
-                  <p className="text-cockpit-text">{observations.summary}</p>
+                  <p
+                    className={classNames(
+                      'text-cockpit-text',
+                      !isObservationSummaryExpanded &&
+                        observations.summary.length > 120 &&
+                        'line-clamp-3',
+                    )}
+                  >
+                    {observations.summary}
+                  </p>
+                  {observations.summary.length > 120 ? (
+                    <button
+                      type="button"
+                      className="mt-1 block text-xs font-semibold text-cockpit-accent hover:text-cockpit-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cockpit-accent"
+                      onClick={() =>
+                        setIsObservationSummaryExpanded((current) => !current)
+                      }
+                    >
+                      {isObservationSummaryExpanded ? '접기' : '더보기'}
+                    </button>
+                  ) : null}
                   {observations.items.length > 0 ? (
                     <ul className="mt-3 flex flex-col gap-3 text-cockpit-text-muted">
                       {observations.items.map((item) => {

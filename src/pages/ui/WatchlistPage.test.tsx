@@ -794,6 +794,58 @@ describe('WatchlistPage', () => {
     expect(observationRail).toHaveTextContent('짧은 관찰 메모입니다.')
   })
 
+  it('toggles a long observation summary and hides the toggle for short summaries', async () => {
+    const longSummary =
+      '관심 목록 전반의 위험 신호를 관찰하고 있습니다. '.repeat(6)
+    watchlistObservationsQueryState = {
+      ...watchlistObservationsQueryState,
+      data: {
+        summary: longSummary,
+        items: [{ symbol: 'AAPL', note: '짧은 관찰 메모입니다.' }],
+      },
+    }
+    renderWatchlist()
+
+    const toggle = await screen.findByRole('button', { name: '더보기' })
+    const observationRail = screen.getByRole('complementary', {
+      name: 'AI 관찰 레일',
+    })
+    const summary = within(observationRail).getByText((content) =>
+      content.startsWith('관심 목록 전반의 위험 신호'),
+    )
+    expect(summary).toHaveClass('line-clamp-3')
+
+    fireEvent.click(toggle)
+
+    expect(summary).not.toHaveClass('line-clamp-3')
+    expect(screen.getByRole('button', { name: '접기' })).toBeVisible()
+
+    fireEvent.click(screen.getByRole('button', { name: '접기' }))
+
+    expect(summary).toHaveClass('line-clamp-3')
+  })
+
+  it('renders a short observation summary without a toggle', async () => {
+    watchlistObservationsQueryState = {
+      ...watchlistObservationsQueryState,
+      data: {
+        summary: '관심 목록을 관찰하고 있습니다.',
+        items: [{ symbol: 'AAPL', note: '짧은 관찰 메모입니다.' }],
+      },
+    }
+    renderWatchlist()
+
+    const observationRail = await screen.findByRole('complementary', {
+      name: 'AI 관찰 레일',
+    })
+    expect(
+      within(observationRail).getByText('관심 목록을 관찰하고 있습니다.'),
+    ).not.toHaveClass('line-clamp-3')
+    expect(
+      within(observationRail).queryByRole('button', { name: '더보기' }),
+    ).not.toBeInTheDocument()
+  })
+
   it('renders skeletons in sparkline slots while summary trends are loading', async () => {
     watchlistSummaryTrendsQueryState = {
       ...watchlistSummaryTrendsQueryState,
