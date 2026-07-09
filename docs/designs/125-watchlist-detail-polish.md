@@ -140,6 +140,24 @@ AI 관찰 메모가 전문 노출로 레일을 과점하는 문제를 더보기 
 - `src/features/watchlist/queries.test.tsx` — sparklines 요청 URL이 `range=1D`인지
   단언 갱신.
 
+## Revision R1 — 요약문 클램프 추가
+
+개발자 피드백: R0 반영 후에도 AI 관찰 메모가 길게 표시된다. 원인은 R0 Decisions §2의
+가정("요약문은 짧은 고정 문장") 오류다. BE `ObservationsResult.summary: str`은 길이
+제약이 없는 LLM 생성 텍스트라 요약 단락이 클램프 없이 전문 노출된다.
+
+### 결정
+
+- `observations.summary`에도 항목 note와 동일한 규칙을 적용한다:
+  `summary.length > 120`일 때 `line-clamp-3` + "더보기/접기" 토글.
+- 확장 상태는 boolean state 하나로 관리한다 (항목 Set과 별도).
+- 항목 note의 기존 동작(임계값·클램프·토글)은 변경하지 않는다.
+
+### 테스트 영향
+
+- `WatchlistPage.test.tsx` — 긴 summary(120자 초과)에서 더보기 토글로 전문이
+  확장·축소되는 시나리오 추가. 짧은 summary는 토글이 노출되지 않는다.
+
 ## Out of Scope
 
 - 셀 클릭 시 종목별 근거 팝오버 — BE 평가 계약(summary·factors) 확장 필요, 후속 작업
