@@ -761,6 +761,25 @@ describe('WatchlistPage', () => {
     ).toBeVisible()
   })
 
+  it('shows a structured metric guide with badge legend in the header tooltip', async () => {
+    renderWatchlist()
+
+    const infoButton = await screen.findByRole('button', {
+      name: '뉴스 위험도 지표 설명',
+    })
+    fireEvent.mouseEnter(infoButton)
+
+    const tooltip = screen.getByRole('tooltip')
+    expect(tooltip).toHaveTextContent('부정적 이벤트가 얼마나 강하게')
+    expect(tooltip).toHaveTextContent('판단 요소')
+    expect(within(tooltip).getByText('낮음')).toBeVisible()
+    expect(within(tooltip).getByText('중간')).toBeVisible()
+    expect(within(tooltip).getByText('높음')).toBeVisible()
+    expect(tooltip).toHaveTextContent(
+      '높음은 즉시 매도 신호가 아니라 추가 확인이 필요한 상태를 의미합니다.',
+    )
+  })
+
   it('expands and collapses the observation memo with the footer toggle', async () => {
     renderWatchlist()
 

@@ -1,4 +1,10 @@
-import { useCallback, useMemo, useState, type MouseEvent } from 'react'
+import {
+  useCallback,
+  useMemo,
+  useState,
+  type MouseEvent,
+  type ReactNode,
+} from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { findFxRateByPair } from '@/features/fx/adapters'
@@ -299,6 +305,145 @@ interface TableBadgeProps {
   className: string
   indicator: WatchlistBadgeIndicator
 }
+
+interface MetricTooltipGuideProps {
+  definition: string
+  factors: string[]
+  legend: { badge: TableBadgeProps; description: string }[]
+  note: string
+}
+
+function MetricTooltipGuide({
+  definition,
+  factors,
+  legend,
+  note,
+}: MetricTooltipGuideProps) {
+  return (
+    <span className="flex flex-col gap-2.5">
+      <span>{definition}</span>
+      <span className="flex flex-col gap-1">
+        <span className="font-semibold text-cockpit-text">판단 요소</span>
+        <span className="flex flex-col gap-0.5 text-cockpit-text-muted">
+          {factors.map((factor) => (
+            <span key={factor}>· {factor}</span>
+          ))}
+        </span>
+      </span>
+      <span className="flex flex-col gap-1.5">
+        {legend.map(({ badge, description }) => (
+          <span key={badge.label} className="flex items-center gap-2">
+            <TableBadge {...badge} />
+            <span className="text-cockpit-text-muted">{description}</span>
+          </span>
+        ))}
+      </span>
+      <span className="border-t border-cockpit-border pt-2 text-cockpit-text-muted">
+        {note}
+      </span>
+    </span>
+  )
+}
+
+// legend의 등급 값은 app/domains/watchlists/types.py의 enum과 일치해야 한다
+const watchlistTableHeaders: { label: string; info?: ReactNode }[] = [
+  { label: '종목' },
+  { label: '상태' },
+  {
+    label: '뉴스 위험도',
+    info: (
+      <MetricTooltipGuide
+        definition="최근 뉴스, 공시, 실적 발표, 규제 이슈에서 부정적 이벤트가 얼마나 강하게 감지되는지 나타냅니다."
+        factors={[
+          '부정 뉴스 비율',
+          '뉴스 발생량 증가 속도',
+          '실적·규제·소송·수요 둔화 등 주요 이벤트',
+          '출처 신뢰도와 최근성',
+        ]}
+        legend={[
+          {
+            badge: resolveNewsRiskBadge('LOW'),
+            description: '위험 신호가 약합니다.',
+          },
+          {
+            badge: resolveNewsRiskBadge('MEDIUM'),
+            description: '관찰이 필요합니다.',
+          },
+          {
+            badge: resolveNewsRiskBadge('HIGH'),
+            description: '추가 확인이 필요합니다.',
+          },
+        ]}
+        note="높음은 즉시 매도 신호가 아니라 추가 확인이 필요한 상태를 의미합니다."
+      />
+    ),
+  },
+  {
+    label: '밸류에이션',
+    info: (
+      <MetricTooltipGuide
+        definition="현재 주가가 실적, 성장률, 과거 평균, 동종 기업 대비 얼마나 부담스러운 수준인지 나타냅니다."
+        factors={[
+          'PER · Forward PER · PSR',
+          'EV/EBITDA · PEG',
+          '최근 3~5년 밸류에이션 밴드',
+          '동종 기업·섹터 평균 비교',
+        ]}
+        legend={[
+          {
+            badge: resolveValuationBadge('LOW'),
+            description: '가격 부담이 낮은 구간입니다.',
+          },
+          {
+            badge: resolveValuationBadge('MODERATE'),
+            description: '평균 수준의 가격입니다.',
+          },
+          {
+            badge: resolveValuationBadge('HIGH'),
+            description: '기대가 가격에 많이 반영되어 있습니다.',
+          },
+        ]}
+        note="고평가는 나쁜 회사라는 뜻이 아니라 진입 시 가격 부담을 의미합니다."
+      />
+    ),
+  },
+  {
+    label: '테마 과열',
+    info: (
+      <MetricTooltipGuide
+        definition="종목이 속한 테마에 시장 관심과 자금이 얼마나 과도하게 몰려 있는지 나타냅니다."
+        factors={[
+          '테마 관련 뉴스 급증',
+          '관련 종목 동반 상승',
+          '단기 가격 모멘텀·거래량 급증',
+          '실적 대비 밸류에이션 확장',
+        ]}
+        legend={[
+          {
+            badge: resolveThemeHeatBadge('COLD'),
+            description: '시장 관심이 낮은 상태입니다.',
+          },
+          {
+            badge: resolveThemeHeatBadge('NEUTRAL'),
+            description: '평상 수준의 관심입니다.',
+          },
+          {
+            badge: resolveThemeHeatBadge('OVERHEATED'),
+            description: 'FOMO 매수·단기 변동성 위험이 커졌습니다.',
+          },
+        ]}
+        note="과열은 기업이 나쁘다는 뜻이 아니라 단기 변동성 위험이 커졌다는 의미입니다."
+      />
+    ),
+  },
+  { label: 'AI 판단' },
+  { label: '섹터' },
+  { label: '현재가' },
+  { label: '변화율' },
+  { label: '변화(1D)' },
+  { label: '마지막 갱신' },
+  { label: '' },
+]
 
 function TableBadge({ label, className, indicator }: TableBadgeProps) {
   return (
@@ -760,29 +905,7 @@ export function WatchlistPage() {
                 >
                   <thead className="bg-cockpit-surface-muted/70 text-xs font-semibold text-cockpit-text-muted">
                     <tr>
-                      {[
-                        { label: '종목' },
-                        { label: '상태' },
-                        {
-                          label: '뉴스 위험도',
-                          info: '최근 뉴스, 공시, 실적 발표, 규제 이슈를 분석해 해당 종목에 부정적 이벤트가 얼마나 강하게 감지되는지 나타냅니다. 판단 요소: 부정 뉴스 비율 · 뉴스 발생량 증가 · 실적/규제/소송/수요 둔화 등 주요 이벤트 · 출처 신뢰도 · 최근성. 높음은 즉시 매도 신호가 아니라 추가 확인이 필요한 상태를 의미합니다.',
-                        },
-                        {
-                          label: '밸류에이션',
-                          info: '현재 주가가 실적, 성장률, 과거 평균, 동종 기업 대비 얼마나 부담스러운 수준인지 나타냅니다. 판단 요소: PER/Forward PER · PSR · EV/EBITDA · PEG · 최근 3~5년 밸류에이션 밴드 · 동종 기업 및 섹터 평균 비교. 높음은 성장성이 나쁘다는 뜻이 아니라 현재 가격에 기대가 많이 반영되었을 가능성을 의미합니다.',
-                        },
-                        {
-                          label: '테마 과열',
-                          info: '해당 종목이 속한 테마에 시장 관심과 자금이 얼마나 과도하게 몰려 있는지 나타냅니다. 판단 요소: 테마 관련 뉴스 증가 · 관련 종목 동반 상승 · 단기 가격 모멘텀 · 거래량 급증 · 밸류에이션 확장. 높음은 해당 기업이 나쁘다는 뜻이 아니라 FOMO 매수와 단기 변동성 위험이 커졌다는 의미입니다.',
-                        },
-                        { label: 'AI 판단' },
-                        { label: '섹터' },
-                        { label: '현재가' },
-                        { label: '변화율' },
-                        { label: '변화(1D)' },
-                        { label: '마지막 갱신' },
-                        { label: '' },
-                      ].map((header, index) => (
+                      {watchlistTableHeaders.map((header, index) => (
                         <th
                           key={`${header.label}-${index}`}
                           scope="col"

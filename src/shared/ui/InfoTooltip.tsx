@@ -1,10 +1,10 @@
-import { useId, useState, type KeyboardEvent } from 'react'
+import { useId, useState, type KeyboardEvent, type ReactNode } from 'react'
 
 import { classNames } from './classNames'
 
 interface InfoTooltipProps {
   label: string
-  content: string
+  content: ReactNode
   className?: string
 }
 
@@ -37,7 +37,7 @@ export function InfoTooltip({ label, content, className }: InfoTooltipProps) {
         <span
           id={tooltipId}
           role="tooltip"
-          className="absolute left-1/2 top-full z-20 mt-2 w-72 -translate-x-1/2 whitespace-normal rounded-card border border-cockpit-border bg-cockpit-surface p-3 text-left text-xs font-normal leading-5 text-cockpit-text shadow-lg"
+          className="absolute left-1/2 top-full z-20 mt-2 w-80 -translate-x-1/2 whitespace-normal rounded-card border border-cockpit-border bg-cockpit-surface p-3 text-left text-xs font-normal leading-5 text-cockpit-text shadow-lg"
         >
           {content}
         </span>

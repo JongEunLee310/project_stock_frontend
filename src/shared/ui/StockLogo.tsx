@@ -17,14 +17,17 @@ const symbolMarks: Record<string, { label: string; className: string }> = {
   GOOGL: { label: 'G', className: 'bg-white text-[#4285f4]' },
 }
 
-function getLogoSymbol(symbol: string, market?: string) {
-  if (market === 'KOSPI') return `${symbol}.KS`
-  if (market === 'KOSDAQ') return `${symbol}.KQ`
-  return symbol
+function getLogoCandidates(symbol: string, market?: string) {
+  if (market === 'KOSPI') return [`${symbol}.KS`]
+  if (market === 'KOSDAQ') return [`${symbol}.KQ`]
+  // market 정보가 없거나 부정확해도 6자리 숫자 심볼은 한국 종목이므로 KS→KQ 순으로 시도한다
+  if (/^\d{6}$/.test(symbol)) return [`${symbol}.KS`, `${symbol}.KQ`]
+  return [symbol]
 }
 
 export function StockLogo({ symbol, market, className }: StockLogoProps) {
-  const [hasImageError, setHasImageError] = useState(false)
+  const [candidateIndex, setCandidateIndex] = useState(0)
+  const candidate = getLogoCandidates(symbol, market)[candidateIndex]
   const mark = symbolMarks[symbol] ?? {
     label: symbol[0],
     className: 'bg-cockpit-surface-muted text-cockpit-accent',
@@ -40,13 +43,13 @@ export function StockLogo({ symbol, market, className }: StockLogoProps) {
       aria-hidden="true"
     >
       {mark.label}
-      {!hasImageError ? (
+      {candidate != null ? (
         <img
-          src={`https://assets.parqet.com/logos/symbol/${getLogoSymbol(symbol, market)}`}
+          src={`https://assets.parqet.com/logos/symbol/${candidate}`}
           alt=""
           loading="lazy"
           className="absolute inset-0 h-full w-full bg-white object-contain"
-          onError={() => setHasImageError(true)}
+          onError={() => setCandidateIndex((current) => current + 1)}
         />
       ) : null}
     </span>
