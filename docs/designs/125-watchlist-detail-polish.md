@@ -182,6 +182,44 @@ AI 관찰 메모가 전문 노출로 레일을 과점하는 문제를 더보기 
   대체한다 (기본 접힘 `max-h-56 overflow-hidden` → 더 보기 클릭 시 해제 + "접기"
   노출 → 접기 클릭 시 복원).
 
+## Revision R3 — 한국 종목 로고 폴백 체인·툴팁 구조화
+
+개발자 피드백 2건.
+
+### 1. 일부 종목이 실제 로고가 아님
+
+원인: "새로 추가된 관심 종목" aside는 BE 요약 계약(`RecentWatchlistItemResponse`:
+symbol·name·created_at)에 market이 없어 한국 종목(005930)이 접미사 없이 요청되고
+404 → 글자 마크로 폴백된다. Parqet에는 `005930.KS` 실로고가 존재함을 확인했다.
+
+결정: `StockLogo`가 단일 URL 대신 후보 체인을 순회한다.
+
+- market이 KOSPI/KOSDAQ이면 기존 매핑 그대로 단일 후보.
+- market 정보가 없거나 매핑 외 값이어도 심볼이 6자리 숫자(한국 티커 형식)이면
+  `{symbol}.KS` → `{symbol}.KQ` 순으로 시도한다.
+- 그 외에는 심볼 그대로 단일 후보. 후보 소진 시 글자 마크 폴백 (기존 동작).
+- BE 계약 변경 없이 해결한다. 요약 계약에 market 추가는 후속 여지로 남긴다.
+
+### 2. 헤더 ⓘ 툴팁 구조화 + 실제 배지로 설명
+
+기존 한 문단 서술이 산만하다는 피드백. 툴팁을 구조화하고 등급 설명에 실제 배지
+컴포넌트를 사용한다.
+
+- `InfoTooltip.content`를 `string` → `ReactNode`로 확장한다 (패널 폭 `w-72` → `w-80`).
+- `MetricTooltipGuide` 컴포넌트(WatchlistPage 내부)를 신설한다:
+  정의 한 문장 → "판단 요소" 불릿 목록 → 배지 레전드(실제 `TableBadge` + 등급별
+  한 줄 설명) → 구분선 아래 주의 문구.
+- 배지 레전드는 셀과 동일한 resolver를 사용한다 (뉴스 위험도 LOW/MEDIUM/HIGH,
+  밸류에이션 LOW/MODERATE/HIGH, 테마 과열 COLD/NEUTRAL/OVERHEATED —
+  `app/domains/watchlists/types.py` enum 값).
+- 헤더 배열은 모듈 상수 `watchlistTableHeaders`로 승격한다. 라벨 텍스트는 불변.
+
+### 테스트 영향
+
+- `StockLogo.test.tsx` — market 없는 6자리 심볼의 KS→KQ→글자 마크 체인 시나리오 추가.
+- `WatchlistPage.test.tsx` — 툴팁 hover 시 정의·판단 요소·배지 레전드(낮음/중간/높음)·
+  주의 문구가 표시되는 시나리오 추가.
+
 ## Out of Scope
 
 - 셀 클릭 시 종목별 근거 팝오버 — BE 평가 계약(summary·factors) 확장 필요, 후속 작업
