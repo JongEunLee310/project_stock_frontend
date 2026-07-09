@@ -764,6 +764,25 @@ describe('WatchlistPage', () => {
     ).toBeVisible()
   })
 
+  it('renders a bullet icon before each KPI card title', async () => {
+    renderWatchlist()
+
+    const kpiTitles = [
+      '전체 관심 종목',
+      '위험 증가 종목',
+      '추가 리서치 필요',
+      '신규 매수 여력',
+    ]
+    for (const title of kpiTitles) {
+      const titleElement = await screen.findByText(title)
+      const icon = titleElement.querySelector('svg')
+      expect(icon).not.toBeNull()
+      expect(icon).toHaveAttribute('aria-hidden', 'true')
+      // 아이콘이 제목 텍스트보다 앞(글머리 위치)에 렌더링되어야 한다
+      expect(titleElement.firstChild).toBe(icon)
+    }
+  })
+
   it('shows a structured metric guide with badge legend in the header tooltip', async () => {
     renderWatchlist()
 
