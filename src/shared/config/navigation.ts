@@ -2,7 +2,8 @@ export const appRoutePaths = {
   dashboard: '/',
   watchlist: '/watchlist',
   signals: '/signals',
-  research: '/research/:symbol',
+  research: '/research',
+  researchDetail: '/research/:symbol',
   portfolio: '/portfolio',
   alerts: '/alerts',
   decisionLog: '/decision-log',
@@ -41,7 +42,7 @@ export const navigationItems: NavigationItem[] = [
   {
     id: 'research',
     label: 'Research',
-    href: '/research/NVDA',
+    href: appRoutePaths.research,
     path: appRoutePaths.research,
     matchPrefix: '/research',
   },

@@ -57,7 +57,7 @@ const emptyPatterns: DecisionTypeCount[] = []
 const emptyRecentReviewed: ReviewedDecision[] = []
 
 function getResearchPath(symbol: string) {
-  return appRoutePaths.research.replace(':symbol', symbol)
+  return appRoutePaths.researchDetail.replace(':symbol', symbol)
 }
 
 function stopRowNavigation(event: MouseEvent) {

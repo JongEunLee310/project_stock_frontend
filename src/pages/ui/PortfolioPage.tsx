@@ -64,7 +64,7 @@ const allocationColors = [
 ]
 
 function getResearchPath(symbol: string) {
-  return appRoutePaths.research.replace(':symbol', symbol)
+  return appRoutePaths.researchDetail.replace(':symbol', symbol)
 }
 
 function formatKrw(value: number) {

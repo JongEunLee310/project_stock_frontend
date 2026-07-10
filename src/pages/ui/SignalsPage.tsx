@@ -61,7 +61,7 @@ const selectClassName =
   'min-h-10 rounded-control border border-cockpit-border bg-cockpit-surface px-3 py-2 text-sm text-cockpit-text outline-none transition-colors focus:border-cockpit-accent focus:ring-2 focus:ring-cockpit-accent/30'
 
 function getResearchPath(symbol: string) {
-  return appRoutePaths.research.replace(':symbol', symbol)
+  return appRoutePaths.researchDetail.replace(':symbol', symbol)
 }
 
 function normalizeScore(score: number) {

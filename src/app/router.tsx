@@ -7,6 +7,7 @@ import {
   LoginPage,
   NotFoundPage,
   PortfolioPage,
+  ResearchListPage,
   ResearchPage,
   SettingsPage,
   SignalsPage,
@@ -32,7 +33,11 @@ export const appRouteObjects: RouteObject[] = [
       { index: true, element: <DashboardPage /> },
       { path: appRoutePaths.watchlist.slice(1), element: <WatchlistPage /> },
       { path: appRoutePaths.signals.slice(1), element: <SignalsPage /> },
-      { path: appRoutePaths.research.slice(1), element: <ResearchPage /> },
+      { path: appRoutePaths.research.slice(1), element: <ResearchListPage /> },
+      {
+        path: appRoutePaths.researchDetail.slice(1),
+        element: <ResearchPage />,
+      },
       { path: appRoutePaths.portfolio.slice(1), element: <PortfolioPage /> },
       { path: appRoutePaths.alerts.slice(1), element: <AlertsPage /> },
       {
