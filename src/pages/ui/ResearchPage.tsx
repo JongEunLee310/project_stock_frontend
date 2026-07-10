@@ -150,6 +150,61 @@ function PriceSparkline({ research }: { research: ResearchView }) {
   )
 }
 
+function PriceChartCard({ research }: { research: ResearchView }) {
+  return (
+    <Card>
+      <div
+        className="flex flex-wrap gap-2 border-b border-app-border pb-4"
+        role="tablist"
+        aria-label="차트 지표"
+      >
+        <Button
+          id="research-price-tab"
+          role="tab"
+          type="button"
+          variant="primary"
+          aria-controls="research-price-panel"
+          aria-selected="true"
+        >
+          가격
+        </Button>
+        <Button
+          role="tab"
+          type="button"
+          variant="ghost"
+          aria-disabled="true"
+          aria-selected="false"
+          disabled
+          className="gap-2"
+        >
+          밸류에이션
+          <span className="text-xs font-medium">준비 중</span>
+        </Button>
+        <Button
+          role="tab"
+          type="button"
+          variant="ghost"
+          aria-disabled="true"
+          aria-selected="false"
+          disabled
+          className="gap-2"
+        >
+          실적
+          <span className="text-xs font-medium">준비 중</span>
+        </Button>
+      </div>
+      <div
+        id="research-price-panel"
+        role="tabpanel"
+        aria-labelledby="research-price-tab"
+        className="mt-5"
+      >
+        <PriceSparkline research={research} />
+      </div>
+    </Card>
+  )
+}
+
 function EmptyResearchState({ symbol }: { symbol: string }) {
   return (
     <Card className="mx-auto max-w-3xl">
@@ -222,75 +277,72 @@ function HeaderCard({
 
   return (
     <Card>
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_18rem]">
-        <div className="flex min-w-0 flex-col gap-6">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-            <div className="flex min-w-0 items-start gap-4">
-              <div
-                className="grid h-14 w-14 shrink-0 place-items-center rounded-control border border-app-border bg-app-surface-muted text-xl font-bold text-app-accent"
-                aria-hidden="true"
-              >
-                {research.symbol[0]}
-              </div>
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-end gap-3">
-                  <h2 className="text-3xl font-bold text-app-text">
-                    {research.symbol}
-                  </h2>
-                  <span className="pb-1 text-base font-medium text-app-text-muted">
-                    {research.name}
-                  </span>
-                </div>
-                <p className="mt-2 text-sm text-app-text-muted">
-                  {research.market ?? 'Unknown Market'} ·{' '}
-                  {research.sector ?? '-'}
-                </p>
-                <div className="mt-3 flex flex-wrap items-baseline gap-3">
-                  <strong
-                    className="text-2xl font-bold text-app-text"
-                    aria-label="현재가"
-                  >
-                    {formatCurrency(research.price, research.currency)}
-                  </strong>
-                  <span
-                    aria-label="등락"
-                    className={`text-sm font-semibold ${changeClassName}`}
-                  >
-                    {formatSignedCurrency(research.change, research.currency)} (
-                    {formatSignedPercent(research.changePercent)})
-                  </span>
-                </div>
-              </div>
-            </div>
-            <Button
-              type="button"
-              variant={isFavorite ? 'primary' : 'secondary'}
-              aria-pressed={isFavorite}
-              disabled={isFavoritePending}
-              onClick={onToggleFavorite}
-            >
-              {isFavorite ? '관심종목 등록됨' : '관심종목 추가'}
-            </Button>
-          </div>
+      <div className="mb-5 flex flex-wrap justify-end gap-2">
+        <Button
+          type="button"
+          variant={isFavorite ? 'primary' : 'secondary'}
+          aria-pressed={isFavorite}
+          disabled={isFavoritePending}
+          onClick={onToggleFavorite}
+        >
+          {isFavorite ? '관심종목 등록됨' : '관심종목 추가'}
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() => navigate(appRoutePaths.watchlist)}
+        >
+          워치리스트
+        </Button>
+        <Button
+          type="button"
+          onClick={() => navigate(appRoutePaths.decisionLog)}
+        >
+          판단 기록
+        </Button>
+      </div>
 
-          <dl className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-            {metricTiles.map((metric) => (
-              <div
-                key={metric.label}
-                className="min-h-24 rounded-control border border-app-border bg-app-surface-muted p-4"
-              >
-                <dt className="text-xs font-medium text-app-text-muted">
-                  {metric.label}
-                </dt>
-                <dd className="mt-2 text-base font-bold leading-6 text-app-text">
-                  {metric.value}
-                </dd>
-              </div>
-            ))}
-          </dl>
+      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-[minmax(12rem,1.1fr)_minmax(10rem,0.7fr)_minmax(12rem,0.85fr)_minmax(19rem,1.4fr)]">
+        <div className="flex min-w-0 items-start gap-4">
+          <div
+            className="grid h-14 w-14 shrink-0 place-items-center rounded-control border border-app-border bg-app-surface-muted text-xl font-bold text-app-accent"
+            aria-hidden="true"
+          >
+            {research.symbol[0]}
+          </div>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-end gap-3">
+              <h2 className="text-3xl font-bold text-app-text">
+                {research.symbol}
+              </h2>
+              <span className="pb-1 text-base font-medium text-app-text-muted">
+                {research.name}
+              </span>
+            </div>
+            <p className="mt-2 text-sm text-app-text-muted">
+              {research.market ?? 'Unknown Market'} · {research.sector ?? '-'}
+            </p>
+          </div>
         </div>
 
-        <div className="flex flex-col justify-between gap-5 rounded-control border border-app-border bg-app-surface-muted p-5">
+        <div className="flex flex-col justify-center rounded-control border border-app-border bg-app-surface-muted p-4">
+          <p className="text-xs font-medium text-app-text-muted">현재가</p>
+          <strong
+            className="mt-2 text-2xl font-bold text-app-text"
+            aria-label="현재가"
+          >
+            {formatCurrency(research.price, research.currency)}
+          </strong>
+          <span
+            aria-label="등락"
+            className={`mt-2 text-sm font-semibold ${changeClassName}`}
+          >
+            {formatSignedCurrency(research.change, research.currency)} (
+            {formatSignedPercent(research.changePercent)})
+          </span>
+        </div>
+
+        <div className="rounded-control border border-app-border bg-app-surface-muted p-4">
           <div>
             <p className="text-sm font-semibold text-app-text-muted">
               AI 투자 스탠스
@@ -298,30 +350,31 @@ function HeaderCard({
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <Badge tone="accent">
                 {research.stanceConfidence === null
-                  ? '점수 없음'
-                  : `${Math.round(research.stanceConfidence)}%`}
+                  ? '신뢰도 없음'
+                  : `신뢰도 ${Math.round(research.stanceConfidence)}%`}
               </Badge>
             </div>
             <p className="mt-4 text-sm font-semibold leading-6 text-app-text">
               {research.stance}
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => navigate(appRoutePaths.watchlist)}
-            >
-              워치리스트
-            </Button>
-            <Button
-              type="button"
-              onClick={() => navigate(appRoutePaths.decisionLog)}
-            >
-              판단 기록
-            </Button>
-          </div>
         </div>
+
+        <dl className="grid grid-cols-2 gap-3">
+          {metricTiles.map((metric) => (
+            <div
+              key={metric.label}
+              className="min-h-20 rounded-control border border-app-border bg-app-surface-muted p-3"
+            >
+              <dt className="text-xs font-medium text-app-text-muted">
+                {metric.label}
+              </dt>
+              <dd className="mt-2 text-sm font-bold leading-5 text-app-text">
+                {metric.value}
+              </dd>
+            </div>
+          ))}
+        </dl>
       </div>
     </Card>
   )
@@ -335,7 +388,7 @@ function RiskPanel({ research }: { research: ResearchView }) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-bold text-app-text">핵심 리스크</h2>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-app-text-muted">종합</span>
+          <span className="text-sm text-app-text-muted">리스크 수준:</span>
           <Badge riskLevel={highestRiskLevel as '낮음' | '중간' | '높음'} />
         </div>
       </div>
@@ -373,7 +426,7 @@ function ChecklistPanel({
   const completedCount = checklist.filter((item) => item.checked).length
 
   return (
-    <Card>
+    <Card className="h-full">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-xl font-bold text-app-text">의사결정 체크리스트</h2>
         <Badge tone="neutral">
@@ -410,7 +463,7 @@ function ChecklistPanel({
 
 function ReportsPanel({ research }: { research: ResearchView }) {
   return (
-    <Card>
+    <Card className="h-full">
       <h2 className="text-xl font-bold text-app-text">뉴스 및 공시 요약</h2>
       {research.reports.length > 0 ? (
         <ul className="mt-4 flex flex-col gap-3">
@@ -626,87 +679,78 @@ export function ResearchPage() {
         onToggleFavorite={toggleFavorite}
       />
 
-      <Card>
-        <div className="grid gap-6 rounded-control border border-app-border bg-app-surface-muted p-4 lg:grid-cols-[minmax(0,1fr)_17rem] lg:items-center">
-          <PriceSparkline research={research} />
-          <div className="flex flex-col gap-4">
-            <div>
-              <p className="text-sm font-medium text-app-text-muted">
-                평균 목표주가
-              </p>
-              <strong className="mt-1 block text-3xl font-bold text-app-text">
-                {formatCurrency(research.targetPrice, research.currency)}
-              </strong>
-            </div>
-          </div>
-        </div>
-      </Card>
-
-      <Card>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm font-semibold uppercase tracking-wide text-app-text-muted">
-            AI briefing
-          </p>
-          <span className="text-xs text-app-text-muted">
-            갱신 {research.briefing.createdAt}
-          </span>
-        </div>
-        <h2 className="mt-3 text-2xl font-bold text-app-text">
-          {research.briefing.headline}
-        </h2>
-        <p className="mt-3 text-sm leading-6 text-app-text-muted">
-          {research.briefing.body}
-        </p>
-      </Card>
-
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
-        <div className="flex flex-col gap-6">
-          <RiskPanel research={research} />
-          <ReportsPanel research={research} />
-          {/* BE 출처가 없는 catalysts는 후속 API까지 mock을 유지하지 않고 이번 연동 화면에서는 숨긴다. */}
-        </div>
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
+        <PriceChartCard research={research} />
         <aside className="flex flex-col gap-6">
-          <ChecklistPanel
-            checklist={displayedChecklist}
-            onToggle={toggleChecklistItem}
-          />
           <Card>
-            <div className="flex items-center justify-between gap-3">
-              <label
-                htmlFor="research-memo"
-                className="text-xl font-bold text-app-text"
-              >
-                내 메모
-              </label>
-              {memoSaveStatus === 'idle' ? null : (
-                <span
-                  role={memoSaveStatus === 'error' ? 'alert' : 'status'}
-                  className="text-xs text-app-text-muted"
-                >
-                  {memoSaveStatus === 'saving'
-                    ? '저장 중...'
-                    : memoSaveStatus === 'saved'
-                      ? '자동 저장됨'
-                      : '저장 실패'}
-                </span>
-              )}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm font-semibold uppercase tracking-wide text-app-text-muted">
+                AI briefing
+              </p>
+              <span className="text-xs text-app-text-muted">
+                갱신 {research.briefing.createdAt}
+              </span>
             </div>
-            <textarea
-              id="research-memo"
-              value={memoValue}
-              onChange={(event) => {
-                setMemoDraft({
-                  assetId: research.assetId,
-                  value: event.target.value,
-                  isDirty: true,
-                })
-                setMemoSaveStatus('idle')
-              }}
-              placeholder="판단 근거와 추가 확인할 질문을 남겨두세요."
-              className="mt-4 min-h-44 w-full resize-y rounded-control border border-app-border bg-app-surface-muted px-3 py-3 text-sm leading-6 text-app-text outline-none transition-colors placeholder:text-app-text-muted focus:border-app-accent focus:ring-2 focus:ring-app-accent/30"
-            />
+            <h2 className="mt-3 text-2xl font-bold text-app-text">
+              {research.briefing.headline}
+            </h2>
+            <p className="mt-3 text-sm leading-6 text-app-text-muted">
+              {research.briefing.body}
+            </p>
           </Card>
+          <RiskPanel research={research} />
         </aside>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+        <ReportsPanel research={research} />
+        <Card className="h-full">
+          <h2 className="text-xl font-bold text-app-text">촉매 타임라인</h2>
+          <EmptyState
+            title="예정 이벤트 데이터가 아직 수집되지 않았습니다."
+            className="py-6"
+          />
+        </Card>
+        <ChecklistPanel
+          checklist={displayedChecklist}
+          onToggle={toggleChecklistItem}
+        />
+        <Card className="h-full">
+          <div className="flex items-center justify-between gap-3">
+            <label
+              htmlFor="research-memo"
+              className="text-xl font-bold text-app-text"
+            >
+              내 메모
+            </label>
+            {memoSaveStatus === 'idle' ? null : (
+              <span
+                role={memoSaveStatus === 'error' ? 'alert' : 'status'}
+                className="text-xs text-app-text-muted"
+              >
+                {memoSaveStatus === 'saving'
+                  ? '저장 중...'
+                  : memoSaveStatus === 'saved'
+                    ? '자동 저장됨'
+                    : '저장 실패'}
+              </span>
+            )}
+          </div>
+          <textarea
+            id="research-memo"
+            value={memoValue}
+            onChange={(event) => {
+              setMemoDraft({
+                assetId: research.assetId,
+                value: event.target.value,
+                isDirty: true,
+              })
+              setMemoSaveStatus('idle')
+            }}
+            placeholder="판단 근거와 추가 확인할 질문을 남겨두세요."
+            className="mt-4 min-h-44 w-full resize-y rounded-control border border-app-border bg-app-surface-muted px-3 py-3 text-sm leading-6 text-app-text outline-none transition-colors placeholder:text-app-text-muted focus:border-app-accent focus:ring-2 focus:ring-app-accent/30"
+          />
+        </Card>
       </div>
     </div>
   )
