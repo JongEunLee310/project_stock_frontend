@@ -12,13 +12,22 @@ import {
 } from 'react-icons/fi'
 import { Link, useNavigate } from 'react-router-dom'
 
-import type { Signal } from '@/features/signals/adapters'
+import type {
+  Signal,
+  SignalChange,
+  SignalSummary,
+} from '@/features/signals/adapters'
 import {
   CATEGORY_META,
   categoryOf,
   type SignalCategory,
 } from '@/features/signals/signalCategories'
-import { useSignalSparkline, useSignals } from '@/features/signals/queries'
+import {
+  useSignalChanges,
+  useSignalSparkline,
+  useSignalSummary,
+  useSignals,
+} from '@/features/signals/queries'
 import { appRoutePaths } from '@/shared/config/navigation'
 import {
   Badge,
@@ -72,6 +81,38 @@ function matchesConfidenceBand(score: number, band: ConfidenceBand) {
   if (band === 'high') return score >= 70
   if (band === 'mid') return score >= 40 && score < 70
   return score < 40
+}
+
+function formatDelta(delta: number) {
+  if (delta === 0) return '±0'
+  return delta > 0 ? `+${delta}` : String(delta)
+}
+
+function getChangeDisplay(change: SignalChange | null | undefined) {
+  if (!change || change.direction === 'UNCHANGED') {
+    return { label: '—', className: 'text-cockpit-text-muted' }
+  }
+
+  if (change.direction === 'ESCALATED') {
+    const scoreDelta =
+      change.scoreDelta === null
+        ? change.directionLabel
+        : `▲ ${formatDelta(change.scoreDelta)}`
+    return { label: scoreDelta, className: 'text-red-400' }
+  }
+
+  if (change.direction === 'DEESCALATED') {
+    const scoreDelta =
+      change.scoreDelta === null
+        ? change.directionLabel
+        : `▼ ${change.scoreDelta}`
+    return { label: scoreDelta, className: 'text-emerald-400' }
+  }
+
+  return {
+    label: change.directionLabel,
+    className: 'text-cockpit-text-muted',
+  }
 }
 
 function CategoryIcon({ category }: { category: SignalCategory }) {
@@ -166,14 +207,13 @@ function ConfidenceRing({
   )
 }
 
-function SignalKpiRow({ signals }: { signals: Signal[] }) {
-  const counts = signals.reduce<Record<SignalCategory, number>>(
-    (result, signal) => {
-      const category = categoryOf(signal.signalType)
-      return category ? { ...result, [category]: result[category] + 1 } : result
-    },
-    { WATCH: 0, RISK: 0, BUY: 0, RESEARCH: 0 },
-  )
+function SignalKpiRow({ summary }: { summary: SignalSummary | undefined }) {
+  const totalDelta = summary
+    ? categories.reduce(
+        (total, category) => total + summary.deltaByCategory[category],
+        0,
+      )
+    : null
 
   return (
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
@@ -183,19 +223,19 @@ function SignalKpiRow({ signals }: { signals: Signal[] }) {
       >
         <span className="text-sm font-semibold text-sky-300">총 시그널</span>
         <strong className="mt-2 block text-3xl font-bold text-cockpit-text">
-          {signals.length}
+          {summary?.total ?? '—'}
           <span className="ml-1 text-sm font-medium">건</span>
         </strong>
         <span className="mt-2 block text-xs text-cockpit-text-muted">
-          전일 대비 —
+          전일 대비 {totalDelta === null ? '—' : formatDelta(totalDelta)}
         </span>
       </Card>
       {categories.map((category) => {
         const meta = CATEGORY_META[category]
         const ratio =
-          signals.length === 0
+          !summary || summary.total === 0
             ? '—'
-            : `${((counts[category] / signals.length) * 100).toFixed(1)}%`
+            : `${((summary.byCategory[category] / summary.total) * 100).toFixed(1)}%`
 
         return (
           <Card
@@ -211,11 +251,12 @@ function SignalKpiRow({ signals }: { signals: Signal[] }) {
               {meta.label}
             </span>
             <strong className="mt-2 block text-3xl font-bold text-cockpit-text">
-              {counts[category]}
+              {summary?.byCategory[category] ?? '—'}
               <span className="ml-1 text-sm font-medium">건</span>
             </strong>
             <span className="mt-2 block text-xs text-cockpit-text-muted">
-              전체 {ratio} · 전일 대비 —
+              전체 {ratio} · 전일 대비{' '}
+              {summary ? formatDelta(summary.deltaByCategory[category]) : '—'}
             </span>
           </Card>
         )
@@ -405,9 +446,17 @@ function SignalCard({ signal }: { signal: Signal }) {
           />
         </header>
 
-        <p className="text-sm leading-6 text-cockpit-text-muted">
-          {signal.reason}
-        </p>
+        {signal.keyPoints && signal.keyPoints.length > 0 ? (
+          <ul className="list-disc space-y-1 pl-5 text-sm leading-6 text-cockpit-text-muted">
+            {signal.keyPoints.map((keyPoint) => (
+              <li key={keyPoint}>{keyPoint}</li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm leading-6 text-cockpit-text-muted">
+            {signal.reason}
+          </p>
+        )}
 
         <div className="mt-auto flex items-end border-t border-cockpit-border pt-3">
           <SignalPriceTrend signal={signal} />
@@ -468,7 +517,7 @@ function SignalPriorityRail({ signals }: { signals: Signal[] }) {
       </div>
       {prioritySignals.length > 0 ? (
         <>
-          <div className="grid grid-cols-[2rem_minmax(0,0.8fr)_minmax(8rem,1.5fr)_3rem_3.5rem] gap-2 border-b border-cockpit-border px-1 pb-2 text-[0.65rem] text-cockpit-text-muted">
+          <div className="grid grid-cols-[2rem_minmax(0,0.8fr)_minmax(8rem,1.5fr)_5rem_3.5rem] gap-2 border-b border-cockpit-border px-1 pb-2 text-[0.65rem] text-cockpit-text-muted">
             <span>순위</span>
             <span>심볼</span>
             <span>유형</span>
@@ -478,10 +527,11 @@ function SignalPriorityRail({ signals }: { signals: Signal[] }) {
           <ol className="divide-y divide-cockpit-border">
             {prioritySignals.map((signal, index) => {
               const category = categoryOf(signal.signalType)
+              const changeDisplay = getChangeDisplay(signal.change)
               return (
                 <li
                   key={`priority-${signal.id}`}
-                  className="grid grid-cols-[2rem_minmax(0,0.8fr)_minmax(8rem,1.5fr)_3rem_3.5rem] items-center gap-2 px-1 py-3 text-xs"
+                  className="grid grid-cols-[2rem_minmax(0,0.8fr)_minmax(8rem,1.5fr)_5rem_3.5rem] items-center gap-2 px-1 py-3 text-xs"
                   aria-label={`${index + 1}위 ${signal.symbol}`}
                 >
                   <span className="font-bold text-amber-300">{index + 1}</span>
@@ -494,7 +544,9 @@ function SignalPriorityRail({ signals }: { signals: Signal[] }) {
                   <span>
                     {category ? <CategoryBadge category={category} /> : '—'}
                   </span>
-                  <span className="text-cockpit-text-muted">—</span>
+                  <span className={changeDisplay.className}>
+                    {changeDisplay.label}
+                  </span>
                   <span className="font-semibold text-cockpit-text">
                     {normalizeScore(signal.score)}%
                   </span>
@@ -511,23 +563,66 @@ function SignalPriorityRail({ signals }: { signals: Signal[] }) {
 }
 
 function RecentChangesRail() {
+  const changesQuery = useSignalChanges()
+
   return (
     <Card
       className="border-cockpit-border bg-cockpit-surface/80 p-4"
       aria-label="최근 변경"
     >
       <h2 className="text-base font-bold text-cockpit-text">최근 변경</h2>
-      <EmptyState
-        title="준비 중"
-        description="시그널 변경 이력은 추후 제공됩니다."
-        className="py-8"
-      />
+      {changesQuery.isLoading ? (
+        <Skeleton className="mt-3 h-40" />
+      ) : changesQuery.isError ? (
+        <EmptyState title="변경 이력을 불러오지 못했습니다." className="py-8" />
+      ) : changesQuery.data && changesQuery.data.length > 0 ? (
+        <ol className="mt-3 divide-y divide-cockpit-border">
+          {changesQuery.data.map((item) => {
+            const dominantCategory = item.dominantType
+              ? categoryOf(item.dominantType)
+              : undefined
+
+            return (
+              <li
+                key={`${item.symbol}-${item.snapshotDate}-${item.capturedAt}`}
+                className="flex flex-wrap items-center gap-2 py-3 text-xs"
+              >
+                <Link
+                  to={getResearchPath(item.symbol)}
+                  className="font-semibold text-cockpit-text hover:text-cockpit-accent"
+                >
+                  {item.symbol}
+                </Link>
+                <span className="text-cockpit-text-muted">
+                  {item.change.directionLabel}
+                </span>
+                {dominantCategory ? (
+                  <CategoryBadge category={dominantCategory} />
+                ) : null}
+                <time
+                  dateTime={item.snapshotDate}
+                  className="ml-auto text-cockpit-text-muted"
+                >
+                  {item.snapshotDate}
+                </time>
+              </li>
+            )
+          })}
+        </ol>
+      ) : (
+        <EmptyState title="아직 변경 이력이 없습니다." className="py-8" />
+      )}
     </Card>
   )
 }
 
 export function SignalsPage() {
-  const signalsQuery = useSignals()
+  const signalsQuery = useSignals(undefined, 'current')
+  const summaryQuery = useSignalSummary()
+  const summary =
+    summaryQuery.isLoading || summaryQuery.isError
+      ? undefined
+      : summaryQuery.data
   const [filters, setFilters] = useState<FilterState>(initialFilters)
   const signals = useMemo(() => signalsQuery.data ?? [], [signalsQuery.data])
   const markets = useMemo(
@@ -586,7 +681,7 @@ export function SignalsPage() {
         <h1 className="text-3xl font-bold text-cockpit-text">시그널</h1>
       </div>
 
-      <SignalKpiRow signals={signals} />
+      <SignalKpiRow summary={summary} />
 
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_25rem]">
         <div className="flex min-w-0 flex-col gap-3">

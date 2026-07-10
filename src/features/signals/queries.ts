@@ -3,8 +3,22 @@ import { useQuery, type UseQueryResult } from '@tanstack/react-query'
 import { apiGet } from '@/shared/api/client'
 import { parseDecimal } from '@/shared/lib/format'
 
-import { adaptSignal, adaptSignalDetail, type Signal } from './adapters'
-import type { PriceSeriesDto, SignalDetailDto, SignalDto } from './dto'
+import {
+  adaptChangeTimelineItem,
+  adaptSignal,
+  adaptSignalDetail,
+  adaptSignalSummary,
+  type Signal,
+  type SignalChangeItem,
+  type SignalSummary,
+} from './adapters'
+import type {
+  PriceSeriesDto,
+  SignalChangeTimelineItemDto,
+  SignalDetailDto,
+  SignalDto,
+  SignalSummaryDto,
+} from './dto'
 
 export function useSignalSparkline(
   symbol: string | null,
@@ -27,17 +41,45 @@ export function useSignalSparkline(
   })
 }
 
-export function useSignals(assetId?: number): UseQueryResult<Signal[]> {
+export function useSignals(
+  assetId?: number,
+  view: 'all' | 'current' = 'all',
+): UseQueryResult<Signal[]> {
   return useQuery<Signal[]>({
-    queryKey: ['signals', assetId ?? 'all'],
+    queryKey: ['signals', assetId ?? 'all', view],
     queryFn: async () => {
-      const query =
-        assetId === undefined
-          ? '?expand=asset'
-          : `?asset_id=${assetId}&expand=asset`
+      const assetFilter = assetId === undefined ? '' : `asset_id=${assetId}&`
+      const viewFilter = view === 'current' ? 'view=current&' : ''
+      const query = `?${assetFilter}${viewFilter}expand=asset`
       const { data } = await apiGet<SignalDto[]>(`/signals${query}`)
 
       return data.map((signal) => adaptSignal(signal))
+    },
+  })
+}
+
+export function useSignalSummary(): UseQueryResult<SignalSummary> {
+  return useQuery<SignalSummary>({
+    queryKey: ['signals', 'summary'],
+    queryFn: async () => {
+      const { data } = await apiGet<SignalSummaryDto>('/signals/summary')
+
+      return adaptSignalSummary(data)
+    },
+  })
+}
+
+export function useSignalChanges(
+  limit = 8,
+): UseQueryResult<SignalChangeItem[]> {
+  return useQuery<SignalChangeItem[]>({
+    queryKey: ['signals', 'changes', limit],
+    queryFn: async () => {
+      const { data } = await apiGet<SignalChangeTimelineItemDto[]>(
+        `/signals/changes?limit=${limit}`,
+      )
+
+      return data.map(adaptChangeTimelineItem)
     },
   })
 }
