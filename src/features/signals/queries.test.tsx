@@ -5,7 +5,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { apiGet } from '@/shared/api/client'
 
-import { useSignalSparkline, useSignals } from './queries'
+import {
+  useSignalChanges,
+  useSignalSparkline,
+  useSignalSummary,
+  useSignals,
+} from './queries'
 
 vi.mock('@/shared/api/client', () => ({
   apiGet: vi.fn(),
@@ -67,6 +72,83 @@ describe('signals queries', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
     expect(apiGet).toHaveBeenCalledWith('/signals?asset_id=11&expand=asset')
+  })
+
+  it('includes view=current in the request and query key', async () => {
+    const queryClient = createTestQueryClient()
+    const { result } = renderHook(() => useSignals(undefined, 'current'), {
+      wrapper: wrapperFor(queryClient),
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(apiGet).toHaveBeenCalledWith('/signals?view=current&expand=asset')
+    expect(
+      queryClient.getQueryState(['signals', 'all', 'current']),
+    ).toBeDefined()
+  })
+
+  it('loads and adapts the signal summary', async () => {
+    vi.mocked(apiGet).mockResolvedValueOnce({
+      data: {
+        total: 4,
+        by_category: { WATCH: 2, RISK: 1, BUY: 1 },
+        delta_by_category: { WATCH: 0, RISK: 1, BUY: -1 },
+      },
+      meta: undefined,
+    })
+    const queryClient = createTestQueryClient()
+    const { result } = renderHook(() => useSignalSummary(), {
+      wrapper: wrapperFor(queryClient),
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(apiGet).toHaveBeenCalledWith('/signals/summary')
+    expect(result.current.data).toEqual({
+      total: 4,
+      byCategory: { WATCH: 2, RISK: 1, BUY: 1, RESEARCH: 0 },
+      deltaByCategory: { WATCH: 0, RISK: 1, BUY: -1, RESEARCH: 0 },
+    })
+  })
+
+  it('loads and adapts the bounded signal change timeline', async () => {
+    vi.mocked(apiGet).mockResolvedValueOnce({
+      data: [
+        {
+          asset: { symbol: 'NVDA', name: 'NVIDIA Corp.', market: 'NASDAQ' },
+          snapshot_date: '2026-05-24',
+          captured_at: '2026-05-24T00:00:00.000Z',
+          change: {
+            direction: 'NEW',
+            score_delta: null,
+            previous_type: null,
+            previous_captured_at: null,
+          },
+          dominant: {
+            signal_id: 7,
+            signal_type: 'BUY_CANDIDATE',
+            score: 86,
+          },
+        },
+      ],
+      meta: undefined,
+    })
+    const queryClient = createTestQueryClient()
+    const { result } = renderHook(() => useSignalChanges(3), {
+      wrapper: wrapperFor(queryClient),
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(apiGet).toHaveBeenCalledWith('/signals/changes?limit=3')
+    expect(result.current.data?.[0]).toMatchObject({
+      symbol: 'NVDA',
+      snapshotDate: '2026-05-24',
+      change: { direction: 'NEW', directionLabel: '신규' },
+      dominantType: 'BUY_CANDIDATE',
+      dominantScore: 86,
+    })
   })
 
   it('loads a parsed signal sparkline from price series bars', async () => {

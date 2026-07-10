@@ -23,6 +23,15 @@ const signalRows = [
     score: 86,
     riskLevel: '중간',
     reason: 'Data center demand remains above the prior quarter run rate.',
+    keyPoints: [
+      'AI accelerator demand remains strong.',
+      'Gross margin guidance improved.',
+    ],
+    change: {
+      direction: 'ESCALATED',
+      directionLabel: '점수 상승',
+      scoreDelta: 4,
+    },
     evidence: 'Guidance raised.',
     createdAt: '2026. 5. 24. 오전 9:00',
     expiresAt: '2026. 6. 24. 오전 9:00',
@@ -38,6 +47,8 @@ const signalRows = [
     score: 92,
     riskLevel: '높음',
     reason: 'Delivery expectations declined.',
+    keyPoints: [],
+    change: null,
     evidence: null,
     createdAt: '2026. 5. 23. 오전 9:00',
     expiresAt: '2026. 6. 23. 오전 9:00',
@@ -53,6 +64,12 @@ const signalRows = [
     score: 72,
     riskLevel: '낮음',
     reason: 'Valuation remains inside the target band.',
+    keyPoints: [],
+    change: {
+      direction: 'DEESCALATED',
+      directionLabel: '점수 하락',
+      scoreDelta: -3,
+    },
     evidence: null,
     createdAt: '2026. 5. 22. 오전 9:00',
     expiresAt: '2026. 6. 22. 오전 9:00',
@@ -68,6 +85,12 @@ const signalRows = [
     score: 61,
     riskLevel: '높음',
     reason: 'Trend support needs review.',
+    keyPoints: [],
+    change: {
+      direction: 'CHANGED',
+      directionLabel: '유형 변경',
+      scoreDelta: 0,
+    },
     evidence: null,
     createdAt: '2026. 5. 21. 오전 9:00',
     expiresAt: '2026. 6. 21. 오전 9:00',
@@ -83,6 +106,12 @@ const signalRows = [
     score: 55,
     riskLevel: '중간',
     reason: 'Margins need additional review.',
+    keyPoints: [],
+    change: {
+      direction: 'NEW',
+      directionLabel: '신규',
+      scoreDelta: null,
+    },
     evidence: null,
     createdAt: '2026. 5. 20. 오전 9:00',
     expiresAt: '2026. 6. 20. 오전 9:00',
@@ -98,6 +127,12 @@ const signalRows = [
     score: 35,
     riskLevel: '중간',
     reason: 'Momentum looks extended.',
+    keyPoints: [],
+    change: {
+      direction: 'UNCHANGED',
+      directionLabel: '변동 없음',
+      scoreDelta: 0,
+    },
     evidence: null,
     createdAt: '2026. 5. 19. 오전 9:00',
     expiresAt: '2026. 6. 19. 오전 9:00',
@@ -113,6 +148,8 @@ const signalRows = [
     score: 20,
     riskLevel: '낮음',
     reason: 'Long-term growth warrants review.',
+    keyPoints: [],
+    change: null,
     evidence: null,
     createdAt: '2026. 5. 18. 오전 9:00',
     expiresAt: '2026. 6. 18. 오전 9:00',
@@ -133,6 +170,63 @@ const signalSparklineStates = vi.hoisted(
     >(),
 )
 
+const summaryData = {
+  total: 7,
+  byCategory: { WATCH: 1, RISK: 2, BUY: 2, RESEARCH: 2 },
+  deltaByCategory: { WATCH: 0, RISK: 1, BUY: -1, RESEARCH: 2 },
+}
+
+const changeRows = [
+  {
+    symbol: 'NVDA',
+    companyName: 'NVIDIA Corp.',
+    market: 'NASDAQ',
+    snapshotDate: '2026-05-24',
+    capturedAt: '2026-05-24T00:00:00.000Z',
+    change: {
+      direction: 'NEW',
+      directionLabel: '신규',
+      scoreDelta: null,
+    },
+    dominantType: 'BUY_CANDIDATE',
+    dominantScore: 86,
+  },
+  {
+    symbol: 'TSLA',
+    companyName: 'Tesla Inc.',
+    market: 'NASDAQ',
+    snapshotDate: '2026-05-23',
+    capturedAt: '2026-05-23T00:00:00.000Z',
+    change: {
+      direction: 'CLEARED',
+      directionLabel: '해소',
+      scoreDelta: null,
+    },
+    dominantType: null,
+    dominantScore: null,
+  },
+]
+
+let summaryQueryState: {
+  data: typeof summaryData | undefined
+  isError: boolean
+  isLoading: boolean
+} = {
+  data: summaryData,
+  isError: false,
+  isLoading: false,
+}
+
+let changesQueryState: {
+  data: typeof changeRows | undefined
+  isError: boolean
+  isLoading: boolean
+} = {
+  data: changeRows,
+  isError: false,
+  isLoading: false,
+}
+
 vi.mock('@/features/market-indices/queries', () => ({
   useMarketIndices: () => ({
     data: { indices: [], referenceAt: null },
@@ -151,6 +245,8 @@ vi.mock('@/features/signals/queries', () => ({
     isLoading: false,
     refetch: vi.fn(),
   }),
+  useSignalSummary: () => summaryQueryState,
+  useSignalChanges: () => changesQueryState,
   useSignalSparkline: (symbol: string | null, market: string | null) =>
     signalSparklineStates.get(`${symbol ?? 'null'}:${market ?? 'null'}`) ?? {
       data: [],
@@ -164,6 +260,16 @@ vi.mock('@/features/signals/queries', () => ({
 beforeEach(() => {
   setupAuthenticatedUser()
   signalSparklineStates.clear()
+  summaryQueryState = {
+    data: summaryData,
+    isError: false,
+    isLoading: false,
+  }
+  changesQueryState = {
+    data: changeRows,
+    isError: false,
+    isLoading: false,
+  }
 })
 
 afterEach(() => {
@@ -194,7 +300,7 @@ function getSignalCard(symbol: string, signalType: string) {
 }
 
 describe('SignalsPage', () => {
-  it('derives the total, category counts, and ratios from signal rows', async () => {
+  it('renders counts, ratios, and deltas from the summary response', async () => {
     renderSignals()
 
     await screen.findByRole('article', {
@@ -210,6 +316,9 @@ describe('SignalsPage', () => {
     expect(
       within(screen.getByLabelText('관망 유지 KPI')).getByText(/전체 14.3%/),
     ).toBeVisible()
+    expect(
+      within(screen.getByLabelText('관망 유지 KPI')).getByText(/전일 대비 ±0/),
+    ).toBeVisible()
 
     for (const label of [
       '리스크 증가 KPI',
@@ -221,6 +330,55 @@ describe('SignalsPage', () => {
         within(screen.getByLabelText(label)).getByText(/전체 28.6%/),
       ).toBeVisible()
     }
+    expect(
+      within(screen.getByLabelText('리스크 증가 KPI')).getByText(
+        /전일 대비 \+1/,
+      ),
+    ).toBeVisible()
+    expect(
+      within(screen.getByLabelText('매수 검토 가능 KPI')).getByText(
+        /전일 대비 -1/,
+      ),
+    ).toBeVisible()
+    expect(
+      within(screen.getByLabelText('총 시그널 KPI')).getByText(/전일 대비 \+2/),
+    ).toBeVisible()
+  })
+
+  it('shows dashes while the summary is loading', async () => {
+    summaryQueryState = { data: undefined, isError: false, isLoading: true }
+    renderSignals()
+
+    await screen.findByRole('article', {
+      name: 'NVDA BUY_CANDIDATE 시그널',
+    })
+
+    expect(
+      within(screen.getByLabelText('총 시그널 KPI')).getByText('전일 대비 —'),
+    ).toBeVisible()
+    expect(
+      within(screen.getByLabelText('관망 유지 KPI')).getByText(
+        '전체 — · 전일 대비 —',
+      ),
+    ).toBeVisible()
+  })
+
+  it('shows dashes when the summary request fails with cached data', async () => {
+    summaryQueryState = { data: summaryData, isError: true, isLoading: false }
+    renderSignals()
+
+    await screen.findByRole('article', {
+      name: 'NVDA BUY_CANDIDATE 시그널',
+    })
+
+    expect(
+      within(screen.getByLabelText('총 시그널 KPI')).getByText('전일 대비 —'),
+    ).toBeVisible()
+    expect(
+      within(screen.getByLabelText('리스크 증가 KPI')).getByText(
+        '전체 — · 전일 대비 —',
+      ),
+    ).toBeVisible()
   })
 
   it('filters cards by category', async () => {
@@ -284,7 +442,7 @@ describe('SignalsPage', () => {
     expect(screen.getAllByRole('article')).toHaveLength(7)
   })
 
-  it('renders category badge, confidence meter, reason, and three actions', async () => {
+  it('renders key-point bullets without the reason and keeps three actions', async () => {
     renderSignals()
     const card = await screen.findByRole('article', {
       name: 'NVDA BUY_CANDIDATE 시그널',
@@ -297,10 +455,16 @@ describe('SignalsPage', () => {
     expect(within(card).getByText('신뢰도')).toBeVisible()
     expect(within(card).getByText('86%')).toBeVisible()
     expect(
-      within(card).getByText(
+      within(card).getByText('AI accelerator demand remains strong.'),
+    ).toBeVisible()
+    expect(
+      within(card).getByText('Gross margin guidance improved.'),
+    ).toBeVisible()
+    expect(
+      within(card).queryByText(
         'Data center demand remains above the prior quarter run rate.',
       ),
-    ).toBeVisible()
+    ).not.toBeInTheDocument()
     expect(within(card).queryByText('Guidance raised.')).not.toBeInTheDocument()
     expect(
       within(card).getByRole('button', { name: '근거 보기' }),
@@ -311,6 +475,20 @@ describe('SignalsPage', () => {
     expect(
       within(card).getByRole('button', { name: '알림 설정 (준비 중)' }),
     ).toBeDisabled()
+  })
+
+  it('falls back to the reason when key points are empty', async () => {
+    renderSignals()
+    const card = await screen.findByRole('article', {
+      name: 'TSLA RISK_ALERT 시그널',
+    })
+
+    expect(
+      within(card).getByText('Delivery expectations declined.'),
+    ).toBeVisible()
+    expect(
+      within(card).queryByText('AI accelerator demand remains strong.'),
+    ).not.toBeInTheDocument()
   })
 
   it('calculates positive and negative one-month changes', async () => {
@@ -400,16 +578,43 @@ describe('SignalsPage', () => {
     expect(rows[1]).toHaveAccessibleName('2위 NVDA')
     expect(within(rows[0]).getByText('TSLA')).toBeVisible()
     expect(within(rows[0]).getByText('리스크 증가')).toBeVisible()
+    expect(within(rows[0]).getByText('—')).toBeVisible()
+    expect(within(rows[1]).getByText('▲ +4')).toBeVisible()
+    expect(within(rows[2]).getByText('▼ -3')).toBeVisible()
     expect(within(rail).queryByText('META')).not.toBeInTheDocument()
   })
 
-  it('renders the recent changes placeholder', async () => {
+  it('renders recent change rows with links, labels, badges, and dates', async () => {
     renderSignals()
     await screen.findByRole('article', {
       name: 'NVDA BUY_CANDIDATE 시그널',
     })
 
     const recentChanges = screen.getByLabelText('최근 변경')
-    expect(within(recentChanges).getByText('준비 중')).toBeVisible()
+    expect(
+      within(recentChanges).getByRole('link', { name: 'NVDA' }),
+    ).toHaveAttribute('href', '/research/NVDA')
+    expect(within(recentChanges).getByText('신규')).toBeVisible()
+    expect(within(recentChanges).getByText('매수 검토 가능')).toBeVisible()
+    expect(within(recentChanges).getByText('2026-05-24')).toBeVisible()
+    expect(
+      within(recentChanges).getByRole('link', { name: 'TSLA' }),
+    ).toHaveAttribute('href', '/research/TSLA')
+    expect(within(recentChanges).getByText('해소')).toBeVisible()
+    expect(within(recentChanges).getByText('2026-05-23')).toBeVisible()
+  })
+
+  it('renders the recent changes empty state', async () => {
+    changesQueryState = { data: [], isError: false, isLoading: false }
+    renderSignals()
+    await screen.findByRole('article', {
+      name: 'NVDA BUY_CANDIDATE 시그널',
+    })
+
+    expect(
+      within(screen.getByLabelText('최근 변경')).getByText(
+        '아직 변경 이력이 없습니다.',
+      ),
+    ).toBeVisible()
   })
 })
