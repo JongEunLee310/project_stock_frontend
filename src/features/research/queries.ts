@@ -1,6 +1,7 @@
 import { useQuery, type UseQueryResult } from '@tanstack/react-query'
 
 import { apiGet } from '@/shared/api/client'
+import { ApiError } from '@/shared/api/envelope'
 import { parseDecimal } from '@/shared/lib/format'
 
 import { adaptResearchDetail, type ResearchView } from './adapters'
@@ -33,6 +34,21 @@ async function fetchAssetIdBySymbol(symbol: string) {
   }
 
   return asset.id
+}
+
+async function fetchLatestThesis(assetId: number): Promise<ThesisDto | null> {
+  try {
+    const { data } = await apiGet<ThesisDto | null>(
+      `/theses/latest?asset_id=${assetId}`,
+    )
+    return data
+  } catch (error) {
+    if (error instanceof ApiError && error.code === 'THESIS_NOT_FOUND') {
+      return null
+    }
+
+    throw error
+  }
 }
 
 export function useAssetIdBySymbol(symbol: string): UseQueryResult<number> {
@@ -83,9 +99,7 @@ export function useResearchView(symbol: string): UseQueryResult<ResearchView> {
         apiGet<ReportDto[]>(`/reports?asset_id=${assetId}`).then(
           (response) => response.data,
         ),
-        apiGet<ThesisDto | null>(`/theses/latest?asset_id=${assetId}`).then(
-          (response) => response.data,
-        ),
+        fetchLatestThesis(assetId),
       ])
 
       return adaptResearchDetail(detail, summary, checklist, reports, thesis)
