@@ -443,8 +443,7 @@ export function ResearchPage() {
   const displaySymbol = getResearchSymbol(symbol)
   const researchQuery = useResearchView(displaySymbol)
   const research = researchQuery.data
-  const checklistMutation = useSaveBuyChecklist(research?.assetId ?? 0)
-  const memoMutation = useSaveBuyChecklist(research?.assetId ?? 0)
+  const saveChecklistMutation = useSaveBuyChecklist(research?.assetId ?? 0)
   const watchlistAssetsQuery = useWatchlistAssets(1, 100)
   const addWatchlistAsset = useAddAssetToFirstWatchlist()
   const removeWatchlistItem = useRemoveWatchlistItem()
@@ -457,6 +456,7 @@ export function ResearchPage() {
     'idle' | 'saving' | 'saved' | 'error'
   >('idle')
   const initializedAssetIdRef = useRef<number | null>(null)
+  const checkedItemKeysRef = useRef<string[]>([])
 
   useEffect(() => {
     if (!research) return
@@ -493,43 +493,54 @@ export function ResearchPage() {
   )
   const checkedItemKeys = useMemo(
     () =>
-      checklistMutation.variables && checklistMutation.isPending
-        ? checklistMutation.variables.checked_item_keys
+      saveChecklistMutation.variables && saveChecklistMutation.isPending
+        ? saveChecklistMutation.variables.checked_item_keys
         : serverCheckedItemKeys,
     [
-      checklistMutation.isPending,
-      checklistMutation.variables,
+      saveChecklistMutation.isPending,
+      saveChecklistMutation.variables,
       serverCheckedItemKeys,
     ],
   )
+  useEffect(() => {
+    checkedItemKeysRef.current = checkedItemKeys
+  }, [checkedItemKeys])
+
   const memoValue =
     research && memoDraft?.assetId === research.assetId
       ? memoDraft.value
       : (research?.checklistMemo ?? '')
-  const saveMemo = memoMutation.mutate
+  const saveMemo = saveChecklistMutation.mutateAsync
+  const activeAssetId = research?.assetId
 
   useEffect(() => {
-    if (!research || !memoDraft?.isDirty) return
+    if (
+      !activeAssetId ||
+      memoDraft?.assetId !== activeAssetId ||
+      !memoDraft.isDirty
+    ) {
+      return
+    }
 
     const valueToSave = memoDraft.value
     const timeoutId = window.setTimeout(() => {
       setMemoDraft((current) =>
-        current?.assetId === research.assetId && current.value === valueToSave
+        current?.assetId === activeAssetId && current.value === valueToSave
           ? { ...current, isDirty: false }
           : current,
       )
       setMemoSaveStatus('saving')
-      saveMemo(
-        { memo: valueToSave, checked_item_keys: checkedItemKeys },
-        {
-          onSuccess: () => setMemoSaveStatus('saved'),
-          onError: () => setMemoSaveStatus('error'),
-        },
+      void saveMemo({
+        memo: valueToSave,
+        checked_item_keys: checkedItemKeysRef.current,
+      }).then(
+        () => setMemoSaveStatus('saved'),
+        () => setMemoSaveStatus('error'),
       )
     }, MEMO_SAVE_DELAY_MS)
 
     return () => window.clearTimeout(timeoutId)
-  }, [checkedItemKeys, memoDraft, research, saveMemo])
+  }, [activeAssetId, memoDraft, saveMemo])
 
   if (researchQuery.isLoading) {
     return (
@@ -579,7 +590,8 @@ export function ResearchPage() {
       ? checkedItemKeys.filter((itemId) => itemId !== id)
       : [...checkedItemKeys, id]
 
-    checklistMutation.mutate({
+    checkedItemKeysRef.current = nextCheckedItemKeys
+    saveChecklistMutation.mutate({
       memo: memoValue,
       checked_item_keys: nextCheckedItemKeys,
     })

@@ -149,6 +149,35 @@ describe('research adapters', () => {
     expect(view).not.toHaveProperty('priceSparkline')
   })
 
+  it.each([
+    ['null', { ...checklist, checked_item_keys: null }],
+    [
+      'missing',
+      {
+        memo: checklist.memo,
+        items: checklist.items,
+      },
+    ],
+  ])(
+    'falls back to item checked values when checked_item_keys is %s',
+    (_case, checklistWithoutCheckedKeys) => {
+      const view = adaptResearchDetail(
+        detail,
+        summary,
+        checklistWithoutCheckedKeys,
+        [],
+        null,
+      )
+
+      expect(
+        view.buyChecklist.map(({ id, checked }) => ({ id, checked })),
+      ).toEqual([
+        { id: 'valuation', checked: false },
+        { id: 'portfolio_concentration', checked: true },
+      ])
+    },
+  )
+
   it('maps missing market to null', () => {
     const view = adaptResearchDetail(
       { ...detail, market: undefined },

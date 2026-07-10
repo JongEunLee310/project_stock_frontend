@@ -183,15 +183,67 @@ vi.mock('@/features/research/queries', async () => {
   const actual = await vi.importActual<
     typeof import('@/features/research/queries')
   >('@/features/research/queries')
+  const React = await vi.importActual<typeof import('react')>('react')
 
   return {
     SymbolNotFoundError: actual.SymbolNotFoundError,
     useResearchPriceSeries: mockUseResearchPriceSeries,
-    useSaveBuyChecklist: () => ({
-      mutate: mockSaveBuyChecklist,
-      variables: undefined,
-      isPending: false,
-    }),
+    useSaveBuyChecklist: () => {
+      const [mutationState, setMutationState] = React.useState<{
+        variables: { memo: string | null; checked_item_keys: string[] } | null
+        isPending: boolean
+      }>({ variables: null, isPending: false })
+      const mutate = React.useCallback(
+        (
+          body: { memo: string | null; checked_item_keys: string[] },
+          options?: {
+            onSuccess?: () => void
+            onError?: () => void
+          },
+        ) => {
+          setMutationState({ variables: body, isPending: true })
+          void Promise.resolve(mockSaveBuyChecklist(body)).then(
+            () => {
+              setMutationState((current) => ({
+                ...current,
+                isPending: false,
+              }))
+              options?.onSuccess?.()
+            },
+            () => {
+              setMutationState((current) => ({
+                ...current,
+                isPending: false,
+              }))
+              options?.onError?.()
+            },
+          )
+        },
+        [],
+      )
+      const mutateAsync = React.useCallback(
+        async (body: { memo: string | null; checked_item_keys: string[] }) => {
+          setMutationState({ variables: body, isPending: true })
+
+          try {
+            return await mockSaveBuyChecklist(body)
+          } finally {
+            setMutationState((current) => ({
+              ...current,
+              isPending: false,
+            }))
+          }
+        },
+        [],
+      )
+
+      return {
+        mutate,
+        mutateAsync,
+        variables: mutationState.variables ?? undefined,
+        isPending: mutationState.isPending,
+      }
+    },
     useResearchView: (symbol: string) => {
       const data = researchBySymbol[symbol as keyof typeof researchBySymbol]
 
@@ -237,9 +289,7 @@ beforeEach(() => {
     isLoading: false,
     refetch: vi.fn(),
   })
-  mockSaveBuyChecklist.mockImplementation((_body, options) =>
-    options?.onSuccess?.(),
-  )
+  mockSaveBuyChecklist.mockResolvedValue(undefined)
 })
 
 afterEach(() => {
@@ -388,7 +438,7 @@ describe('ResearchPage', () => {
     const checkbox = await screen.findByRole('checkbox', {
       name: /Valuation is acceptable/,
     })
-    fireEvent.click(checkbox)
+    await act(async () => fireEvent.click(checkbox))
 
     expect(mockSaveBuyChecklist).toHaveBeenCalledWith({
       memo: 'Server memo',
@@ -406,31 +456,49 @@ describe('ResearchPage', () => {
     act(() => vi.advanceTimersByTime(999))
     expect(mockSaveBuyChecklist).not.toHaveBeenCalled()
 
-    act(() => vi.advanceTimersByTime(1))
+    await act(async () => vi.advanceTimersByTime(1))
 
-    expect(mockSaveBuyChecklist).toHaveBeenCalledWith(
-      {
-        memo: 'Wait for a better entry.',
-        checked_item_keys: ['portfolio_concentration'],
-      },
-      expect.objectContaining({
-        onSuccess: expect.any(Function),
-        onError: expect.any(Function),
-      }),
-    )
+    expect(mockSaveBuyChecklist).toHaveBeenCalledWith({
+      memo: 'Wait for a better entry.',
+      checked_item_keys: ['portfolio_concentration'],
+    })
     expect(screen.getByText('자동 저장됨')).toBeVisible()
   })
 
+  it('keeps the memo debounce deadline while including a toggled checklist item', async () => {
+    renderResearch()
+    const memo = await screen.findByLabelText('내 메모')
+    const checkbox = screen.getByRole('checkbox', {
+      name: /Valuation is acceptable/,
+    })
+    vi.useFakeTimers()
+
+    fireEvent.change(memo, { target: { value: 'Keep the original deadline.' } })
+    act(() => vi.advanceTimersByTime(500))
+    mockSaveBuyChecklist.mockReturnValueOnce(new Promise(() => undefined))
+    fireEvent.click(checkbox)
+
+    expect(checkbox).toBeChecked()
+    act(() => vi.advanceTimersByTime(499))
+    expect(mockSaveBuyChecklist).toHaveBeenCalledTimes(1)
+
+    await act(async () => vi.advanceTimersByTime(1))
+
+    expect(mockSaveBuyChecklist).toHaveBeenCalledTimes(2)
+    expect(mockSaveBuyChecklist).toHaveBeenLastCalledWith({
+      memo: 'Keep the original deadline.',
+      checked_item_keys: ['portfolio_concentration', 'valuation'],
+    })
+  })
+
   it('shows a memo save failure', async () => {
-    mockSaveBuyChecklist.mockImplementation((_body, options) =>
-      options?.onError?.(),
-    )
+    mockSaveBuyChecklist.mockRejectedValueOnce(new Error('save failed'))
     renderResearch()
     const memo = await screen.findByLabelText('내 메모')
     vi.useFakeTimers()
 
     fireEvent.change(memo, { target: { value: 'Retry this memo.' } })
-    act(() => vi.advanceTimersByTime(1_000))
+    await act(async () => vi.advanceTimersByTime(1_000))
 
     expect(screen.getByRole('alert')).toHaveTextContent('저장 실패')
   })
