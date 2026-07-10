@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { adaptReport, adaptResearchDetail, adaptThesis } from './adapters'
+import {
+  adaptPriceSeries,
+  adaptReport,
+  adaptResearchDetail,
+  adaptThesis,
+} from './adapters'
 import type {
   AssetDetailDto,
   BuyChecklistDto,
@@ -15,6 +20,11 @@ const detail: AssetDetailDto = {
   name: 'NVIDIA Corp.',
   market: 'NASDAQ',
   sector: 'Technology',
+  price: '142.62',
+  previous_close: '140.11',
+  change: '2.51',
+  change_percent: '1.79145',
+  currency: 'USD',
   market_cap: '2540000000000',
   per: '38.4',
   peg: '',
@@ -43,8 +53,20 @@ const summary: ResearchSummaryDto = {
 }
 
 const checklist: BuyChecklistDto = {
+  memo: 'Wait for the next earnings call.',
+  checked_item_keys: ['valuation'],
   items: [
-    { id: 'entry', label: 'Entry band', description: null, checked: true },
+    {
+      id: 'valuation',
+      label: 'Valuation',
+      description: null,
+      checked: false,
+    },
+    {
+      id: 'portfolio_concentration',
+      label: 'Portfolio concentration',
+      checked: true,
+    },
   ],
 }
 
@@ -78,6 +100,10 @@ describe('research adapters', () => {
       symbol: 'NVDA',
       name: 'NVIDIA Corp.',
       market: 'NASDAQ',
+      price: 142.62,
+      change: 2.51,
+      changePercent: 1.79145,
+      currency: 'USD',
       marketCap: 2540000000000,
       per: 38.4,
       peg: null,
@@ -86,14 +112,16 @@ describe('research adapters', () => {
       targetUpsidePercent: 11.8,
       stance: '매수 후보',
       stanceConfidence: 72,
+      checklistMemo: 'Wait for the next earnings call.',
     })
     expect(view).not.toHaveProperty('priceSparkline')
     expect(view.keyRisks[0].level).toBe('중간')
     expect(view.buyChecklist[0]).toMatchObject({
-      id: 'entry',
+      id: 'valuation',
       description: '',
       checked: true,
     })
+    expect(view.buyChecklist[1].checked).toBe(false)
     expect(view.reports[0].summary).toBeNull()
     expect(view.latestThesis?.title).toBe('Latest thesis')
   })
@@ -116,9 +144,39 @@ describe('research adapters', () => {
     expect(view.stanceConfidence).toBeNull()
     expect(view.keyRisks).toEqual([])
     expect(view.buyChecklist).toEqual([])
+    expect(view.checklistMemo).toBeNull()
     expect(view.latestThesis).toBeNull()
     expect(view).not.toHaveProperty('priceSparkline')
   })
+
+  it.each([
+    ['null', { ...checklist, checked_item_keys: null }],
+    [
+      'missing',
+      {
+        memo: checklist.memo,
+        items: checklist.items,
+      },
+    ],
+  ])(
+    'falls back to item checked values when checked_item_keys is %s',
+    (_case, checklistWithoutCheckedKeys) => {
+      const view = adaptResearchDetail(
+        detail,
+        summary,
+        checklistWithoutCheckedKeys,
+        [],
+        null,
+      )
+
+      expect(
+        view.buyChecklist.map(({ id, checked }) => ({ id, checked })),
+      ).toEqual([
+        { id: 'valuation', checked: false },
+        { id: 'portfolio_concentration', checked: true },
+      ])
+    },
+  )
 
   it('maps missing market to null', () => {
     const view = adaptResearchDetail(
@@ -130,6 +188,52 @@ describe('research adapters', () => {
     )
 
     expect(view.market).toBeNull()
+  })
+
+  it('maps nullable price fields to null', () => {
+    const view = adaptResearchDetail(
+      {
+        ...detail,
+        price: null,
+        change: undefined,
+        change_percent: '',
+        currency: null,
+      },
+      summary,
+      checklist,
+      [],
+      null,
+    )
+
+    expect(view).toMatchObject({
+      price: null,
+      change: null,
+      changePercent: null,
+      currency: null,
+    })
+  })
+
+  it('adapts price closes and metadata while filtering null close values', () => {
+    expect(
+      adaptPriceSeries({
+        currency: 'USD',
+        source: 'polygon',
+        last_updated_at: '2026-07-10T00:00:00Z',
+        bars: [{ close: '101.25' }, { close: null }, { close: '102.50' }],
+      }),
+    ).toEqual({
+      closes: [101.25, 102.5],
+      currency: 'USD',
+      source: 'polygon',
+      lastUpdatedAt: '2026-07-10T00:00:00Z',
+    })
+
+    expect(adaptPriceSeries({ bars: [] })).toEqual({
+      closes: [],
+      currency: null,
+      source: null,
+      lastUpdatedAt: null,
+    })
   })
 
   it('keeps stance and confidence fallbacks for null or invalid wire values', () => {

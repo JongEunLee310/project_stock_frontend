@@ -7,6 +7,11 @@ export interface AssetLookupDto {
 }
 
 export interface AssetDetailDto extends AssetLookupDto {
+  price?: string | null
+  previous_close?: string | null
+  change?: string | null
+  change_percent?: string | null
+  currency?: string | null
   market_cap?: string | null
   per?: string | null
   peg?: string | null
@@ -33,6 +38,8 @@ export interface ResearchSummaryDto {
 }
 
 export interface BuyChecklistDto {
+  memo?: string | null
+  checked_item_keys?: string[] | null
   items?: Array<{
     id?: string | number
     label: string
@@ -61,5 +68,8 @@ export interface PriceBarDto {
 }
 
 export interface PriceSeriesDto {
+  currency?: string | null
+  source?: string | null
+  last_updated_at?: string | null
   bars: PriceBarDto[]
 }
