@@ -1,8 +1,24 @@
 import { useMemo, useState } from 'react'
+import {
+  FiAlertTriangle,
+  FiBell,
+  FiBookOpen,
+  FiChevronRight,
+  FiEye,
+  FiPauseCircle,
+  FiRefreshCw,
+  FiSearch,
+  FiTrendingUp,
+} from 'react-icons/fi'
 import { Link, useNavigate } from 'react-router-dom'
 
-import { useSignalSparkline, useSignals } from '@/features/signals/queries'
 import type { Signal } from '@/features/signals/adapters'
+import {
+  CATEGORY_META,
+  categoryOf,
+  type SignalCategory,
+} from '@/features/signals/signalCategories'
+import { useSignalSparkline, useSignals } from '@/features/signals/queries'
 import { appRoutePaths } from '@/shared/config/navigation'
 import {
   Badge,
@@ -16,10 +32,22 @@ import {
 } from '@/shared/ui'
 import { classNames } from '@/shared/ui/classNames'
 
-type RiskFilter = 'all' | '낮음' | '중간' | '높음'
-type SortKey = 'score' | 'expiresAt' | 'createdAt'
+type ConfidenceBand = 'all' | 'high' | 'mid' | 'low'
 
-const riskFilters: RiskFilter[] = ['낮음', '중간', '높음']
+interface FilterState {
+  category: SignalCategory | 'all'
+  confidenceBand: ConfidenceBand
+  market: string | 'all'
+  query: string
+}
+
+const categories = Object.keys(CATEGORY_META) as SignalCategory[]
+const initialFilters: FilterState = {
+  category: 'all',
+  confidenceBand: 'all',
+  market: 'all',
+  query: '',
+}
 const selectClassName =
   'min-h-10 rounded-control border border-cockpit-border bg-cockpit-surface px-3 py-2 text-sm text-cockpit-text outline-none transition-colors focus:border-cockpit-accent focus:ring-2 focus:ring-cockpit-accent/30'
 
@@ -27,160 +55,342 @@ function getResearchPath(symbol: string) {
   return appRoutePaths.research.replace(':symbol', symbol)
 }
 
-function sortSignals(signals: Signal[], sortKey: SortKey) {
-  return [...signals].sort((first, second) => {
-    if (sortKey === 'expiresAt') {
-      return second.expiresAt.localeCompare(first.expiresAt)
-    }
-
-    if (sortKey === 'createdAt') {
-      return second.createdAt.localeCompare(first.createdAt)
-    }
-
-    return second.score - first.score
-  })
-}
-
 function normalizeScore(score: number) {
   return Math.min(100, Math.max(0, Math.round(score)))
 }
 
-function SignalSparklineChart({ signal }: { signal: Signal }) {
-  const sparklineQuery = useSignalSparkline(signal.symbol, signal.market)
+function calculateOneMonthChange(prices: number[]): number | null {
+  if (prices.length < 2 || prices[0] === 0) return null
 
-  if (sparklineQuery.isLoading) {
-    return <Skeleton className="h-10 min-w-0 flex-1" />
+  return ((prices.at(-1)! - prices[0]) / prices[0]) * 100
+}
+
+function matchesConfidenceBand(score: number, band: ConfidenceBand) {
+  if (band === 'all') return true
+
+  // Issue #131 assumption finalized: high >= 70, mid 40-69, low < 40.
+  if (band === 'high') return score >= 70
+  if (band === 'mid') return score >= 40 && score < 70
+  return score < 40
+}
+
+function CategoryIcon({ category }: { category: SignalCategory }) {
+  const iconClassName = 'h-4 w-4'
+  const icons = {
+    WATCH: <FiPauseCircle className={iconClassName} />,
+    RISK: <FiAlertTriangle className={iconClassName} />,
+    BUY: <FiTrendingUp className={iconClassName} />,
+    RESEARCH: <FiBookOpen className={iconClassName} />,
   }
 
-  const data = (sparklineQuery.data ?? []).map((value) => ({ value }))
+  return icons[category]
+}
 
-  if (!signal.market || sparklineQuery.isError || data.length === 0) {
-    return (
-      <div className="flex h-10 min-w-0 flex-1 items-center justify-center rounded-control border border-cockpit-border text-xs text-cockpit-text-muted">
-        가격 시계열 대기
-      </div>
-    )
-  }
+function CategoryBadge({ category }: { category: SignalCategory }) {
+  const meta = CATEGORY_META[category]
 
   return (
-    <Sparkline
-      className="h-10 min-w-0 flex-1 text-cockpit-accent"
-      data={data}
-      height={40}
-      color="currentColor"
-      ariaLabel={`${signal.symbol} 시그널 가격 추이`}
-      margin={{ top: 4, right: 0, bottom: 4, left: 0 }}
-      strokeWidth={2.4}
-    />
+    <Badge
+      tone="neutral"
+      className={classNames(
+        'gap-1.5 whitespace-nowrap text-xs',
+        meta.colorToken,
+        meta.borderToken,
+        meta.backgroundToken,
+      )}
+    >
+      <CategoryIcon category={category} />
+      {meta.label}
+    </Badge>
   )
 }
 
-function ScoreRing({ signal }: { signal: Signal }) {
-  const radius = 17
+function ConfidenceRing({
+  score,
+  category,
+  symbol,
+}: {
+  score: number
+  category: SignalCategory | undefined
+  symbol: string
+}) {
+  const radius = 18
   const circumference = 2 * Math.PI * radius
-  const score = normalizeScore(signal.score)
-  const offset = circumference - (score / 100) * circumference
-  const isRisk = signal.riskLevel === '높음'
+  const normalizedScore = normalizeScore(score)
+  const offset = circumference - (normalizedScore / 100) * circumference
+  const colorClassName = category
+    ? CATEGORY_META[category].colorToken
+    : 'text-cockpit-text-muted'
 
   return (
-    <div
-      className="relative grid h-12 w-12 place-items-center"
-      role="meter"
-      aria-label={`${signal.symbol} 점수 ${score}%`}
-      aria-valuemin={0}
-      aria-valuemax={100}
-      aria-valuenow={score}
-    >
-      <svg className="h-12 w-12 -rotate-90" viewBox="0 0 44 44">
-        <circle
-          cx="22"
-          cy="22"
-          r={radius}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="4"
-          className="text-cockpit-border"
-        />
-        <circle
-          cx="22"
-          cy="22"
-          r={radius}
-          fill="none"
-          stroke="currentColor"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          strokeLinecap="round"
-          strokeWidth="4"
-          className={isRisk ? 'text-red-400' : 'text-emerald-400'}
-        />
-      </svg>
-      <span className="absolute text-xs font-bold text-cockpit-text">
-        {score}%
+    <div className="flex shrink-0 flex-col items-center gap-1">
+      <span className="text-[0.65rem] font-semibold text-cockpit-text-muted">
+        신뢰도
       </span>
+      <div
+        className="relative grid h-14 w-14 place-items-center"
+        role="meter"
+        aria-label={`${symbol} 신뢰도 ${normalizedScore}%`}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={normalizedScore}
+      >
+        <svg className="h-14 w-14 -rotate-90" viewBox="0 0 48 48">
+          <circle
+            cx="24"
+            cy="24"
+            r={radius}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="4"
+            className="text-cockpit-border"
+          />
+          <circle
+            cx="24"
+            cy="24"
+            r={radius}
+            fill="none"
+            stroke="currentColor"
+            strokeDasharray={circumference}
+            strokeDashoffset={offset}
+            strokeLinecap="round"
+            strokeWidth="4"
+            className={colorClassName}
+          />
+        </svg>
+        <span className="absolute text-xs font-bold text-cockpit-text">
+          {normalizedScore}%
+        </span>
+      </div>
     </div>
   )
 }
 
-function SummaryCards({ signals }: { signals: Signal[] }) {
-  const countsByRisk = useMemo(
-    () =>
-      signals.reduce(
-        (counts, signal) => ({
-          ...counts,
-          [signal.riskLevel]: (counts[signal.riskLevel] ?? 0) + 1,
-        }),
-        {} as Record<string, number>,
-      ),
-    [signals],
+function SignalKpiRow({ signals }: { signals: Signal[] }) {
+  const counts = signals.reduce<Record<SignalCategory, number>>(
+    (result, signal) => {
+      const category = categoryOf(signal.signalType)
+      return category ? { ...result, [category]: result[category] + 1 } : result
+    },
+    { WATCH: 0, RISK: 0, BUY: 0, RESEARCH: 0 },
   )
 
   return (
-    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-      <Card className="min-h-28 border-cockpit-border bg-cockpit-surface/80">
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+      <Card
+        aria-label="총 시그널 KPI"
+        className="min-h-32 border-cockpit-border bg-cockpit-surface/80"
+      >
         <span className="text-sm font-semibold text-sky-300">총 시그널</span>
         <strong className="mt-2 block text-3xl font-bold text-cockpit-text">
           {signals.length}
           <span className="ml-1 text-sm font-medium">건</span>
         </strong>
-        <span className="mt-2 block text-sm text-cockpit-text-muted">
-          API 로드 기준
+        <span className="mt-2 block text-xs text-cockpit-text-muted">
+          전일 대비 —
         </span>
       </Card>
-      {riskFilters.map((riskLevel) => (
-        <Card
-          key={riskLevel}
-          className="min-h-28 border-cockpit-border bg-cockpit-surface/80"
+      {categories.map((category) => {
+        const meta = CATEGORY_META[category]
+        const ratio =
+          signals.length === 0
+            ? '—'
+            : `${((counts[category] / signals.length) * 100).toFixed(1)}%`
+
+        return (
+          <Card
+            key={category}
+            aria-label={`${meta.label} KPI`}
+            className={classNames(
+              'min-h-32 border-cockpit-border bg-cockpit-surface/80',
+              meta.colorToken,
+            )}
+          >
+            <span className="flex items-center gap-2 text-sm font-semibold">
+              <CategoryIcon category={category} />
+              {meta.label}
+            </span>
+            <strong className="mt-2 block text-3xl font-bold text-cockpit-text">
+              {counts[category]}
+              <span className="ml-1 text-sm font-medium">건</span>
+            </strong>
+            <span className="mt-2 block text-xs text-cockpit-text-muted">
+              전체 {ratio} · 전일 대비 —
+            </span>
+          </Card>
+        )
+      })}
+    </div>
+  )
+}
+
+function SignalFilters({
+  filters,
+  markets,
+  onChange,
+  onReset,
+}: {
+  filters: FilterState
+  markets: string[]
+  onChange: (filters: FilterState) => void
+  onReset: () => void
+}) {
+  return (
+    <Card className="border-cockpit-border bg-cockpit-surface/80 p-3">
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[repeat(3,minmax(8rem,1fr))_minmax(14rem,1.4fr)_auto] xl:items-end">
+        <label className="flex flex-col gap-2 text-sm font-semibold text-cockpit-text">
+          신호 유형
+          <select
+            className={selectClassName}
+            value={filters.category}
+            onChange={(event) =>
+              onChange({
+                ...filters,
+                category: event.target.value as FilterState['category'],
+              })
+            }
+          >
+            <option value="all">전체</option>
+            {categories.map((category) => (
+              <option key={category} value={category}>
+                {CATEGORY_META[category].label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-2 text-sm font-semibold text-cockpit-text">
+          신뢰도
+          <select
+            className={selectClassName}
+            value={filters.confidenceBand}
+            onChange={(event) =>
+              onChange({
+                ...filters,
+                confidenceBand: event.target.value as ConfidenceBand,
+              })
+            }
+          >
+            <option value="all">전체</option>
+            <option value="high">높음 (70 이상)</option>
+            <option value="mid">보통 (40–69)</option>
+            <option value="low">낮음 (40 미만)</option>
+          </select>
+        </label>
+        <label className="flex flex-col gap-2 text-sm font-semibold text-cockpit-text">
+          시장
+          <select
+            className={selectClassName}
+            value={filters.market}
+            onChange={(event) =>
+              onChange({ ...filters, market: event.target.value })
+            }
+          >
+            <option value="all">전체</option>
+            {markets.map((market) => (
+              <option key={market} value={market}>
+                {market}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-2 text-sm font-semibold text-cockpit-text">
+          종목 검색
+          <span className="relative">
+            <FiSearch
+              aria-hidden="true"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-cockpit-text-muted"
+            />
+            <Input
+              className="w-full border-cockpit-border bg-cockpit-surface pl-9 text-cockpit-text placeholder:text-cockpit-text-muted"
+              type="search"
+              value={filters.query}
+              placeholder="심볼 또는 회사명"
+              onChange={(event) =>
+                onChange({ ...filters, query: event.target.value })
+              }
+            />
+          </span>
+        </label>
+        <Button
+          type="button"
+          variant="ghost"
+          aria-label="필터 초기화"
+          className="gap-2 border-cockpit-border text-cockpit-text-muted"
+          onClick={onReset}
         >
-          <span className="text-sm font-semibold text-cockpit-text">
-            {riskLevel} 리스크
-          </span>
-          <strong className="mt-2 block text-3xl font-bold text-cockpit-text">
-            {countsByRisk[riskLevel] ?? 0}
-            <span className="ml-1 text-sm font-medium">건</span>
-          </strong>
-          <span className="mt-2 block text-sm text-cockpit-text-muted">
-            전체 기준
-          </span>
-        </Card>
-      ))}
+          <FiRefreshCw aria-hidden="true" />
+          초기화
+        </Button>
+      </div>
+    </Card>
+  )
+}
+
+function SignalPriceTrend({ signal }: { signal: Signal }) {
+  const sparklineQuery = useSignalSparkline(signal.symbol, signal.market)
+
+  if (sparklineQuery.isLoading) {
+    return <Skeleton className="h-12 min-w-0 flex-1" />
+  }
+
+  const prices = sparklineQuery.data ?? []
+  const change = calculateOneMonthChange(prices)
+  const chartData = prices.map((value) => ({ value }))
+  const canShowChart =
+    Boolean(signal.market) && !sparklineQuery.isError && chartData.length > 0
+
+  return (
+    <div className="flex min-w-0 flex-1 items-end gap-3">
+      {canShowChart ? (
+        <Sparkline
+          className="h-12 min-w-0 flex-1 text-cockpit-accent"
+          data={chartData}
+          height={48}
+          color="currentColor"
+          ariaLabel={`${signal.symbol} 시그널 가격 추이`}
+          margin={{ top: 4, right: 0, bottom: 4, left: 0 }}
+          strokeWidth={2.4}
+        />
+      ) : (
+        <div className="flex h-12 min-w-0 flex-1 items-center justify-center rounded-control border border-cockpit-border text-xs text-cockpit-text-muted">
+          가격 시계열 대기
+        </div>
+      )}
+      <div className="shrink-0 text-right">
+        <span className="block text-xs text-cockpit-text-muted">1M 등락률</span>
+        <strong
+          className={classNames(
+            'mt-1 block text-sm',
+            change === null && 'text-cockpit-text-muted',
+            change !== null && change >= 0 && 'text-emerald-400',
+            change !== null && change < 0 && 'text-red-400',
+          )}
+        >
+          {change === null
+            ? '—'
+            : `${change >= 0 ? '+' : ''}${change.toFixed(1)}%`}
+        </strong>
+      </div>
     </div>
   )
 }
 
 function SignalCard({ signal }: { signal: Signal }) {
   const navigate = useNavigate()
+  const category = categoryOf(signal.signalType)
 
   return (
-    <Card className="min-h-[17rem] border-cockpit-border bg-cockpit-surface/80 p-4">
+    <Card className="min-h-[20rem] border-cockpit-border bg-cockpit-surface/80 p-4">
       <article
         className="flex h-full flex-col gap-4"
         aria-label={`${signal.symbol} ${signal.signalTypeLabel} 시그널`}
       >
         <header className="flex items-start justify-between gap-3">
           <div className="min-w-0">
+            {category ? <CategoryBadge category={category} /> : null}
             <Link
               to={getResearchPath(signal.symbol)}
-              className="text-xl font-bold text-cockpit-text hover:text-cockpit-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cockpit-accent"
+              className="mt-3 block text-xl font-bold text-cockpit-text hover:text-cockpit-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cockpit-accent"
             >
               {signal.symbol}
             </Link>
@@ -188,49 +398,48 @@ function SignalCard({ signal }: { signal: Signal }) {
               {signal.companyName ?? signal.signalTypeLabel}
             </p>
           </div>
-          <div className="flex items-start gap-2">
-            <Badge riskLevel={signal.riskLevel as '낮음' | '중간' | '높음'} />
-            <ScoreRing signal={signal} />
-          </div>
+          <ConfidenceRing
+            score={signal.score}
+            category={category}
+            symbol={signal.symbol}
+          />
         </header>
 
         <p className="text-sm leading-6 text-cockpit-text-muted">
           {signal.reason}
         </p>
-        {signal.evidence ? (
-          <p className="rounded-control border border-cockpit-border bg-cockpit-surface-muted/40 p-3 text-xs leading-5 text-cockpit-text-muted">
-            {signal.evidence}
-          </p>
-        ) : null}
 
         <div className="mt-auto flex items-end border-t border-cockpit-border pt-3">
-          <div className="flex shrink-0 flex-col gap-1 pr-2">
-            <span className="text-xs text-cockpit-text-muted">만료</span>
-            <span className="text-xs font-semibold text-cockpit-text">
-              {signal.expiresAt}
-            </span>
-          </div>
-          <SignalSparklineChart signal={signal} />
+          <SignalPriceTrend signal={signal} />
         </div>
 
-        <div className="grid grid-cols-2 overflow-hidden rounded-control border border-cockpit-border text-xs text-cockpit-text-muted">
+        <div className="grid grid-cols-3 overflow-hidden rounded-control border border-cockpit-border text-xs text-cockpit-text-muted">
           <Button
-            type="button"
             variant="ghost"
             aria-label="근거 보기"
-            className="min-h-9 rounded-none border-0 px-2"
+            className="min-h-10 gap-1 rounded-none border-0 px-2"
             onClick={() => navigate(getResearchPath(signal.symbol))}
           >
+            <FiEye aria-hidden="true" />
             근거 보기
           </Button>
           <Button
-            type="button"
             variant="ghost"
             aria-label="판단 기록"
-            className="min-h-9 rounded-none border-0 border-l border-cockpit-border px-2"
+            className="min-h-10 gap-1 rounded-none border-0 border-l border-cockpit-border px-2"
             onClick={() => navigate(appRoutePaths.decisionLog)}
           >
+            <FiBookOpen aria-hidden="true" />
             판단 기록
+          </Button>
+          <Button
+            variant="ghost"
+            disabled
+            aria-label="알림 설정 (준비 중)"
+            className="min-h-10 gap-1 rounded-none border-0 border-l border-cockpit-border px-2"
+          >
+            <FiBell aria-hidden="true" />
+            알림 설정
           </Button>
         </div>
       </article>
@@ -238,40 +447,124 @@ function SignalCard({ signal }: { signal: Signal }) {
   )
 }
 
+function SignalPriorityRail({ signals }: { signals: Signal[] }) {
+  const prioritySignals = [...signals]
+    .sort((first, second) => second.score - first.score)
+    .slice(0, 6)
+
+  return (
+    <Card
+      className="border-cockpit-border bg-cockpit-surface/80 p-4"
+      aria-label="시그널 우선순위"
+    >
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-base font-bold text-cockpit-text">
+          시그널 우선순위
+        </h2>
+        <FiChevronRight
+          className="text-cockpit-text-muted"
+          aria-hidden="true"
+        />
+      </div>
+      {prioritySignals.length > 0 ? (
+        <>
+          <div className="grid grid-cols-[2rem_minmax(0,0.8fr)_minmax(8rem,1.5fr)_3rem_3.5rem] gap-2 border-b border-cockpit-border px-1 pb-2 text-[0.65rem] text-cockpit-text-muted">
+            <span>순위</span>
+            <span>심볼</span>
+            <span>유형</span>
+            <span>변화</span>
+            <span>신뢰도</span>
+          </div>
+          <ol className="divide-y divide-cockpit-border">
+            {prioritySignals.map((signal, index) => {
+              const category = categoryOf(signal.signalType)
+              return (
+                <li
+                  key={`priority-${signal.id}`}
+                  className="grid grid-cols-[2rem_minmax(0,0.8fr)_minmax(8rem,1.5fr)_3rem_3.5rem] items-center gap-2 px-1 py-3 text-xs"
+                  aria-label={`${index + 1}위 ${signal.symbol}`}
+                >
+                  <span className="font-bold text-amber-300">{index + 1}</span>
+                  <Link
+                    to={getResearchPath(signal.symbol)}
+                    className="truncate font-semibold text-cockpit-text hover:text-cockpit-accent"
+                  >
+                    {signal.symbol}
+                  </Link>
+                  <span>
+                    {category ? <CategoryBadge category={category} /> : '—'}
+                  </span>
+                  <span className="text-cockpit-text-muted">—</span>
+                  <span className="font-semibold text-cockpit-text">
+                    {normalizeScore(signal.score)}%
+                  </span>
+                </li>
+              )
+            })}
+          </ol>
+        </>
+      ) : (
+        <EmptyState title="시그널이 없습니다." className="py-6" />
+      )}
+    </Card>
+  )
+}
+
+function RecentChangesRail() {
+  return (
+    <Card
+      className="border-cockpit-border bg-cockpit-surface/80 p-4"
+      aria-label="최근 변경"
+    >
+      <h2 className="text-base font-bold text-cockpit-text">최근 변경</h2>
+      <EmptyState
+        title="준비 중"
+        description="시그널 변경 이력은 추후 제공됩니다."
+        className="py-8"
+      />
+    </Card>
+  )
+}
+
 export function SignalsPage() {
   const signalsQuery = useSignals()
-  const [query, setQuery] = useState('')
-  const [riskFilter, setRiskFilter] = useState<RiskFilter>('all')
-  const [sortKey, setSortKey] = useState<SortKey>('score')
-
+  const [filters, setFilters] = useState<FilterState>(initialFilters)
   const signals = useMemo(() => signalsQuery.data ?? [], [signalsQuery.data])
-  const visibleSignals = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase()
-    const filteredSignals = signals.filter((signal) => {
-      const matchesQuery =
-        normalizedQuery.length === 0 ||
-        signal.symbol.toLowerCase().includes(normalizedQuery) ||
-        signal.signalTypeLabel.toLowerCase().includes(normalizedQuery) ||
-        signal.reason.toLowerCase().includes(normalizedQuery)
-      const matchesRisk =
-        riskFilter === 'all' || signal.riskLevel === riskFilter
-
-      return matchesQuery && matchesRisk
-    })
-
-    return sortSignals(filteredSignals, sortKey)
-  }, [query, riskFilter, signals, sortKey])
-
-  const prioritySignals = useMemo(
-    () => sortSignals(signals, 'score').slice(0, 6),
+  const markets = useMemo(
+    () => [...new Set(signals.flatMap((signal) => signal.market ?? []))].sort(),
     [signals],
   )
+  const visibleSignals = useMemo(() => {
+    const normalizedQuery = filters.query.trim().toLowerCase()
+
+    return signals
+      .filter((signal) => {
+        const matchesCategory =
+          filters.category === 'all' ||
+          categoryOf(signal.signalType) === filters.category
+        const matchesConfidence = matchesConfidenceBand(
+          signal.score,
+          filters.confidenceBand,
+        )
+        const matchesMarket =
+          filters.market === 'all' || signal.market === filters.market
+        const matchesQuery =
+          normalizedQuery.length === 0 ||
+          signal.symbol.toLowerCase().includes(normalizedQuery) ||
+          signal.companyName?.toLowerCase().includes(normalizedQuery)
+
+        return (
+          matchesCategory && matchesConfidence && matchesMarket && matchesQuery
+        )
+      })
+      .sort((first, second) => second.score - first.score)
+  }, [filters, signals])
 
   if (signalsQuery.isLoading) {
     return (
       <section className="flex flex-col gap-3 pb-1">
         <h1 className="text-3xl font-bold text-cockpit-text">시그널</h1>
-        <Skeleton className="h-28" />
+        <Skeleton className="h-32" />
         <Skeleton className="h-80" />
       </section>
     )
@@ -293,69 +586,16 @@ export function SignalsPage() {
         <h1 className="text-3xl font-bold text-cockpit-text">시그널</h1>
       </div>
 
-      <SummaryCards signals={signals} />
+      <SignalKpiRow signals={signals} />
 
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_25rem]">
         <div className="flex min-w-0 flex-col gap-3">
-          <Card className="border-cockpit-border bg-cockpit-surface/80 p-3">
-            <div className="grid gap-3 lg:grid-cols-[minmax(8rem,1fr)_minmax(8rem,1fr)_minmax(16rem,1.55fr)_auto] lg:items-end">
-              <label className="flex flex-col gap-2 text-sm font-semibold text-cockpit-text">
-                리스크
-                <select
-                  className={selectClassName}
-                  value={riskFilter}
-                  onChange={(event) =>
-                    setRiskFilter(event.target.value as RiskFilter)
-                  }
-                >
-                  <option value="all">전체</option>
-                  {riskFilters.map((riskLevel) => (
-                    <option key={riskLevel} value={riskLevel}>
-                      {riskLevel}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="flex flex-col gap-2 text-sm font-semibold text-cockpit-text">
-                정렬
-                <select
-                  className={selectClassName}
-                  value={sortKey}
-                  onChange={(event) =>
-                    setSortKey(event.target.value as SortKey)
-                  }
-                >
-                  <option value="score">점수</option>
-                  <option value="expiresAt">만료</option>
-                  <option value="createdAt">생성</option>
-                </select>
-              </label>
-              <label className="flex flex-col gap-2 text-sm font-semibold text-cockpit-text">
-                검색
-                <Input
-                  className="border-cockpit-border bg-cockpit-surface text-cockpit-text placeholder:text-cockpit-text-muted"
-                  type="search"
-                  value={query}
-                  placeholder="종목명 또는 시그널 입력"
-                  onChange={(event) => setQuery(event.target.value)}
-                />
-              </label>
-              <Button
-                type="button"
-                variant="ghost"
-                aria-label="필터 초기화"
-                className="border-cockpit-border text-cockpit-text-muted"
-                onClick={() => {
-                  setQuery('')
-                  setRiskFilter('all')
-                  setSortKey('score')
-                }}
-              >
-                필터 초기화
-              </Button>
-            </div>
-          </Card>
-
+          <SignalFilters
+            filters={filters}
+            markets={markets}
+            onChange={setFilters}
+            onReset={() => setFilters(initialFilters)}
+          />
           <div
             className={classNames(
               'grid gap-3',
@@ -375,36 +615,8 @@ export function SignalsPage() {
         </div>
 
         <aside className="flex flex-col gap-3" aria-label="시그널 우측 레일">
-          <Card className="border-cockpit-border bg-cockpit-surface/80 p-4">
-            <h2 className="mb-3 text-base font-bold text-cockpit-text">
-              시그널 우선순위
-            </h2>
-            {prioritySignals.length > 0 ? (
-              <ol className="divide-y divide-cockpit-border">
-                {prioritySignals.map((signal, index) => (
-                  <li
-                    key={`priority-${signal.id}`}
-                    className="grid grid-cols-[2.5rem_minmax(0,1fr)_4rem] items-center gap-2 px-2 py-3 text-sm"
-                  >
-                    <span className="font-bold text-amber-300">
-                      {index + 1}
-                    </span>
-                    <Link
-                      to={getResearchPath(signal.symbol)}
-                      className="font-semibold text-cockpit-text hover:text-cockpit-accent"
-                    >
-                      {signal.symbol}
-                    </Link>
-                    <span className="font-semibold text-cockpit-text">
-                      {normalizeScore(signal.score)}%
-                    </span>
-                  </li>
-                ))}
-              </ol>
-            ) : (
-              <EmptyState title="시그널이 없습니다." className="py-6" />
-            )}
-          </Card>
+          <SignalPriorityRail signals={signals} />
+          <RecentChangesRail />
         </aside>
       </div>
     </section>
