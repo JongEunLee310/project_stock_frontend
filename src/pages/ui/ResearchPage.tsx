@@ -1,16 +1,23 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import {
   SymbolNotFoundError,
   useResearchPriceSeries,
   useResearchView,
+  useSaveBuyChecklist,
+  type PriceRange,
 } from '@/features/research/queries'
 import type {
   ChecklistItem,
   ResearchRisk,
   ResearchView,
 } from '@/features/research/adapters'
+import {
+  useAddAssetToFirstWatchlist,
+  useRemoveWatchlistItem,
+  useWatchlistAssets,
+} from '@/features/watchlist/queries'
 import { appRoutePaths } from '@/shared/config/navigation'
 import {
   Badge,
@@ -22,11 +29,8 @@ import {
   Skeleton,
 } from '@/shared/ui'
 
-const currencyFormatter = new Intl.NumberFormat('en-US', {
-  style: 'currency',
-  currency: 'USD',
-  maximumFractionDigits: 2,
-})
+const priceRanges: PriceRange[] = ['1D', '1M', '3M', '6M', '1Y']
+const MEMO_SAVE_DELAY_MS = 1_000
 
 const riskRank: Record<string, number> = {
   높음: 3,
@@ -38,12 +42,36 @@ function getResearchSymbol(symbol: string | undefined) {
   return symbol?.trim().toUpperCase() || 'UNKNOWN'
 }
 
-function formatCurrency(value: number | null) {
-  return value === null ? '-' : currencyFormatter.format(value)
+function formatCurrency(value: number | null, currency: string | null) {
+  if (value === null) return '-'
+
+  try {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency ?? 'USD',
+      maximumFractionDigits: 2,
+    }).format(value)
+  } catch {
+    return `${value.toLocaleString('en-US')} ${currency ?? ''}`.trim()
+  }
 }
 
 function formatPercent(value: number | null) {
   return value === null ? '-' : `${value.toFixed(1)}%`
+}
+
+function formatSignedCurrency(value: number | null, currency: string | null) {
+  if (value === null) return '-'
+
+  const sign = value > 0 ? '+' : value < 0 ? '-' : ''
+  return `${sign}${formatCurrency(Math.abs(value), currency)}`
+}
+
+function formatSignedPercent(value: number | null) {
+  if (value === null) return '-'
+
+  const sign = value > 0 ? '+' : ''
+  return `${sign}${value.toFixed(2)}%`
 }
 
 function getHighestRiskLevel(risks: ResearchRisk[]) {
@@ -57,45 +85,68 @@ function getHighestRiskLevel(risks: ResearchRisk[]) {
 }
 
 function PriceSparkline({ research }: { research: ResearchView }) {
+  const [range, setRange] = useState<PriceRange>('3M')
   const priceSeriesQuery = useResearchPriceSeries(
     research.symbol,
     research.market,
+    range,
   )
-
-  if (priceSeriesQuery.isLoading) {
-    return <Skeleton className="h-44 w-full" />
-  }
-
-  const data = (priceSeriesQuery.data ?? []).map((close, index) => ({
+  const priceSeries = priceSeriesQuery.data
+  const data = (priceSeries?.closes ?? []).map((close, index) => ({
     date: String(index + 1),
     close,
   }))
 
-  if (!research.market || priceSeriesQuery.isError || data.length === 0) {
-    return (
-      <div
-        role="img"
-        aria-label={`${research.symbol} 최근 가격 추이`}
-        className="flex h-44 w-full items-center justify-center rounded-control border border-app-border bg-app-surface-muted text-sm text-app-text-muted"
-      >
-        가격 시계열 대기
-      </div>
-    )
-  }
-
   return (
-    <LineChart
-      className="h-44 w-full text-app-accent"
-      data={data}
-      height={176}
-      color="currentColor"
-      ariaLabel={`${research.symbol} 최근 가격 추이`}
-      xDataKey="date"
-      yDataKey="close"
-      margin={{ top: 10, right: 12, bottom: 4, left: 4 }}
-      showAxes={false}
-      showGrid
-    />
+    <div className="min-w-0">
+      <div
+        className="mb-3 flex flex-wrap gap-1"
+        role="group"
+        aria-label="가격 차트 기간"
+      >
+        {priceRanges.map((priceRange) => (
+          <Button
+            key={priceRange}
+            type="button"
+            variant={range === priceRange ? 'primary' : 'ghost'}
+            aria-pressed={range === priceRange}
+            className="min-h-8 px-3 py-1 text-xs"
+            onClick={() => setRange(priceRange)}
+          >
+            {priceRange}
+          </Button>
+        ))}
+      </div>
+      {priceSeriesQuery.isLoading ? (
+        <Skeleton className="h-44 w-full" />
+      ) : !research.market || priceSeriesQuery.isError || data.length === 0 ? (
+        <div
+          role="img"
+          aria-label={`${research.symbol} 최근 가격 추이`}
+          className="flex h-44 w-full items-center justify-center rounded-control border border-app-border bg-app-surface-muted text-sm text-app-text-muted"
+        >
+          가격 시계열 대기
+        </div>
+      ) : (
+        <LineChart
+          className="h-44 w-full text-app-accent"
+          data={data}
+          height={176}
+          color="currentColor"
+          ariaLabel={`${research.symbol} 최근 가격 추이`}
+          xDataKey="date"
+          yDataKey="close"
+          margin={{ top: 10, right: 12, bottom: 4, left: 4 }}
+          showAxes={false}
+          showGrid
+        />
+      )}
+      {data.length > 0 && priceSeries?.source && priceSeries.lastUpdatedAt ? (
+        <p className="mt-3 text-xs text-app-text-muted">
+          차트 데이터: {priceSeries.source} · {priceSeries.lastUpdatedAt}
+        </p>
+      ) : null}
+    </div>
   )
 }
 
@@ -125,31 +176,47 @@ function EmptyResearchState({ symbol }: { symbol: string }) {
 function HeaderCard({
   research,
   isFavorite,
+  isFavoritePending,
   onToggleFavorite,
 }: {
   research: ResearchView
   isFavorite: boolean
+  isFavoritePending: boolean
   onToggleFavorite: () => void
 }) {
   const navigate = useNavigate()
+  const changeDirection = research.change ?? research.changePercent
+  const changeClassName =
+    changeDirection === null
+      ? 'text-app-text-muted'
+      : changeDirection > 0
+        ? 'text-emerald-400'
+        : changeDirection < 0
+          ? 'text-red-400'
+          : 'text-app-text-muted'
   const metricTiles = [
-    { label: '시가총액', value: formatCurrency(research.marketCap) },
     {
-      label: '52주 범위',
-      value: `${formatCurrency(research.fiftyTwoWeekLow)} ~ ${formatCurrency(
-        research.fiftyTwoWeekHigh,
-      )}`,
+      label: '시가총액',
+      value: formatCurrency(research.marketCap, research.currency),
     },
     { label: '섹터', value: research.sector ?? '-' },
     {
-      label: 'PER / PEG',
-      value: `${research.per ?? '-'} / ${research.peg ?? '-'}`,
+      label: '52주 범위',
+      value: `${formatCurrency(
+        research.fiftyTwoWeekLow,
+        research.currency,
+      )} ~ ${formatCurrency(research.fiftyTwoWeekHigh, research.currency)}`,
+    },
+    {
+      label: '다음 실적 발표',
+      value: research.nextEarningsDate ?? '-',
     },
     {
       label: '평균 목표주가',
-      value: `${formatCurrency(research.targetPrice)} (${formatPercent(
-        research.targetUpsidePercent,
-      )})`,
+      value: `${formatCurrency(
+        research.targetPrice,
+        research.currency,
+      )} (${formatPercent(research.targetUpsidePercent)})`,
     },
   ]
 
@@ -178,12 +245,28 @@ function HeaderCard({
                   {research.market ?? 'Unknown Market'} ·{' '}
                   {research.sector ?? '-'}
                 </p>
+                <div className="mt-3 flex flex-wrap items-baseline gap-3">
+                  <strong
+                    className="text-2xl font-bold text-app-text"
+                    aria-label="현재가"
+                  >
+                    {formatCurrency(research.price, research.currency)}
+                  </strong>
+                  <span
+                    aria-label="등락"
+                    className={`text-sm font-semibold ${changeClassName}`}
+                  >
+                    {formatSignedCurrency(research.change, research.currency)} (
+                    {formatSignedPercent(research.changePercent)})
+                  </span>
+                </div>
               </div>
             </div>
             <Button
               type="button"
               variant={isFavorite ? 'primary' : 'secondary'}
               aria-pressed={isFavorite}
+              disabled={isFavoritePending}
               onClick={onToggleFavorite}
             >
               {isFavorite ? '관심종목 등록됨' : '관심종목 추가'}
@@ -328,7 +411,7 @@ function ChecklistPanel({
 function ReportsPanel({ research }: { research: ResearchView }) {
   return (
     <Card>
-      <h2 className="text-xl font-bold text-app-text">리포트</h2>
+      <h2 className="text-xl font-bold text-app-text">뉴스 및 공시 요약</h2>
       {research.reports.length > 0 ? (
         <ul className="mt-4 flex flex-col gap-3">
           {research.reports.map((report) => (
@@ -349,7 +432,7 @@ function ReportsPanel({ research }: { research: ResearchView }) {
           ))}
         </ul>
       ) : (
-        <EmptyState title="리포트가 없습니다." className="py-6" />
+        <EmptyState title="뉴스 및 공시가 없습니다." className="py-6" />
       )}
     </Card>
   )
@@ -360,42 +443,93 @@ export function ResearchPage() {
   const displaySymbol = getResearchSymbol(symbol)
   const researchQuery = useResearchView(displaySymbol)
   const research = researchQuery.data
-  // 체크리스트는 현재 자산에 종속된 로컬 편집 상태. 자산이 바뀌면 assetId 불일치로
-  // 자동 폐기되어 서버 데이터로 되돌아간다(effect seeding 타이밍에 의존하지 않음).
-  const [localChecklist, setLocalChecklist] = useState<{
+  const checklistMutation = useSaveBuyChecklist(research?.assetId ?? 0)
+  const memoMutation = useSaveBuyChecklist(research?.assetId ?? 0)
+  const watchlistAssetsQuery = useWatchlistAssets(1, 100)
+  const addWatchlistAsset = useAddAssetToFirstWatchlist()
+  const removeWatchlistItem = useRemoveWatchlistItem()
+  const [memoDraft, setMemoDraft] = useState<{
     assetId: number
-    items: ChecklistItem[]
+    value: string
+    isDirty: boolean
   } | null>(null)
-  const [memo, setMemo] = useState('')
-  const [isFavorite, setIsFavorite] = useState(false)
+  const [memoSaveStatus, setMemoSaveStatus] = useState<
+    'idle' | 'saving' | 'saved' | 'error'
+  >('idle')
   const initializedAssetIdRef = useRef<number | null>(null)
 
   useEffect(() => {
-    if (!research || initializedAssetIdRef.current === research.assetId) {
-      return
-    }
+    if (!research) return
 
-    initializedAssetIdRef.current = research.assetId
-    setIsFavorite(false)
-  }, [research])
+    setMemoDraft((current) => {
+      if (current?.assetId === research.assetId) {
+        if (
+          current.isDirty ||
+          current.value === (research.checklistMemo ?? '')
+        ) {
+          return current
+        }
+      }
 
-  const toggleChecklistItem = (id: string) => {
-    if (!research) {
-      return
-    }
-    setLocalChecklist((current) => {
-      const base =
-        current && current.assetId === research.assetId
-          ? current.items
-          : research.buyChecklist
       return {
         assetId: research.assetId,
-        items: base.map((item) =>
-          item.id === id ? { ...item, checked: !item.checked } : item,
-        ),
+        value: research.checklistMemo ?? '',
+        isDirty: false,
       }
     })
-  }
+
+    if (initializedAssetIdRef.current !== research.assetId) {
+      initializedAssetIdRef.current = research.assetId
+      setMemoSaveStatus('idle')
+    }
+  }, [research])
+
+  const serverCheckedItemKeys = useMemo(
+    () =>
+      research?.buyChecklist
+        .filter((item) => item.checked)
+        .map((item) => item.id) ?? [],
+    [research],
+  )
+  const checkedItemKeys = useMemo(
+    () =>
+      checklistMutation.variables && checklistMutation.isPending
+        ? checklistMutation.variables.checked_item_keys
+        : serverCheckedItemKeys,
+    [
+      checklistMutation.isPending,
+      checklistMutation.variables,
+      serverCheckedItemKeys,
+    ],
+  )
+  const memoValue =
+    research && memoDraft?.assetId === research.assetId
+      ? memoDraft.value
+      : (research?.checklistMemo ?? '')
+  const saveMemo = memoMutation.mutate
+
+  useEffect(() => {
+    if (!research || !memoDraft?.isDirty) return
+
+    const valueToSave = memoDraft.value
+    const timeoutId = window.setTimeout(() => {
+      setMemoDraft((current) =>
+        current?.assetId === research.assetId && current.value === valueToSave
+          ? { ...current, isDirty: false }
+          : current,
+      )
+      setMemoSaveStatus('saving')
+      saveMemo(
+        { memo: valueToSave, checked_item_keys: checkedItemKeys },
+        {
+          onSuccess: () => setMemoSaveStatus('saved'),
+          onError: () => setMemoSaveStatus('error'),
+        },
+      )
+    }, MEMO_SAVE_DELAY_MS)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [checkedItemKeys, memoDraft, research, saveMemo])
 
   if (researchQuery.isLoading) {
     return (
@@ -427,10 +561,38 @@ export function ResearchPage() {
     return <EmptyResearchState symbol={displaySymbol} />
   }
 
-  const displayedChecklist =
-    localChecklist && localChecklist.assetId === research.assetId
-      ? localChecklist.items
-      : research.buyChecklist
+  const displayedChecklist = research.buyChecklist.map((item) => ({
+    ...item,
+    checked: checkedItemKeys.includes(item.id),
+  }))
+  const registeredWatchlistItem = watchlistAssetsQuery.data?.rows.find(
+    (item) => item.symbol.toUpperCase() === research.symbol.toUpperCase(),
+  )
+  const isFavorite = Boolean(registeredWatchlistItem)
+  const isFavoritePending =
+    watchlistAssetsQuery.isLoading ||
+    addWatchlistAsset.isPending ||
+    removeWatchlistItem.isPending
+
+  const toggleChecklistItem = (id: string) => {
+    const nextCheckedItemKeys = checkedItemKeys.includes(id)
+      ? checkedItemKeys.filter((itemId) => itemId !== id)
+      : [...checkedItemKeys, id]
+
+    checklistMutation.mutate({
+      memo: memoValue,
+      checked_item_keys: nextCheckedItemKeys,
+    })
+  }
+
+  const toggleFavorite = () => {
+    if (registeredWatchlistItem) {
+      removeWatchlistItem.mutate({ itemId: registeredWatchlistItem.id })
+      return
+    }
+
+    addWatchlistAsset.mutate({ asset_id: research.assetId })
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -448,7 +610,8 @@ export function ResearchPage() {
       <HeaderCard
         research={research}
         isFavorite={isFavorite}
-        onToggleFavorite={() => setIsFavorite((current) => !current)}
+        isFavoritePending={isFavoritePending}
+        onToggleFavorite={toggleFavorite}
       />
 
       <Card>
@@ -460,12 +623,9 @@ export function ResearchPage() {
                 평균 목표주가
               </p>
               <strong className="mt-1 block text-3xl font-bold text-app-text">
-                {formatCurrency(research.targetPrice)}
+                {formatCurrency(research.targetPrice, research.currency)}
               </strong>
             </div>
-            <p className="text-xs leading-5 text-app-text-muted">
-              G4 BE 미완으로 가격 시계열은 빈 배열 fallback입니다.
-            </p>
           </div>
         </div>
       </Card>
@@ -506,12 +666,30 @@ export function ResearchPage() {
               >
                 내 메모
               </label>
-              <span className="text-xs text-app-text-muted">로컬 입력</span>
+              {memoSaveStatus === 'idle' ? null : (
+                <span
+                  role={memoSaveStatus === 'error' ? 'alert' : 'status'}
+                  className="text-xs text-app-text-muted"
+                >
+                  {memoSaveStatus === 'saving'
+                    ? '저장 중...'
+                    : memoSaveStatus === 'saved'
+                      ? '자동 저장됨'
+                      : '저장 실패'}
+                </span>
+              )}
             </div>
             <textarea
               id="research-memo"
-              value={memo}
-              onChange={(event) => setMemo(event.target.value)}
+              value={memoValue}
+              onChange={(event) => {
+                setMemoDraft({
+                  assetId: research.assetId,
+                  value: event.target.value,
+                  isDirty: true,
+                })
+                setMemoSaveStatus('idle')
+              }}
               placeholder="판단 근거와 추가 확인할 질문을 남겨두세요."
               className="mt-4 min-h-44 w-full resize-y rounded-control border border-app-border bg-app-surface-muted px-3 py-3 text-sm leading-6 text-app-text outline-none transition-colors placeholder:text-app-text-muted focus:border-app-accent focus:ring-2 focus:ring-app-accent/30"
             />

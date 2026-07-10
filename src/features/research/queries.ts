@@ -1,10 +1,20 @@
-import { useQuery, type UseQueryResult } from '@tanstack/react-query'
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type UseMutationResult,
+  type UseQueryResult,
+} from '@tanstack/react-query'
 
-import { apiGet } from '@/shared/api/client'
+import { apiGet, apiPut } from '@/shared/api/client'
 import { ApiError } from '@/shared/api/envelope'
-import { parseDecimal } from '@/shared/lib/format'
 
-import { adaptResearchDetail, type ResearchView } from './adapters'
+import {
+  adaptPriceSeries,
+  adaptResearchDetail,
+  type PriceSeriesView,
+  type ResearchView,
+} from './adapters'
 import type {
   AssetDetailDto,
   AssetLookupDto,
@@ -20,6 +30,13 @@ export class SymbolNotFoundError extends Error {
     super(`${symbol} asset_id를 찾을 수 없습니다`)
     this.name = 'SymbolNotFoundError'
   }
+}
+
+export type PriceRange = '1D' | '1M' | '3M' | '6M' | '1Y'
+
+export interface SaveBuyChecklistBody {
+  memo: string | null
+  checked_item_keys: string[]
 }
 
 async function fetchAssetIdBySymbol(symbol: string) {
@@ -61,21 +78,45 @@ export function useAssetIdBySymbol(symbol: string): UseQueryResult<number> {
 export function useResearchPriceSeries(
   symbol: string | null,
   market: string | null,
-): UseQueryResult<number[]> {
-  return useQuery<number[]>({
-    queryKey: ['research', 'price-series', symbol, market],
+  range: PriceRange,
+): UseQueryResult<PriceSeriesView> {
+  return useQuery<PriceSeriesView>({
+    queryKey: ['research', 'price-series', symbol, market, range],
     enabled: Boolean(symbol && market),
     queryFn: async () => {
-      if (!symbol || !market) return []
+      if (!symbol || !market) {
+        return {
+          closes: [],
+          currency: null,
+          source: null,
+          lastUpdatedAt: null,
+        }
+      }
 
       const { data } = await apiGet<PriceSeriesDto>(
-        `/stocks/${encodeURIComponent(symbol)}/prices?market=${market}&range=3M&interval=1d`,
+        `/stocks/${encodeURIComponent(symbol)}/prices?market=${market}&range=${range}`,
       )
 
-      return data.bars
-        .map((bar) => parseDecimal(bar.close))
-        .filter((close): close is number => close !== null)
+      return adaptPriceSeries(data)
     },
+  })
+}
+
+export function useSaveBuyChecklist(
+  assetId: number,
+): UseMutationResult<BuyChecklistDto, Error, SaveBuyChecklistBody> {
+  const queryClient = useQueryClient()
+
+  return useMutation<BuyChecklistDto, Error, SaveBuyChecklistBody>({
+    mutationFn: async (body) => {
+      const { data } = await apiPut<BuyChecklistDto>(
+        `/assets/${assetId}/buy-checklist`,
+        body,
+      )
+
+      return data
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['research'] }),
   })
 }
 
