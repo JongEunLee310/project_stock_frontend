@@ -10,6 +10,7 @@ import type {
   AssetDetailDto,
   AssetLookupDto,
   BuyChecklistDto,
+  PriceSeriesDto,
   ReportDto,
   ResearchSummaryDto,
   ThesisDto,
@@ -50,6 +51,10 @@ export interface ResearchView {
   name: string
   market: string | null
   sector: string | null
+  price: number | null
+  change: number | null
+  changePercent: number | null
+  currency: string | null
   marketCap: number | null
   per: number | null
   peg: number | null
@@ -64,6 +69,7 @@ export interface ResearchView {
   briefing: { headline: string; body: string; createdAt: string }
   keyRisks: ResearchRisk[]
   buyChecklist: ChecklistItem[]
+  checklistMemo: string | null
   reports: ReportItem[]
   latestThesis: ThesisItem | null
 }
@@ -94,6 +100,24 @@ export function adaptResearchListRow(
       ? toLabel(researchStanceLabels, stance, '판단 보류')
       : null,
     summaryUpdatedAt: summary ? formatKstDateTime(summary.created_at) : null,
+  }
+}
+
+export interface PriceSeriesView {
+  closes: number[]
+  currency: string | null
+  source: string | null
+  lastUpdatedAt: string | null
+}
+
+export function adaptPriceSeries(dto: PriceSeriesDto): PriceSeriesView {
+  return {
+    closes: dto.bars
+      .map((bar) => parseDecimal(bar.close))
+      .filter((close): close is number => close !== null),
+    currency: dto.currency ?? null,
+    source: dto.source ?? null,
+    lastUpdatedAt: dto.last_updated_at ?? null,
   }
 }
 
@@ -136,6 +160,10 @@ export function adaptResearchDetail(
     name: detail.name,
     market: detail.market ?? null,
     sector: detail.sector ?? null,
+    price: parseDecimal(detail.price),
+    change: parseDecimal(detail.change),
+    changePercent: parseDecimal(detail.change_percent),
+    currency: detail.currency ?? null,
     marketCap: parseDecimal(detail.market_cap),
     per: parseDecimal(detail.per),
     peg: parseDecimal(detail.peg),
@@ -158,12 +186,19 @@ export function adaptResearchDetail(
       level: toLabel(riskLevelLabels, risk.level),
       description: risk.description,
     })),
-    buyChecklist: (checklist.items ?? []).map((item, index) => ({
-      id: String(item.id ?? index),
-      label: item.label,
-      description: item.description ?? '',
-      checked: item.checked ?? false,
-    })),
+    buyChecklist: (checklist.items ?? []).map((item, index) => {
+      const id = String(item.id ?? index)
+
+      return {
+        id,
+        label: item.label,
+        description: item.description ?? '',
+        checked: checklist.checked_item_keys
+          ? checklist.checked_item_keys.includes(id)
+          : (item.checked ?? false),
+      }
+    }),
+    checklistMemo: checklist.memo ?? null,
     reports: reports.map(adaptReport),
     latestThesis: thesis ? adaptThesis(thesis) : null,
   }

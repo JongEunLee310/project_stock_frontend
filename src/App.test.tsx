@@ -161,11 +161,21 @@ vi.mock('@/features/research/queries', () => ({
     refetch: vi.fn(),
   }),
   useResearchPriceSeries: () => ({
-    data: [],
+    data: {
+      closes: [],
+      currency: null,
+      source: null,
+      lastUpdatedAt: null,
+    },
     error: null,
     isError: false,
     isLoading: false,
     refetch: vi.fn(),
+  }),
+  useSaveBuyChecklist: () => ({
+    mutate: vi.fn(),
+    variables: undefined,
+    isPending: false,
   }),
   useResearchView: (symbol: string) => ({
     data: {
@@ -174,6 +184,10 @@ vi.mock('@/features/research/queries', () => ({
       name: `${symbol} Corp.`,
       market: 'NASDAQ',
       sector: 'Technology',
+      price: null,
+      change: null,
+      changePercent: null,
+      currency: null,
       marketCap: null,
       per: null,
       peg: null,
@@ -192,6 +206,7 @@ vi.mock('@/features/research/queries', () => ({
       },
       keyRisks: [],
       buyChecklist: [],
+      checklistMemo: null,
       reports: [],
       latestThesis: null,
     },

@@ -1,9 +1,9 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { renderHook, waitFor } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
 import { createElement, type ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { apiGet } from '@/shared/api/client'
+import { apiGet, apiPut } from '@/shared/api/client'
 import {
   ApiError,
   unwrapEnvelope,
@@ -15,10 +15,12 @@ import {
   useResearchList,
   useResearchPriceSeries,
   useResearchView,
+  useSaveBuyChecklist,
 } from './queries'
 
 vi.mock('@/shared/api/client', () => ({
   apiGet: vi.fn(),
+  apiPut: vi.fn(),
 }))
 
 function wrapperFor(queryClient: QueryClient) {
@@ -31,6 +33,7 @@ function createTestQueryClient() {
   return new QueryClient({
     defaultOptions: {
       queries: { retry: false, gcTime: 0 },
+      mutations: { retry: false },
     },
   })
 }
@@ -42,7 +45,16 @@ function responseFor(path: string) {
         { id: 11, symbol: 'NVDA', name: 'NVIDIA Corp.', market: 'NASDAQ' },
       ]
     case '/assets/11/detail':
-      return { id: 11, symbol: 'NVDA', name: 'NVIDIA Corp.', market: 'NASDAQ' }
+      return {
+        id: 11,
+        symbol: 'NVDA',
+        name: 'NVIDIA Corp.',
+        market: 'NASDAQ',
+        price: '142.62',
+        change: '2.51',
+        change_percent: '1.79',
+        currency: 'USD',
+      }
     case '/assets/11/research-summary':
       return {
         headline: 'Demand stays resilient',
@@ -50,7 +62,7 @@ function responseFor(path: string) {
         created_at: '2026-05-24T00:00:00.000Z',
       }
     case '/assets/11/buy-checklist':
-      return { items: [] }
+      return { memo: null, checked_item_keys: [], items: [] }
     case '/reports?asset_id=11':
       return []
     case '/theses/latest?asset_id=11':
@@ -117,10 +129,12 @@ const researchListSummaryEnvelope = {
   meta: null,
 }
 
+// BE 실계약: research-summary는 자산 미존재 시 ASSET_NOT_FOUND를 반환한다
+// (app/core/error_codes.py — RESEARCH_SUMMARY_NOT_FOUND 코드는 존재하지 않음).
 const researchSummaryNotFoundEnvelope = {
   data: null,
-  message: '리서치 요약을 찾을 수 없습니다.',
-  error: { code: 'RESEARCH_SUMMARY_NOT_FOUND' },
+  message: '종목을 찾을 수 없습니다.',
+  error: { code: 'ASSET_NOT_FOUND' },
   meta: null,
 }
 
@@ -131,6 +145,10 @@ describe('research queries', () => {
       data: responseFor(path),
       meta: undefined,
     })) as typeof apiGet)
+    vi.mocked(apiPut).mockResolvedValue({
+      data: { memo: null, checked_item_keys: [], items: [] },
+      meta: undefined,
+    })
   })
 
   it('keeps every asset when one research summary request fails', async () => {
@@ -242,13 +260,16 @@ describe('research queries', () => {
   it('fetches research price series and parses close values', async () => {
     vi.mocked(apiGet).mockResolvedValue({
       data: {
+        currency: 'USD',
+        source: 'polygon',
+        last_updated_at: '2026-07-10T00:00:00Z',
         bars: [{ close: '101.25' }, { close: null }, { close: '102.50' }],
       },
       meta: undefined,
     })
     const queryClient = createTestQueryClient()
     const { result } = renderHook(
-      () => useResearchPriceSeries('NVDA', 'NASDAQ'),
+      () => useResearchPriceSeries('NVDA', 'NASDAQ', '6M'),
       {
         wrapper: wrapperFor(queryClient),
       },
@@ -257,13 +278,18 @@ describe('research queries', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
     expect(apiGet).toHaveBeenCalledWith(
-      '/stocks/NVDA/prices?market=NASDAQ&range=3M&interval=1d',
+      '/stocks/NVDA/prices?market=NASDAQ&range=6M',
     )
-    expect(result.current.data).toEqual([101.25, 102.5])
+    expect(result.current.data).toEqual({
+      closes: [101.25, 102.5],
+      currency: 'USD',
+      source: 'polygon',
+      lastUpdatedAt: '2026-07-10T00:00:00Z',
+    })
     expect(
-      queryClient
-        .getQueryCache()
-        .find({ queryKey: ['research', 'price-series', 'NVDA', 'NASDAQ'] }),
+      queryClient.getQueryCache().find({
+        queryKey: ['research', 'price-series', 'NVDA', 'NASDAQ', '6M'],
+      }),
     ).toBeDefined()
   })
 
@@ -274,7 +300,7 @@ describe('research queries', () => {
     'does not fetch research price series when symbol or market is missing',
     ({ symbol, market }) => {
       const queryClient = createTestQueryClient()
-      renderHook(() => useResearchPriceSeries(symbol, market), {
+      renderHook(() => useResearchPriceSeries(symbol, market, '3M'), {
         wrapper: wrapperFor(queryClient),
       })
 
@@ -289,7 +315,7 @@ describe('research queries', () => {
     })
     const queryClient = createTestQueryClient()
     const { result } = renderHook(
-      () => useResearchPriceSeries('BRK B', 'NYSE'),
+      () => useResearchPriceSeries('BRK B', 'NYSE', '1Y'),
       {
         wrapper: wrapperFor(queryClient),
       },
@@ -298,7 +324,31 @@ describe('research queries', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
     expect(apiGet).toHaveBeenCalledWith(
-      '/stocks/BRK%20B/prices?market=NYSE&range=3M&interval=1d',
+      '/stocks/BRK%20B/prices?market=NYSE&range=1Y',
     )
+  })
+
+  it('saves the complete buy checklist body with PUT', async () => {
+    vi.mocked(apiPut).mockResolvedValue({
+      data: {
+        memo: 'Wait for earnings.',
+        checked_item_keys: ['valuation', 'earnings_disclosure'],
+        items: [],
+      },
+      meta: undefined,
+    })
+    const queryClient = createTestQueryClient()
+    const { result } = renderHook(() => useSaveBuyChecklist(11), {
+      wrapper: wrapperFor(queryClient),
+    })
+    const body = {
+      memo: 'Wait for earnings.',
+      checked_item_keys: ['valuation', 'earnings_disclosure'],
+    }
+
+    act(() => result.current.mutate(body))
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(apiPut).toHaveBeenCalledWith('/assets/11/buy-checklist', body)
   })
 })
