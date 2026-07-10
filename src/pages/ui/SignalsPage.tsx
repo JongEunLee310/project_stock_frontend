@@ -123,40 +123,45 @@ function ConfidenceRing({
     : 'text-cockpit-text-muted'
 
   return (
-    <div
-      className="relative grid h-14 w-14 shrink-0 place-items-center"
-      role="meter"
-      aria-label={`${symbol} 신뢰도 ${normalizedScore}%`}
-      aria-valuemin={0}
-      aria-valuemax={100}
-      aria-valuenow={normalizedScore}
-    >
-      <svg className="h-14 w-14 -rotate-90" viewBox="0 0 48 48">
-        <circle
-          cx="24"
-          cy="24"
-          r={radius}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="4"
-          className="text-cockpit-border"
-        />
-        <circle
-          cx="24"
-          cy="24"
-          r={radius}
-          fill="none"
-          stroke="currentColor"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          strokeLinecap="round"
-          strokeWidth="4"
-          className={colorClassName}
-        />
-      </svg>
-      <span className="absolute text-xs font-bold text-cockpit-text">
-        {normalizedScore}%
+    <div className="flex shrink-0 flex-col items-center gap-1">
+      <span className="text-[0.65rem] font-semibold text-cockpit-text-muted">
+        신뢰도
       </span>
+      <div
+        className="relative grid h-14 w-14 place-items-center"
+        role="meter"
+        aria-label={`${symbol} 신뢰도 ${normalizedScore}%`}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={normalizedScore}
+      >
+        <svg className="h-14 w-14 -rotate-90" viewBox="0 0 48 48">
+          <circle
+            cx="24"
+            cy="24"
+            r={radius}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="4"
+            className="text-cockpit-border"
+          />
+          <circle
+            cx="24"
+            cy="24"
+            r={radius}
+            fill="none"
+            stroke="currentColor"
+            strokeDasharray={circumference}
+            strokeDashoffset={offset}
+            strokeLinecap="round"
+            strokeWidth="4"
+            className={colorClassName}
+          />
+        </svg>
+        <span className="absolute text-xs font-bold text-cockpit-text">
+          {normalizedScore}%
+        </span>
+      </div>
     </div>
   )
 }
@@ -403,11 +408,6 @@ function SignalCard({ signal }: { signal: Signal }) {
         <p className="text-sm leading-6 text-cockpit-text-muted">
           {signal.reason}
         </p>
-        {signal.evidence ? (
-          <p className="rounded-control border border-cockpit-border bg-cockpit-surface-muted/40 p-3 text-xs leading-5 text-cockpit-text-muted">
-            {signal.evidence}
-          </p>
-        ) : null}
 
         <div className="mt-auto flex items-end border-t border-cockpit-border pt-3">
           <SignalPriceTrend signal={signal} />

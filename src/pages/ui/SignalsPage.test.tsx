@@ -294,12 +294,14 @@ describe('SignalsPage', () => {
     expect(
       within(card).getByRole('meter', { name: 'NVDA 신뢰도 86%' }),
     ).toHaveAttribute('aria-valuenow', '86')
+    expect(within(card).getByText('신뢰도')).toBeVisible()
     expect(within(card).getByText('86%')).toBeVisible()
     expect(
       within(card).getByText(
         'Data center demand remains above the prior quarter run rate.',
       ),
     ).toBeVisible()
+    expect(within(card).queryByText('Guidance raised.')).not.toBeInTheDocument()
     expect(
       within(card).getByRole('button', { name: '근거 보기' }),
     ).toBeEnabled()
