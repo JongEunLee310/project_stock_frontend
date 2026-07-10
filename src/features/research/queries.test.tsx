@@ -4,6 +4,11 @@ import { createElement, type ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { apiGet } from '@/shared/api/client'
+import {
+  ApiError,
+  unwrapEnvelope,
+  type ApiEnvelope,
+} from '@/shared/api/envelope'
 
 import { useResearchPriceSeries, useResearchView } from './queries'
 
@@ -55,6 +60,20 @@ function responseFor(path: string) {
   }
 }
 
+const thesisNotFoundEnvelope = {
+  data: null,
+  message: '투자 가설을 찾을 수 없습니다.',
+  error: { code: 'THESIS_NOT_FOUND' },
+  meta: null,
+}
+
+const thesisServerErrorEnvelope = {
+  data: null,
+  message: '서버 오류가 발생했습니다.',
+  error: { code: 'INTERNAL_ERROR' },
+  meta: null,
+}
+
 describe('research queries', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -77,6 +96,47 @@ describe('research queries', () => {
       expect.stringContaining('/stocks/NVDA/prices'),
     )
     expect(result.current.data).not.toHaveProperty('priceSparkline')
+  })
+
+  it('returns research data with a null latest thesis when no thesis exists', async () => {
+    vi.mocked(apiGet).mockImplementation((async (path: string) => {
+      if (path === '/theses/latest?asset_id=11') {
+        return unwrapEnvelope(
+          thesisNotFoundEnvelope as unknown as ApiEnvelope<null>,
+        )
+      }
+
+      return { data: responseFor(path), meta: undefined }
+    }) as typeof apiGet)
+    const queryClient = createTestQueryClient()
+    const { result } = renderHook(() => useResearchView('nvda'), {
+      wrapper: wrapperFor(queryClient),
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(result.current.data?.latestThesis).toBeNull()
+  })
+
+  it('fails the research query when the latest thesis returns another error', async () => {
+    vi.mocked(apiGet).mockImplementation((async (path: string) => {
+      if (path === '/theses/latest?asset_id=11') {
+        return unwrapEnvelope(
+          thesisServerErrorEnvelope as unknown as ApiEnvelope<null>,
+        )
+      }
+
+      return { data: responseFor(path), meta: undefined }
+    }) as typeof apiGet)
+    const queryClient = createTestQueryClient()
+    const { result } = renderHook(() => useResearchView('nvda'), {
+      wrapper: wrapperFor(queryClient),
+    })
+
+    await waitFor(() => expect(result.current.isError).toBe(true))
+
+    expect(result.current.error).toBeInstanceOf(ApiError)
+    expect((result.current.error as ApiError).code).toBe('INTERNAL_ERROR')
   })
 
   it('fetches research price series and parses close values', async () => {
