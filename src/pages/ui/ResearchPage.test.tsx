@@ -121,6 +121,7 @@ vi.mock('@/features/research/queries', async () => {
 
   return {
     SymbolNotFoundError: actual.SymbolNotFoundError,
+    useResearchList: actual.useResearchList,
     useResearchPriceSeries: mockUseResearchPriceSeries,
     useResearchView: (symbol: string) => {
       const data = researchBySymbol[symbol as keyof typeof researchBySymbol]

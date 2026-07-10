@@ -9,8 +9,13 @@ import {
   unwrapEnvelope,
   type ApiEnvelope,
 } from '@/shared/api/envelope'
+import { formatKstDateTime } from '@/shared/lib/format'
 
-import { useResearchPriceSeries, useResearchView } from './queries'
+import {
+  useResearchList,
+  useResearchPriceSeries,
+  useResearchView,
+} from './queries'
 
 vi.mock('@/shared/api/client', () => ({
   apiGet: vi.fn(),
@@ -74,6 +79,51 @@ const thesisServerErrorEnvelope = {
   meta: null,
 }
 
+const researchListAssetsEnvelope = {
+  data: [
+    {
+      id: 11,
+      symbol: 'NVDA',
+      name: 'NVIDIA Corp.',
+      market: 'NASDAQ',
+      sector: 'Technology',
+      is_active: true,
+      created_at: '2026-05-01T00:00:00.000Z',
+    },
+    {
+      id: 12,
+      symbol: 'TSLA',
+      name: 'Tesla, Inc.',
+      market: 'NASDAQ',
+      sector: 'Consumer Cyclical',
+      is_active: true,
+      created_at: '2026-05-02T00:00:00.000Z',
+    },
+  ],
+  error: null,
+  meta: { page: 1, size: 100, total: 2 },
+}
+
+const researchListSummaryEnvelope = {
+  data: {
+    stance: 'BUY_CANDIDATE',
+    stance_confidence: '0.82',
+    headline: 'AI demand remains durable',
+    body: 'Margins remain the key checkpoint.',
+    key_risks: [],
+    created_at: '2026-05-24T00:00:00.000Z',
+  },
+  error: null,
+  meta: null,
+}
+
+const researchSummaryNotFoundEnvelope = {
+  data: null,
+  message: '리서치 요약을 찾을 수 없습니다.',
+  error: { code: 'RESEARCH_SUMMARY_NOT_FOUND' },
+  meta: null,
+}
+
 describe('research queries', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -81,6 +131,56 @@ describe('research queries', () => {
       data: responseFor(path),
       meta: undefined,
     })) as typeof apiGet)
+  })
+
+  it('keeps every asset when one research summary request fails', async () => {
+    vi.mocked(apiGet).mockImplementation((async (path: string) => {
+      if (path === '/assets?page=1&size=100') {
+        return unwrapEnvelope(
+          researchListAssetsEnvelope as unknown as ApiEnvelope<
+            typeof researchListAssetsEnvelope.data
+          >,
+        )
+      }
+
+      if (path === '/assets/11/research-summary') {
+        return unwrapEnvelope(
+          researchListSummaryEnvelope as unknown as ApiEnvelope<
+            typeof researchListSummaryEnvelope.data
+          >,
+        )
+      }
+
+      if (path === '/assets/12/research-summary') {
+        return unwrapEnvelope(
+          researchSummaryNotFoundEnvelope as unknown as ApiEnvelope<null>,
+        )
+      }
+
+      throw new Error(`Unexpected path: ${path}`)
+    }) as typeof apiGet)
+    const queryClient = createTestQueryClient()
+    const { result } = renderHook(() => useResearchList(), {
+      wrapper: wrapperFor(queryClient),
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(result.current.data).toHaveLength(2)
+    expect(result.current.data?.[0]).toMatchObject({
+      symbol: 'NVDA',
+      stanceLabel: '매수 후보',
+      summaryUpdatedAt: formatKstDateTime(
+        researchListSummaryEnvelope.data.created_at,
+      ),
+    })
+    expect(result.current.data?.[1]).toMatchObject({
+      symbol: 'TSLA',
+      stanceLabel: null,
+      summaryUpdatedAt: null,
+    })
+    expect(apiGet).toHaveBeenCalledWith('/assets/11/research-summary')
+    expect(apiGet).toHaveBeenCalledWith('/assets/12/research-summary')
   })
 
   it('passes asset_id when requesting the latest thesis', async () => {

@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
-import { adaptReport, adaptResearchDetail, adaptThesis } from './adapters'
+import { formatKstDateTime } from '@/shared/lib/format'
+
+import {
+  adaptReport,
+  adaptResearchDetail,
+  adaptResearchListRow,
+  adaptThesis,
+} from './adapters'
 import type {
   AssetDetailDto,
   BuyChecklistDto,
@@ -64,6 +71,30 @@ const thesis: ThesisDto = {
 }
 
 describe('research adapters', () => {
+  it('combines an asset and research summary into a list row', () => {
+    expect(adaptResearchListRow(detail, summary)).toEqual({
+      assetId: 1,
+      symbol: 'NVDA',
+      name: 'NVIDIA Corp.',
+      market: 'NASDAQ',
+      sector: 'Technology',
+      stanceLabel: '매수 후보',
+      summaryUpdatedAt: formatKstDateTime(summary.created_at),
+    })
+  })
+
+  it('keeps list asset data when its research summary is unavailable', () => {
+    expect(adaptResearchListRow(detail, null)).toEqual({
+      assetId: 1,
+      symbol: 'NVDA',
+      name: 'NVIDIA Corp.',
+      market: 'NASDAQ',
+      sector: 'Technology',
+      stanceLabel: null,
+      summaryUpdatedAt: null,
+    })
+  })
+
   it('combines detail, summary, checklist, reports, and thesis', () => {
     const view = adaptResearchDetail(
       detail,

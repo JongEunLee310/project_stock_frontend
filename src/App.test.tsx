@@ -143,6 +143,23 @@ vi.mock('@/features/market-indices/queries', () => ({
 
 vi.mock('@/features/research/queries', () => ({
   SymbolNotFoundError: class SymbolNotFoundError extends Error {},
+  useResearchList: () => ({
+    data: [
+      {
+        assetId: 1,
+        symbol: 'NVDA',
+        name: 'NVIDIA Corp.',
+        market: 'NASDAQ',
+        sector: 'Technology',
+        stanceLabel: '매수 후보',
+        summaryUpdatedAt: '2026. 5. 24. 오전 9:00',
+      },
+    ],
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: vi.fn(),
+  }),
   useResearchPriceSeries: () => ({
     data: [],
     error: null,
@@ -234,6 +251,23 @@ describe('App', () => {
     ).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/watchlist')
     expect(screen.getByRole('link', { name: /관심종목/ })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
+  })
+
+  it('navigates from the sidebar to the research list', async () => {
+    const router = renderRoute('/')
+
+    await screen.findByRole('navigation', { name: 'Primary navigation' })
+
+    fireEvent.click(screen.getByRole('link', { name: /리서치/ }))
+
+    expect(
+      await screen.findByRole('heading', { name: '리서치 목록' }),
+    ).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/research')
+    expect(screen.getByRole('link', { name: /리서치/ })).toHaveAttribute(
       'aria-current',
       'page',
     )

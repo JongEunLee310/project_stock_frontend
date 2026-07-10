@@ -4,7 +4,12 @@ import { apiGet } from '@/shared/api/client'
 import { ApiError } from '@/shared/api/envelope'
 import { parseDecimal } from '@/shared/lib/format'
 
-import { adaptResearchDetail, type ResearchView } from './adapters'
+import {
+  adaptResearchDetail,
+  adaptResearchListRow,
+  type ResearchListRow,
+  type ResearchView,
+} from './adapters'
 import type {
   AssetDetailDto,
   AssetLookupDto,
@@ -55,6 +60,31 @@ export function useAssetIdBySymbol(symbol: string): UseQueryResult<number> {
   return useQuery<number>({
     queryKey: ['assets', 'by-symbol', symbol.trim().toUpperCase()],
     queryFn: () => fetchAssetIdBySymbol(symbol),
+  })
+}
+
+export function useResearchList(): UseQueryResult<ResearchListRow[]> {
+  return useQuery<ResearchListRow[]>({
+    queryKey: ['research', 'list'],
+    queryFn: async () => {
+      const { data: assets } = await apiGet<AssetLookupDto[]>(
+        '/assets?page=1&size=100',
+      )
+
+      return Promise.all(
+        assets.map(async (asset) => {
+          try {
+            const { data: summary } = await apiGet<ResearchSummaryDto>(
+              `/assets/${asset.id}/research-summary`,
+            )
+
+            return adaptResearchListRow(asset, summary)
+          } catch {
+            return adaptResearchListRow(asset, null)
+          }
+        }),
+      )
+    },
   })
 }
 

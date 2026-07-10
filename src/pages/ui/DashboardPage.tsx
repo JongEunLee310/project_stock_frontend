@@ -109,7 +109,7 @@ const riskRank: Record<AlertCandidate['riskLevel'], number> = {
 }
 
 function getResearchPath(symbol: string) {
-  return appRoutePaths.research.replace(':symbol', symbol)
+  return appRoutePaths.researchDetail.replace(':symbol', symbol)
 }
 
 function formatPercent(value: number) {
@@ -603,7 +603,7 @@ export function DashboardPage() {
             />
           )}
           <div className="mt-auto flex justify-end">
-            <SectionLink label="자세히 보기" to="/research/NVDA" />
+            <SectionLink label="자세히 보기" to={getResearchPath('NVDA')} />
           </div>
         </Card>
 
