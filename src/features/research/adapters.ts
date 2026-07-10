@@ -8,6 +8,7 @@ import {
 
 import type {
   AssetDetailDto,
+  AssetLookupDto,
   BuyChecklistDto,
   PriceSeriesDto,
   ReportDto,
@@ -71,6 +72,35 @@ export interface ResearchView {
   checklistMemo: string | null
   reports: ReportItem[]
   latestThesis: ThesisItem | null
+}
+
+export interface ResearchListRow {
+  assetId: number
+  symbol: string
+  name: string
+  market: string | null
+  sector: string | null
+  stanceLabel: string | null
+  summaryUpdatedAt: string | null
+}
+
+export function adaptResearchListRow(
+  asset: AssetLookupDto,
+  summary: ResearchSummaryDto | null,
+): ResearchListRow {
+  const stance = summary?.stance?.trim()
+
+  return {
+    assetId: asset.id,
+    symbol: asset.symbol,
+    name: asset.name,
+    market: asset.market ?? null,
+    sector: asset.sector ?? null,
+    stanceLabel: stance
+      ? toLabel(researchStanceLabels, stance, '판단 보류')
+      : null,
+    summaryUpdatedAt: summary ? formatKstDateTime(summary.created_at) : null,
+  }
 }
 
 export interface PriceSeriesView {
