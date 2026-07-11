@@ -26,13 +26,19 @@ export interface AssetDetailDto extends AssetLookupDto {
 export interface ResearchSummaryDto {
   stance?: string | null
   stance_confidence?: string | null
+  stance_comment?: string | null
   headline?: string | null
   body?: string | null
+  positive_factors?: string[] | null
+  caution_factors?: string[] | null
+  next_checks?: string[] | null
+  confidence_basis?: string | null
   key_risks?: Array<{
     id?: string | number
     title: string
     level: string
     description: string
+    evidence?: string[] | null
   }> | null
   created_at: string
 }

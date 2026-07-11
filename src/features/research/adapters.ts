@@ -21,6 +21,7 @@ export interface ResearchRisk {
   title: string
   level: string
   description: string
+  evidence: string[]
 }
 
 export interface ChecklistItem {
@@ -66,7 +67,16 @@ export interface ResearchView {
   updatedAt: string | null
   stance: string
   stanceConfidence: number | null
-  briefing: { headline: string; body: string; createdAt: string }
+  stanceComment: string | null
+  confidenceBasis: string | null
+  briefing: {
+    headline: string
+    body: string
+    positiveFactors: string[]
+    cautionFactors: string[]
+    nextChecks: string[]
+    createdAt: string
+  }
   keyRisks: ResearchRisk[]
   buyChecklist: ChecklistItem[]
   checklistMemo: string | null
@@ -175,9 +185,14 @@ export function adaptResearchDetail(
     updatedAt: detail.updated_at ? formatKstDateTime(detail.updated_at) : null,
     stance: toLabel(researchStanceLabels, summary.stance ?? '', '판단 보류'),
     stanceConfidence: normalizeStanceConfidence(summary.stance_confidence),
+    stanceComment: summary.stance_comment ?? null,
+    confidenceBasis: summary.confidence_basis ?? null,
     briefing: {
       headline: summary.headline ?? '리서치 요약 없음',
       body: summary.body ?? '',
+      positiveFactors: summary.positive_factors ?? [],
+      cautionFactors: summary.caution_factors ?? [],
+      nextChecks: summary.next_checks ?? [],
       createdAt: formatKstDateTime(summary.created_at),
     },
     keyRisks: (summary.key_risks ?? []).map((risk, index) => ({
@@ -185,6 +200,7 @@ export function adaptResearchDetail(
       title: risk.title,
       level: toLabel(riskLevelLabels, risk.level),
       description: risk.description,
+      evidence: risk.evidence ?? [],
     })),
     buyChecklist: (checklist.items ?? []).map((item, index) => {
       const id = String(item.id ?? index)
