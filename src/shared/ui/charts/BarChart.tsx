@@ -14,7 +14,7 @@ import {
   useMeasuredChartWidth,
 } from './chartTheme'
 
-export type BarChartPoint = Record<string, number | string>
+export type BarChartPoint = Record<string, number | string | null>
 export type BarChartDataKey<T extends BarChartPoint> = Extract<keyof T, string>
 
 export interface BarChartProps<T extends BarChartPoint = BarChartPoint> {

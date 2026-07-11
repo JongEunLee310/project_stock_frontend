@@ -9,6 +9,7 @@ import {
 import type {
   AssetDetailDto,
   AssetLookupDto,
+  BenchmarkComparisonDto,
   BuyChecklistDto,
   CatalystTimelineDto,
   EarningsSummaryDto,
@@ -146,9 +147,27 @@ export function adaptResearchListRow(
 
 export interface PriceSeriesView {
   closes: number[]
+  points: PriceSeriesPoint[]
   currency: string | null
   source: string | null
   lastUpdatedAt: string | null
+}
+
+export interface PriceSeriesPoint {
+  [key: string]: string | number | null
+  date: string
+  close: number
+  volume: number | null
+  ma20: number | null
+}
+
+export interface BenchmarkSeriesItem {
+  kind: string
+  label: string
+  points: Array<{
+    date: string
+    returnPercent: number
+  }>
 }
 
 export interface ValuationMetricItem {
@@ -242,15 +261,68 @@ export function adaptEarningsSummary(dto: EarningsSummaryDto): EarningsView {
   }
 }
 
+interface PricePointWithoutMovingAverage {
+  date: string
+  close: number
+  volume: number | null
+}
+
+const MOVING_AVERAGE_WINDOW = 20
+
+export function withMovingAverage(
+  points: PricePointWithoutMovingAverage[],
+): PriceSeriesPoint[] {
+  return points.map((point, index) => {
+    if (index < MOVING_AVERAGE_WINDOW - 1) {
+      return { ...point, ma20: null }
+    }
+
+    const closes = points
+      .slice(index - MOVING_AVERAGE_WINDOW + 1, index + 1)
+      .map((item) => item.close)
+    const total = closes.reduce((sum, close) => sum + close, 0)
+
+    return { ...point, ma20: total / MOVING_AVERAGE_WINDOW }
+  })
+}
+
 export function adaptPriceSeries(dto: PriceSeriesDto): PriceSeriesView {
+  const points = withMovingAverage(
+    dto.bars.flatMap((bar, index) => {
+      const close = parseDecimal(bar.close)
+
+      return close === null
+        ? []
+        : [
+            {
+              date: bar.date ?? String(index + 1),
+              close,
+              volume: bar.volume ?? null,
+            },
+          ]
+    }),
+  )
+
   return {
-    closes: dto.bars
-      .map((bar) => parseDecimal(bar.close))
-      .filter((close): close is number => close !== null),
+    closes: points.map((point) => point.close),
+    points,
     currency: dto.currency ?? null,
     source: dto.source ?? null,
     lastUpdatedAt: dto.last_updated_at ?? null,
   }
+}
+
+export function adaptBenchmarkComparison(
+  dto: BenchmarkComparisonDto,
+): BenchmarkSeriesItem[] {
+  return dto.series.map((series) => ({
+    kind: series.kind,
+    label: series.label,
+    points: series.points.map((point) => ({
+      date: point.date,
+      returnPercent: point.return_percent,
+    })),
+  }))
 }
 
 export const newsDisclosureCategoryLabels: Record<string, string> = {

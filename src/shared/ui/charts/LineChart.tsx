@@ -16,11 +16,18 @@ import {
   useMeasuredChartWidth,
 } from './chartTheme'
 
-export type LineChartPoint = Record<string, number | string>
+export type LineChartPoint = Record<string, number | string | null>
 export type LineChartDataKey<T extends LineChartPoint> = Extract<
   keyof T,
   string
 >
+
+export interface LineChartSeries<T extends LineChartPoint = LineChartPoint> {
+  dataKey: LineChartDataKey<T>
+  color: string
+  strokeWidth?: number
+  strokeDasharray?: string
+}
 
 export interface LineChartProps<T extends LineChartPoint = LineChartPoint> {
   data: T[]
@@ -36,6 +43,7 @@ export interface LineChartProps<T extends LineChartPoint = LineChartPoint> {
   showAxes?: boolean
   showGrid?: boolean
   showTooltip?: boolean
+  series?: Array<LineChartSeries<T>>
 }
 
 export function LineChart<T extends LineChartPoint = LineChartPoint>({
@@ -52,6 +60,7 @@ export function LineChart<T extends LineChartPoint = LineChartPoint>({
   showAxes = true,
   showGrid = true,
   showTooltip = false,
+  series,
 }: LineChartProps<T>) {
   const { containerRef, chartWidth } = useMeasuredChartWidth(
     responsive ? width : (width ?? chartTheme.fallbackWidth),
@@ -97,16 +106,23 @@ export function LineChart<T extends LineChartPoint = LineChartPoint>({
           />
         ) : null}
         {showTooltip ? <Tooltip isAnimationActive={false} /> : null}
-        <Line
-          type="monotone"
-          dataKey={resolvedYDataKey}
-          stroke={color}
-          strokeWidth={2.6}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          dot={false}
-          isAnimationActive={false}
-        />
+        {(
+          series ?? [{ dataKey: resolvedYDataKey, color, strokeWidth: 2.6 }]
+        ).map((item) => (
+          <Line
+            key={item.dataKey}
+            type="monotone"
+            dataKey={item.dataKey}
+            stroke={item.color}
+            strokeWidth={item.strokeWidth ?? 2.6}
+            strokeDasharray={item.strokeDasharray}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            dot={false}
+            connectNulls={false}
+            isAnimationActive={false}
+          />
+        ))}
       </RechartsLineChart>
     </div>
   )

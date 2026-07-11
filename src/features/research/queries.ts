@@ -10,6 +10,7 @@ import { apiGet, apiPut } from '@/shared/api/client'
 import { ApiError } from '@/shared/api/envelope'
 
 import {
+  adaptBenchmarkComparison,
   adaptCatalystTimeline,
   adaptEarningsSummary,
   adaptNewsDisclosure,
@@ -18,6 +19,7 @@ import {
   adaptResearchDetail,
   adaptResearchListRow,
   adaptValuationMetrics,
+  type BenchmarkSeriesItem,
   type CatalystEventItem,
   type EarningsView,
   type NewsDisclosureView,
@@ -30,6 +32,7 @@ import {
 import type {
   AssetDetailDto,
   AssetLookupDto,
+  BenchmarkComparisonDto,
   BuyChecklistDto,
   CatalystTimelineDto,
   EarningsSummaryDto,
@@ -49,6 +52,7 @@ export class SymbolNotFoundError extends Error {
 }
 
 export type PriceRange = '1D' | '1M' | '3M' | '6M' | '1Y'
+export type BenchmarkRange = Exclude<PriceRange, '1D'>
 
 export interface SaveBuyChecklistBody {
   memo: string | null
@@ -128,6 +132,7 @@ export function useResearchPriceSeries(
       if (!symbol || !market) {
         return {
           closes: [],
+          points: [],
           currency: null,
           source: null,
           lastUpdatedAt: null,
@@ -139,6 +144,28 @@ export function useResearchPriceSeries(
       )
 
       return adaptPriceSeries(data)
+    },
+  })
+}
+
+export function useBenchmarkComparison(
+  assetId: number | undefined,
+  range: BenchmarkRange,
+  enabled: boolean,
+): UseQueryResult<BenchmarkSeriesItem[]> {
+  return useQuery<BenchmarkSeriesItem[]>({
+    queryKey: ['research', 'benchmark', assetId, range],
+    enabled: assetId != null && enabled,
+    queryFn: async () => {
+      if (assetId == null) {
+        return []
+      }
+
+      const { data } = await apiGet<BenchmarkComparisonDto>(
+        `/assets/${assetId}/benchmark-comparison?range=${range}`,
+      )
+
+      return adaptBenchmarkComparison(data)
     },
   })
 }

@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { formatKstDateTime } from '@/shared/lib/format'
 
 import {
+  adaptBenchmarkComparison,
   adaptCatalystTimeline,
   adaptEarningsSummary,
   adaptNewsDisclosure,
@@ -12,6 +13,7 @@ import {
   adaptResearchListRow,
   adaptThesis,
   adaptValuationMetrics,
+  withMovingAverage,
 } from './adapters'
 import type {
   AssetDetailDto,
@@ -464,16 +466,34 @@ describe('research adapters', () => {
     })
   })
 
-  it('adapts price closes and metadata while filtering null close values', () => {
+  it('adapts price points and metadata while filtering null close values', () => {
     expect(
       adaptPriceSeries({
         currency: 'USD',
         source: 'polygon',
         last_updated_at: '2026-07-10T00:00:00Z',
-        bars: [{ close: '101.25' }, { close: null }, { close: '102.50' }],
+        bars: [
+          { date: '2026-07-08', close: '101.25', volume: 1200 },
+          { date: '2026-07-09', close: null, volume: 1300 },
+          { date: '2026-07-10', close: '102.50', volume: null },
+        ],
       }),
     ).toEqual({
       closes: [101.25, 102.5],
+      points: [
+        {
+          date: '2026-07-08',
+          close: 101.25,
+          volume: 1200,
+          ma20: null,
+        },
+        {
+          date: '2026-07-10',
+          close: 102.5,
+          volume: null,
+          ma20: null,
+        },
+      ],
       currency: 'USD',
       source: 'polygon',
       lastUpdatedAt: '2026-07-10T00:00:00Z',
@@ -481,9 +501,56 @@ describe('research adapters', () => {
 
     expect(adaptPriceSeries({ bars: [] })).toEqual({
       closes: [],
+      points: [],
       currency: null,
       source: null,
       lastUpdatedAt: null,
+    })
+  })
+
+  it('derives MA20 only after the twentieth close', () => {
+    const points = Array.from({ length: 21 }, (_, index) => ({
+      date: `2026-06-${String(index + 1).padStart(2, '0')}`,
+      close: index + 1,
+      volume: null,
+    }))
+
+    const result = withMovingAverage(points)
+
+    expect(result.slice(0, 19).every((point) => point.ma20 === null)).toBe(true)
+    expect(result[19].ma20).toBe(10.5)
+    expect(result[20].ma20).toBe(11.5)
+  })
+
+  it('adapts benchmark returns while preserving response order', () => {
+    const result = adaptBenchmarkComparison({
+      series: [
+        {
+          kind: 'ASSET',
+          label: 'NVDA',
+          points: [{ date: '2026-06-01', return_percent: 0 }],
+        },
+        {
+          kind: 'INDEX',
+          label: 'NASDAQ 100',
+          points: [{ date: '2026-06-01', return_percent: 0 }],
+        },
+        {
+          kind: 'SECTOR_ETF',
+          label: 'Technology Select Sector SPDR Fund',
+          points: [{ date: '2026-06-01', return_percent: 0 }],
+        },
+      ],
+    })
+
+    expect(result.map((series) => series.kind)).toEqual([
+      'ASSET',
+      'INDEX',
+      'SECTOR_ETF',
+    ])
+    expect(result[0].points[0]).toEqual({
+      date: '2026-06-01',
+      returnPercent: 0,
     })
   })
 

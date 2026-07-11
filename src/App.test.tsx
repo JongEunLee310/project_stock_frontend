@@ -163,10 +163,18 @@ vi.mock('@/features/research/queries', () => ({
   useResearchPriceSeries: () => ({
     data: {
       closes: [],
+      points: [],
       currency: null,
       source: null,
       lastUpdatedAt: null,
     },
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: vi.fn(),
+  }),
+  useBenchmarkComparison: () => ({
+    data: undefined,
     error: null,
     isError: false,
     isLoading: false,
