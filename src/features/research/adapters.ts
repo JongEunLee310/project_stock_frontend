@@ -318,10 +318,11 @@ export function adaptBenchmarkComparison(
   return dto.series.map((series) => ({
     kind: series.kind,
     label: series.label,
-    points: series.points.map((point) => ({
-      date: point.date,
-      returnPercent: point.return_percent,
-    })),
+    points: series.points.flatMap((point) => {
+      const returnPercent = parseDecimal(point.return_percent)
+
+      return returnPercent === null ? [] : [{ date: point.date, returnPercent }]
+    }),
   }))
 }
 

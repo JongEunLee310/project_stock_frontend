@@ -601,7 +601,7 @@ describe('research queries', () => {
           {
             kind: 'ASSET',
             label: 'NVDA',
-            points: [{ date: '2026-06-01', return_percent: 0 }],
+            points: [{ date: '2026-06-01', return_percent: '0' }],
           },
         ],
       },

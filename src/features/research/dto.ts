@@ -126,7 +126,7 @@ export interface BenchmarkComparisonDto {
     label: string
     points: Array<{
       date: string
-      return_percent: number
+      return_percent: string
     }>
   }>
 }

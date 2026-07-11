@@ -528,17 +528,21 @@ describe('research adapters', () => {
         {
           kind: 'ASSET',
           label: 'NVDA',
-          points: [{ date: '2026-06-01', return_percent: 0 }],
+          points: [
+            { date: '2026-06-01', return_percent: '0' },
+            { date: '2026-06-02', return_percent: '1.25' },
+            { date: '2026-06-03', return_percent: 'invalid' },
+          ],
         },
         {
           kind: 'INDEX',
           label: 'NASDAQ 100',
-          points: [{ date: '2026-06-01', return_percent: 0 }],
+          points: [{ date: '2026-06-01', return_percent: '0' }],
         },
         {
           kind: 'SECTOR_ETF',
           label: 'Technology Select Sector SPDR Fund',
-          points: [{ date: '2026-06-01', return_percent: 0 }],
+          points: [{ date: '2026-06-01', return_percent: '0' }],
         },
       ],
     })
@@ -548,10 +552,10 @@ describe('research adapters', () => {
       'INDEX',
       'SECTOR_ETF',
     ])
-    expect(result[0].points[0]).toEqual({
-      date: '2026-06-01',
-      returnPercent: 0,
-    })
+    expect(result[0].points).toEqual([
+      { date: '2026-06-01', returnPercent: 0 },
+      { date: '2026-06-02', returnPercent: 1.25 },
+    ])
   })
 
   it('keeps stance and confidence fallbacks for null or invalid wire values', () => {
