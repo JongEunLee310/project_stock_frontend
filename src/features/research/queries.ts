@@ -13,11 +13,13 @@ import {
   adaptCatalystTimeline,
   adaptNewsDisclosure,
   adaptPriceSeries,
+  adaptResearchCoverage,
   adaptResearchDetail,
   adaptResearchListRow,
   type CatalystEventItem,
   type NewsDisclosureView,
   type PriceSeriesView,
+  type CoverageAxisItem,
   type ResearchListRow,
   type ResearchView,
 } from './adapters'
@@ -28,6 +30,7 @@ import type {
   CatalystTimelineDto,
   NewsDisclosureDto,
   PriceSeriesDto,
+  ResearchCoverageDto,
   ResearchSummaryDto,
   ThesisDto,
 } from './dto'
@@ -170,6 +173,26 @@ export function useCatalystTimeline(
       )
 
       return adaptCatalystTimeline(data)
+    },
+  })
+}
+
+export function useResearchCoverage(
+  assetId: number | undefined,
+): UseQueryResult<CoverageAxisItem[]> {
+  return useQuery<CoverageAxisItem[]>({
+    queryKey: ['research', 'coverage', assetId],
+    enabled: assetId != null,
+    queryFn: async () => {
+      if (assetId == null) {
+        return []
+      }
+
+      const { data } = await apiGet<ResearchCoverageDto>(
+        `/assets/${assetId}/research-coverage`,
+      )
+
+      return adaptResearchCoverage(data)
     },
   })
 }

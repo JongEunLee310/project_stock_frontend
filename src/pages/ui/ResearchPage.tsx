@@ -6,12 +6,14 @@ import {
   useCatalystTimeline,
   useNewsDisclosure,
   useResearchPriceSeries,
+  useResearchCoverage,
   useResearchView,
   useSaveBuyChecklist,
   type PriceRange,
 } from '@/features/research/queries'
 import type {
   ChecklistItem,
+  CoverageAxisItem,
   NewsDisclosureItem,
   NewsDisclosureSentiment,
   ResearchRisk,
@@ -457,6 +459,79 @@ function RiskPanel({ research }: { research: ResearchView }) {
         </ul>
       ) : (
         <EmptyState title="핵심 리스크가 없습니다." className="py-6" />
+      )}
+    </Card>
+  )
+}
+
+function CounterViewPanel({ items }: { items: string[] }) {
+  return (
+    <Card>
+      <h2 className="text-xl font-bold text-app-text">반대 관점</h2>
+      <p className="mt-2 text-sm leading-6 text-app-text-muted">
+        현재 판단과 반대되는 근거를 함께 확인해 확증 편향을 줄이세요.
+      </p>
+      {items.length > 0 ? (
+        <ul className="mt-4 list-disc space-y-2 pl-5 text-sm leading-6 text-app-text-muted">
+          {items.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+      ) : (
+        <EmptyState title="반대 관점 데이터가 없습니다." className="py-6" />
+      )}
+    </Card>
+  )
+}
+
+function CoverageAxisRow({ item }: { item: CoverageAxisItem }) {
+  return (
+    <li className="rounded-control border border-app-border bg-app-surface-muted p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="font-semibold text-app-text">{item.axisLabel}</span>
+        <Badge tone={item.isCollected ? 'info' : 'neutral'}>
+          {item.isCollected ? '수집됨' : '미수집'}
+        </Badge>
+      </div>
+      <p className="mt-2 text-sm text-app-text-muted">
+        {item.isCollected
+          ? `갱신 ${item.lastUpdatedAt ?? '-'} · ${item.itemCount}건`
+          : '데이터 없음'}
+      </p>
+    </li>
+  )
+}
+
+function ResearchCoveragePanel({ assetId }: { assetId: number }) {
+  const coverageQuery = useResearchCoverage(assetId)
+  const axes = coverageQuery.data ?? []
+  const collectedCount = axes.filter((item) => item.isCollected).length
+
+  return (
+    <Card>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-xl font-bold text-app-text">데이터 커버리지</h2>
+        {!coverageQuery.isLoading && !coverageQuery.isError ? (
+          <Badge tone="neutral">
+            {collectedCount}/{axes.length} 확보
+          </Badge>
+        ) : null}
+      </div>
+      {coverageQuery.isLoading ? (
+        <Skeleton className="mt-4" lines={5} />
+      ) : coverageQuery.isError ? (
+        <ErrorState
+          title="데이터 커버리지를 불러오지 못했습니다"
+          description={coverageQuery.error.message}
+          onRetry={() => void coverageQuery.refetch()}
+          className="py-6"
+        />
+      ) : (
+        <ul className="mt-4 flex flex-col gap-3">
+          {axes.map((item) => (
+            <CoverageAxisRow key={item.axis} item={item} />
+          ))}
+        </ul>
       )}
     </Card>
   )
@@ -940,7 +1015,9 @@ export function ResearchPage() {
               ) : null,
             )}
           </Card>
+          <CounterViewPanel items={research.counterView} />
           <RiskPanel research={research} />
+          <ResearchCoveragePanel assetId={research.assetId} />
         </aside>
       </div>
 

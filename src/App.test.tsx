@@ -186,6 +186,13 @@ vi.mock('@/features/research/queries', () => ({
     isLoading: false,
     refetch: vi.fn(),
   }),
+  useResearchCoverage: () => ({
+    data: [],
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: vi.fn(),
+  }),
   useSaveBuyChecklist: () => ({
     mutate: vi.fn(),
     variables: undefined,
@@ -213,6 +220,7 @@ vi.mock('@/features/research/queries', () => ({
       updatedAt: null,
       stance: 'Hold',
       stanceConfidence: null,
+      counterView: [],
       briefing: {
         headline: 'Research',
         body: '',
