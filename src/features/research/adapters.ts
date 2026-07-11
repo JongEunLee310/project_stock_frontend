@@ -13,6 +13,7 @@ import type {
   CatalystTimelineDto,
   NewsDisclosureDto,
   PriceSeriesDto,
+  ResearchCoverageDto,
   ResearchSummaryDto,
   ThesisDto,
 } from './dto'
@@ -89,6 +90,7 @@ export interface ResearchView {
   stanceConfidence: number | null
   stanceComment: string | null
   confidenceBasis: string | null
+  counterView: string[]
   briefing: {
     headline: string
     body: string
@@ -101,6 +103,14 @@ export interface ResearchView {
   buyChecklist: ChecklistItem[]
   checklistMemo: string | null
   latestThesis: ThesisItem | null
+}
+
+export interface CoverageAxisItem {
+  axis: string
+  axisLabel: string
+  isCollected: boolean
+  lastUpdatedAt: string | null
+  itemCount: number
 }
 
 export interface ResearchListRow {
@@ -190,6 +200,14 @@ export const catalystEventTypeLabels: Record<string, string> = {
   OTHER: '기타',
 }
 
+export const researchCoverageAxisLabels: Record<string, string> = {
+  NEWS: '뉴스',
+  PRICE: '가격',
+  EARNINGS: '실적',
+  VALUATION: '밸류에이션',
+  DISCLOSURE: '공시',
+}
+
 function normalizeWireValue(value: string | null | undefined) {
   return value?.trim().toUpperCase() ?? ''
 }
@@ -261,6 +279,20 @@ export function adaptCatalystTimeline(
   })
 }
 
+export function adaptResearchCoverage(
+  dto: ResearchCoverageDto,
+): CoverageAxisItem[] {
+  return dto.axes.map((item) => ({
+    axis: item.axis,
+    axisLabel: researchCoverageAxisLabels[item.axis] ?? item.axis,
+    isCollected: item.status === 'COLLECTED',
+    lastUpdatedAt: item.last_updated_at
+      ? formatKstDateTime(item.last_updated_at)
+      : null,
+    itemCount: item.item_count,
+  }))
+}
+
 export function adaptThesis(dto: ThesisDto): ThesisItem {
   return {
     id: String(dto.id),
@@ -306,6 +338,7 @@ export function adaptResearchDetail(
     stanceConfidence: normalizeStanceConfidence(summary.stance_confidence),
     stanceComment: summary.stance_comment ?? null,
     confidenceBasis: summary.confidence_basis ?? null,
+    counterView: summary.counter_view ?? [],
     briefing: {
       headline: summary.headline ?? '리서치 요약 없음',
       body: summary.body ?? '',

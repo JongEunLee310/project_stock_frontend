@@ -14,6 +14,7 @@ import { formatKstDateTime } from '@/shared/lib/format'
 import {
   useCatalystTimeline,
   useNewsDisclosure,
+  useResearchCoverage,
   useResearchList,
   useResearchPriceSeries,
   useResearchView,
@@ -92,6 +93,30 @@ function responseFor(path: string) {
             event_type: 'CONTRACT',
             is_estimated: true,
           },
+        ],
+      }
+    case '/assets/11/research-coverage':
+      return {
+        asset_id: 11,
+        axes: [
+          {
+            axis: 'NEWS',
+            status: 'COLLECTED',
+            last_updated_at: '2026-07-10T00:00:00Z',
+            item_count: 12,
+          },
+          {
+            axis: 'PRICE',
+            status: 'COLLECTED',
+            last_updated_at: '2026-07-10T01:00:00Z',
+            item_count: 30,
+          },
+          ...['EARNINGS', 'VALUATION', 'DISCLOSURE'].map((axis) => ({
+            axis,
+            status: 'NOT_COLLECTED',
+            last_updated_at: null,
+            item_count: 0,
+          })),
         ],
       }
     case '/theses/latest?asset_id=11':
@@ -304,6 +329,38 @@ describe('research queries', () => {
     const queryClient = createTestQueryClient()
 
     renderHook(() => useCatalystTimeline(undefined), {
+      wrapper: wrapperFor(queryClient),
+    })
+
+    expect(apiGet).not.toHaveBeenCalled()
+  })
+
+  it('fetches research coverage with an asset-scoped query key', async () => {
+    const queryClient = createTestQueryClient()
+    const { result } = renderHook(() => useResearchCoverage(11), {
+      wrapper: wrapperFor(queryClient),
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(apiGet).toHaveBeenCalledWith('/assets/11/research-coverage')
+    expect(result.current.data).toHaveLength(5)
+    expect(result.current.data?.[0]).toMatchObject({
+      axisLabel: '뉴스',
+      isCollected: true,
+      itemCount: 12,
+    })
+    expect(
+      queryClient.getQueryCache().find({
+        queryKey: ['research', 'coverage', 11],
+      }),
+    ).toBeDefined()
+  })
+
+  it('does not fetch research coverage without an asset id', () => {
+    const queryClient = createTestQueryClient()
+
+    renderHook(() => useResearchCoverage(undefined), {
       wrapper: wrapperFor(queryClient),
     })
 

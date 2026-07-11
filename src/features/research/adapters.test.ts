@@ -6,6 +6,7 @@ import {
   adaptCatalystTimeline,
   adaptNewsDisclosure,
   adaptPriceSeries,
+  adaptResearchCoverage,
   adaptResearchDetail,
   adaptResearchListRow,
   adaptThesis,
@@ -15,6 +16,7 @@ import type {
   BuyChecklistDto,
   CatalystTimelineDto,
   NewsDisclosureDto,
+  ResearchCoverageDto,
   ResearchSummaryDto,
   ThesisDto,
 } from './dto'
@@ -178,6 +180,7 @@ describe('research adapters', () => {
         caution_factors: null,
         next_checks: null,
         confidence_basis: null,
+        counter_view: null,
       },
       { items: null },
       null,
@@ -187,6 +190,7 @@ describe('research adapters', () => {
     expect(view.stanceConfidence).toBeNull()
     expect(view.stanceComment).toBeNull()
     expect(view.confidenceBasis).toBeNull()
+    expect(view.counterView).toEqual([])
     expect(view.briefing.positiveFactors).toEqual([])
     expect(view.briefing.cautionFactors).toEqual([])
     expect(view.briefing.nextChecks).toEqual([])
@@ -220,6 +224,7 @@ describe('research adapters', () => {
 
     expect(view.stanceComment).toBeNull()
     expect(view.confidenceBasis).toBeNull()
+    expect(view.counterView).toEqual([])
     expect(view.briefing.positiveFactors).toEqual([])
     expect(view.briefing.cautionFactors).toEqual([])
     expect(view.briefing.nextChecks).toEqual([])
@@ -451,5 +456,120 @@ describe('research adapters', () => {
       isEstimated: false,
     })
     expect(new Set(events.map((event) => event.key)).size).toBe(events.length)
+  })
+
+  it('maps research coverage labels, timestamps, and collection status', () => {
+    const dto: ResearchCoverageDto = {
+      asset_id: 1,
+      axes: [
+        {
+          axis: 'NEWS',
+          status: 'COLLECTED',
+          last_updated_at: '2026-07-10T00:00:00Z',
+          item_count: 12,
+        },
+        {
+          axis: 'PRICE',
+          status: 'COLLECTED',
+          last_updated_at: '2026-07-10T01:00:00Z',
+          item_count: 30,
+        },
+        {
+          axis: 'EARNINGS',
+          status: 'NOT_COLLECTED',
+          last_updated_at: null,
+          item_count: 0,
+        },
+        {
+          axis: 'VALUATION',
+          status: 'NOT_COLLECTED',
+          last_updated_at: null,
+          item_count: 0,
+        },
+        {
+          axis: 'DISCLOSURE',
+          status: 'NOT_COLLECTED',
+          last_updated_at: null,
+          item_count: 0,
+        },
+      ],
+    }
+
+    expect(adaptResearchCoverage(dto)).toEqual([
+      {
+        axis: 'NEWS',
+        axisLabel: '뉴스',
+        isCollected: true,
+        lastUpdatedAt: formatKstDateTime('2026-07-10T00:00:00Z'),
+        itemCount: 12,
+      },
+      {
+        axis: 'PRICE',
+        axisLabel: '가격',
+        isCollected: true,
+        lastUpdatedAt: formatKstDateTime('2026-07-10T01:00:00Z'),
+        itemCount: 30,
+      },
+      {
+        axis: 'EARNINGS',
+        axisLabel: '실적',
+        isCollected: false,
+        lastUpdatedAt: null,
+        itemCount: 0,
+      },
+      {
+        axis: 'VALUATION',
+        axisLabel: '밸류에이션',
+        isCollected: false,
+        lastUpdatedAt: null,
+        itemCount: 0,
+      },
+      {
+        axis: 'DISCLOSURE',
+        axisLabel: '공시',
+        isCollected: false,
+        lastUpdatedAt: null,
+        itemCount: 0,
+      },
+    ])
+  })
+
+  it('falls back to the raw axis label for unknown coverage axes', () => {
+    expect(
+      adaptResearchCoverage({
+        asset_id: 1,
+        axes: [
+          {
+            axis: 'ALTERNATIVE_DATA',
+            status: 'NOT_COLLECTED',
+            last_updated_at: null,
+            item_count: 0,
+          },
+        ],
+      }),
+    ).toEqual([
+      {
+        axis: 'ALTERNATIVE_DATA',
+        axisLabel: 'ALTERNATIVE_DATA',
+        isCollected: false,
+        lastUpdatedAt: null,
+        itemCount: 0,
+      },
+    ])
+  })
+
+  it('maps counter views and falls back to an empty array when absent', () => {
+    expect(
+      adaptResearchDetail(
+        detail,
+        { ...summary, counter_view: ['수요 둔화 가능성'] },
+        checklist,
+        null,
+      ).counterView,
+    ).toEqual(['수요 둔화 가능성'])
+
+    expect(
+      adaptResearchDetail(detail, summary, checklist, null).counterView,
+    ).toEqual([])
   })
 })

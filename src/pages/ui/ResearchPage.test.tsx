@@ -23,6 +23,8 @@ const mockUseNewsDisclosure = vi.hoisted(() => vi.fn())
 const mockNewsDisclosureRefetch = vi.hoisted(() => vi.fn())
 const mockUseCatalystTimeline = vi.hoisted(() => vi.fn())
 const mockCatalystTimelineRefetch = vi.hoisted(() => vi.fn())
+const mockUseResearchCoverage = vi.hoisted(() => vi.fn())
+const mockResearchCoverageRefetch = vi.hoisted(() => vi.fn())
 const mockSaveBuyChecklist = vi.hoisted(() => vi.fn())
 const mockUseWatchlistAssets = vi.hoisted(() => vi.fn())
 const mockAddWatchlistAsset = vi.hoisted(() => vi.fn())
@@ -55,6 +57,10 @@ const researchBySymbol = {
       '성장성과 현금흐름 개선을 확인하되 가격 부담을 함께 검토할 단계입니다.',
     confidenceBasis:
       '성장 지표는 긍정적이지만 밸류에이션 불확실성이 남아 있습니다.',
+    counterView: [
+      'AI 인프라 투자가 예상보다 빠르게 둔화될 수 있습니다.',
+      '높은 밸류에이션이 추가 상승 여력을 제한할 수 있습니다.',
+    ],
     briefing: {
       headline: 'AI demand remains durable',
       body: 'Margins remain the key checkpoint.',
@@ -119,6 +125,7 @@ const researchBySymbol = {
     stanceConfidence: null,
     stanceComment: null,
     confidenceBasis: null,
+    counterView: [],
     briefing: {
       headline: 'Cloud growth checkpoint',
       body: 'Watch Azure.',
@@ -155,6 +162,7 @@ const researchBySymbol = {
     stanceConfidence: null,
     stanceComment: null,
     confidenceBasis: null,
+    counterView: [],
     briefing: {
       headline: 'No price data',
       body: '기존 브리핑 문단만 표시합니다.',
@@ -210,6 +218,7 @@ vi.mock('@/features/research/queries', async () => {
     useResearchList: actual.useResearchList,
     useNewsDisclosure: mockUseNewsDisclosure,
     useCatalystTimeline: mockUseCatalystTimeline,
+    useResearchCoverage: mockUseResearchCoverage,
     useResearchPriceSeries: mockUseResearchPriceSeries,
     useSaveBuyChecklist: () => {
       const [mutationState, setMutationState] = React.useState<{
@@ -364,6 +373,35 @@ beforeEach(() => {
     isError: false,
     isLoading: false,
     refetch: mockCatalystTimelineRefetch,
+  })
+  mockUseResearchCoverage.mockReturnValue({
+    data: [
+      {
+        axis: 'NEWS',
+        axisLabel: '뉴스',
+        isCollected: true,
+        lastUpdatedAt: '2026. 7. 10. 오전 9:00',
+        itemCount: 12,
+      },
+      {
+        axis: 'PRICE',
+        axisLabel: '가격',
+        isCollected: true,
+        lastUpdatedAt: '2026. 7. 10. 오전 10:00',
+        itemCount: 30,
+      },
+      ...['실적', '밸류에이션', '공시'].map((axisLabel) => ({
+        axis: axisLabel,
+        axisLabel,
+        isCollected: false,
+        lastUpdatedAt: null,
+        itemCount: 0,
+      })),
+    ],
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: mockResearchCoverageRefetch,
   })
   mockUseWatchlistAssets.mockReturnValue({
     data: { rows: [] },
@@ -613,6 +651,87 @@ describe('ResearchPage', () => {
     expect(
       screen.queryByRole('heading', { name: '다음 확인 사항' }),
     ).not.toBeInTheDocument()
+  })
+
+  it('renders counter views below the AI briefing', async () => {
+    renderResearch()
+
+    const briefingHeading = await screen.findByRole('heading', {
+      name: 'AI demand remains durable',
+    })
+    const counterViewHeading = screen.getByRole('heading', {
+      name: '반대 관점',
+    })
+
+    expect(
+      screen.getByText('AI 인프라 투자가 예상보다 빠르게 둔화될 수 있습니다.'),
+    ).toBeVisible()
+    expect(
+      screen.getByText(
+        '높은 밸류에이션이 추가 상승 여력을 제한할 수 있습니다.',
+      ),
+    ).toBeVisible()
+    expect(
+      briefingHeading.compareDocumentPosition(counterViewHeading) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+  })
+
+  it('shows an empty counter-view state', async () => {
+    renderResearch('/research/MSFT')
+
+    expect(
+      await screen.findByText('반대 관점 데이터가 없습니다.'),
+    ).toBeVisible()
+  })
+
+  it('renders research coverage with the derived acquisition ratio', async () => {
+    renderResearch()
+
+    const coverageCard = (
+      await screen.findByRole('heading', { name: '데이터 커버리지' })
+    ).closest('section')
+    expect(coverageCard).not.toBeNull()
+
+    const coverage = within(coverageCard as HTMLElement)
+    expect(mockUseResearchCoverage).toHaveBeenCalledWith(1)
+    expect(coverage.getByText('2/5 확보')).toBeVisible()
+    expect(coverage.getByText('뉴스')).toBeVisible()
+    expect(coverage.getAllByText('수집됨')).toHaveLength(2)
+    expect(
+      coverage.getByText('갱신 2026. 7. 10. 오전 9:00 · 12건'),
+    ).toBeVisible()
+    expect(coverage.getAllByText('미수집')).toHaveLength(3)
+    expect(coverage.getAllByText('데이터 없음')).toHaveLength(3)
+  })
+
+  it('isolates a research coverage error and retries inside the card', async () => {
+    mockUseResearchCoverage.mockReturnValue({
+      data: undefined,
+      error: new Error('coverage failed'),
+      isError: true,
+      isLoading: false,
+      refetch: mockResearchCoverageRefetch,
+    })
+    renderResearch()
+
+    expect(
+      await screen.findByRole('heading', {
+        name: '데이터 커버리지를 불러오지 못했습니다',
+      }),
+    ).toBeVisible()
+    expect(screen.getByRole('heading', { name: '핵심 리스크' })).toBeVisible()
+
+    const coverageCard = screen
+      .getByRole('heading', { name: '데이터 커버리지' })
+      .closest('section')
+    expect(coverageCard).not.toBeNull()
+    fireEvent.click(
+      within(coverageCard as HTMLElement).getByRole('button', {
+        name: '재시도',
+      }),
+    )
+    expect(mockResearchCoverageRefetch).toHaveBeenCalledOnce()
   })
 
   it('keeps the briefing paragraph when every structured group is empty', async () => {

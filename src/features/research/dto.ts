@@ -33,6 +33,7 @@ export interface ResearchSummaryDto {
   caution_factors?: string[] | null
   next_checks?: string[] | null
   confidence_basis?: string | null
+  counter_view?: string[] | null
   key_risks?: Array<{
     id?: string | number
     title: string
@@ -41,6 +42,16 @@ export interface ResearchSummaryDto {
     evidence?: string[] | null
   }> | null
   created_at: string
+}
+
+export interface ResearchCoverageDto {
+  asset_id: number
+  axes: Array<{
+    axis: string
+    status: 'COLLECTED' | 'NOT_COLLECTED'
+    last_updated_at: string | null
+    item_count: number
+  }>
 }
 
 export interface BuyChecklistDto {
