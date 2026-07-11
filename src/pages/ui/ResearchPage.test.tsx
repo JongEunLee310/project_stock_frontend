@@ -403,19 +403,56 @@ describe('ResearchPage', () => {
     )
   })
 
-  it('renders the design metric tiles and news panel title', async () => {
+  it('renders the header band investment stance and metric tiles', async () => {
     renderResearch()
 
     await screen.findByRole('heading', { name: 'NVDA 리서치' })
 
+    expect(screen.getByLabelText('현재가')).toHaveTextContent('$142.62')
+    expect(screen.getByLabelText('등락')).toHaveTextContent('+$2.51 (+1.79%)')
+    expect(screen.getByText('AI 투자 스탠스')).toBeVisible()
+    expect(
+      screen.getByText('Constructive, wait for disciplined add-on entry'),
+    ).toBeVisible()
+    expect(screen.getByText('신뢰도 65%')).toBeVisible()
     expect(screen.getByText('시가총액')).toBeVisible()
     expect(screen.getByText('섹터')).toBeVisible()
     expect(screen.getByText('52주 범위')).toBeVisible()
     expect(screen.getByText('다음 실적 발표')).toBeVisible()
-    expect(screen.getAllByText('평균 목표주가').length).toBeGreaterThan(0)
+    expect(screen.getByText('평균 목표주가')).toBeVisible()
     expect(screen.queryByText('PER / PEG')).not.toBeInTheDocument()
     expect(
       screen.getByRole('heading', { name: '뉴스 및 공시 요약' }),
+    ).toBeVisible()
+  })
+
+  it('renders the price tab and disabled future chart tabs', async () => {
+    renderResearch()
+
+    await screen.findByRole('heading', { name: 'NVDA 리서치' })
+
+    const priceTab = screen.getByRole('tab', { name: '가격' })
+    const valuationTab = screen.getByRole('tab', { name: /밸류에이션/ })
+    const earningsTab = screen.getByRole('tab', { name: /실적/ })
+
+    expect(priceTab).toHaveAttribute('aria-selected', 'true')
+    expect(valuationTab).toBeDisabled()
+    expect(valuationTab).toHaveAttribute('aria-disabled', 'true')
+    expect(earningsTab).toBeDisabled()
+    expect(earningsTab).toHaveAttribute('aria-disabled', 'true')
+    expect(screen.getAllByText('준비 중')).toHaveLength(2)
+  })
+
+  it('renders the catalyst timeline placeholder', async () => {
+    renderResearch()
+
+    expect(
+      await screen.findByRole('heading', { name: '촉매 타임라인' }),
+    ).toBeVisible()
+    expect(
+      screen.getByRole('heading', {
+        name: '예정 이벤트 데이터가 아직 수집되지 않았습니다.',
+      }),
     ).toBeVisible()
   })
 
