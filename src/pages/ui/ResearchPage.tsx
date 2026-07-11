@@ -4,20 +4,26 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
   SymbolNotFoundError,
   useCatalystTimeline,
+  useEarningsSummary,
   useNewsDisclosure,
   useResearchPriceSeries,
   useResearchCoverage,
   useResearchView,
   useSaveBuyChecklist,
+  useValuationMetrics,
   type PriceRange,
 } from '@/features/research/queries'
 import type {
   ChecklistItem,
   CoverageAxisItem,
+  EarningsQuarterItem,
+  EarningsView,
   NewsDisclosureItem,
   NewsDisclosureSentiment,
   ResearchRisk,
   ResearchView,
+  ValuationMetricItem,
+  ValuationView,
 } from '@/features/research/adapters'
 import { newsDisclosureSentimentLabels } from '@/features/research/adapters'
 import {
@@ -34,6 +40,8 @@ import {
   ErrorState,
   LineChart,
   Skeleton,
+  Table,
+  type TableColumn,
 } from '@/shared/ui'
 
 const priceRanges: PriceRange[] = ['1D', '1M', '3M', '6M', '1Y']
@@ -100,6 +108,26 @@ function formatSignedPercent(value: number | null) {
 
   const sign = value > 0 ? '+' : ''
   return `${sign}${value.toFixed(2)}%`
+}
+
+function formatMetricValue(value: number | null) {
+  return value === null
+    ? '-'
+    : value.toLocaleString('en-US', { maximumFractionDigits: 2 })
+}
+
+function formatHistoricalPosition(
+  value: number | null,
+  percentile: number | null,
+) {
+  if (value === null || percentile === null) return '-'
+  return percentile > 50 ? `상위 ${100 - percentile}%` : `하위 ${percentile}%`
+}
+
+function formatTablePercent(value: number | null, signed = false) {
+  if (value === null) return '-'
+  const sign = signed && value > 0 ? '+' : ''
+  return `${sign}${value.toFixed(1)}%`
 }
 
 function getHighestRiskLevel(risks: ResearchRisk[]) {
@@ -178,7 +206,221 @@ function PriceSparkline({ research }: { research: ResearchView }) {
   )
 }
 
+type ChartTab = 'price' | 'valuation' | 'earnings'
+
+const chartTabIds: Record<ChartTab, { tab: string; panel: string }> = {
+  price: { tab: 'research-price-tab', panel: 'research-price-panel' },
+  valuation: {
+    tab: 'research-valuation-tab',
+    panel: 'research-valuation-panel',
+  },
+  earnings: {
+    tab: 'research-earnings-tab',
+    panel: 'research-earnings-panel',
+  },
+}
+
+function ValuationTable({ valuation }: { valuation: ValuationView }) {
+  const columns: Array<TableColumn<ValuationMetricItem>> = [
+    {
+      key: 'metric',
+      header: '지표명',
+      cell: (metric) => (
+        <div className="flex flex-wrap items-center gap-2">
+          <span>{metric.metricLabel}</span>
+          {metric.isHighlighted ? <Badge tone="info">우선 지표</Badge> : null}
+        </div>
+      ),
+    },
+    {
+      key: 'value',
+      header: '현재 값',
+      align: 'right',
+      cell: (metric) => formatMetricValue(metric.value),
+    },
+    {
+      key: 'median',
+      header: '5년 중앙값',
+      align: 'right',
+      cell: (metric) =>
+        metric.value === null ? '-' : formatMetricValue(metric.fiveYearMedian),
+    },
+    {
+      key: 'percentile',
+      header: '역사적 위치',
+      align: 'right',
+      cell: (metric) =>
+        formatHistoricalPosition(metric.value, metric.percentile),
+    },
+  ]
+
+  return (
+    <div>
+      <p className="mb-3 text-sm text-app-text-muted">
+        종목 성격: {valuation.profileLabel}
+      </p>
+      <Table
+        aria-label="밸류에이션 지표"
+        columns={columns}
+        rows={valuation.metrics}
+        getRowKey={(metric) => metric.metric}
+      />
+    </div>
+  )
+}
+
+function EpsSurprise({ quarter }: { quarter: EarningsQuarterItem }) {
+  if (quarter.epsEstimate === null || quarter.epsSurprisePercent === null) {
+    return <span className="text-app-text-muted">-</span>
+  }
+
+  const surprise = quarter.epsSurprisePercent
+  const label = surprise > 0 ? '상회' : surprise < 0 ? '하회' : '일치'
+  const className =
+    surprise > 0
+      ? 'text-emerald-400'
+      : surprise < 0
+        ? 'text-red-400'
+        : 'text-app-text-muted'
+
+  return (
+    <span className={className}>
+      {label} {formatTablePercent(surprise, true)}
+    </span>
+  )
+}
+
+function EarningsTable({
+  earnings,
+  currency,
+}: {
+  earnings: EarningsView
+  currency: string | null
+}) {
+  const columns: Array<TableColumn<EarningsQuarterItem>> = [
+    { key: 'period', header: '분기', cell: (quarter) => quarter.period },
+    {
+      key: 'revenue',
+      header: '매출 (YoY)',
+      align: 'right',
+      cell: (quarter) => (
+        <div>
+          <span>{formatCurrency(quarter.revenue, currency)}</span>
+          <span className="ml-2 text-xs text-app-text-muted">
+            {formatTablePercent(quarter.revenueYoyPercent, true)}
+          </span>
+        </div>
+      ),
+    },
+    {
+      key: 'operating-income',
+      header: '영업이익',
+      align: 'right',
+      cell: (quarter) => formatCurrency(quarter.operatingIncome, currency),
+    },
+    {
+      key: 'margin',
+      header: '마진',
+      align: 'right',
+      cell: (quarter) => formatTablePercent(quarter.operatingMarginPercent),
+    },
+    {
+      key: 'eps',
+      header: 'EPS (컨센서스 대비)',
+      align: 'right',
+      cell: (quarter) => (
+        <div className="flex flex-col items-end gap-1">
+          <span>{formatCurrency(quarter.eps, currency)}</span>
+          <EpsSurprise quarter={quarter} />
+        </div>
+      ),
+    },
+  ]
+
+  return (
+    <div className="space-y-5">
+      <Table
+        aria-label="분기 실적"
+        columns={columns}
+        rows={earnings.quarters}
+        getRowKey={(quarter) => quarter.period}
+      />
+      {earnings.guidance ? (
+        <div className="rounded-control border border-app-border bg-app-surface-muted p-4">
+          <h3 className="text-sm font-semibold text-app-text">가이던스</h3>
+          <p className="mt-2 text-sm text-app-text-muted">
+            {earnings.guidance}
+          </p>
+        </div>
+      ) : null}
+      {earnings.segments.length > 0 ? (
+        <div>
+          <h3 className="text-sm font-semibold text-app-text">사업부문</h3>
+          <ul className="mt-2 divide-y divide-app-border rounded-control border border-app-border">
+            {earnings.segments.map((segment) => (
+              <li
+                key={segment.name}
+                className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm"
+              >
+                <span className="font-medium text-app-text">
+                  {segment.name}
+                </span>
+                <span className="text-app-text-muted">
+                  매출 비중 {formatTablePercent(segment.revenueSharePercent)} ·
+                  YoY {formatTablePercent(segment.yoyGrowthPercent, true)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
 function PriceChartCard({ research }: { research: ResearchView }) {
+  const [activeTab, setActiveTab] = useState<ChartTab>('price')
+  const valuationQuery = useValuationMetrics(
+    research.assetId,
+    activeTab === 'valuation',
+  )
+  const earningsQuery = useEarningsSummary(
+    research.assetId,
+    activeTab === 'earnings',
+  )
+
+  const renderPanel = () => {
+    if (activeTab === 'price') {
+      return <PriceSparkline research={research} />
+    }
+
+    const query = activeTab === 'valuation' ? valuationQuery : earningsQuery
+    if (query.isLoading) {
+      return <Skeleton lines={7} />
+    }
+    if (query.isError) {
+      return (
+        <ErrorState
+          title={`${activeTab === 'valuation' ? '밸류에이션' : '실적'} 데이터를 불러오지 못했습니다`}
+          description="잠시 후 다시 시도해 주세요."
+          onRetry={() => void query.refetch()}
+        />
+      )
+    }
+    if (activeTab === 'valuation' && valuationQuery.data) {
+      return <ValuationTable valuation={valuationQuery.data} />
+    }
+    if (activeTab === 'earnings' && earningsQuery.data) {
+      return (
+        <EarningsTable
+          earnings={earningsQuery.data}
+          currency={research.currency}
+        />
+      )
+    }
+    return null
+  }
+
   return (
     <Card>
       <div
@@ -187,47 +429,46 @@ function PriceChartCard({ research }: { research: ResearchView }) {
         aria-label="차트 지표"
       >
         <Button
-          id="research-price-tab"
+          id={chartTabIds.price.tab}
           role="tab"
           type="button"
-          variant="primary"
-          aria-controls="research-price-panel"
-          aria-selected="true"
+          variant={activeTab === 'price' ? 'primary' : 'ghost'}
+          aria-controls={chartTabIds.price.panel}
+          aria-selected={activeTab === 'price'}
+          onClick={() => setActiveTab('price')}
         >
           가격
         </Button>
         <Button
+          id={chartTabIds.valuation.tab}
           role="tab"
           type="button"
-          variant="ghost"
-          aria-disabled="true"
-          aria-selected="false"
-          disabled
-          className="gap-2"
+          variant={activeTab === 'valuation' ? 'primary' : 'ghost'}
+          aria-controls={chartTabIds.valuation.panel}
+          aria-selected={activeTab === 'valuation'}
+          onClick={() => setActiveTab('valuation')}
         >
           밸류에이션
-          <span className="text-xs font-medium">준비 중</span>
         </Button>
         <Button
+          id={chartTabIds.earnings.tab}
           role="tab"
           type="button"
-          variant="ghost"
-          aria-disabled="true"
-          aria-selected="false"
-          disabled
-          className="gap-2"
+          variant={activeTab === 'earnings' ? 'primary' : 'ghost'}
+          aria-controls={chartTabIds.earnings.panel}
+          aria-selected={activeTab === 'earnings'}
+          onClick={() => setActiveTab('earnings')}
         >
           실적
-          <span className="text-xs font-medium">준비 중</span>
         </Button>
       </div>
       <div
-        id="research-price-panel"
+        id={chartTabIds[activeTab].panel}
         role="tabpanel"
-        aria-labelledby="research-price-tab"
+        aria-labelledby={chartTabIds[activeTab].tab}
         className="mt-5"
       >
-        <PriceSparkline research={research} />
+        {renderPanel()}
       </div>
     </Card>
   )

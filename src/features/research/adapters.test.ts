@@ -4,21 +4,25 @@ import { formatKstDateTime } from '@/shared/lib/format'
 
 import {
   adaptCatalystTimeline,
+  adaptEarningsSummary,
   adaptNewsDisclosure,
   adaptPriceSeries,
   adaptResearchCoverage,
   adaptResearchDetail,
   adaptResearchListRow,
   adaptThesis,
+  adaptValuationMetrics,
 } from './adapters'
 import type {
   AssetDetailDto,
   BuyChecklistDto,
   CatalystTimelineDto,
+  EarningsSummaryDto,
   NewsDisclosureDto,
   ResearchCoverageDto,
   ResearchSummaryDto,
   ThesisDto,
+  ValuationMetricsDto,
 } from './dto'
 
 const detail: AssetDetailDto = {
@@ -96,7 +100,175 @@ const thesis: ThesisDto = {
   created_at: '2026-05-24T00:00:00.000Z',
 }
 
+const valuationMetrics: ValuationMetricsDto = {
+  asset_id: 1,
+  profile: 'DEFICIT',
+  highlighted_metrics: ['PSR', 'FCF_YIELD'],
+  metrics: [
+    {
+      metric: 'PER',
+      value: null,
+      five_year_median: null,
+      percentile: null,
+    },
+    {
+      metric: 'FORWARD_PER',
+      value: '31.50',
+      five_year_median: '28.20',
+      percentile: 72,
+    },
+    {
+      metric: 'PSR',
+      value: '12.40',
+      five_year_median: '10.10',
+      percentile: 81,
+    },
+    {
+      metric: 'PBR',
+      value: '18.90',
+      five_year_median: '15.70',
+      percentile: 69,
+    },
+    {
+      metric: 'EV_EBITDA',
+      value: '24.30',
+      five_year_median: '21.00',
+      percentile: 65,
+    },
+    {
+      metric: 'PEG',
+      value: null,
+      five_year_median: null,
+      percentile: null,
+    },
+    {
+      metric: 'FCF_YIELD',
+      value: '2.75',
+      five_year_median: '3.10',
+      percentile: 35,
+    },
+  ],
+}
+
+const earningsSummary: EarningsSummaryDto = {
+  asset_id: 1,
+  quarters: [
+    {
+      period: '2025Q3',
+      revenue: '35000000000.00',
+      operating_income: '21000000000.00',
+      eps: '0.81',
+      revenue_yoy_percent: '93.60',
+      operating_margin_percent: '60.00',
+      eps_estimate: '0.75',
+      eps_surprise_percent: '8.00',
+    },
+    {
+      period: '2025Q4',
+      revenue: '39300000000.00',
+      operating_income: '24000000000.00',
+      eps: '0.89',
+      revenue_yoy_percent: null,
+      operating_margin_percent: '61.10',
+      eps_estimate: '0.92',
+      eps_surprise_percent: '-3.26',
+    },
+  ],
+  guidance: '다음 분기 매출은 시장 기대에 부합할 전망입니다.',
+  segments: [
+    {
+      name: '데이터센터',
+      revenue_share_percent: '88.25',
+      yoy_growth_percent: '112.40',
+    },
+  ],
+}
+
 describe('research adapters', () => {
+  it('adapts valuation labels, nulls, highlights, and decimal strings', () => {
+    const result = adaptValuationMetrics(valuationMetrics)
+
+    expect(result.profileLabel).toBe('적자 전환 관찰')
+    expect(result.metrics.map((item) => item.metricLabel)).toEqual([
+      'PER',
+      'Forward PER',
+      'PSR',
+      'PBR',
+      'EV/EBITDA',
+      'PEG',
+      'FCF 수익률',
+    ])
+    expect(result.metrics[0]).toMatchObject({
+      value: null,
+      fiveYearMedian: null,
+      percentile: null,
+      isHighlighted: false,
+    })
+    expect(result.metrics[2]).toMatchObject({
+      value: 12.4,
+      fiveYearMedian: 10.1,
+      percentile: 81,
+      isHighlighted: true,
+    })
+  })
+
+  it('falls back to raw valuation metric and profile values', () => {
+    const result = adaptValuationMetrics({
+      ...valuationMetrics,
+      profile: 'SPECIAL',
+      highlighted_metrics: ['CUSTOM_RATIO'],
+      metrics: [
+        {
+          metric: 'CUSTOM_RATIO',
+          value: '1.25',
+          five_year_median: '1.00',
+          percentile: 50,
+        },
+      ],
+    })
+
+    expect(result.profileLabel).toBe('SPECIAL')
+    expect(result.metrics[0]).toMatchObject({
+      metricLabel: 'CUSTOM_RATIO',
+      isHighlighted: true,
+    })
+  })
+
+  it('adapts earnings decimal strings while preserving quarter order', () => {
+    expect(adaptEarningsSummary(earningsSummary)).toEqual({
+      quarters: [
+        {
+          period: '2025Q3',
+          revenue: 35000000000,
+          operatingIncome: 21000000000,
+          eps: 0.81,
+          revenueYoyPercent: 93.6,
+          operatingMarginPercent: 60,
+          epsEstimate: 0.75,
+          epsSurprisePercent: 8,
+        },
+        {
+          period: '2025Q4',
+          revenue: 39300000000,
+          operatingIncome: 24000000000,
+          eps: 0.89,
+          revenueYoyPercent: null,
+          operatingMarginPercent: 61.1,
+          epsEstimate: 0.92,
+          epsSurprisePercent: -3.26,
+        },
+      ],
+      guidance: '다음 분기 매출은 시장 기대에 부합할 전망입니다.',
+      segments: [
+        {
+          name: '데이터센터',
+          revenueSharePercent: 88.25,
+          yoyGrowthPercent: 112.4,
+        },
+      ],
+    })
+  })
+
   it('combines an asset and research summary into a list row', () => {
     expect(adaptResearchListRow(detail, summary)).toEqual({
       assetId: 1,

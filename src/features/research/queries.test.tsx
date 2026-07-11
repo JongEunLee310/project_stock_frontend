@@ -13,12 +13,14 @@ import { formatKstDateTime } from '@/shared/lib/format'
 
 import {
   useCatalystTimeline,
+  useEarningsSummary,
   useNewsDisclosure,
   useResearchCoverage,
   useResearchList,
   useResearchPriceSeries,
   useResearchView,
   useSaveBuyChecklist,
+  useValuationMetrics,
 } from './queries'
 
 vi.mock('@/shared/api/client', () => ({
@@ -118,6 +120,54 @@ function responseFor(path: string) {
             item_count: 0,
           })),
         ],
+      }
+    case '/assets/11/valuation-metrics':
+      return {
+        asset_id: 11,
+        profile: 'DEFICIT',
+        highlighted_metrics: ['PSR'],
+        metrics: [
+          {
+            metric: 'PER',
+            value: null,
+            five_year_median: null,
+            percentile: null,
+          },
+          {
+            metric: 'PSR',
+            value: '12.40',
+            five_year_median: '10.10',
+            percentile: 81,
+          },
+        ],
+      }
+    case '/assets/11/earnings-summary':
+      return {
+        asset_id: 11,
+        quarters: [
+          {
+            period: '2025Q3',
+            revenue: '35000000000.00',
+            operating_income: '21000000000.00',
+            eps: '0.81',
+            revenue_yoy_percent: '93.60',
+            operating_margin_percent: '60.00',
+            eps_estimate: '0.75',
+            eps_surprise_percent: '8.00',
+          },
+          {
+            period: '2025Q4',
+            revenue: '39300000000.00',
+            operating_income: '24000000000.00',
+            eps: '0.89',
+            revenue_yoy_percent: '78.00',
+            operating_margin_percent: '61.10',
+            eps_estimate: '0.92',
+            eps_surprise_percent: '-3.26',
+          },
+        ],
+        guidance: '다음 분기 매출은 시장 기대에 부합할 전망입니다.',
+        segments: [],
       }
     case '/theses/latest?asset_id=11':
       return {
@@ -366,6 +416,87 @@ describe('research queries', () => {
 
     expect(apiGet).not.toHaveBeenCalled()
   })
+
+  it('fetches valuation metrics only while the valuation tab is enabled', async () => {
+    const queryClient = createTestQueryClient()
+    const { result, rerender } = renderHook(
+      ({ enabled }) => useValuationMetrics(11, enabled),
+      { initialProps: { enabled: false }, wrapper: wrapperFor(queryClient) },
+    )
+
+    expect(apiGet).not.toHaveBeenCalled()
+
+    rerender({ enabled: true })
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(apiGet).toHaveBeenCalledWith('/assets/11/valuation-metrics')
+    expect(result.current.data).toMatchObject({
+      profileLabel: '적자 전환 관찰',
+      metrics: [
+        { metric: 'PER', value: null },
+        { metric: 'PSR', value: 12.4, isHighlighted: true },
+      ],
+    })
+    expect(
+      queryClient.getQueryCache().find({
+        queryKey: ['research', 'valuation', 11],
+      }),
+    ).toBeDefined()
+  })
+
+  it.each([
+    { assetId: undefined, enabled: true },
+    { assetId: 11, enabled: false },
+  ])(
+    'does not fetch valuation metrics with $assetId and enabled=$enabled',
+    ({ assetId, enabled }) => {
+      const queryClient = createTestQueryClient()
+      renderHook(() => useValuationMetrics(assetId, enabled), {
+        wrapper: wrapperFor(queryClient),
+      })
+
+      expect(apiGet).not.toHaveBeenCalled()
+    },
+  )
+
+  it('fetches earnings only while the earnings tab is enabled', async () => {
+    const queryClient = createTestQueryClient()
+    const { result, rerender } = renderHook(
+      ({ enabled }) => useEarningsSummary(11, enabled),
+      { initialProps: { enabled: false }, wrapper: wrapperFor(queryClient) },
+    )
+
+    expect(apiGet).not.toHaveBeenCalled()
+
+    rerender({ enabled: true })
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(apiGet).toHaveBeenCalledWith('/assets/11/earnings-summary')
+    expect(result.current.data?.quarters).toEqual([
+      expect.objectContaining({ period: '2025Q3', epsSurprisePercent: 8 }),
+      expect.objectContaining({ period: '2025Q4', epsSurprisePercent: -3.26 }),
+    ])
+    expect(
+      queryClient.getQueryCache().find({
+        queryKey: ['research', 'earnings', 11],
+      }),
+    ).toBeDefined()
+  })
+
+  it.each([
+    { assetId: undefined, enabled: true },
+    { assetId: 11, enabled: false },
+  ])(
+    'does not fetch earnings with $assetId and enabled=$enabled',
+    ({ assetId, enabled }) => {
+      const queryClient = createTestQueryClient()
+      renderHook(() => useEarningsSummary(assetId, enabled), {
+        wrapper: wrapperFor(queryClient),
+      })
+
+      expect(apiGet).not.toHaveBeenCalled()
+    },
+  )
 
   it('returns research data with a null latest thesis when no thesis exists', async () => {
     vi.mocked(apiGet).mockImplementation((async (path: string) => {

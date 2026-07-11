@@ -19,6 +19,10 @@ import {
 } from '@/test-utils/authTestSetup'
 
 const mockUseResearchPriceSeries = vi.hoisted(() => vi.fn())
+const mockUseValuationMetrics = vi.hoisted(() => vi.fn())
+const mockValuationMetricsRefetch = vi.hoisted(() => vi.fn())
+const mockUseEarningsSummary = vi.hoisted(() => vi.fn())
+const mockEarningsSummaryRefetch = vi.hoisted(() => vi.fn())
 const mockUseNewsDisclosure = vi.hoisted(() => vi.fn())
 const mockNewsDisclosureRefetch = vi.hoisted(() => vi.fn())
 const mockUseCatalystTimeline = vi.hoisted(() => vi.fn())
@@ -220,6 +224,8 @@ vi.mock('@/features/research/queries', async () => {
     useCatalystTimeline: mockUseCatalystTimeline,
     useResearchCoverage: mockUseResearchCoverage,
     useResearchPriceSeries: mockUseResearchPriceSeries,
+    useValuationMetrics: mockUseValuationMetrics,
+    useEarningsSummary: mockUseEarningsSummary,
     useSaveBuyChecklist: () => {
       const [mutationState, setMutationState] = React.useState<{
         variables: { memo: string | null; checked_item_keys: string[] } | null
@@ -317,6 +323,136 @@ beforeEach(() => {
     isError: false,
     isLoading: false,
     refetch: vi.fn(),
+  })
+  mockUseValuationMetrics.mockReturnValue({
+    data: {
+      profileLabel: '적자 전환 관찰',
+      metrics: [
+        {
+          metric: 'PER',
+          metricLabel: 'PER',
+          value: null,
+          fiveYearMedian: null,
+          percentile: null,
+          isHighlighted: false,
+        },
+        {
+          metric: 'FORWARD_PER',
+          metricLabel: 'Forward PER',
+          value: 31.5,
+          fiveYearMedian: 28.2,
+          percentile: 72,
+          isHighlighted: false,
+        },
+        {
+          metric: 'PSR',
+          metricLabel: 'PSR',
+          value: 12.4,
+          fiveYearMedian: 10.1,
+          percentile: 81,
+          isHighlighted: true,
+        },
+        {
+          metric: 'PBR',
+          metricLabel: 'PBR',
+          value: 18.9,
+          fiveYearMedian: 15.7,
+          percentile: 69,
+          isHighlighted: false,
+        },
+        {
+          metric: 'EV_EBITDA',
+          metricLabel: 'EV/EBITDA',
+          value: 24.3,
+          fiveYearMedian: 21,
+          percentile: 65,
+          isHighlighted: false,
+        },
+        {
+          metric: 'PEG',
+          metricLabel: 'PEG',
+          value: 1.2,
+          fiveYearMedian: 1.4,
+          percentile: 50,
+          isHighlighted: false,
+        },
+        {
+          metric: 'FCF_YIELD',
+          metricLabel: 'FCF 수익률',
+          value: 2.75,
+          fiveYearMedian: 3.1,
+          percentile: 35,
+          isHighlighted: true,
+        },
+      ],
+    },
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: mockValuationMetricsRefetch,
+  })
+  mockUseEarningsSummary.mockReturnValue({
+    data: {
+      quarters: [
+        {
+          period: '2025Q1',
+          revenue: 26000000000,
+          operatingIncome: 15000000000,
+          eps: 0.62,
+          revenueYoyPercent: 80.1,
+          operatingMarginPercent: 57.7,
+          epsEstimate: 0.57,
+          epsSurprisePercent: 8,
+        },
+        {
+          period: '2025Q2',
+          revenue: 30000000000,
+          operatingIncome: 18000000000,
+          eps: 0.71,
+          revenueYoyPercent: 76.2,
+          operatingMarginPercent: 60,
+          epsEstimate: 0.74,
+          epsSurprisePercent: -4.05,
+        },
+        {
+          period: '2025Q3',
+          revenue: 35000000000,
+          operatingIncome: 21000000000,
+          eps: 0.81,
+          revenueYoyPercent: 93.6,
+          operatingMarginPercent: 60,
+          epsEstimate: null,
+          epsSurprisePercent: null,
+        },
+        {
+          period: '2025Q4',
+          revenue: 39300000000,
+          operatingIncome: 24000000000,
+          eps: 0.89,
+          revenueYoyPercent: null,
+          operatingMarginPercent: 61.1,
+          epsEstimate: 0.87,
+          epsSurprisePercent: 2.3,
+        },
+      ],
+      guidance: '다음 분기 매출은 시장 기대에 부합할 전망입니다.',
+      segments: [
+        {
+          name: '데이터센터',
+          revenueSharePercent: 88.25,
+          yoyGrowthPercent: 112.4,
+        },
+        {
+          name: '게이밍',
+          revenueSharePercent: 8.5,
+          yoyGrowthPercent: -2.3,
+        },
+      ],
+    },
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: mockEarningsSummaryRefetch,
   })
   mockUseNewsDisclosure.mockReturnValue({
     data: {
@@ -755,21 +891,132 @@ describe('ResearchPage', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('renders the price tab and disabled future chart tabs', async () => {
+  it('connects every chart tab to its panel and fetches only the active tab', async () => {
     renderResearch()
 
     await screen.findByRole('heading', { name: 'NVDA 리서치' })
 
     const priceTab = screen.getByRole('tab', { name: '가격' })
-    const valuationTab = screen.getByRole('tab', { name: /밸류에이션/ })
-    const earningsTab = screen.getByRole('tab', { name: /실적/ })
+    const valuationTab = screen.getByRole('tab', { name: '밸류에이션' })
+    const earningsTab = screen.getByRole('tab', { name: '실적' })
 
     expect(priceTab).toHaveAttribute('aria-selected', 'true')
-    expect(valuationTab).toBeDisabled()
-    expect(valuationTab).toHaveAttribute('aria-disabled', 'true')
-    expect(earningsTab).toBeDisabled()
-    expect(earningsTab).toHaveAttribute('aria-disabled', 'true')
-    expect(screen.getAllByText('준비 중')).toHaveLength(2)
+    expect(priceTab).toHaveAttribute('aria-controls', 'research-price-panel')
+    expect(valuationTab).toHaveAttribute(
+      'aria-controls',
+      'research-valuation-panel',
+    )
+    expect(earningsTab).toHaveAttribute(
+      'aria-controls',
+      'research-earnings-panel',
+    )
+    expect(screen.getByRole('tabpanel', { name: '가격' })).toHaveAttribute(
+      'aria-labelledby',
+      'research-price-tab',
+    )
+    expect(mockUseValuationMetrics).toHaveBeenLastCalledWith(1, false)
+    expect(mockUseEarningsSummary).toHaveBeenLastCalledWith(1, false)
+
+    fireEvent.click(valuationTab)
+
+    expect(valuationTab).toHaveAttribute('aria-selected', 'true')
+    expect(priceTab).toHaveAttribute('aria-selected', 'false')
+    expect(
+      screen.getByRole('tabpanel', { name: '밸류에이션' }),
+    ).toHaveAttribute('aria-labelledby', 'research-valuation-tab')
+    expect(mockUseValuationMetrics).toHaveBeenLastCalledWith(1, true)
+
+    fireEvent.click(earningsTab)
+
+    expect(earningsTab).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('tabpanel', { name: '실적' })).toHaveAttribute(
+      'aria-labelledby',
+      'research-earnings-tab',
+    )
+    expect(mockUseEarningsSummary).toHaveBeenLastCalledWith(1, true)
+  })
+
+  it('renders valuation positions, null fallbacks, and highlighted metrics', async () => {
+    renderResearch()
+    await screen.findByRole('heading', { name: 'NVDA 리서치' })
+
+    fireEvent.click(screen.getByRole('tab', { name: '밸류에이션' }))
+
+    expect(screen.getByText('종목 성격: 적자 전환 관찰')).toBeVisible()
+    const table = screen.getByRole('table', { name: '밸류에이션 지표' })
+    expect(within(table).getAllByRole('row')).toHaveLength(8)
+    expect(within(table).getByText('상위 19%')).toBeVisible()
+    expect(within(table).getByText('하위 35%')).toBeVisible()
+    expect(within(table).getByText('하위 50%')).toBeVisible()
+    expect(within(table).getAllByText('우선 지표')).toHaveLength(2)
+
+    const nullRow = within(table).getByRole('row', { name: /^PER - - -$/ })
+    expect(within(nullRow).getAllByText('-')).toHaveLength(3)
+  })
+
+  it('renders ascending earnings, surprise status, guidance, and segments', async () => {
+    renderResearch()
+    await screen.findByRole('heading', { name: 'NVDA 리서치' })
+
+    fireEvent.click(screen.getByRole('tab', { name: '실적' }))
+
+    const table = screen.getByRole('table', { name: '분기 실적' })
+    const rows = within(table).getAllByRole('row').slice(1)
+    expect(
+      rows.map((row) => within(row).getAllByRole('cell')[0].textContent),
+    ).toEqual(['2025Q1', '2025Q2', '2025Q3', '2025Q4'])
+    expect(within(table).getByText('상회 +8.0%')).toHaveClass(
+      'text-emerald-400',
+    )
+    expect(within(table).getByText('하회 -4.0%')).toHaveClass('text-red-400')
+    expect(
+      screen.getByText('다음 분기 매출은 시장 기대에 부합할 전망입니다.'),
+    ).toBeVisible()
+    expect(screen.getByText('데이터센터')).toBeVisible()
+    expect(screen.getByText(/매출 비중 88.3% · YoY \+112.4%/)).toBeVisible()
+    expect(screen.getByText('게이밍')).toBeVisible()
+  })
+
+  it('isolates valuation errors inside the active panel and retries', async () => {
+    mockUseValuationMetrics.mockReturnValue({
+      data: undefined,
+      error: new Error('valuation failed'),
+      isError: true,
+      isLoading: false,
+      refetch: mockValuationMetricsRefetch,
+    })
+    renderResearch()
+    await screen.findByRole('heading', { name: 'NVDA 리서치' })
+
+    fireEvent.click(screen.getByRole('tab', { name: '밸류에이션' }))
+
+    expect(
+      screen.getByRole('heading', {
+        name: '밸류에이션 데이터를 불러오지 못했습니다',
+      }),
+    ).toBeVisible()
+    expect(screen.getByRole('heading', { name: '핵심 리스크' })).toBeVisible()
+    fireEvent.click(screen.getByRole('button', { name: '재시도' }))
+    expect(mockValuationMetricsRefetch).toHaveBeenCalledOnce()
+  })
+
+  it('renders a skeleton only inside a loading earnings panel', async () => {
+    mockUseEarningsSummary.mockReturnValue({
+      data: undefined,
+      error: null,
+      isError: false,
+      isLoading: true,
+      refetch: mockEarningsSummaryRefetch,
+    })
+    renderResearch()
+    await screen.findByRole('heading', { name: 'NVDA 리서치' })
+
+    fireEvent.click(screen.getByRole('tab', { name: '실적' }))
+
+    expect(
+      screen.queryByRole('table', { name: '분기 실적' }),
+    ).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: '핵심 리스크' })).toBeVisible()
   })
 
   it('renders catalyst events and only marks estimated dates', async () => {
