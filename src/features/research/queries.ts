@@ -10,10 +10,12 @@ import { apiGet, apiPut } from '@/shared/api/client'
 import { ApiError } from '@/shared/api/envelope'
 
 import {
+  adaptCatalystTimeline,
   adaptNewsDisclosure,
   adaptPriceSeries,
   adaptResearchDetail,
   adaptResearchListRow,
+  type CatalystEventItem,
   type NewsDisclosureView,
   type PriceSeriesView,
   type ResearchListRow,
@@ -23,6 +25,7 @@ import type {
   AssetDetailDto,
   AssetLookupDto,
   BuyChecklistDto,
+  CatalystTimelineDto,
   NewsDisclosureDto,
   PriceSeriesDto,
   ResearchSummaryDto,
@@ -147,6 +150,26 @@ export function useNewsDisclosure(
       )
 
       return adaptNewsDisclosure(data)
+    },
+  })
+}
+
+export function useCatalystTimeline(
+  assetId: number | undefined,
+): UseQueryResult<CatalystEventItem[]> {
+  return useQuery<CatalystEventItem[]>({
+    queryKey: ['research', 'catalysts', assetId],
+    enabled: assetId != null,
+    queryFn: async () => {
+      if (assetId == null) {
+        return []
+      }
+
+      const { data } = await apiGet<CatalystTimelineDto>(
+        `/assets/${assetId}/catalysts`,
+      )
+
+      return adaptCatalystTimeline(data)
     },
   })
 }

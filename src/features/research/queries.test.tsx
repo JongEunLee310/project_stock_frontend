@@ -12,6 +12,7 @@ import {
 import { formatKstDateTime } from '@/shared/lib/format'
 
 import {
+  useCatalystTimeline,
   useNewsDisclosure,
   useResearchList,
   useResearchPriceSeries,
@@ -80,6 +81,18 @@ function responseFor(path: string) {
           },
         ],
         disclosures: [],
+      }
+    case '/assets/11/catalysts':
+      return {
+        asset_id: 11,
+        events: [
+          {
+            event_date: '2026-07-23',
+            title: '주요 계약의 갱신 조건과 매출 영향을 확인하세요.',
+            event_type: 'CONTRACT',
+            is_estimated: true,
+          },
+        ],
       }
     case '/theses/latest?asset_id=11':
       return {
@@ -260,6 +273,37 @@ describe('research queries', () => {
     const queryClient = createTestQueryClient()
 
     renderHook(() => useNewsDisclosure(undefined), {
+      wrapper: wrapperFor(queryClient),
+    })
+
+    expect(apiGet).not.toHaveBeenCalled()
+  })
+
+  it('fetches catalysts with an asset-scoped query key', async () => {
+    const queryClient = createTestQueryClient()
+    const { result } = renderHook(() => useCatalystTimeline(11), {
+      wrapper: wrapperFor(queryClient),
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(apiGet).toHaveBeenCalledWith('/assets/11/catalysts')
+    expect(result.current.data?.[0]).toMatchObject({
+      title: '주요 계약의 갱신 조건과 매출 영향을 확인하세요.',
+      typeLabel: '계약',
+      isEstimated: true,
+    })
+    expect(
+      queryClient.getQueryCache().find({
+        queryKey: ['research', 'catalysts', 11],
+      }),
+    ).toBeDefined()
+  })
+
+  it('does not fetch catalysts without an asset id', () => {
+    const queryClient = createTestQueryClient()
+
+    renderHook(() => useCatalystTimeline(undefined), {
       wrapper: wrapperFor(queryClient),
     })
 

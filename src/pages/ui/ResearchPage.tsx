@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
 import {
   SymbolNotFoundError,
+  useCatalystTimeline,
   useNewsDisclosure,
   useResearchPriceSeries,
   useResearchView,
@@ -627,6 +628,63 @@ function NewsDisclosurePanel({ assetId }: { assetId: number }) {
   )
 }
 
+function CatalystTimelinePanel({ assetId }: { assetId: number }) {
+  const catalystTimelineQuery = useCatalystTimeline(assetId)
+  const events = catalystTimelineQuery.data ?? []
+
+  return (
+    <Card className="h-full">
+      <h2 className="text-xl font-bold text-app-text">촉매 타임라인</h2>
+      {catalystTimelineQuery.isLoading ? (
+        <Skeleton className="mt-4" lines={4} />
+      ) : catalystTimelineQuery.isError ? (
+        <ErrorState
+          title="촉매 타임라인을 불러오지 못했습니다"
+          description={catalystTimelineQuery.error.message}
+          onRetry={() => void catalystTimelineQuery.refetch()}
+          className="py-6"
+        />
+      ) : events.length > 0 ? (
+        <ol className="mt-5">
+          {events.map((event, index) => (
+            <li
+              key={event.key}
+              className="relative grid grid-cols-[0.75rem_minmax(0,1fr)] gap-3 pb-5 last:pb-0"
+            >
+              <div className="relative flex justify-center" aria-hidden="true">
+                <span className="mt-1.5 h-2.5 w-2.5 rounded-full border-2 border-app-accent bg-app-surface" />
+                {index < events.length - 1 ? (
+                  <span className="absolute bottom-[-1.25rem] top-4 w-px bg-app-border" />
+                ) : null}
+              </div>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-semibold text-app-accent">
+                    {event.dateLabel}
+                  </span>
+                  <Badge tone="info" className="text-xs">
+                    {event.typeLabel}
+                  </Badge>
+                  {event.isEstimated ? (
+                    <Badge tone="neutral" className="text-xs">
+                      예상
+                    </Badge>
+                  ) : null}
+                </div>
+                <p className="mt-2 text-sm leading-6 text-app-text">
+                  {event.title}
+                </p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <EmptyState title="예정된 이벤트가 없습니다." className="py-6" />
+      )}
+    </Card>
+  )
+}
+
 export function ResearchPage() {
   const { symbol } = useParams<{ symbol: string }>()
   const [searchParams] = useSearchParams()
@@ -888,13 +946,7 @@ export function ResearchPage() {
 
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
         <NewsDisclosurePanel assetId={research.assetId} />
-        <Card className="h-full">
-          <h2 className="text-xl font-bold text-app-text">촉매 타임라인</h2>
-          <EmptyState
-            title="예정 이벤트 데이터가 아직 수집되지 않았습니다."
-            className="py-6"
-          />
-        </Card>
+        <CatalystTimelinePanel assetId={research.assetId} />
         <ChecklistPanel
           checklist={displayedChecklist}
           onToggle={toggleChecklistItem}

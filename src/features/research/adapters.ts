@@ -10,6 +10,7 @@ import type {
   AssetDetailDto,
   AssetLookupDto,
   BuyChecklistDto,
+  CatalystTimelineDto,
   NewsDisclosureDto,
   PriceSeriesDto,
   ResearchSummaryDto,
@@ -48,6 +49,14 @@ export interface NewsDisclosureItem {
 export interface NewsDisclosureView {
   news: NewsDisclosureItem[]
   disclosures: NewsDisclosureItem[]
+}
+
+export interface CatalystEventItem {
+  key: string
+  dateLabel: string
+  title: string
+  typeLabel: string
+  isEstimated: boolean
 }
 
 export interface ThesisItem {
@@ -168,6 +177,19 @@ export const newsDisclosureSentimentLabels: Record<
   NEGATIVE: '부정',
 }
 
+export const catalystEventTypeLabels: Record<string, string> = {
+  EARNINGS: '실적',
+  PRODUCT: '제품',
+  SHAREHOLDER_MEETING: '주주총회',
+  DIVIDEND: '배당',
+  REGULATORY: '규제',
+  CONTRACT: '계약',
+  LOCKUP: '락업 해제',
+  CONFERENCE: '콘퍼런스',
+  ECONOMIC: '경제지표',
+  OTHER: '기타',
+}
+
 function normalizeWireValue(value: string | null | undefined) {
   return value?.trim().toUpperCase() ?? ''
 }
@@ -214,6 +236,29 @@ export function adaptNewsDisclosure(
     news: dto.news.map(adaptItem),
     disclosures: dto.disclosures.map(adaptItem),
   }
+}
+
+export function adaptCatalystTimeline(
+  dto: CatalystTimelineDto,
+): CatalystEventItem[] {
+  const currentYear = new Date().getFullYear()
+
+  return dto.events.map((event, index) => {
+    const [year, month, day] = event.event_date.split('-')
+    const dateLabel =
+      Number(year) === currentYear
+        ? `${month}.${day}`
+        : `${year}.${month}.${day}`
+
+    return {
+      key: `${event.event_date}:${event.event_type}:${index}`,
+      dateLabel,
+      title: event.title,
+      typeLabel:
+        catalystEventTypeLabels[normalizeWireValue(event.event_type)] ?? '기타',
+      isEstimated: event.is_estimated,
+    }
+  })
 }
 
 export function adaptThesis(dto: ThesisDto): ThesisItem {

@@ -21,6 +21,8 @@ import {
 const mockUseResearchPriceSeries = vi.hoisted(() => vi.fn())
 const mockUseNewsDisclosure = vi.hoisted(() => vi.fn())
 const mockNewsDisclosureRefetch = vi.hoisted(() => vi.fn())
+const mockUseCatalystTimeline = vi.hoisted(() => vi.fn())
+const mockCatalystTimelineRefetch = vi.hoisted(() => vi.fn())
 const mockSaveBuyChecklist = vi.hoisted(() => vi.fn())
 const mockUseWatchlistAssets = vi.hoisted(() => vi.fn())
 const mockAddWatchlistAsset = vi.hoisted(() => vi.fn())
@@ -207,6 +209,7 @@ vi.mock('@/features/research/queries', async () => {
     SymbolNotFoundError: actual.SymbolNotFoundError,
     useResearchList: actual.useResearchList,
     useNewsDisclosure: mockUseNewsDisclosure,
+    useCatalystTimeline: mockUseCatalystTimeline,
     useResearchPriceSeries: mockUseResearchPriceSeries,
     useSaveBuyChecklist: () => {
       const [mutationState, setMutationState] = React.useState<{
@@ -339,6 +342,28 @@ beforeEach(() => {
     isError: false,
     isLoading: false,
     refetch: mockNewsDisclosureRefetch,
+  })
+  mockUseCatalystTimeline.mockReturnValue({
+    data: [
+      {
+        key: '2026-07-23:CONTRACT:0',
+        dateLabel: '07.23',
+        title: '주요 계약의 갱신 조건과 매출 영향을 확인하세요.',
+        typeLabel: '계약',
+        isEstimated: true,
+      },
+      {
+        key: '2026-08-09:LOCKUP:1',
+        dateLabel: '08.09',
+        title: '락업 해제 이후 잠재 매도 물량을 점검하세요.',
+        typeLabel: '락업 해제',
+        isEstimated: false,
+      },
+    ],
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: mockCatalystTimelineRefetch,
   })
   mockUseWatchlistAssets.mockReturnValue({
     data: { rows: [] },
@@ -624,17 +649,63 @@ describe('ResearchPage', () => {
     expect(screen.getAllByText('준비 중')).toHaveLength(2)
   })
 
-  it('renders the catalyst timeline placeholder', async () => {
+  it('renders catalyst events and only marks estimated dates', async () => {
     renderResearch()
 
     expect(
       await screen.findByRole('heading', { name: '촉매 타임라인' }),
     ).toBeVisible()
+    expect(mockUseCatalystTimeline).toHaveBeenCalledWith(1)
+    expect(screen.getByText('07.23')).toBeVisible()
+    expect(screen.getByText('08.09')).toBeVisible()
     expect(
-      screen.getByRole('heading', {
-        name: '예정 이벤트 데이터가 아직 수집되지 않았습니다.',
+      screen.getByText('주요 계약의 갱신 조건과 매출 영향을 확인하세요.'),
+    ).toBeVisible()
+    expect(screen.getByText('락업 해제')).toBeVisible()
+    expect(screen.getAllByText('예상')).toHaveLength(1)
+  })
+
+  it('isolates a catalyst error and retries inside the card', async () => {
+    mockUseCatalystTimeline.mockReturnValue({
+      data: undefined,
+      error: new Error('catalyst failed'),
+      isError: true,
+      isLoading: false,
+      refetch: mockCatalystTimelineRefetch,
+    })
+    renderResearch()
+
+    expect(
+      await screen.findByRole('heading', {
+        name: '촉매 타임라인을 불러오지 못했습니다',
       }),
     ).toBeVisible()
+    expect(screen.getByRole('heading', { name: '핵심 리스크' })).toBeVisible()
+
+    const catalystCard = screen
+      .getByRole('heading', { name: '촉매 타임라인' })
+      .closest('section')
+    expect(catalystCard).not.toBeNull()
+    fireEvent.click(
+      within(catalystCard as HTMLElement).getByRole('button', {
+        name: '재시도',
+      }),
+    )
+    expect(mockCatalystTimelineRefetch).toHaveBeenCalledOnce()
+  })
+
+  it('shows an empty catalyst state without hiding the page', async () => {
+    mockUseCatalystTimeline.mockReturnValue({
+      data: [],
+      error: null,
+      isError: false,
+      isLoading: false,
+      refetch: mockCatalystTimelineRefetch,
+    })
+    renderResearch()
+
+    expect(await screen.findByText('예정된 이벤트가 없습니다.')).toBeVisible()
+    expect(screen.getByRole('heading', { name: '핵심 리스크' })).toBeVisible()
   })
 
   it('renders news metadata and switches to disclosures', async () => {
