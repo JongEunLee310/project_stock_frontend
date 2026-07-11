@@ -390,8 +390,12 @@ beforeEach(() => {
         lastUpdatedAt: '2026. 7. 10. 오전 10:00',
         itemCount: 30,
       },
-      ...['실적', '밸류에이션', '공시'].map((axisLabel) => ({
-        axis: axisLabel,
+      ...[
+        ['EARNINGS', '실적'],
+        ['VALUATION', '밸류에이션'],
+        ['DISCLOSURE', '공시'],
+      ].map(([axis, axisLabel]) => ({
+        axis,
         axisLabel,
         isCollected: false,
         lastUpdatedAt: null,
