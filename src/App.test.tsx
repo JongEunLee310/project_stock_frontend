@@ -179,6 +179,13 @@ vi.mock('@/features/research/queries', () => ({
     isLoading: false,
     refetch: vi.fn(),
   }),
+  useCatalystTimeline: () => ({
+    data: [],
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: vi.fn(),
+  }),
   useSaveBuyChecklist: () => ({
     mutate: vi.fn(),
     variables: undefined,

@@ -79,6 +79,16 @@ export interface NewsDisclosureDto {
   }>
 }
 
+export interface CatalystTimelineDto {
+  asset_id: number
+  events: Array<{
+    event_date: string
+    title: string
+    event_type: string
+    is_estimated: boolean
+  }>
+}
+
 export interface ThesisDto {
   id: number
   title: string

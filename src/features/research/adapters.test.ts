@@ -1,8 +1,9 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { formatKstDateTime } from '@/shared/lib/format'
 
 import {
+  adaptCatalystTimeline,
   adaptNewsDisclosure,
   adaptPriceSeries,
   adaptResearchDetail,
@@ -12,6 +13,7 @@ import {
 import type {
   AssetDetailDto,
   BuyChecklistDto,
+  CatalystTimelineDto,
   NewsDisclosureDto,
   ResearchSummaryDto,
   ThesisDto,
@@ -38,6 +40,10 @@ const detail: AssetDetailDto = {
   next_earnings_date: '2026-08-20',
   updated_at: '2026-05-24T00:00:00.000Z',
 }
+
+afterEach(() => {
+  vi.useRealTimers()
+})
 
 const summary: ResearchSummaryDto = {
   stance: 'BUY_CANDIDATE',
@@ -401,5 +407,49 @@ describe('research adapters', () => {
       impactLabel: null,
       sentiment: null,
     })
+  })
+
+  it('maps catalyst labels, date formats, and composite keys', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-07-11T00:00:00Z'))
+    const eventTypes = [
+      ['EARNINGS', '실적'],
+      ['PRODUCT', '제품'],
+      ['SHAREHOLDER_MEETING', '주주총회'],
+      ['DIVIDEND', '배당'],
+      ['REGULATORY', '규제'],
+      ['CONTRACT', '계약'],
+      ['LOCKUP', '락업 해제'],
+      ['CONFERENCE', '콘퍼런스'],
+      ['ECONOMIC', '경제지표'],
+      ['OTHER', '기타'],
+      ['UNKNOWN', '기타'],
+    ] as const
+    const dto: CatalystTimelineDto = {
+      asset_id: 7,
+      events: eventTypes.map(([eventType], index) => ({
+        event_date: index === 1 ? '2027-08-09' : '2026-07-23',
+        title: `Event ${index}`,
+        event_type: eventType,
+        is_estimated: index === 0,
+      })),
+    }
+
+    const events = adaptCatalystTimeline(dto)
+
+    expect(events.map((event) => event.typeLabel)).toEqual(
+      eventTypes.map(([, label]) => label),
+    )
+    expect(events[0]).toMatchObject({
+      key: '2026-07-23:EARNINGS:0',
+      dateLabel: '07.23',
+      isEstimated: true,
+    })
+    expect(events[1]).toMatchObject({
+      key: '2027-08-09:PRODUCT:1',
+      dateLabel: '2027.08.09',
+      isEstimated: false,
+    })
+    expect(new Set(events.map((event) => event.key)).size).toBe(events.length)
   })
 })
