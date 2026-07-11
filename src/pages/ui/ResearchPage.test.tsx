@@ -19,6 +19,8 @@ import {
 } from '@/test-utils/authTestSetup'
 
 const mockUseResearchPriceSeries = vi.hoisted(() => vi.fn())
+const mockUseBenchmarkComparison = vi.hoisted(() => vi.fn())
+const mockBenchmarkComparisonRefetch = vi.hoisted(() => vi.fn())
 const mockUseValuationMetrics = vi.hoisted(() => vi.fn())
 const mockValuationMetricsRefetch = vi.hoisted(() => vi.fn())
 const mockUseEarningsSummary = vi.hoisted(() => vi.fn())
@@ -224,6 +226,7 @@ vi.mock('@/features/research/queries', async () => {
     useCatalystTimeline: mockUseCatalystTimeline,
     useResearchCoverage: mockUseResearchCoverage,
     useResearchPriceSeries: mockUseResearchPriceSeries,
+    useBenchmarkComparison: mockUseBenchmarkComparison,
     useValuationMetrics: mockUseValuationMetrics,
     useEarningsSummary: mockUseEarningsSummary,
     useSaveBuyChecklist: () => {
@@ -315,6 +318,7 @@ beforeEach(() => {
   mockUseResearchPriceSeries.mockReturnValue({
     data: {
       closes: [],
+      points: [],
       currency: null,
       source: null,
       lastUpdatedAt: null,
@@ -323,6 +327,38 @@ beforeEach(() => {
     isError: false,
     isLoading: false,
     refetch: vi.fn(),
+  })
+  mockUseBenchmarkComparison.mockReturnValue({
+    data: [
+      {
+        kind: 'ASSET',
+        label: 'NVDA',
+        points: [
+          { date: '2026-06-01', returnPercent: 0 },
+          { date: '2026-07-01', returnPercent: 12.5 },
+        ],
+      },
+      {
+        kind: 'INDEX',
+        label: 'NASDAQ 100',
+        points: [
+          { date: '2026-06-01', returnPercent: 0 },
+          { date: '2026-07-01', returnPercent: 6.2 },
+        ],
+      },
+      {
+        kind: 'SECTOR_ETF',
+        label: 'Technology Select Sector SPDR Fund',
+        points: [
+          { date: '2026-06-01', returnPercent: 0 },
+          { date: '2026-07-01', returnPercent: 8.1 },
+        ],
+      },
+    ],
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: mockBenchmarkComparisonRefetch,
   })
   mockUseValuationMetrics.mockReturnValue({
     data: {
@@ -676,6 +712,20 @@ describe('ResearchPage', () => {
     mockUseResearchPriceSeries.mockReturnValue({
       data: {
         closes: [128.5, 130.25],
+        points: [
+          {
+            date: '2026-07-09',
+            close: 128.5,
+            volume: 1200,
+            ma20: null,
+          },
+          {
+            date: '2026-07-10',
+            close: 130.25,
+            volume: 1400,
+            ma20: 129.4,
+          },
+        ],
         currency: 'USD',
         source: 'polygon',
         lastUpdatedAt: '2026-07-10T00:00:00Z',
@@ -690,6 +740,12 @@ describe('ResearchPage', () => {
     expect(
       await screen.findByRole('img', { name: 'NVDA 최근 가격 추이' }),
     ).toBeVisible()
+    expect(screen.getByRole('img', { name: 'NVDA 거래량' })).toBeVisible()
+    const priceLegend = screen.getByRole('list', {
+      name: '가격 차트 범례',
+    })
+    expect(within(priceLegend).getByText('현재가')).toBeVisible()
+    expect(within(priceLegend).getByText('MA20')).toBeVisible()
     expect(
       screen.getByText('차트 데이터: polygon · 2026-07-10T00:00:00Z'),
     ).toBeVisible()
@@ -705,6 +761,120 @@ describe('ResearchPage', () => {
       'aria-pressed',
       'true',
     )
+  })
+
+  it('omits the volume chart when every volume value is null', async () => {
+    mockUseResearchPriceSeries.mockReturnValue({
+      data: {
+        closes: [128.5],
+        points: [
+          {
+            date: '2026-07-10',
+            close: 128.5,
+            volume: null,
+            ma20: null,
+          },
+        ],
+        currency: 'USD',
+        source: 'polygon',
+        lastUpdatedAt: '2026-07-10T00:00:00Z',
+      },
+      error: null,
+      isError: false,
+      isLoading: false,
+      refetch: vi.fn(),
+    })
+
+    renderResearch()
+
+    expect(
+      await screen.findByRole('img', { name: 'NVDA 최근 가격 추이' }),
+    ).toBeVisible()
+    expect(
+      screen.queryByRole('img', { name: 'NVDA 거래량' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('toggles benchmark comparison and disables it for 1D', async () => {
+    renderResearch()
+    await screen.findByRole('heading', { name: 'NVDA 리서치' })
+
+    const comparisonToggle = screen.getByRole('button', {
+      name: '벤치마크 비교',
+    })
+    expect(comparisonToggle).toHaveAttribute('aria-pressed', 'false')
+    expect(mockUseBenchmarkComparison).toHaveBeenLastCalledWith(1, '3M', false)
+
+    fireEvent.click(comparisonToggle)
+
+    expect(comparisonToggle).toHaveAttribute('aria-pressed', 'true')
+    expect(mockUseBenchmarkComparison).toHaveBeenLastCalledWith(1, '3M', true)
+    expect(
+      screen.getByRole('img', { name: 'NVDA 벤치마크 수익률 비교' }),
+    ).toBeVisible()
+    expect(screen.getByText('NASDAQ 100')).toBeVisible()
+    expect(screen.getByText('Technology Select Sector SPDR Fund')).toBeVisible()
+    expect(
+      screen.queryByRole('img', { name: 'NVDA 거래량' }),
+    ).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '1D' }))
+
+    expect(comparisonToggle).toBeDisabled()
+    expect(comparisonToggle).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByText('1D에서는 비교할 수 없습니다.')).toBeVisible()
+    expect(mockUseBenchmarkComparison).toHaveBeenLastCalledWith(1, '1M', false)
+  })
+
+  it('isolates a benchmark error and returns to price mode', async () => {
+    mockUseResearchPriceSeries.mockReturnValue({
+      data: {
+        closes: [128.5],
+        points: [
+          {
+            date: '2026-07-10',
+            close: 128.5,
+            volume: null,
+            ma20: null,
+          },
+        ],
+        currency: 'USD',
+        source: 'polygon',
+        lastUpdatedAt: '2026-07-10T00:00:00Z',
+      },
+      error: null,
+      isError: false,
+      isLoading: false,
+      refetch: vi.fn(),
+    })
+    mockUseBenchmarkComparison.mockReturnValue({
+      data: undefined,
+      error: new Error('benchmark failed'),
+      isError: true,
+      isLoading: false,
+      refetch: mockBenchmarkComparisonRefetch,
+    })
+    renderResearch()
+    await screen.findByRole('heading', { name: 'NVDA 리서치' })
+
+    const comparisonToggle = screen.getByRole('button', {
+      name: '벤치마크 비교',
+    })
+    fireEvent.click(comparisonToggle)
+
+    expect(
+      screen.getByRole('heading', {
+        name: '벤치마크 비교 데이터를 불러오지 못했습니다',
+      }),
+    ).toBeVisible()
+    fireEvent.click(screen.getByRole('button', { name: '재시도' }))
+    expect(mockBenchmarkComparisonRefetch).toHaveBeenCalledOnce()
+
+    fireEvent.click(comparisonToggle)
+
+    expect(
+      screen.getByRole('img', { name: 'NVDA 최근 가격 추이' }),
+    ).toBeVisible()
   })
 
   it('renders the header band investment stance and metric tiles', async () => {

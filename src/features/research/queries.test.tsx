@@ -13,6 +13,7 @@ import { formatKstDateTime } from '@/shared/lib/format'
 
 import {
   useCatalystTimeline,
+  useBenchmarkComparison,
   useEarningsSummary,
   useNewsDisclosure,
   useResearchCoverage,
@@ -545,7 +546,11 @@ describe('research queries', () => {
         currency: 'USD',
         source: 'polygon',
         last_updated_at: '2026-07-10T00:00:00Z',
-        bars: [{ close: '101.25' }, { close: null }, { close: '102.50' }],
+        bars: [
+          { date: '2026-07-09', close: '101.25', volume: 1200 },
+          { date: '2026-07-09', close: null, volume: null },
+          { date: '2026-07-10', close: '102.50', volume: 1400 },
+        ],
       },
       meta: undefined,
     })
@@ -564,6 +569,20 @@ describe('research queries', () => {
     )
     expect(result.current.data).toEqual({
       closes: [101.25, 102.5],
+      points: [
+        {
+          date: '2026-07-09',
+          close: 101.25,
+          volume: 1200,
+          ma20: null,
+        },
+        {
+          date: '2026-07-10',
+          close: 102.5,
+          volume: 1400,
+          ma20: null,
+        },
+      ],
       currency: 'USD',
       source: 'polygon',
       lastUpdatedAt: '2026-07-10T00:00:00Z',
@@ -573,6 +592,51 @@ describe('research queries', () => {
         queryKey: ['research', 'price-series', 'NVDA', 'NASDAQ', '6M'],
       }),
     ).toBeDefined()
+  })
+
+  it('fetches benchmark comparison only while comparison mode is enabled', async () => {
+    vi.mocked(apiGet).mockResolvedValue({
+      data: {
+        series: [
+          {
+            kind: 'ASSET',
+            label: 'NVDA',
+            points: [{ date: '2026-06-01', return_percent: '0' }],
+          },
+        ],
+      },
+      meta: undefined,
+    })
+    const queryClient = createTestQueryClient()
+    const { result, rerender } = renderHook(
+      ({ enabled }) => useBenchmarkComparison(11, '3M', enabled),
+      { initialProps: { enabled: false }, wrapper: wrapperFor(queryClient) },
+    )
+
+    expect(apiGet).not.toHaveBeenCalled()
+
+    rerender({ enabled: true })
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(apiGet).toHaveBeenCalledWith(
+      '/assets/11/benchmark-comparison?range=3M',
+    )
+    expect(result.current.data?.[0].points[0].returnPercent).toBe(0)
+    expect(
+      queryClient.getQueryCache().find({
+        queryKey: ['research', 'benchmark', 11, '3M'],
+      }),
+    ).toBeDefined()
+  })
+
+  it('does not fetch benchmark comparison without an asset id', () => {
+    const queryClient = createTestQueryClient()
+
+    renderHook(() => useBenchmarkComparison(undefined, '1M', true), {
+      wrapper: wrapperFor(queryClient),
+    })
+
+    expect(apiGet).not.toHaveBeenCalled()
   })
 
   it.each([

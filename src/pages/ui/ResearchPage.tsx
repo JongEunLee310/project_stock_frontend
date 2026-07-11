@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
 import {
   SymbolNotFoundError,
+  useBenchmarkComparison,
   useCatalystTimeline,
   useEarningsSummary,
   useNewsDisclosure,
@@ -11,9 +12,11 @@ import {
   useResearchView,
   useSaveBuyChecklist,
   useValuationMetrics,
+  type BenchmarkRange,
   type PriceRange,
 } from '@/features/research/queries'
 import type {
+  BenchmarkSeriesItem,
   ChecklistItem,
   CoverageAxisItem,
   EarningsQuarterItem,
@@ -34,6 +37,7 @@ import {
 import { appRoutePaths } from '@/shared/config/navigation'
 import {
   Badge,
+  BarChart,
   Button,
   Card,
   EmptyState,
@@ -45,6 +49,15 @@ import {
 } from '@/shared/ui'
 
 const priceRanges: PriceRange[] = ['1D', '1M', '3M', '6M', '1Y']
+const priceChartSeries = [
+  { dataKey: 'close', color: '#5fa8ff' },
+  { dataKey: 'ma20', color: '#f59e0b', strokeDasharray: '6 4' },
+] as const
+const benchmarkColors = ['#5fa8ff', '#34d399', '#a855f7'] as const
+const emptyBenchmarkSeries: BenchmarkSeriesItem[] = []
+type BenchmarkChartPoint = Record<string, string | number | null> & {
+  date: string
+}
 const MEMO_SAVE_DELAY_MS = 1_000
 const researchSectionIds = {
   briefing: 'research-section-briefing',
@@ -142,38 +155,135 @@ function getHighestRiskLevel(risks: ResearchRisk[]) {
 
 function PriceSparkline({ research }: { research: ResearchView }) {
   const [range, setRange] = useState<PriceRange>('3M')
+  const [isBenchmarkEnabled, setIsBenchmarkEnabled] = useState(false)
   const priceSeriesQuery = useResearchPriceSeries(
     research.symbol,
     research.market,
     range,
   )
+  const benchmarkRange: BenchmarkRange = range === '1D' ? '1M' : range
+  const benchmarkQuery = useBenchmarkComparison(
+    research.assetId,
+    benchmarkRange,
+    isBenchmarkEnabled && range !== '1D',
+  )
   const priceSeries = priceSeriesQuery.data
-  const data = (priceSeries?.closes ?? []).map((close, index) => ({
-    date: String(index + 1),
-    close,
-  }))
+  const data = priceSeries?.points ?? []
+  const hasVolume = data.some((point) => point.volume !== null)
+  const benchmarkSeries = benchmarkQuery.data ?? emptyBenchmarkSeries
+  const benchmarkData = useMemo<BenchmarkChartPoint[]>(() => {
+    const dates = benchmarkSeries[0]?.points.map((point) => point.date) ?? []
+    const valuesBySeries = benchmarkSeries.map(
+      (series) =>
+        new Map(
+          series.points.map((point) => [point.date, point.returnPercent]),
+        ),
+    )
+
+    return dates.map((date) => ({
+      date,
+      ...Object.fromEntries(
+        benchmarkSeries.map((series, index) => [
+          series.kind,
+          valuesBySeries[index].get(date) ?? null,
+        ]),
+      ),
+    }))
+  }, [benchmarkSeries])
+
+  const selectRange = (nextRange: PriceRange) => {
+    setRange(nextRange)
+    if (nextRange === '1D') {
+      setIsBenchmarkEnabled(false)
+    }
+  }
 
   return (
     <div className="min-w-0">
-      <div
-        className="mb-3 flex flex-wrap gap-1"
-        role="group"
-        aria-label="가격 차트 기간"
-      >
-        {priceRanges.map((priceRange) => (
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <div
+          className="flex flex-wrap gap-1"
+          role="group"
+          aria-label="가격 차트 기간"
+        >
+          {priceRanges.map((priceRange) => (
+            <Button
+              key={priceRange}
+              type="button"
+              variant={range === priceRange ? 'primary' : 'ghost'}
+              aria-pressed={range === priceRange}
+              className="min-h-8 px-3 py-1 text-xs"
+              onClick={() => selectRange(priceRange)}
+            >
+              {priceRange}
+            </Button>
+          ))}
+        </div>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {range === '1D' ? (
+            <span className="text-xs text-app-text-muted">
+              1D에서는 비교할 수 없습니다.
+            </span>
+          ) : null}
           <Button
-            key={priceRange}
             type="button"
-            variant={range === priceRange ? 'primary' : 'ghost'}
-            aria-pressed={range === priceRange}
+            variant={isBenchmarkEnabled ? 'primary' : 'ghost'}
+            aria-pressed={isBenchmarkEnabled}
+            disabled={range === '1D'}
             className="min-h-8 px-3 py-1 text-xs"
-            onClick={() => setRange(priceRange)}
+            onClick={() => setIsBenchmarkEnabled((enabled) => !enabled)}
           >
-            {priceRange}
+            벤치마크 비교
           </Button>
-        ))}
+        </div>
       </div>
-      {priceSeriesQuery.isLoading ? (
+      {isBenchmarkEnabled && benchmarkQuery.isLoading ? (
+        <Skeleton className="h-44 w-full" />
+      ) : isBenchmarkEnabled && benchmarkQuery.isError ? (
+        <ErrorState
+          title="벤치마크 비교 데이터를 불러오지 못했습니다"
+          description={benchmarkQuery.error.message}
+          onRetry={() => void benchmarkQuery.refetch()}
+          className="py-6"
+        />
+      ) : isBenchmarkEnabled && benchmarkData.length > 0 ? (
+        <div>
+          <ul
+            className="mb-3 flex flex-wrap gap-x-4 gap-y-2 text-xs text-app-text-muted"
+            aria-label="벤치마크 비교 범례"
+          >
+            {benchmarkSeries.map((series, index) => (
+              <li key={series.kind} className="flex items-center gap-2">
+                <span
+                  className="h-0.5 w-5"
+                  style={{
+                    backgroundColor:
+                      benchmarkColors[index % benchmarkColors.length],
+                  }}
+                  aria-hidden="true"
+                />
+                {series.label}
+              </li>
+            ))}
+          </ul>
+          <LineChart
+            className="h-44 w-full"
+            data={benchmarkData}
+            height={176}
+            ariaLabel={`${research.symbol} 벤치마크 수익률 비교`}
+            xDataKey="date"
+            series={benchmarkSeries.map((series, index) => ({
+              dataKey: series.kind,
+              color: benchmarkColors[index % benchmarkColors.length],
+            }))}
+            margin={{ top: 10, right: 12, bottom: 4, left: 4 }}
+            showGrid
+            showTooltip
+          />
+        </div>
+      ) : isBenchmarkEnabled ? (
+        <EmptyState title="벤치마크 비교 데이터가 없습니다." className="py-6" />
+      ) : priceSeriesQuery.isLoading ? (
         <Skeleton className="h-44 w-full" />
       ) : !research.market || priceSeriesQuery.isError || data.length === 0 ? (
         <div
@@ -184,20 +294,52 @@ function PriceSparkline({ research }: { research: ResearchView }) {
           가격 시계열 대기
         </div>
       ) : (
-        <LineChart
-          className="h-44 w-full text-app-accent"
-          data={data}
-          height={176}
-          color="currentColor"
-          ariaLabel={`${research.symbol} 최근 가격 추이`}
-          xDataKey="date"
-          yDataKey="close"
-          margin={{ top: 10, right: 12, bottom: 4, left: 4 }}
-          showAxes={false}
-          showGrid
-        />
+        <div>
+          <ul
+            className="mb-3 flex flex-wrap gap-x-4 gap-y-2 text-xs text-app-text-muted"
+            aria-label="가격 차트 범례"
+          >
+            <li className="flex items-center gap-2">
+              <span className="h-0.5 w-5 bg-[#5fa8ff]" aria-hidden="true" />
+              현재가
+            </li>
+            <li className="flex items-center gap-2">
+              <span
+                className="w-5 border-t-2 border-dashed border-amber-500"
+                aria-hidden="true"
+              />
+              MA20
+            </li>
+          </ul>
+          <LineChart
+            className="h-44 w-full"
+            data={data}
+            height={176}
+            ariaLabel={`${research.symbol} 최근 가격 추이`}
+            xDataKey="date"
+            series={[...priceChartSeries]}
+            margin={{ top: 10, right: 12, bottom: 4, left: 4 }}
+            showGrid
+            showTooltip
+          />
+          {hasVolume ? (
+            <BarChart
+              className="mt-3 h-20 w-full"
+              data={data}
+              height={80}
+              color="#475569"
+              ariaLabel={`${research.symbol} 거래량`}
+              xDataKey="date"
+              yDataKey="volume"
+              margin={{ top: 4, right: 12, bottom: 0, left: 4 }}
+            />
+          ) : null}
+        </div>
       )}
-      {data.length > 0 && priceSeries?.source && priceSeries.lastUpdatedAt ? (
+      {!isBenchmarkEnabled &&
+      data.length > 0 &&
+      priceSeries?.source &&
+      priceSeries.lastUpdatedAt ? (
         <p className="mt-3 text-xs text-app-text-muted">
           차트 데이터: {priceSeries.source} · {priceSeries.lastUpdatedAt}
         </p>

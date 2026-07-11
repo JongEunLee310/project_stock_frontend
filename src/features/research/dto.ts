@@ -108,7 +108,9 @@ export interface ThesisDto {
 }
 
 export interface PriceBarDto {
+  date?: string | null
   close?: string | null
+  volume?: number | null
 }
 
 export interface PriceSeriesDto {
@@ -116,6 +118,17 @@ export interface PriceSeriesDto {
   source?: string | null
   last_updated_at?: string | null
   bars: PriceBarDto[]
+}
+
+export interface BenchmarkComparisonDto {
+  series: Array<{
+    kind: string
+    label: string
+    points: Array<{
+      date: string
+      return_percent: string
+    }>
+  }>
 }
 
 export interface ValuationMetricsDto {

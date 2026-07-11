@@ -43,6 +43,7 @@ export type {
   DonutChartProps,
   LineChartPoint,
   LineChartProps,
+  LineChartSeries,
   SparklinePoint,
   SparklineProps,
 } from './charts'

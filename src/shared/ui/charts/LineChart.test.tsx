@@ -22,4 +22,32 @@ describe('LineChart', () => {
 
     expect(container.firstElementChild).toHaveAttribute('aria-hidden', 'true')
   })
+
+  it('keeps rendering one line for the existing single-series API', () => {
+    const { container } = render(
+      <LineChart data={data} height={120} width={240} />,
+    )
+
+    expect(container.querySelectorAll('.recharts-line')).toHaveLength(1)
+  })
+
+  it('renders every configured series', () => {
+    const { container } = render(
+      <LineChart
+        data={data.map((point) => ({ ...point, average: point.value - 1 }))}
+        height={120}
+        width={240}
+        series={[
+          { dataKey: 'value', color: '#5fa8ff' },
+          {
+            dataKey: 'average',
+            color: '#f59e0b',
+            strokeDasharray: '6 4',
+          },
+        ]}
+      />,
+    )
+
+    expect(container.querySelectorAll('.recharts-line')).toHaveLength(2)
+  })
 })
