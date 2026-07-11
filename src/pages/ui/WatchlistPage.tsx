@@ -105,7 +105,7 @@ function SummaryCardTitle({ index, label }: { index: number; label: string }) {
 const emptyWatchlistRows: WatchlistAssetRow[] = []
 
 function getResearchPath(symbol: string) {
-  return `/research/${symbol}`
+  return appRoutePaths.researchDetail.replace(':symbol', symbol)
 }
 
 function formatPercent(value: number) {
