@@ -118,9 +118,9 @@ afterEach(() => {
   teardownAuthenticatedUser()
 })
 
-function renderDecisionLog() {
+function renderDecisionLog(path = '/decision-log') {
   const router = createMemoryRouter(appRouteObjects, {
-    initialEntries: ['/decision-log'],
+    initialEntries: [path],
   })
   const queryClient = createQueryClient()
 
@@ -136,6 +136,23 @@ function renderDecisionLog() {
 }
 
 describe('DecisionLogPage', () => {
+  it('prefills the symbol from the query and allows user edits', async () => {
+    renderDecisionLog('/decision-log?symbol=NVDA')
+
+    const symbolInput = await screen.findByLabelText('종목')
+    expect(symbolInput).toHaveValue('NVDA')
+
+    fireEvent.change(symbolInput, { target: { value: 'msft' } })
+
+    expect(symbolInput).toHaveValue('msft')
+  })
+
+  it('keeps the symbol empty when the query is absent', async () => {
+    renderDecisionLog()
+
+    expect(await screen.findByLabelText('종목')).toHaveValue('')
+  })
+
   it('renders the page heading and KPI cards', async () => {
     renderDecisionLog()
 
