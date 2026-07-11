@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
 import {
   SymbolNotFoundError,
@@ -31,6 +31,14 @@ import {
 
 const priceRanges: PriceRange[] = ['1D', '1M', '3M', '6M', '1Y']
 const MEMO_SAVE_DELAY_MS = 1_000
+const researchSectionIds = {
+  briefing: 'research-section-briefing',
+  risks: 'research-section-risks',
+  news: 'research-section-news',
+  checklist: 'research-section-checklist',
+} as const
+
+type ResearchSection = keyof typeof researchSectionIds
 
 const riskRank: Record<string, number> = {
   높음: 3,
@@ -40,6 +48,13 @@ const riskRank: Record<string, number> = {
 
 function getResearchSymbol(symbol: string | undefined) {
   return symbol?.trim().toUpperCase() || 'UNKNOWN'
+}
+
+function isResearchSection(value: string | null): value is ResearchSection {
+  return (
+    value !== null &&
+    Object.prototype.hasOwnProperty.call(researchSectionIds, value)
+  )
 }
 
 function formatCurrency(value: number | null, currency: string | null) {
@@ -394,7 +409,7 @@ function RiskPanel({ research }: { research: ResearchView }) {
   const highestRiskLevel = getHighestRiskLevel(research.keyRisks)
 
   return (
-    <Card>
+    <Card id={researchSectionIds.risks} tabIndex={-1}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-bold text-app-text">핵심 리스크</h2>
         <div className="flex items-center gap-2">
@@ -446,7 +461,7 @@ function ChecklistPanel({
   const completedCount = checklist.filter((item) => item.checked).length
 
   return (
-    <Card className="h-full">
+    <Card id={researchSectionIds.checklist} tabIndex={-1} className="h-full">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-xl font-bold text-app-text">의사결정 체크리스트</h2>
         <Badge tone="neutral">
@@ -483,7 +498,7 @@ function ChecklistPanel({
 
 function ReportsPanel({ research }: { research: ResearchView }) {
   return (
-    <Card className="h-full">
+    <Card id={researchSectionIds.news} tabIndex={-1} className="h-full">
       <h2 className="text-xl font-bold text-app-text">뉴스 및 공시 요약</h2>
       {research.reports.length > 0 ? (
         <ul className="mt-4 flex flex-col gap-3">
@@ -513,7 +528,9 @@ function ReportsPanel({ research }: { research: ResearchView }) {
 
 export function ResearchPage() {
   const { symbol } = useParams<{ symbol: string }>()
+  const [searchParams] = useSearchParams()
   const displaySymbol = getResearchSymbol(symbol)
+  const section = searchParams.get('section')
   const researchQuery = useResearchView(displaySymbol)
   const research = researchQuery.data
   const saveChecklistMutation = useSaveBuyChecklist(research?.assetId ?? 0)
@@ -530,6 +547,25 @@ export function ResearchPage() {
   >('idle')
   const initializedAssetIdRef = useRef<number | null>(null)
   const checkedItemKeysRef = useRef<string[]>([])
+  const focusedSymbolRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    if (
+      !research ||
+      research.symbol.toUpperCase() !== displaySymbol ||
+      !isResearchSection(section) ||
+      focusedSymbolRef.current === displaySymbol
+    ) {
+      return
+    }
+
+    const sectionElement = document.getElementById(researchSectionIds[section])
+    if (!sectionElement) return
+
+    sectionElement.scrollIntoView({ block: 'start' })
+    sectionElement.focus()
+    focusedSymbolRef.current = displaySymbol
+  }, [displaySymbol, research, section])
 
   useEffect(() => {
     if (!research) return
@@ -702,7 +738,7 @@ export function ResearchPage() {
       <div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
         <PriceChartCard research={research} />
         <aside className="flex flex-col gap-6">
-          <Card>
+          <Card id={researchSectionIds.briefing} tabIndex={-1}>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm font-semibold uppercase tracking-wide text-app-text-muted">
                 AI briefing

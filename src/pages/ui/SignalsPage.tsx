@@ -60,8 +60,9 @@ const initialFilters: FilterState = {
 const selectClassName =
   'min-h-10 rounded-control border border-cockpit-border bg-cockpit-surface px-3 py-2 text-sm text-cockpit-text outline-none transition-colors focus:border-cockpit-accent focus:ring-2 focus:ring-cockpit-accent/30'
 
-function getResearchPath(symbol: string) {
-  return appRoutePaths.researchDetail.replace(':symbol', symbol)
+function getResearchPath(symbol: string, section?: string) {
+  const path = appRoutePaths.researchDetail.replace(':symbol', symbol)
+  return section ? `${path}?section=${section}` : path
 }
 
 function normalizeScore(score: number) {
@@ -467,7 +468,7 @@ function SignalCard({ signal }: { signal: Signal }) {
             variant="ghost"
             aria-label="근거 보기"
             className="min-h-10 gap-1 rounded-none border-0 px-2"
-            onClick={() => navigate(getResearchPath(signal.symbol))}
+            onClick={() => navigate(getResearchPath(signal.symbol, 'briefing'))}
           >
             <FiEye aria-hidden="true" />
             근거 보기
