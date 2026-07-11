@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent, type MouseEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 
 import type {
   DecisionLog,
@@ -238,10 +238,14 @@ function DecisionForm({
 }
 
 export function DecisionLogPage() {
+  const [searchParams] = useSearchParams()
   const decisionLogsQuery = useDecisionLogs()
   const decisionLogStatsQuery = useDecisionLogStats()
   const createDecisionLog = useCreateDecisionLog()
-  const [form, setForm] = useState<DecisionFormState>(initialFormState)
+  const [form, setForm] = useState<DecisionFormState>(() => ({
+    ...initialFormState,
+    symbol: searchParams.get('symbol') ?? '',
+  }))
   const [formError, setFormError] = useState<string | null>(null)
   const logs = decisionLogsQuery.data ?? emptyDecisionLogs
   const patterns = decisionLogStatsQuery.data?.patterns ?? emptyPatterns

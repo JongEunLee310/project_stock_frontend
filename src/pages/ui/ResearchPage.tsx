@@ -59,6 +59,18 @@ type BenchmarkChartPoint = Record<string, string | number | null> & {
   date: string
 }
 const MEMO_SAVE_DELAY_MS = 1_000
+const MEMO_TEMPLATE = `[투자 가설]
+
+[긍정 근거]
+
+[반대 근거]
+
+[매수 조건]
+
+[철회 조건]
+
+[다음 확인 날짜]
+YYYY-MM-DD`
 const researchSectionIds = {
   briefing: 'research-section-briefing',
   risks: 'research-section-risks',
@@ -707,7 +719,11 @@ function HeaderCard({
         </Button>
         <Button
           type="button"
-          onClick={() => navigate(appRoutePaths.decisionLog)}
+          onClick={() =>
+            navigate(
+              `${appRoutePaths.decisionLog}?symbol=${encodeURIComponent(research.symbol)}`,
+            )
+          }
         >
           판단 기록
         </Button>
@@ -1413,12 +1429,35 @@ export function ResearchPage() {
         />
         <Card className="h-full">
           <div className="flex items-center justify-between gap-3">
-            <label
-              htmlFor="research-memo"
-              className="text-xl font-bold text-app-text"
-            >
-              내 메모
-            </label>
+            <div className="flex flex-wrap items-center gap-3">
+              <label
+                htmlFor="research-memo"
+                className="text-xl font-bold text-app-text"
+              >
+                내 메모
+              </label>
+              <Button
+                type="button"
+                variant="secondary"
+                className="min-h-8 px-3 py-1 text-xs"
+                disabled={memoValue.trim().length > 0}
+                title={
+                  memoValue.trim().length > 0
+                    ? '메모를 비우면 템플릿을 적용할 수 있습니다'
+                    : undefined
+                }
+                onClick={() => {
+                  setMemoDraft({
+                    assetId: research.assetId,
+                    value: MEMO_TEMPLATE,
+                    isDirty: true,
+                  })
+                  setMemoSaveStatus('idle')
+                }}
+              >
+                템플릿 적용
+              </Button>
+            </div>
             {memoSaveStatus === 'idle' ? null : (
               <span
                 role={memoSaveStatus === 'error' ? 'alert' : 'status'}
@@ -1443,7 +1482,7 @@ export function ResearchPage() {
               })
               setMemoSaveStatus('idle')
             }}
-            placeholder="판단 근거와 추가 확인할 질문을 남겨두세요."
+            placeholder="판단 근거를 남기거나, 템플릿 적용으로 구조화해 보세요."
             className="mt-4 min-h-44 w-full resize-y rounded-control border border-app-border bg-app-surface-muted px-3 py-3 text-sm leading-6 text-app-text outline-none transition-colors placeholder:text-app-text-muted focus:border-app-accent focus:ring-2 focus:ring-app-accent/30"
           />
         </Card>

@@ -613,6 +613,17 @@ function renderResearch(path = '/research/NVDA') {
 }
 
 describe('ResearchPage', () => {
+  it('navigates to the decision log with the research symbol', async () => {
+    const router = renderResearch()
+
+    fireEvent.click(await screen.findByRole('button', { name: '판단 기록' }))
+
+    await waitFor(() => {
+      expect(router.state.location.pathname).toBe('/decision-log')
+      expect(router.state.location.search).toBe('?symbol=NVDA')
+    })
+  })
+
   it('scrolls to and focuses a supported section after research loads', async () => {
     renderResearch('/research/NVDA?section=briefing')
 
@@ -1388,6 +1399,51 @@ describe('ResearchPage', () => {
       checked_item_keys: ['portfolio_concentration'],
     })
     expect(screen.getByText('자동 저장됨')).toBeVisible()
+  })
+
+  it('applies the memo template and automatically saves it after one second', async () => {
+    renderResearch('/research/MSFT')
+    const memo = await screen.findByLabelText('내 메모')
+    const templateButton = screen.getByRole('button', {
+      name: '템플릿 적용',
+    })
+    vi.useFakeTimers()
+
+    expect(templateButton).toBeEnabled()
+    fireEvent.click(templateButton)
+
+    const expectedTemplate = `[투자 가설]
+
+[긍정 근거]
+
+[반대 근거]
+
+[매수 조건]
+
+[철회 조건]
+
+[다음 확인 날짜]
+YYYY-MM-DD`
+    expect(memo).toHaveValue(expectedTemplate)
+
+    await act(async () => vi.advanceTimersByTime(1_000))
+
+    expect(mockSaveBuyChecklist).toHaveBeenCalledWith({
+      memo: expectedTemplate,
+      checked_item_keys: [],
+    })
+  })
+
+  it('disables the memo template when the memo has content', async () => {
+    renderResearch()
+
+    expect(
+      await screen.findByRole('button', { name: '템플릿 적용' }),
+    ).toBeDisabled()
+    expect(screen.getByRole('button', { name: '템플릿 적용' })).toHaveAttribute(
+      'title',
+      '메모를 비우면 템플릿을 적용할 수 있습니다',
+    )
   })
 
   it('keeps the memo debounce deadline while including a toggled checklist item', async () => {
