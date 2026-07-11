@@ -1,4 +1,11 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react'
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { vi } from 'vitest'
@@ -348,7 +355,7 @@ describe('ResearchPage', () => {
     const briefingSection = document.getElementById('research-section-briefing')
 
     expect(briefingSection).not.toBeNull()
-    expect(mockScrollIntoView).toHaveBeenCalledOnce()
+    await waitFor(() => expect(mockScrollIntoView).toHaveBeenCalledOnce())
     expect(mockScrollIntoView).toHaveBeenCalledWith({ block: 'start' })
     expect(briefingSection).toHaveFocus()
     for (const section of ['briefing', 'risks', 'news', 'checklist']) {
@@ -363,7 +370,8 @@ describe('ResearchPage', () => {
     async (path) => {
       renderResearch(path)
 
-      await screen.findByRole('heading', { name: 'NVDA 리서치' })
+      await screen.findByRole('heading', { name: 'AI demand remains durable' })
+      await act(async () => {})
 
       expect(mockScrollIntoView).not.toHaveBeenCalled()
     },
@@ -373,14 +381,14 @@ describe('ResearchPage', () => {
     const router = renderResearch('/research/NVDA?section=briefing')
 
     await screen.findByRole('heading', { name: 'AI demand remains durable' })
-    expect(mockScrollIntoView).toHaveBeenCalledOnce()
+    await waitFor(() => expect(mockScrollIntoView).toHaveBeenCalledOnce())
 
     await act(async () => {
       await router.navigate('/research/MSFT?section=briefing')
     })
 
     await screen.findByRole('heading', { name: 'Cloud growth checkpoint' })
-    expect(mockScrollIntoView).toHaveBeenCalledTimes(2)
+    await waitFor(() => expect(mockScrollIntoView).toHaveBeenCalledTimes(2))
     expect(document.getElementById('research-section-briefing')).toHaveFocus()
   })
 
