@@ -172,6 +172,20 @@ vi.mock('@/features/research/queries', () => ({
     isLoading: false,
     refetch: vi.fn(),
   }),
+  useValuationMetrics: () => ({
+    data: undefined,
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: vi.fn(),
+  }),
+  useEarningsSummary: () => ({
+    data: undefined,
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: vi.fn(),
+  }),
   useNewsDisclosure: () => ({
     data: { news: [], disclosures: [] },
     error: null,

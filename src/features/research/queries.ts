@@ -11,28 +11,34 @@ import { ApiError } from '@/shared/api/envelope'
 
 import {
   adaptCatalystTimeline,
+  adaptEarningsSummary,
   adaptNewsDisclosure,
   adaptPriceSeries,
   adaptResearchCoverage,
   adaptResearchDetail,
   adaptResearchListRow,
+  adaptValuationMetrics,
   type CatalystEventItem,
+  type EarningsView,
   type NewsDisclosureView,
   type PriceSeriesView,
   type CoverageAxisItem,
   type ResearchListRow,
   type ResearchView,
+  type ValuationView,
 } from './adapters'
 import type {
   AssetDetailDto,
   AssetLookupDto,
   BuyChecklistDto,
   CatalystTimelineDto,
+  EarningsSummaryDto,
   NewsDisclosureDto,
   PriceSeriesDto,
   ResearchCoverageDto,
   ResearchSummaryDto,
   ThesisDto,
+  ValuationMetricsDto,
 } from './dto'
 
 export class SymbolNotFoundError extends Error {
@@ -133,6 +139,48 @@ export function useResearchPriceSeries(
       )
 
       return adaptPriceSeries(data)
+    },
+  })
+}
+
+export function useValuationMetrics(
+  assetId: number | undefined,
+  enabled: boolean,
+): UseQueryResult<ValuationView> {
+  return useQuery<ValuationView>({
+    queryKey: ['research', 'valuation', assetId],
+    enabled: assetId != null && enabled,
+    queryFn: async () => {
+      if (assetId == null) {
+        return { profileLabel: '', metrics: [] }
+      }
+
+      const { data } = await apiGet<ValuationMetricsDto>(
+        `/assets/${assetId}/valuation-metrics`,
+      )
+
+      return adaptValuationMetrics(data)
+    },
+  })
+}
+
+export function useEarningsSummary(
+  assetId: number | undefined,
+  enabled: boolean,
+): UseQueryResult<EarningsView> {
+  return useQuery<EarningsView>({
+    queryKey: ['research', 'earnings', assetId],
+    enabled: assetId != null && enabled,
+    queryFn: async () => {
+      if (assetId == null) {
+        return { quarters: [], guidance: null, segments: [] }
+      }
+
+      const { data } = await apiGet<EarningsSummaryDto>(
+        `/assets/${assetId}/earnings-summary`,
+      )
+
+      return adaptEarningsSummary(data)
     },
   })
 }

@@ -11,11 +11,13 @@ import type {
   AssetLookupDto,
   BuyChecklistDto,
   CatalystTimelineDto,
+  EarningsSummaryDto,
   NewsDisclosureDto,
   PriceSeriesDto,
   ResearchCoverageDto,
   ResearchSummaryDto,
   ThesisDto,
+  ValuationMetricsDto,
 } from './dto'
 
 export interface ResearchRisk {
@@ -147,6 +149,97 @@ export interface PriceSeriesView {
   currency: string | null
   source: string | null
   lastUpdatedAt: string | null
+}
+
+export interface ValuationMetricItem {
+  metric: string
+  metricLabel: string
+  value: number | null
+  fiveYearMedian: number | null
+  percentile: number | null
+  isHighlighted: boolean
+}
+
+export interface ValuationView {
+  profileLabel: string
+  metrics: ValuationMetricItem[]
+}
+
+export interface EarningsQuarterItem {
+  period: string
+  revenue: number
+  operatingIncome: number
+  eps: number
+  revenueYoyPercent: number | null
+  operatingMarginPercent: number
+  epsEstimate: number | null
+  epsSurprisePercent: number | null
+}
+
+export interface EarningsView {
+  quarters: EarningsQuarterItem[]
+  guidance: string | null
+  segments: Array<{
+    name: string
+    revenueSharePercent: number
+    yoyGrowthPercent: number
+  }>
+}
+
+export const valuationMetricLabels: Record<string, string> = {
+  PER: 'PER',
+  FORWARD_PER: 'Forward PER',
+  PSR: 'PSR',
+  PBR: 'PBR',
+  EV_EBITDA: 'EV/EBITDA',
+  PEG: 'PEG',
+  FCF_YIELD: 'FCF 수익률',
+}
+
+export const valuationProfileLabels: Record<string, string> = {
+  FINANCIAL: '금융',
+  HIGH_GROWTH: '고성장',
+  DEFICIT: '적자 전환 관찰',
+  DIVIDEND: '배당',
+  GENERAL: '일반',
+}
+
+export function adaptValuationMetrics(dto: ValuationMetricsDto): ValuationView {
+  const highlightedMetrics = new Set(dto.highlighted_metrics)
+
+  return {
+    profileLabel: valuationProfileLabels[dto.profile] ?? dto.profile,
+    metrics: dto.metrics.map((item) => ({
+      metric: item.metric,
+      metricLabel: valuationMetricLabels[item.metric] ?? item.metric,
+      value: parseDecimal(item.value),
+      fiveYearMedian: parseDecimal(item.five_year_median),
+      percentile: item.percentile,
+      isHighlighted: highlightedMetrics.has(item.metric),
+    })),
+  }
+}
+
+export function adaptEarningsSummary(dto: EarningsSummaryDto): EarningsView {
+  return {
+    quarters: dto.quarters.map((quarter) => ({
+      period: quarter.period,
+      revenue: parseDecimal(quarter.revenue) ?? 0,
+      operatingIncome: parseDecimal(quarter.operating_income) ?? 0,
+      eps: parseDecimal(quarter.eps) ?? 0,
+      revenueYoyPercent: parseDecimal(quarter.revenue_yoy_percent),
+      operatingMarginPercent:
+        parseDecimal(quarter.operating_margin_percent) ?? 0,
+      epsEstimate: parseDecimal(quarter.eps_estimate),
+      epsSurprisePercent: parseDecimal(quarter.eps_surprise_percent),
+    })),
+    guidance: dto.guidance,
+    segments: dto.segments.map((segment) => ({
+      name: segment.name,
+      revenueSharePercent: parseDecimal(segment.revenue_share_percent) ?? 0,
+      yoyGrowthPercent: parseDecimal(segment.yoy_growth_percent) ?? 0,
+    })),
+  }
 }
 
 export function adaptPriceSeries(dto: PriceSeriesDto): PriceSeriesView {

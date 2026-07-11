@@ -117,3 +117,35 @@ export interface PriceSeriesDto {
   last_updated_at?: string | null
   bars: PriceBarDto[]
 }
+
+export interface ValuationMetricsDto {
+  asset_id: number
+  profile: string
+  highlighted_metrics: string[]
+  metrics: Array<{
+    metric: string
+    value: string | null
+    five_year_median: string | null
+    percentile: number | null
+  }>
+}
+
+export interface EarningsSummaryDto {
+  asset_id: number
+  quarters: Array<{
+    period: string
+    revenue: string
+    operating_income: string
+    eps: string
+    revenue_yoy_percent: string | null
+    operating_margin_percent: string
+    eps_estimate: string | null
+    eps_surprise_percent: string | null
+  }>
+  guidance: string | null
+  segments: Array<{
+    name: string
+    revenue_share_percent: string
+    yoy_growth_percent: string
+  }>
+}
