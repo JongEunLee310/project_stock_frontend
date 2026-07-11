@@ -39,9 +39,16 @@ const researchBySymbol = {
     updatedAt: null,
     stance: 'Constructive, wait for disciplined add-on entry',
     stanceConfidence: 65,
+    stanceComment:
+      '성장성과 현금흐름 개선을 확인하되 가격 부담을 함께 검토할 단계입니다.',
+    confidenceBasis:
+      '성장 지표는 긍정적이지만 밸류에이션 불확실성이 남아 있습니다.',
     briefing: {
       headline: 'AI demand remains durable',
       body: 'Margins remain the key checkpoint.',
+      positiveFactors: ['매출 성장 지속', '현금흐름 개선'],
+      cautionFactors: ['밸류에이션 부담'],
+      nextChecks: ['다음 분기 마진 확인'],
       createdAt: '2026. 5. 24. 오전 9:00',
     },
     keyRisks: [
@@ -50,12 +57,14 @@ const researchBySymbol = {
         title: 'Margin pressure',
         level: '중간',
         description: 'Gross margin normalization.',
+        evidence: ['최근 분기 매출총이익률 하락', '원가 상승 압력'],
       },
       {
         id: 'risk-2',
         title: 'Supply',
         level: '낮음',
         description: 'Supply chain timing.',
+        evidence: [],
       },
     ],
     buyChecklist: [
@@ -105,9 +114,14 @@ const researchBySymbol = {
     updatedAt: null,
     stance: 'Hold',
     stanceConfidence: null,
+    stanceComment: null,
+    confidenceBasis: null,
     briefing: {
       headline: 'Cloud growth checkpoint',
       body: 'Watch Azure.',
+      positiveFactors: ['Azure 계약 잔고가 견조합니다.'],
+      cautionFactors: [],
+      nextChecks: [],
       createdAt: '2026. 5. 24. 오전 9:00',
     },
     keyRisks: [],
@@ -137,9 +151,14 @@ const researchBySymbol = {
     updatedAt: null,
     stance: 'Hold',
     stanceConfidence: null,
+    stanceComment: null,
+    confidenceBasis: null,
     briefing: {
       headline: 'No price data',
-      body: '',
+      body: '기존 브리핑 문단만 표시합니다.',
+      positiveFactors: [],
+      cautionFactors: [],
+      nextChecks: [],
       createdAt: '2026. 5. 24. 오전 9:00',
     },
     keyRisks: [],
@@ -415,6 +434,16 @@ describe('ResearchPage', () => {
       screen.getByText('Constructive, wait for disciplined add-on entry'),
     ).toBeVisible()
     expect(screen.getByText('신뢰도 65%')).toBeVisible()
+    expect(
+      screen.getByText(
+        '성장 지표는 긍정적이지만 밸류에이션 불확실성이 남아 있습니다.',
+      ),
+    ).toBeVisible()
+    expect(
+      screen.getByText(
+        '성장성과 현금흐름 개선을 확인하되 가격 부담을 함께 검토할 단계입니다.',
+      ),
+    ).toBeVisible()
     expect(screen.getByText('시가총액')).toBeVisible()
     expect(screen.getByText('섹터')).toBeVisible()
     expect(screen.getByText('52주 범위')).toBeVisible()
@@ -424,6 +453,76 @@ describe('ResearchPage', () => {
     expect(
       screen.getByRole('heading', { name: '뉴스 및 공시 요약' }),
     ).toBeVisible()
+  })
+
+  it('omits nullable stance details while keeping the confidence fallback', async () => {
+    renderResearch('/research/MSFT')
+
+    await screen.findByRole('heading', { name: 'MSFT 리서치' })
+
+    expect(screen.getByText('신뢰도 없음')).toBeVisible()
+    expect(
+      screen.queryByText(
+        '성장 지표는 긍정적이지만 밸류에이션 불확실성이 남아 있습니다.',
+      ),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByText(
+        '성장성과 현금흐름 개선을 확인하되 가격 부담을 함께 검토할 단계입니다.',
+      ),
+    ).not.toBeInTheDocument()
+  })
+
+  it('renders all structured briefing groups as bullet lists', async () => {
+    renderResearch()
+
+    const briefingCard = (
+      await screen.findByRole('heading', { name: 'AI demand remains durable' })
+    ).closest('section')
+
+    expect(briefingCard).not.toBeNull()
+    const briefing = within(briefingCard as HTMLElement)
+    expect(briefing.getByRole('heading', { name: '긍정 요인' })).toBeVisible()
+    expect(briefing.getByText('매출 성장 지속')).toBeVisible()
+    expect(briefing.getByText('현금흐름 개선')).toBeVisible()
+    expect(briefing.getByRole('heading', { name: '주의 요인' })).toBeVisible()
+    expect(briefing.getByText('밸류에이션 부담')).toBeVisible()
+    expect(
+      briefing.getByRole('heading', { name: '다음 확인 사항' }),
+    ).toBeVisible()
+    expect(briefing.getByText('다음 분기 마진 확인')).toBeVisible()
+  })
+
+  it('omits empty briefing groups and keeps populated groups', async () => {
+    renderResearch('/research/MSFT')
+
+    await screen.findByRole('heading', { name: 'Cloud growth checkpoint' })
+
+    expect(screen.getByRole('heading', { name: '긍정 요인' })).toBeVisible()
+    expect(screen.getByText('Azure 계약 잔고가 견조합니다.')).toBeVisible()
+    expect(
+      screen.queryByRole('heading', { name: '주의 요인' }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('heading', { name: '다음 확인 사항' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('keeps the briefing paragraph when every structured group is empty', async () => {
+    renderResearch('/research/NULLS')
+
+    expect(
+      await screen.findByText('기존 브리핑 문단만 표시합니다.'),
+    ).toBeVisible()
+    expect(
+      screen.queryByRole('heading', { name: '긍정 요인' }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('heading', { name: '주의 요인' }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('heading', { name: '다음 확인 사항' }),
+    ).not.toBeInTheDocument()
   })
 
   it('renders the price tab and disabled future chart tabs', async () => {
@@ -456,7 +555,7 @@ describe('ResearchPage', () => {
     ).toBeVisible()
   })
 
-  it('shows key risks with risk badges', async () => {
+  it('shows key risks with badges and non-empty evidence lists', async () => {
     renderResearch()
 
     await screen.findByRole('heading', { name: 'NVDA 리서치' })
@@ -465,9 +564,28 @@ describe('ResearchPage', () => {
       .closest('section')
 
     expect(riskPanel).not.toBeNull()
+    const marginRisk = screen
+      .getByRole('heading', { name: 'Margin pressure' })
+      .closest('li')
+    const supplyRisk = screen
+      .getByRole('heading', { name: 'Supply' })
+      .closest('li')
+
+    expect(marginRisk).not.toBeNull()
+    expect(supplyRisk).not.toBeNull()
     expect(
-      within(riskPanel as HTMLElement).getAllByRole('listitem'),
-    ).toHaveLength(2)
+      within(marginRisk as HTMLElement).getByRole('heading', { name: '근거' }),
+    ).toBeVisible()
+    expect(
+      within(marginRisk as HTMLElement).getByText(
+        '최근 분기 매출총이익률 하락',
+      ),
+    ).toBeVisible()
+    expect(
+      within(supplyRisk as HTMLElement).queryByRole('heading', {
+        name: '근거',
+      }),
+    ).not.toBeInTheDocument()
   })
 
   it('saves all checked item keys and the current memo when toggled', async () => {

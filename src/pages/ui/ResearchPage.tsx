@@ -354,9 +354,19 @@ function HeaderCard({
                   : `신뢰도 ${Math.round(research.stanceConfidence)}%`}
               </Badge>
             </div>
+            {research.confidenceBasis ? (
+              <p className="mt-2 text-xs leading-5 text-app-text-muted">
+                {research.confidenceBasis}
+              </p>
+            ) : null}
             <p className="mt-4 text-sm font-semibold leading-6 text-app-text">
               {research.stance}
             </p>
+            {research.stanceComment ? (
+              <p className="mt-2 text-xs leading-5 text-app-text-muted">
+                {research.stanceComment}
+              </p>
+            ) : null}
           </div>
         </div>
 
@@ -406,6 +416,16 @@ function RiskPanel({ research }: { research: ResearchView }) {
               <p className="mt-2 text-sm leading-6 text-app-text-muted">
                 {risk.description}
               </p>
+              {(risk.evidence?.length ?? 0) > 0 ? (
+                <div className="mt-3">
+                  <h4 className="text-sm font-semibold text-app-text">근거</h4>
+                  <ul className="mt-1 list-disc space-y-1 pl-5 text-sm leading-6 text-app-text-muted">
+                    {risk.evidence?.map((evidence) => (
+                      <li key={evidence}>{evidence}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
             </li>
           ))}
         </ul>
@@ -697,6 +717,33 @@ export function ResearchPage() {
             <p className="mt-3 text-sm leading-6 text-app-text-muted">
               {research.briefing.body}
             </p>
+            {[
+              {
+                title: '긍정 요인',
+                items: research.briefing.positiveFactors ?? [],
+              },
+              {
+                title: '주의 요인',
+                items: research.briefing.cautionFactors ?? [],
+              },
+              {
+                title: '다음 확인 사항',
+                items: research.briefing.nextChecks ?? [],
+              },
+            ].map((group) =>
+              group.items.length > 0 ? (
+                <div key={group.title} className="mt-4">
+                  <h3 className="text-sm font-semibold text-app-text">
+                    {group.title}
+                  </h3>
+                  <ul className="mt-1 list-disc space-y-1 pl-5 text-sm leading-6 text-app-text-muted">
+                    {group.items.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null,
+            )}
           </Card>
           <RiskPanel research={research} />
         </aside>

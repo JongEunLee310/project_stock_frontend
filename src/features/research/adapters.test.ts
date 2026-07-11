@@ -42,14 +42,22 @@ const detail: AssetDetailDto = {
 const summary: ResearchSummaryDto = {
   stance: 'BUY_CANDIDATE',
   stance_confidence: '0.72',
+  stance_comment:
+    '성장성과 현금흐름 개선을 확인하되 가격 부담을 함께 검토할 단계입니다.',
   headline: 'AI demand remains durable',
   body: 'Margins remain the key checkpoint.',
+  positive_factors: ['매출 성장 지속', '현금흐름 개선'],
+  caution_factors: ['밸류에이션 부담'],
+  next_checks: ['다음 분기 마진 확인'],
+  confidence_basis:
+    '성장 지표는 긍정적이지만 밸류에이션 불확실성이 남아 있습니다.',
   key_risks: [
     {
       id: 'risk-1',
       title: 'Margin pressure',
       level: 'MEDIUM',
       description: 'Gross margin normalization.',
+      evidence: ['최근 분기 매출총이익률 하락'],
     },
   ],
   created_at: '2026-05-24T00:00:00.000Z',
@@ -139,10 +147,23 @@ describe('research adapters', () => {
       targetUpsidePercent: 11.8,
       stance: '매수 후보',
       stanceConfidence: 72,
+      stanceComment:
+        '성장성과 현금흐름 개선을 확인하되 가격 부담을 함께 검토할 단계입니다.',
+      confidenceBasis:
+        '성장 지표는 긍정적이지만 밸류에이션 불확실성이 남아 있습니다.',
+      briefing: {
+        headline: 'AI demand remains durable',
+        body: 'Margins remain the key checkpoint.',
+        positiveFactors: ['매출 성장 지속', '현금흐름 개선'],
+        cautionFactors: ['밸류에이션 부담'],
+        nextChecks: ['다음 분기 마진 확인'],
+        createdAt: formatKstDateTime(summary.created_at),
+      },
       checklistMemo: 'Wait for the next earnings call.',
     })
     expect(view).not.toHaveProperty('priceSparkline')
     expect(view.keyRisks[0].level).toBe('중간')
+    expect(view.keyRisks[0].evidence).toEqual(['최근 분기 매출총이익률 하락'])
     expect(view.buyChecklist[0]).toMatchObject({
       id: 'valuation',
       description: '',
@@ -161,6 +182,11 @@ describe('research adapters', () => {
         stance: 'UNKNOWN',
         key_risks: null,
         stance_confidence: null,
+        stance_comment: null,
+        positive_factors: null,
+        caution_factors: null,
+        next_checks: null,
+        confidence_basis: null,
       },
       { items: null },
       [],
@@ -169,11 +195,46 @@ describe('research adapters', () => {
 
     expect(view.stance).toBe('판단 보류')
     expect(view.stanceConfidence).toBeNull()
+    expect(view.stanceComment).toBeNull()
+    expect(view.confidenceBasis).toBeNull()
+    expect(view.briefing.positiveFactors).toEqual([])
+    expect(view.briefing.cautionFactors).toEqual([])
+    expect(view.briefing.nextChecks).toEqual([])
     expect(view.keyRisks).toEqual([])
     expect(view.buyChecklist).toEqual([])
     expect(view.checklistMemo).toBeNull()
     expect(view.latestThesis).toBeNull()
     expect(view).not.toHaveProperty('priceSparkline')
+  })
+
+  it('uses empty structured fields for legacy summaries', () => {
+    const view = adaptResearchDetail(
+      detail,
+      {
+        stance: summary.stance,
+        stance_confidence: summary.stance_confidence,
+        headline: summary.headline,
+        body: summary.body,
+        key_risks: [
+          {
+            title: 'Legacy risk',
+            level: 'LOW',
+            description: 'Legacy risk description.',
+          },
+        ],
+        created_at: summary.created_at,
+      },
+      checklist,
+      [],
+      null,
+    )
+
+    expect(view.stanceComment).toBeNull()
+    expect(view.confidenceBasis).toBeNull()
+    expect(view.briefing.positiveFactors).toEqual([])
+    expect(view.briefing.cautionFactors).toEqual([])
+    expect(view.briefing.nextChecks).toEqual([])
+    expect(view.keyRisks[0].evidence).toEqual([])
   })
 
   it.each([
