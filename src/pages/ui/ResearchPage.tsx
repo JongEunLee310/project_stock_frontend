@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
 import {
   SymbolNotFoundError,
+  useNewsDisclosure,
   useResearchPriceSeries,
   useResearchView,
   useSaveBuyChecklist,
@@ -10,9 +11,12 @@ import {
 } from '@/features/research/queries'
 import type {
   ChecklistItem,
+  NewsDisclosureItem,
+  NewsDisclosureSentiment,
   ResearchRisk,
   ResearchView,
 } from '@/features/research/adapters'
+import { newsDisclosureSentimentLabels } from '@/features/research/adapters'
 import {
   useAddAssetToFirstWatchlist,
   useRemoveWatchlistItem,
@@ -44,6 +48,12 @@ const riskRank: Record<string, number> = {
   높음: 3,
   중간: 2,
   낮음: 1,
+}
+
+const sentimentClassNames: Record<NewsDisclosureSentiment, string> = {
+  POSITIVE: 'border-emerald-400/40 bg-emerald-400/10 text-emerald-200',
+  NEUTRAL: 'border-app-border bg-app-surface-muted text-app-text-muted',
+  NEGATIVE: 'border-red-400/40 bg-red-400/10 text-red-200',
 }
 
 function getResearchSymbol(symbol: string | undefined) {
@@ -496,32 +506,123 @@ function ChecklistPanel({
   )
 }
 
-function ReportsPanel({ research }: { research: ResearchView }) {
+function NewsDisclosureList({ items }: { items: NewsDisclosureItem[] }) {
+  return (
+    <ul className="mt-4 flex flex-col gap-3">
+      {items.map((item) => (
+        <li
+          key={item.id}
+          className="rounded-control border border-app-border bg-app-surface-muted p-4"
+        >
+          <div className="flex flex-wrap items-start gap-2">
+            {item.categoryLabel ? (
+              <Badge tone="info" className="shrink-0 text-xs">
+                {item.categoryLabel}
+              </Badge>
+            ) : null}
+            <h3 className="min-w-0 flex-1 font-semibold text-app-text">
+              <a
+                href={item.url}
+                target="_blank"
+                rel="noreferrer"
+                className="underline decoration-app-border underline-offset-4 transition-colors hover:text-app-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent"
+              >
+                {item.title}
+              </a>
+            </h3>
+          </div>
+          <p className="mt-2 text-sm text-app-text-muted">
+            {item.source}
+            {item.publishedAt ? ` · ${item.publishedAt}` : null}
+          </p>
+          {item.summary ? (
+            <p className="mt-2 text-sm leading-6 text-app-text-muted">
+              {item.summary}
+            </p>
+          ) : null}
+          {item.sentiment || item.impactLabel ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {item.sentiment ? (
+                <Badge
+                  tone="neutral"
+                  className={sentimentClassNames[item.sentiment]}
+                >
+                  영향 {newsDisclosureSentimentLabels[item.sentiment]}
+                </Badge>
+              ) : null}
+              {item.impactLabel ? (
+                <Badge tone="neutral">중요도 {item.impactLabel}</Badge>
+              ) : null}
+            </div>
+          ) : null}
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+function NewsDisclosurePanel({ assetId }: { assetId: number }) {
+  const [activeTab, setActiveTab] = useState<'news' | 'disclosures'>('news')
+  const newsDisclosureQuery = useNewsDisclosure(assetId)
+  const items = newsDisclosureQuery.data?.[activeTab] ?? []
+  const isNewsTab = activeTab === 'news'
+
   return (
     <Card id={researchSectionIds.news} tabIndex={-1} className="h-full">
       <h2 className="text-xl font-bold text-app-text">뉴스 및 공시 요약</h2>
-      {research.reports.length > 0 ? (
-        <ul className="mt-4 flex flex-col gap-3">
-          {research.reports.map((report) => (
-            <li
-              key={report.id}
-              className="rounded-control border border-app-border bg-app-surface-muted p-4"
-            >
-              <h3 className="font-semibold text-app-text">{report.title}</h3>
-              <p className="mt-2 text-sm text-app-text-muted">
-                {report.source ?? '출처 없음'} · {report.createdAt}
-              </p>
-              {report.summary ? (
-                <p className="mt-2 text-sm leading-6 text-app-text-muted">
-                  {report.summary}
-                </p>
-              ) : null}
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <EmptyState title="뉴스 및 공시가 없습니다." className="py-6" />
-      )}
+      <div
+        className="mt-4 flex gap-2 border-b border-app-border pb-3"
+        role="tablist"
+        aria-label="뉴스 및 공시"
+      >
+        <Button
+          id="research-news-tab"
+          role="tab"
+          variant={isNewsTab ? 'primary' : 'ghost'}
+          aria-selected={isNewsTab}
+          aria-controls="research-news-disclosure-panel"
+          onClick={() => setActiveTab('news')}
+        >
+          뉴스
+        </Button>
+        <Button
+          id="research-disclosures-tab"
+          role="tab"
+          variant={isNewsTab ? 'ghost' : 'primary'}
+          aria-selected={!isNewsTab}
+          aria-controls="research-news-disclosure-panel"
+          onClick={() => setActiveTab('disclosures')}
+        >
+          공시
+        </Button>
+      </div>
+      <div
+        id="research-news-disclosure-panel"
+        role="tabpanel"
+        aria-labelledby={
+          isNewsTab ? 'research-news-tab' : 'research-disclosures-tab'
+        }
+      >
+        {newsDisclosureQuery.isLoading ? (
+          <Skeleton className="mt-4" lines={4} />
+        ) : newsDisclosureQuery.isError ? (
+          <ErrorState
+            title="뉴스 및 공시를 불러오지 못했습니다"
+            description={newsDisclosureQuery.error.message}
+            onRetry={() => void newsDisclosureQuery.refetch()}
+            className="py-6"
+          />
+        ) : items.length > 0 ? (
+          <NewsDisclosureList items={items} />
+        ) : (
+          <EmptyState
+            title={
+              isNewsTab ? '표시할 뉴스가 없습니다.' : '표시할 공시가 없습니다.'
+            }
+            className="py-6"
+          />
+        )}
+      </div>
     </Card>
   )
 }
@@ -786,7 +887,7 @@ export function ResearchPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-        <ReportsPanel research={research} />
+        <NewsDisclosurePanel assetId={research.assetId} />
         <Card className="h-full">
           <h2 className="text-xl font-bold text-app-text">촉매 타임라인</h2>
           <EmptyState

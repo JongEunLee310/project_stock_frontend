@@ -404,6 +404,13 @@ vi.mock('@/features/research/queries', () => ({
     isLoading: false,
     refetch: vi.fn(),
   }),
+  useNewsDisclosure: () => ({
+    data: { news: [], disclosures: [] },
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: vi.fn(),
+  }),
   useSaveBuyChecklist: () => ({
     mutate: vi.fn(),
     variables: undefined,
@@ -439,7 +446,6 @@ vi.mock('@/features/research/queries', () => ({
       keyRisks: [],
       buyChecklist: [],
       checklistMemo: null,
-      reports: [],
       latestThesis: null,
     },
     error: null,

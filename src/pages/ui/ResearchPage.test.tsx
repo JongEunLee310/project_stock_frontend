@@ -19,6 +19,8 @@ import {
 } from '@/test-utils/authTestSetup'
 
 const mockUseResearchPriceSeries = vi.hoisted(() => vi.fn())
+const mockUseNewsDisclosure = vi.hoisted(() => vi.fn())
+const mockNewsDisclosureRefetch = vi.hoisted(() => vi.fn())
 const mockSaveBuyChecklist = vi.hoisted(() => vi.fn())
 const mockUseWatchlistAssets = vi.hoisted(() => vi.fn())
 const mockAddWatchlistAsset = vi.hoisted(() => vi.fn())
@@ -90,15 +92,6 @@ const researchBySymbol = {
       },
     ],
     checklistMemo: 'Server memo',
-    reports: [
-      {
-        id: 'report-1',
-        title: 'Quarterly note',
-        source: 'Internal',
-        summary: 'Track data center demand.',
-        createdAt: '2026. 5. 24. 오전 9:00',
-      },
-    ],
     latestThesis: null,
   },
   MSFT: {
@@ -135,7 +128,6 @@ const researchBySymbol = {
     keyRisks: [],
     buyChecklist: [],
     checklistMemo: null,
-    reports: [],
     latestThesis: null,
   },
   NULLS: {
@@ -172,7 +164,6 @@ const researchBySymbol = {
     keyRisks: [],
     buyChecklist: [],
     checklistMemo: null,
-    reports: [],
     latestThesis: null,
   },
 }
@@ -215,6 +206,7 @@ vi.mock('@/features/research/queries', async () => {
   return {
     SymbolNotFoundError: actual.SymbolNotFoundError,
     useResearchList: actual.useResearchList,
+    useNewsDisclosure: mockUseNewsDisclosure,
     useResearchPriceSeries: mockUseResearchPriceSeries,
     useSaveBuyChecklist: () => {
       const [mutationState, setMutationState] = React.useState<{
@@ -313,6 +305,40 @@ beforeEach(() => {
     isError: false,
     isLoading: false,
     refetch: vi.fn(),
+  })
+  mockUseNewsDisclosure.mockReturnValue({
+    data: {
+      news: [
+        {
+          id: 'news-17',
+          title: 'New accelerator announced',
+          url: 'https://example.com/news/17',
+          source: 'Example News',
+          publishedAt: '2026. 7. 10. 오전 9:00',
+          summary: 'A new product cycle begins.',
+          categoryLabel: '제품',
+          impactLabel: '중간',
+          sentiment: 'POSITIVE',
+        },
+      ],
+      disclosures: [
+        {
+          id: 'https://example.com/disclosures/quarterly',
+          title: 'Quarterly filing',
+          url: 'https://example.com/disclosures/quarterly',
+          source: 'DART',
+          publishedAt: null,
+          summary: null,
+          categoryLabel: '기타',
+          impactLabel: null,
+          sentiment: null,
+        },
+      ],
+    },
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: mockNewsDisclosureRefetch,
   })
   mockUseWatchlistAssets.mockReturnValue({
     data: { rows: [] },
@@ -609,6 +635,82 @@ describe('ResearchPage', () => {
         name: '예정 이벤트 데이터가 아직 수집되지 않았습니다.',
       }),
     ).toBeVisible()
+  })
+
+  it('renders news metadata and switches to disclosures', async () => {
+    renderResearch()
+
+    await screen.findByRole('heading', { name: 'NVDA 리서치' })
+    expect(mockUseNewsDisclosure).toHaveBeenCalledWith(1)
+
+    const newsTab = screen.getByRole('tab', { name: '뉴스' })
+    const disclosuresTab = screen.getByRole('tab', { name: '공시' })
+    expect(newsTab).toHaveAttribute('aria-selected', 'true')
+    expect(disclosuresTab).toHaveAttribute('aria-selected', 'false')
+    expect(screen.getByText('제품')).toBeVisible()
+    expect(
+      screen.getByText('Example News · 2026. 7. 10. 오전 9:00'),
+    ).toBeVisible()
+    expect(screen.getByText('A new product cycle begins.')).toBeVisible()
+    expect(screen.getByText('영향 긍정')).toHaveClass('text-emerald-200')
+    expect(screen.getByText('중요도 중간')).toBeVisible()
+    expect(
+      screen.getByRole('link', { name: 'New accelerator announced' }),
+    ).toHaveAttribute('href', 'https://example.com/news/17')
+    expect(
+      screen.getByRole('link', { name: 'New accelerator announced' }),
+    ).toHaveAttribute('target', '_blank')
+
+    fireEvent.click(disclosuresTab)
+
+    expect(disclosuresTab).toHaveAttribute('aria-selected', 'true')
+    expect(
+      screen.getByRole('link', { name: 'Quarterly filing' }),
+    ).toHaveAttribute('href', 'https://example.com/disclosures/quarterly')
+    expect(
+      screen.queryByText('New accelerator announced'),
+    ).not.toBeInTheDocument()
+  })
+
+  it('isolates a news and disclosure error and retries inside the card', async () => {
+    mockUseNewsDisclosure.mockReturnValue({
+      data: undefined,
+      error: new Error('news failed'),
+      isError: true,
+      isLoading: false,
+      refetch: mockNewsDisclosureRefetch,
+    })
+    renderResearch()
+
+    expect(
+      await screen.findByRole('heading', { name: 'NVDA 리서치' }),
+    ).toBeVisible()
+    expect(
+      screen.getByRole('heading', {
+        name: '뉴스 및 공시를 불러오지 못했습니다',
+      }),
+    ).toBeVisible()
+    expect(screen.getByRole('heading', { name: '핵심 리스크' })).toBeVisible()
+
+    fireEvent.click(screen.getByRole('button', { name: '재시도' }))
+    expect(mockNewsDisclosureRefetch).toHaveBeenCalledOnce()
+  })
+
+  it('shows a tab-specific empty state without hiding the page', async () => {
+    mockUseNewsDisclosure.mockReturnValue({
+      data: { news: [], disclosures: [] },
+      error: null,
+      isError: false,
+      isLoading: false,
+      refetch: mockNewsDisclosureRefetch,
+    })
+    renderResearch()
+
+    expect(await screen.findByText('표시할 뉴스가 없습니다.')).toBeVisible()
+    expect(screen.getByRole('heading', { name: '핵심 리스크' })).toBeVisible()
+
+    fireEvent.click(screen.getByRole('tab', { name: '공시' }))
+    expect(screen.getByText('표시할 공시가 없습니다.')).toBeVisible()
   })
 
   it('shows key risks with badges and non-empty evidence lists', async () => {

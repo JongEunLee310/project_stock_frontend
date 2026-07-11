@@ -12,6 +12,7 @@ import {
 import { formatKstDateTime } from '@/shared/lib/format'
 
 import {
+  useNewsDisclosure,
   useResearchList,
   useResearchPriceSeries,
   useResearchView,
@@ -63,8 +64,23 @@ function responseFor(path: string) {
       }
     case '/assets/11/buy-checklist':
       return { memo: null, checked_item_keys: [], items: [] }
-    case '/reports?asset_id=11':
-      return []
+    case '/assets/11/news-disclosure':
+      return {
+        asset_id: 11,
+        news: [
+          {
+            id: 17,
+            title: 'New accelerator announced',
+            url: 'https://example.com/news/17',
+            source: 'Example News',
+            published_at: '2026-07-10T00:00:00Z',
+            category: 'PRODUCT',
+            impact_level: 'medium',
+            sentiment: 'positive',
+          },
+        ],
+        disclosures: [],
+      }
     case '/theses/latest?asset_id=11':
       return {
         id: 3,
@@ -213,7 +229,41 @@ describe('research queries', () => {
     expect(apiGet).not.toHaveBeenCalledWith(
       expect.stringContaining('/stocks/NVDA/prices'),
     )
+    expect(apiGet).not.toHaveBeenCalledWith(expect.stringContaining('/reports'))
     expect(result.current.data).not.toHaveProperty('priceSparkline')
+    expect(result.current.data).not.toHaveProperty('reports')
+  })
+
+  it('fetches news and disclosures with an asset-scoped query key', async () => {
+    const queryClient = createTestQueryClient()
+    const { result } = renderHook(() => useNewsDisclosure(11), {
+      wrapper: wrapperFor(queryClient),
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(apiGet).toHaveBeenCalledWith('/assets/11/news-disclosure')
+    expect(result.current.data?.news[0]).toMatchObject({
+      id: '17',
+      categoryLabel: '제품',
+      impactLabel: '중간',
+      sentiment: 'POSITIVE',
+    })
+    expect(
+      queryClient.getQueryCache().find({
+        queryKey: ['research', 'news-disclosure', 11],
+      }),
+    ).toBeDefined()
+  })
+
+  it('does not fetch news and disclosures without an asset id', () => {
+    const queryClient = createTestQueryClient()
+
+    renderHook(() => useNewsDisclosure(undefined), {
+      wrapper: wrapperFor(queryClient),
+    })
+
+    expect(apiGet).not.toHaveBeenCalled()
   })
 
   it('returns research data with a null latest thesis when no thesis exists', async () => {

@@ -54,12 +54,29 @@ export interface BuyChecklistDto {
   }> | null
 }
 
-export interface ReportDto {
-  id: number
-  title: string
-  source?: string | null
-  summary?: string | null
-  created_at: string
+export interface NewsDisclosureDto {
+  asset_id: number
+  news: Array<{
+    id: number
+    title: string
+    url: string
+    source: string
+    published_at?: string | null
+    summary?: string | null
+    category?: string | null
+    impact_level?: string | null
+    sentiment?: string | null
+  }>
+  disclosures: Array<{
+    title: string
+    url: string
+    source: string
+    published_at?: string | null
+    summary?: string | null
+    category?: string | null
+    impact_level?: string | null
+    sentiment?: string | null
+  }>
 }
 
 export interface ThesisDto {
