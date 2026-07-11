@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest'
 import { formatKstDateTime } from '@/shared/lib/format'
 
 import {
+  adaptNewsDisclosure,
   adaptPriceSeries,
-  adaptReport,
   adaptResearchDetail,
   adaptResearchListRow,
   adaptThesis,
@@ -12,7 +12,7 @@ import {
 import type {
   AssetDetailDto,
   BuyChecklistDto,
-  ReportDto,
+  NewsDisclosureDto,
   ResearchSummaryDto,
   ThesisDto,
 } from './dto'
@@ -81,14 +81,6 @@ const checklist: BuyChecklistDto = {
   ],
 }
 
-const report: ReportDto = {
-  id: 4,
-  title: 'Quarterly note',
-  source: 'Internal',
-  summary: null,
-  created_at: '2026-05-24T00:00:00.000Z',
-}
-
 const thesis: ThesisDto = {
   id: 5,
   title: 'Latest thesis',
@@ -121,14 +113,8 @@ describe('research adapters', () => {
     })
   })
 
-  it('combines detail, summary, checklist, reports, and thesis', () => {
-    const view = adaptResearchDetail(
-      detail,
-      summary,
-      checklist,
-      [report],
-      thesis,
-    )
+  it('combines detail, summary, checklist, and thesis', () => {
+    const view = adaptResearchDetail(detail, summary, checklist, thesis)
 
     expect(view).toMatchObject({
       assetId: 1,
@@ -170,7 +156,6 @@ describe('research adapters', () => {
       checked: true,
     })
     expect(view.buyChecklist[1].checked).toBe(false)
-    expect(view.reports[0].summary).toBeNull()
     expect(view.latestThesis?.title).toBe('Latest thesis')
   })
 
@@ -189,7 +174,6 @@ describe('research adapters', () => {
         confidence_basis: null,
       },
       { items: null },
-      [],
       null,
     )
 
@@ -225,7 +209,6 @@ describe('research adapters', () => {
         created_at: summary.created_at,
       },
       checklist,
-      [],
       null,
     )
 
@@ -253,7 +236,6 @@ describe('research adapters', () => {
         detail,
         summary,
         checklistWithoutCheckedKeys,
-        [],
         null,
       )
 
@@ -271,7 +253,6 @@ describe('research adapters', () => {
       { ...detail, market: undefined },
       summary,
       checklist,
-      [],
       null,
     )
 
@@ -289,7 +270,6 @@ describe('research adapters', () => {
       },
       summary,
       checklist,
-      [],
       null,
     )
 
@@ -329,7 +309,6 @@ describe('research adapters', () => {
       detail,
       { ...summary, stance: null, stance_confidence: 'not-a-number' },
       checklist,
-      [],
       null,
     )
 
@@ -337,8 +316,90 @@ describe('research adapters', () => {
     expect(view.stanceConfidence).toBeNull()
   })
 
-  it('maps report and thesis date-bearing DTOs', () => {
-    expect(adaptReport(report).id).toBe('4')
+  it('maps thesis date-bearing DTOs', () => {
     expect(adaptThesis(thesis).id).toBe('5')
+  })
+
+  it('normalizes news and disclosure metadata and maps known labels', () => {
+    const dto: NewsDisclosureDto = {
+      asset_id: 1,
+      news: [
+        {
+          id: 17,
+          title: 'New accelerator announced',
+          url: 'https://example.com/news/17',
+          source: 'Example News',
+          published_at: '2026-07-10T00:00:00Z',
+          summary: 'A new product cycle begins.',
+          category: ' product ',
+          impact_level: 'medium',
+          sentiment: 'positive',
+        },
+      ],
+      disclosures: [
+        {
+          title: 'Quarterly filing',
+          url: 'https://example.com/disclosures/quarterly',
+          source: 'DART',
+          published_at: null,
+          category: 'OTHER',
+        },
+      ],
+    }
+
+    expect(adaptNewsDisclosure(dto)).toEqual({
+      news: [
+        {
+          id: '17',
+          title: 'New accelerator announced',
+          url: 'https://example.com/news/17',
+          source: 'Example News',
+          publishedAt: formatKstDateTime('2026-07-10T00:00:00Z'),
+          summary: 'A new product cycle begins.',
+          categoryLabel: '제품',
+          impactLabel: '중간',
+          sentiment: 'POSITIVE',
+        },
+      ],
+      disclosures: [
+        {
+          id: 'https://example.com/disclosures/quarterly',
+          title: 'Quarterly filing',
+          url: 'https://example.com/disclosures/quarterly',
+          source: 'DART',
+          publishedAt: null,
+          summary: null,
+          categoryLabel: '기타',
+          impactLabel: null,
+          sentiment: null,
+        },
+      ],
+    })
+  })
+
+  it('maps unknown and nullable news metadata to null', () => {
+    const view = adaptNewsDisclosure({
+      asset_id: 1,
+      news: [
+        {
+          id: 18,
+          title: 'Unclassified item',
+          url: 'https://example.com/news/18',
+          source: 'Example News',
+          category: 'UNKNOWN',
+          impact_level: null,
+          sentiment: 'mixed',
+        },
+      ],
+      disclosures: [],
+    })
+
+    expect(view.news[0]).toMatchObject({
+      publishedAt: null,
+      summary: null,
+      categoryLabel: null,
+      impactLabel: null,
+      sentiment: null,
+    })
   })
 })

@@ -10,8 +10,8 @@ import type {
   AssetDetailDto,
   AssetLookupDto,
   BuyChecklistDto,
+  NewsDisclosureDto,
   PriceSeriesDto,
-  ReportDto,
   ResearchSummaryDto,
   ThesisDto,
 } from './dto'
@@ -31,12 +31,23 @@ export interface ChecklistItem {
   checked: boolean
 }
 
-export interface ReportItem {
+export type NewsDisclosureSentiment = 'POSITIVE' | 'NEUTRAL' | 'NEGATIVE'
+
+export interface NewsDisclosureItem {
   id: string
   title: string
-  source: string | null
+  url: string
+  source: string
+  publishedAt: string | null
   summary: string | null
-  createdAt: string
+  categoryLabel: string | null
+  impactLabel: string | null
+  sentiment: NewsDisclosureSentiment | null
+}
+
+export interface NewsDisclosureView {
+  news: NewsDisclosureItem[]
+  disclosures: NewsDisclosureItem[]
 }
 
 export interface ThesisItem {
@@ -80,7 +91,6 @@ export interface ResearchView {
   keyRisks: ResearchRisk[]
   buyChecklist: ChecklistItem[]
   checklistMemo: string | null
-  reports: ReportItem[]
   latestThesis: ThesisItem | null
 }
 
@@ -131,13 +141,78 @@ export function adaptPriceSeries(dto: PriceSeriesDto): PriceSeriesView {
   }
 }
 
-export function adaptReport(dto: ReportDto): ReportItem {
+export const newsDisclosureCategoryLabels: Record<string, string> = {
+  EARNINGS: '실적',
+  PRODUCT: '제품',
+  PARTNERSHIP: '파트너십',
+  REGULATION: '규제',
+  PERSONNEL: '인사',
+  CAPITAL: '자본',
+  MARKET: '시황',
+  OTHER: '기타',
+}
+
+export const newsDisclosureImpactLabels: Record<string, string> = {
+  LOW: '낮음',
+  MEDIUM: '중간',
+  HIGH: '높음',
+  CRITICAL: '심각',
+}
+
+export const newsDisclosureSentimentLabels: Record<
+  NewsDisclosureSentiment,
+  string
+> = {
+  POSITIVE: '긍정',
+  NEUTRAL: '중립',
+  NEGATIVE: '부정',
+}
+
+function normalizeWireValue(value: string | null | undefined) {
+  return value?.trim().toUpperCase() ?? ''
+}
+
+function mapKnownLabel(
+  labels: Record<string, string>,
+  value: string | null | undefined,
+) {
+  return labels[normalizeWireValue(value)] ?? null
+}
+
+function normalizeSentiment(
+  value: string | null | undefined,
+): NewsDisclosureSentiment | null {
+  const normalizedValue = normalizeWireValue(value)
+
+  return normalizedValue in newsDisclosureSentimentLabels
+    ? (normalizedValue as NewsDisclosureSentiment)
+    : null
+}
+
+export function adaptNewsDisclosure(
+  dto: NewsDisclosureDto,
+): NewsDisclosureView {
+  const adaptItem = (
+    item:
+      | NewsDisclosureDto['news'][number]
+      | NewsDisclosureDto['disclosures'][number],
+  ): NewsDisclosureItem => ({
+    id: 'id' in item ? String(item.id) : item.url,
+    title: item.title,
+    url: item.url,
+    source: item.source,
+    publishedAt: item.published_at
+      ? formatKstDateTime(item.published_at)
+      : null,
+    summary: item.summary ?? null,
+    categoryLabel: mapKnownLabel(newsDisclosureCategoryLabels, item.category),
+    impactLabel: mapKnownLabel(newsDisclosureImpactLabels, item.impact_level),
+    sentiment: normalizeSentiment(item.sentiment),
+  })
+
   return {
-    id: String(dto.id),
-    title: dto.title,
-    source: dto.source ?? null,
-    summary: dto.summary ?? null,
-    createdAt: formatKstDateTime(dto.created_at),
+    news: dto.news.map(adaptItem),
+    disclosures: dto.disclosures.map(adaptItem),
   }
 }
 
@@ -161,7 +236,6 @@ export function adaptResearchDetail(
   detail: AssetDetailDto,
   summary: ResearchSummaryDto,
   checklist: BuyChecklistDto,
-  reports: ReportDto[],
   thesis: ThesisDto | null,
 ): ResearchView {
   return {
@@ -215,7 +289,6 @@ export function adaptResearchDetail(
       }
     }),
     checklistMemo: checklist.memo ?? null,
-    reports: reports.map(adaptReport),
     latestThesis: thesis ? adaptThesis(thesis) : null,
   }
 }

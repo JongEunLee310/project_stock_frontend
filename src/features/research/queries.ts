@@ -10,9 +10,11 @@ import { apiGet, apiPut } from '@/shared/api/client'
 import { ApiError } from '@/shared/api/envelope'
 
 import {
+  adaptNewsDisclosure,
   adaptPriceSeries,
   adaptResearchDetail,
   adaptResearchListRow,
+  type NewsDisclosureView,
   type PriceSeriesView,
   type ResearchListRow,
   type ResearchView,
@@ -21,8 +23,8 @@ import type {
   AssetDetailDto,
   AssetLookupDto,
   BuyChecklistDto,
+  NewsDisclosureDto,
   PriceSeriesDto,
-  ReportDto,
   ResearchSummaryDto,
   ThesisDto,
 } from './dto'
@@ -129,6 +131,26 @@ export function useResearchPriceSeries(
   })
 }
 
+export function useNewsDisclosure(
+  assetId: number | undefined,
+): UseQueryResult<NewsDisclosureView> {
+  return useQuery<NewsDisclosureView>({
+    queryKey: ['research', 'news-disclosure', assetId],
+    enabled: assetId != null,
+    queryFn: async () => {
+      if (assetId == null) {
+        return { news: [], disclosures: [] }
+      }
+
+      const { data } = await apiGet<NewsDisclosureDto>(
+        `/assets/${assetId}/news-disclosure`,
+      )
+
+      return adaptNewsDisclosure(data)
+    },
+  })
+}
+
 export function useSaveBuyChecklist(
   assetId: number,
 ): UseMutationResult<BuyChecklistDto, Error, SaveBuyChecklistBody> {
@@ -154,7 +176,7 @@ export function useResearchView(symbol: string): UseQueryResult<ResearchView> {
     queryKey: ['research', normalizedSymbol],
     queryFn: async () => {
       const assetId = await fetchAssetIdBySymbol(normalizedSymbol)
-      const [detail, summary, checklist, reports, thesis] = await Promise.all([
+      const [detail, summary, checklist, thesis] = await Promise.all([
         apiGet<AssetDetailDto>(`/assets/${assetId}/detail`).then(
           (response) => response.data,
         ),
@@ -164,13 +186,10 @@ export function useResearchView(symbol: string): UseQueryResult<ResearchView> {
         apiGet<BuyChecklistDto>(`/assets/${assetId}/buy-checklist`).then(
           (response) => response.data,
         ),
-        apiGet<ReportDto[]>(`/reports?asset_id=${assetId}`).then(
-          (response) => response.data,
-        ),
         fetchLatestThesis(assetId),
       ])
 
-      return adaptResearchDetail(detail, summary, checklist, reports, thesis)
+      return adaptResearchDetail(detail, summary, checklist, thesis)
     },
   })
 }
