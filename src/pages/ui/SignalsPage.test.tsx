@@ -477,6 +477,18 @@ describe('SignalsPage', () => {
     ).toBeDisabled()
   })
 
+  it('opens the briefing section from the evidence action', async () => {
+    const router = renderSignals()
+    const card = await screen.findByRole('article', {
+      name: 'NVDA BUY_CANDIDATE 시그널',
+    })
+
+    fireEvent.click(within(card).getByRole('button', { name: '근거 보기' }))
+
+    expect(router.state.location.pathname).toBe('/research/NVDA')
+    expect(router.state.location.search).toBe('?section=briefing')
+  })
+
   it('falls back to the reason when key points are empty', async () => {
     renderSignals()
     const card = await screen.findByRole('article', {

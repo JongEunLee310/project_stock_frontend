@@ -739,7 +739,7 @@ describe('DashboardPage', () => {
     expect(screen.queryByText('애플 밸류에이션 유지')).not.toBeInTheDocument()
     expect(
       screen.getByRole('link', { name: '테슬라 뉴스 감성 급락' }),
-    ).toHaveAttribute('href', '/research/TSLA')
+    ).toHaveAttribute('href', '/research/TSLA?section=risks')
     expect(
       screen.queryByRole('link', { name: '시장 공시 확인 필요' }),
     ).not.toBeInTheDocument()

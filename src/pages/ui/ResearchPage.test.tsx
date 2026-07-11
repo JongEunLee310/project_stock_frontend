@@ -1,4 +1,11 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react'
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { vi } from 'vitest'
@@ -16,6 +23,7 @@ const mockSaveBuyChecklist = vi.hoisted(() => vi.fn())
 const mockUseWatchlistAssets = vi.hoisted(() => vi.fn())
 const mockAddWatchlistAsset = vi.hoisted(() => vi.fn())
 const mockRemoveWatchlistItem = vi.hoisted(() => vi.fn())
+const mockScrollIntoView = vi.hoisted(() => vi.fn())
 
 const researchBySymbol = {
   NVDA: {
@@ -290,6 +298,10 @@ vi.mock('@/features/research/queries', async () => {
 
 beforeEach(() => {
   setupAuthenticatedUser()
+  Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+    configurable: true,
+    value: mockScrollIntoView,
+  })
   mockUseResearchPriceSeries.mockReturnValue({
     data: {
       closes: [],
@@ -336,6 +348,50 @@ function renderResearch(path = '/research/NVDA') {
 }
 
 describe('ResearchPage', () => {
+  it('scrolls to and focuses a supported section after research loads', async () => {
+    renderResearch('/research/NVDA?section=briefing')
+
+    await screen.findByRole('heading', { name: 'AI demand remains durable' })
+    const briefingSection = document.getElementById('research-section-briefing')
+
+    expect(briefingSection).not.toBeNull()
+    await waitFor(() => expect(mockScrollIntoView).toHaveBeenCalledOnce())
+    expect(mockScrollIntoView).toHaveBeenCalledWith({ block: 'start' })
+    expect(briefingSection).toHaveFocus()
+    for (const section of ['briefing', 'risks', 'news', 'checklist']) {
+      expect(
+        document.getElementById(`research-section-${section}`),
+      ).toHaveAttribute('tabindex', '-1')
+    }
+  })
+
+  it.each(['/research/NVDA', '/research/NVDA?section=unknown'])(
+    'does not scroll for a missing or unsupported section at %s',
+    async (path) => {
+      renderResearch(path)
+
+      await screen.findByRole('heading', { name: 'AI demand remains durable' })
+      await act(async () => {})
+
+      expect(mockScrollIntoView).not.toHaveBeenCalled()
+    },
+  )
+
+  it('scrolls once again when the research symbol changes', async () => {
+    const router = renderResearch('/research/NVDA?section=briefing')
+
+    await screen.findByRole('heading', { name: 'AI demand remains durable' })
+    await waitFor(() => expect(mockScrollIntoView).toHaveBeenCalledOnce())
+
+    await act(async () => {
+      await router.navigate('/research/MSFT?section=briefing')
+    })
+
+    await screen.findByRole('heading', { name: 'Cloud growth checkpoint' })
+    await waitFor(() => expect(mockScrollIntoView).toHaveBeenCalledTimes(2))
+    expect(document.getElementById('research-section-briefing')).toHaveFocus()
+  })
+
   it('renders the stock header with a positive price change', async () => {
     renderResearch()
 

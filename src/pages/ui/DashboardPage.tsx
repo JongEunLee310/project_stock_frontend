@@ -108,8 +108,9 @@ const riskRank: Record<AlertCandidate['riskLevel'], number> = {
   낮음: 2,
 }
 
-function getResearchPath(symbol: string) {
-  return appRoutePaths.researchDetail.replace(':symbol', symbol)
+function getResearchPath(symbol: string, section?: string) {
+  const path = appRoutePaths.researchDetail.replace(':symbol', symbol)
+  return section ? `${path}?section=${section}` : path
 }
 
 function formatPercent(value: number) {
@@ -646,7 +647,7 @@ export function DashboardPage() {
                     <div className="flex items-start justify-between gap-3">
                       {item.symbol ? (
                         <Link
-                          to={getResearchPath(item.symbol)}
+                          to={getResearchPath(item.symbol, 'risks')}
                           className="text-base font-bold text-cockpit-text hover:text-cockpit-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cockpit-accent"
                         >
                           {item.title}
