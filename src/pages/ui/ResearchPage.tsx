@@ -53,8 +53,8 @@ import {
 } from '@/shared/ui'
 
 const priceRanges: PriceRange[] = ['1D', '1M', '3M', '6M', '1Y']
+const priceChartColor = '#5fa8ff'
 const priceChartSeries = [
-  { dataKey: 'close', color: '#5fa8ff' },
   { dataKey: 'ma20', color: '#f59e0b', strokeDasharray: '6 4' },
 ] as const
 const benchmarkColors = ['#5fa8ff', '#34d399', '#a855f7'] as const
@@ -191,6 +191,25 @@ function PriceSparkline({ research }: { research: ResearchView }) {
   const priceSeries = priceSeriesQuery.data
   const data = priceSeries?.points ?? []
   const hasVolume = data.some((point) => point.volume !== null)
+  const validCloses = data.flatMap((point) =>
+    Number.isFinite(point.close) ? [point.close] : [],
+  )
+  const latestClose = validCloses.at(-1) ?? null
+  const previousClose = validCloses.at(-2) ?? null
+  const priceChange =
+    latestClose !== null && previousClose !== null
+      ? latestClose - previousClose
+      : null
+  const priceChangePercent =
+    priceChange !== null && previousClose !== null && previousClose !== 0
+      ? (priceChange / previousClose) * 100
+      : null
+  const priceChangeClassName =
+    priceChange === null || priceChange === 0
+      ? 'text-app-text-muted'
+      : priceChange > 0
+        ? 'text-emerald-400'
+        : 'text-red-400'
   const benchmarkSeries = benchmarkQuery.data ?? emptyBenchmarkSeries
   const eventMarkers = snapEventsToChartPoints(
     assetEventsQuery.data ?? [],
@@ -304,6 +323,7 @@ function PriceSparkline({ research }: { research: ResearchView }) {
             margin={{ top: 10, right: 12, bottom: 4, left: 4 }}
             showGrid
             showTooltip
+            yAxisOrientation="right"
           />
         </div>
       ) : isBenchmarkEnabled ? (
@@ -326,7 +346,23 @@ function PriceSparkline({ research }: { research: ResearchView }) {
           >
             <li className="flex items-center gap-2">
               <span className="h-0.5 w-5 bg-[#5fa8ff]" aria-hidden="true" />
-              현재가
+              <span className="font-semibold text-app-text">
+                {research.symbol}
+              </span>
+              <span aria-hidden="true">·</span>
+              <span>
+                {formatCurrency(
+                  latestClose,
+                  priceSeries?.currency ?? research.currency,
+                )}
+              </span>
+              <span className={priceChangeClassName} aria-label="등락">
+                {formatSignedCurrency(
+                  priceChange,
+                  priceSeries?.currency ?? research.currency,
+                )}{' '}
+                ({formatSignedPercent(priceChangePercent)})
+              </span>
             </li>
             <li className="flex items-center gap-2">
               <span
@@ -350,21 +386,32 @@ function PriceSparkline({ research }: { research: ResearchView }) {
             ariaLabel={`${research.symbol} 최근 가격 추이`}
             xDataKey="date"
             series={[...priceChartSeries]}
+            areaSeries={{ dataKey: 'close', color: priceChartColor }}
             markers={eventMarkers}
-            margin={{ top: 10, right: 12, bottom: 4, left: 4 }}
+            margin={{
+              top: 10,
+              right: 12,
+              bottom: hasVolume ? 0 : 4,
+              left: 4,
+            }}
             showGrid
             showTooltip
+            yAxisOrientation="right"
+            hideXAxis={hasVolume}
+            lastValueLabel={{ dataKey: 'close', color: priceChartColor }}
           />
           {hasVolume ? (
             <BarChart
-              className="mt-3 h-20 w-full"
+              className="mt-0 h-20 w-full"
               data={data}
               height={80}
               color="#475569"
               ariaLabel={`${research.symbol} 거래량`}
               xDataKey="date"
               yDataKey="volume"
-              margin={{ top: 4, right: 12, bottom: 0, left: 4 }}
+              // right 60 = 가격 차트의 right margin 12 + 우측 YAxis 폭 48 (플롯 영역 정렬)
+              margin={{ top: 0, right: 60, bottom: 0, left: 4 }}
+              showAxes
             />
           ) : null}
         </div>
