@@ -784,6 +784,7 @@ function HeaderCard({
               <img
                 src={`https://assets.parqet.com/logos/symbol/${research.symbol}?format=png`}
                 alt=""
+                referrerPolicy="no-referrer"
                 className="h-full w-full object-contain p-1.5"
                 onError={() => setIsLogoLoadFailed(true)}
               />
