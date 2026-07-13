@@ -63,7 +63,6 @@
 ## Test Requirements
 
 `src/pages/ui/DashboardPage.test.tsx`:
-
 - 3개 훅(`useSignals`/`useDecisionLogs`/`useWatchlistAssets`)을 `vi.mock`으로 모킹. fixture는 feature 어댑터 타입 기준(signal fixture에 `symbol` 포함 — aria-label 셀렉터 유지).
 - 변경 단언: PER/PEG/status(`'60.3'`/`'1.32'`/`'관망'`) 제거 → `WatchlistAssetRow` 기준 `price`/`changePercent` 단언. signal `confidence`→`score`(`{score}%`), decision `decision`→`rationale`.
 - 추가: 각 섹션 로딩(Skeleton)·에러(ErrorState)·빈(EmptyState) 1케이스씩.

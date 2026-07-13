@@ -24,12 +24,12 @@ BE PR #124(머지 대기)가 `/alert-candidates`에 `?expand=asset` 쿼리파라
 
 ### 3-1. 계약 갭 요약
 
-| 항목          | 현 FE (`dto.ts`)                    | BE 실계약                               |
-| ------------- | ----------------------------------- | --------------------------------------- |
-| `reason`      | `reason: string`                    | `message: string \| null`               |
+| 항목 | 현 FE (`dto.ts`) | BE 실계약 |
+|------|-----------------|----------|
+| `reason` | `reason: string` | `message: string \| null` |
 | `symbol` 위치 | top-level `symbol?: string \| null` | `expand=asset` 시 `asset.symbol`만 존재 |
-| `importance`  | 없음                                | `importance: string`                    |
-| `asset`       | 없음                                | `expand=asset` 시 `asset: {...}`        |
+| `importance` | 없음 | `importance: string` |
+| `asset` | 없음 | `expand=asset` 시 `asset: {...}` |
 
 ### 3-2. `AlertCandidateAssetDto` (신규)
 
@@ -56,13 +56,11 @@ interface AlertCandidateAssetDto {
 ### 3-4. `AlertCandidate` 인터페이스 및 `adaptAlertCandidate` 수정 사항
 
 `AlertCandidate` 인터페이스 변경:
-
 - `reason: string` → `reason: string` 유지(표시 필드명은 FE 도메인 언어 유지), 값 소스를 `dto.message`로 전환
 - `symbol: string | null` 유지, 소스를 `dto.asset?.symbol ?? null`로 전환
 - `riskLevel: RiskLevel` 신규 추가 (`RiskLevel` = `'높음' | '중간' | '낮음'`, `src/shared/model/riskLevel.ts:3`)
 
 `adaptAlertCandidate` 매핑 변경:
-
 - `symbol` ← `dto.asset?.symbol ?? null`
 - `reason` ← `dto.message ?? ''`
 - `riskLevel` ← `toLabel(riskLevelLabels, dto.importance) as RiskLevel`
@@ -73,7 +71,6 @@ interface AlertCandidateAssetDto {
 ### 3-5. `useAlertCandidates` 경로 변경
 
 `src/features/alerts/queries.ts`:
-
 - `apiGet<AlertCandidateDto[]>('/alert-candidates')` → `apiGet<AlertCandidateDto[]>('/alert-candidates?expand=asset')`
 - 쿼리키 변경 없음
 
@@ -127,7 +124,6 @@ imports:
 ### `src/features/alerts/adapters.test.ts`
 
 기존 `adaptAlertCandidate` 케이스를 신계약 입력으로 갱신:
-
 - 입력: `{message, importance, asset: {symbol, ...}}` 구조
 - 단언: `reason`(← `message`), `symbol`(← `asset.symbol`), `riskLevel`(← `importance` 변환) 검증
 - 추가 케이스: `asset` 없을 때 `symbol`이 `null`임을 단언 (BE #124 미머지 저하 시나리오)

@@ -26,13 +26,13 @@ DashboardPage에 연결하고, 구 mock 도메인 타입과 신 어댑터 타입
 
 ## 2. 연동 결정 표
 
-| Dashboard 섹션       | 현재 상태                     | BE 소스                                                                      | 처리             |
-| -------------------- | ----------------------------- | ---------------------------------------------------------------------------- | ---------------- |
-| Top Signals          | `mockSignals` slice·sort      | `GET /signals?expand=asset` (재사용 `useSignals()`)                          | 실연동           |
-| Recent Decision Logs | `mockDecisionLogs` sort·slice | `GET /decision-logs` (재사용 `useDecisionLogs()`)                            | 실연동           |
-| Stocks 테이블        | `mockStocks` slice            | `GET /watchlists` + `/watchlists/{id}/items` (재사용 `useWatchlistAssets()`) | 실연동           |
-| Priority Queue       | `mockPriorityQueue` sort      | 없음                                                                         | mock 유지 + 주석 |
-| AI Briefing          | `mockAiBriefing`              | 없음                                                                         | mock 유지 + 주석 |
+| Dashboard 섹션 | 현재 상태 | BE 소스 | 처리 |
+|---|---|---|---|
+| Top Signals | `mockSignals` slice·sort | `GET /signals?expand=asset` (재사용 `useSignals()`) | 실연동 |
+| Recent Decision Logs | `mockDecisionLogs` sort·slice | `GET /decision-logs` (재사용 `useDecisionLogs()`) | 실연동 |
+| Stocks 테이블 | `mockStocks` slice | `GET /watchlists` + `/watchlists/{id}/items` (재사용 `useWatchlistAssets()`) | 실연동 |
+| Priority Queue | `mockPriorityQueue` sort | 없음 | mock 유지 + 주석 |
+| AI Briefing | `mockAiBriefing` | 없음 | mock 유지 + 주석 |
 
 ---
 
@@ -45,23 +45,23 @@ DashboardPage에 연결하고, 구 mock 도메인 타입과 신 어댑터 타입
 
 **DashboardPage SignalCard 참조 필드 전수 확인 결과**
 
-| 구 Signal 필드 (mock 기준)         | 신 Signal 필드 (어댑터 반환)   | 처리 방식                                                                                           |
-| ---------------------------------- | ------------------------------ | --------------------------------------------------------------------------------------------------- |
-| `signal.status: StockStatus`       | 없음                           | `signal.riskLevel`(한글)로 대체. 색상 클래스 매핑 재정의 (`'높음'`→rose, `'중간'`→blue, 기타→amber) |
-| `signal.confidence: number`        | `signal.score: number`         | 필드명 교체. `{signal.score}%` 렌더                                                                 |
-| `signal.reasons: string[]`         | `signal.reason: string` (단수) | `[signal.reason]` 단일 원소 배열로 래핑 후 기존 ul/li 유지                                          |
-| `signal.priority: number` (정렬키) | 없음                           | `createdAt` 내림차순 정렬 후 상위 3개                                                               |
-| `signal.symbol`                    | `signal.symbol`                | 동일                                                                                                |
-| `signal.id`                        | `signal.id`                    | 동일                                                                                                |
+| 구 Signal 필드 (mock 기준) | 신 Signal 필드 (어댑터 반환) | 처리 방식 |
+|---|---|---|
+| `signal.status: StockStatus` | 없음 | `signal.riskLevel`(한글)로 대체. 색상 클래스 매핑 재정의 (`'높음'`→rose, `'중간'`→blue, 기타→amber) |
+| `signal.confidence: number` | `signal.score: number` | 필드명 교체. `{signal.score}%` 렌더 |
+| `signal.reasons: string[]` | `signal.reason: string` (단수) | `[signal.reason]` 단일 원소 배열로 래핑 후 기존 ul/li 유지 |
+| `signal.priority: number` (정렬키) | 없음 | `createdAt` 내림차순 정렬 후 상위 3개 |
+| `signal.symbol` | `signal.symbol` | 동일 |
+| `signal.id` | `signal.id` | 동일 |
 
 **폐기 필드** (신 타입에 없음, DashboardPage 렌더에서 제거)
 
-| 필드                                                 | 처리                                      |
-| ---------------------------------------------------- | ----------------------------------------- |
-| `signal.kind`                                        | 폐기. `signalType`은 DashboardPage 미사용 |
-| `signal.trendSeries`                                 | 폐기. SignalCard에 sparkline UI 없음      |
-| `signal.previousStatus`, `signal.previousConfidence` | 폐기                                      |
-| `signal.oneMonthChangePercent`                       | 폐기                                      |
+| 필드 | 처리 |
+|---|---|
+| `signal.kind` | 폐기. `signalType`은 DashboardPage 미사용 |
+| `signal.trendSeries` | 폐기. SignalCard에 sparkline UI 없음 |
+| `signal.previousStatus`, `signal.previousConfidence` | 폐기 |
+| `signal.oneMonthChangePercent` | 폐기 |
 
 **정렬 변경**: 모듈 최상위 `const topSignals = [...mockSignals].sort(...priority...)` →
 훅 결과 `signals?.slice().sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 3)`
@@ -81,12 +81,12 @@ Badge 컴포넌트에는 현재 `status` prop을 전달 중이므로 `riskLevel`
 
 **DashboardPage decisionColumns 참조 필드 전수 확인 결과**
 
-| 구 DecisionLog 필드 (domain.ts 기준) | 신 DecisionLog 필드 (어댑터 반환)       | 처리 방식                                                                                                                                                                                                                     |
-| ------------------------------------ | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `log.createdAt: string`              | `log.createdAt: string` (KST 포맷 완료) | 동일. `formatDateTime` 중복 적용 주의 — 어댑터가 이미 KST 변환했으므로 DashboardPage의 `dateTimeFormatter.format(new Date(log.createdAt))`는 파싱 실패 가능. 어댑터 출력 포맷 확인 후 `log.createdAt` 직접 표시로 단순화 필요 |
-| `log.symbol: string`                 | `log.symbol: string`                    | 동일                                                                                                                                                                                                                          |
-| `log.decisionType: DecisionType`     | `log.decisionType: string` (한글 라벨)  | 동일 의미, Badge 전달 방식 유지                                                                                                                                                                                               |
-| `log.decision: string` (요약 텍스트) | 없음                                    | `log.rationale: string`(= BE `reason`)으로 필드명 교체. 어댑터 추가 수정 불요                                                                                                                                                 |
+| 구 DecisionLog 필드 (domain.ts 기준) | 신 DecisionLog 필드 (어댑터 반환) | 처리 방식 |
+|---|---|---|
+| `log.createdAt: string` | `log.createdAt: string` (KST 포맷 완료) | 동일. `formatDateTime` 중복 적용 주의 — 어댑터가 이미 KST 변환했으므로 DashboardPage의 `dateTimeFormatter.format(new Date(log.createdAt))`는 파싱 실패 가능. 어댑터 출력 포맷 확인 후 `log.createdAt` 직접 표시로 단순화 필요 |
+| `log.symbol: string` | `log.symbol: string` | 동일 |
+| `log.decisionType: DecisionType` | `log.decisionType: string` (한글 라벨) | 동일 의미, Badge 전달 방식 유지 |
+| `log.decision: string` (요약 텍스트) | 없음 | `log.rationale: string`(= BE `reason`)으로 필드명 교체. 어댑터 추가 수정 불요 |
 
 **폐기 필드** (DashboardPage가 참조하지 않으므로 영향 없음)
 
@@ -106,21 +106,21 @@ Badge 컴포넌트에는 현재 `status` prop을 전달 중이므로 `riskLevel`
 
 **DashboardPage stockColumns 참조 필드 전수 확인 결과**
 
-| 구 Stock 필드                              | WatchlistAssetRow 필드              | 처리 방식                             |
-| ------------------------------------------ | ----------------------------------- | ------------------------------------- |
-| `stock.symbol`, `stock.name`               | `row.symbol`, `row.name`            | 동일                                  |
-| `stock.changePercent: number`              | `row.changePercent: number \| null` | null → `"—"` fallback 추가            |
-| `stock.status: StockStatus`                | 없음                                | **컬럼 삭제** — BE에서 제공하지 않음  |
-| `stock.changeSeries: number[]` (sparkline) | 없음                                | **컬럼 재정의** — 핵심 지표 컬럼 삭제 |
-| `stock.per: number`, `stock.peg: number`   | 없음                                | **컬럼 재정의** — PER/PEG 제거        |
-| `dashboardStatusBySymbol` 하드코딩 맵      | 해당 없음                           | 제거                                  |
+| 구 Stock 필드 | WatchlistAssetRow 필드 | 처리 방식 |
+|---|---|---|
+| `stock.symbol`, `stock.name` | `row.symbol`, `row.name` | 동일 |
+| `stock.changePercent: number` | `row.changePercent: number \| null` | null → `"—"` fallback 추가 |
+| `stock.status: StockStatus` | 없음 | **컬럼 삭제** — BE에서 제공하지 않음 |
+| `stock.changeSeries: number[]` (sparkline) | 없음 | **컬럼 재정의** — 핵심 지표 컬럼 삭제 |
+| `stock.per: number`, `stock.peg: number` | 없음 | **컬럼 재정의** — PER/PEG 제거 |
+| `dashboardStatusBySymbol` 하드코딩 맵 | 해당 없음 | 제거 |
 
 **재정의 후 stockColumns (3컬럼)**
 
-| 컬럼     | 표시 필드                           | 비고                                          |
-| -------- | ----------------------------------- | --------------------------------------------- |
-| 종목     | `row.symbol` + `row.name` + 링크    | 동일 구조 유지                                |
-| 가격     | `row.price: number \| null`         | null → `"—"`                                  |
+| 컬럼 | 표시 필드 | 비고 |
+|---|---|---|
+| 종목 | `row.symbol` + `row.name` + 링크 | 동일 구조 유지 |
+| 가격 | `row.price: number \| null` | null → `"—"` |
 | 변화(1D) | `row.changePercent: number \| null` | null → `"—"`, 색상 클래스 조건 null 처리 추가 |
 
 `StockSparkline` 컴포넌트와 `StockIdentity` 컴포넌트 중 `StockIdentity`는 재사용. `StockSparkline`은
@@ -191,11 +191,11 @@ vi.mock('@/features/watchlist/queries', () => ({ useWatchlistAssets: () => watch
 
 **변경 대상 단언**
 
-| 기존 테스트 케이스                                                 | 변경 내용                                                                                                                                                                                                                                                                    |
-| ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `renders watchlist status with research links and PER/PEG metrics` | 테스트명 변경. `within(table).getByText('60.3')`, `within(table).getByText('1.32')`, `within(table).getByText('관망')` 단언 제거. 대신 `WatchlistAssetRow` fixture 기준 `price`, `changePercent` 단언으로 교체                                                               |
-| `renders top signals with confidence values`                       | signal fixture를 `Signal`(feature 타입) 기준으로 교체. `'86%'`→`score` fixture값, `signal.status` 기반 aria-label 유지 여부 확인 필요 (`aria-label={signal.symbol + ' 대시보드 시그널'}` — symbol은 그대로라 영향 없음). 색상 클래스 단언이 있다면 `riskLevel` 기준으로 교체 |
-| `renders recent decision logs with symbols and decision types`     | `log.decision` 기반 "요약" 단언 → `log.rationale` fixture값으로 교체. `'보유 유지'`, `'매도 검토'` 단언은 `decisionType`이 한글 라벨로 그대로 제공되므로 fixture 일치 시 유지 가능                                                                                           |
+| 기존 테스트 케이스 | 변경 내용 |
+|---|---|
+| `renders watchlist status with research links and PER/PEG metrics` | 테스트명 변경. `within(table).getByText('60.3')`, `within(table).getByText('1.32')`, `within(table).getByText('관망')` 단언 제거. 대신 `WatchlistAssetRow` fixture 기준 `price`, `changePercent` 단언으로 교체 |
+| `renders top signals with confidence values` | signal fixture를 `Signal`(feature 타입) 기준으로 교체. `'86%'`→`score` fixture값, `signal.status` 기반 aria-label 유지 여부 확인 필요 (`aria-label={signal.symbol + ' 대시보드 시그널'}` — symbol은 그대로라 영향 없음). 색상 클래스 단언이 있다면 `riskLevel` 기준으로 교체 |
+| `renders recent decision logs with symbols and decision types` | `log.decision` 기반 "요약" 단언 → `log.rationale` fixture값으로 교체. `'보유 유지'`, `'매도 검토'` 단언은 `decisionType`이 한글 라벨로 그대로 제공되므로 fixture 일치 시 유지 가능 |
 
 **로딩/에러/빈 상태 테스트 추가** (각 섹션 1케이스씩)
 

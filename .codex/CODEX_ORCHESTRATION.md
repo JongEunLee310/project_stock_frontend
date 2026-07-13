@@ -30,7 +30,6 @@ Handling: spawn `codebase_explorer`.
 Examples: a task packet exists, an API addition, a change with clear tests.
 
 Handling:
-
 1. `codebase_explorer` if related files are still unclear.
 2. `feature_worker` to implement.
 3. `pr_reviewer` to self-review the diff.
@@ -40,7 +39,6 @@ Handling:
 Examples: a failing test, a reproducible runtime error, a CI failure with a log.
 
 Handling:
-
 1. `test_debugger` to diagnose the root cause (read-only — it does not apply the fix).
 2. `bugfix_worker` to apply the minimal fix, if the cause is confirmed (skip `test_debugger` and go straight to `bugfix_worker` if the cause is already known).
 3. Re-run the relevant tests.
@@ -51,7 +49,6 @@ Handling:
 Examples: deduplication, function extraction, type cleanup, module boundary cleanup.
 
 Handling:
-
 1. `codebase_explorer` to map the area.
 2. `refactor_worker` to apply the change.
 3. `pr_reviewer` to self-review the diff.

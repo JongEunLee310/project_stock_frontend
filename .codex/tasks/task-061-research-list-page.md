@@ -31,8 +31,8 @@
 ## Background
 
 - `GET /assets` 응답: `{ data: AssetResponse[], meta: { page, size,
-total } }`, 필드는 `id, symbol, name, market, sector, is_active,
-created_at`.
+  total } }`, 필드는 `id, symbol, name, market, sector, is_active,
+  created_at`.
 - `GET /assets/{id}/research-summary` 응답 data: `stance`,
   `stance_confidence`, `headline`, `body`, `key_risks`, `created_at`.
   stance 라벨 변환은 기존 `researchStanceLabels`(`shared/lib/format`)를
@@ -47,11 +47,9 @@ created_at`.
 ## Implementation Scope
 
 **신설**
-
 - `src/pages/ui/ResearchListPage.tsx`, `src/pages/ui/ResearchListPage.test.tsx`
 
 **갱신**
-
 - `src/shared/config/navigation.ts` — `research: '/research'`,
   `researchDetail: '/research/:symbol'` 신설, research 항목 href 변경.
 - `src/app/router.tsx` — 목록·상세 라우트 분리.
@@ -63,7 +61,6 @@ created_at`.
 - 관련 테스트·msw 픽스처.
 
 **변경 불가**
-
 - `src/pages/ui/ResearchPage.tsx` (상세 화면)
 - `src/shared/api/`, `src/features/watchlist/`
 

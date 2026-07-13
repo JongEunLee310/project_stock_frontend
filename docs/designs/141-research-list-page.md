@@ -36,7 +36,7 @@ BE 큐 계약(project_stock #266)이 오기 전이므로 기존 계약만 사용
 ## Adapters — `src/features/research/adapters.ts`
 
 - `ResearchListRow` — `{ assetId, symbol, name, market, sector,
-stanceLabel: string | null, summaryUpdatedAt: string | null }`.
+  stanceLabel: string | null, summaryUpdatedAt: string | null }`.
 - `adaptResearchListRow(asset, summary | null): ResearchListRow`.
 
 ## Page — `src/pages/ui/ResearchListPage.tsx` (신설)

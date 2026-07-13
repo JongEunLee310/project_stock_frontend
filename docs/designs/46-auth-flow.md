@@ -50,22 +50,22 @@ client(`Authorization` 주입·envelope 언랩·401 lazy refresh)를 도입한�
 
 ### `src/shared/auth/tokenStore.ts` (순수 모듈)
 
-| 심볼                          | 형태                                          | 책임                                            |
-| ----------------------------- | --------------------------------------------- | ----------------------------------------------- |
-| `AuthTokens`                  | type                                          | `{ accessToken: string; refreshToken: string }` |
-| `getTokens()` / `getAccess()` | `() => AuthTokens \| null` / `string \| null` | localStorage 조회                               |
-| `setTokens(tokens)`           | `(AuthTokens) => void`                        | 저장(로그인·refresh 성공 시)                    |
-| `clearTokens()`               | `() => void`                                  | 삭제(로그아웃·만료)                             |
-| `subscribeAuthExpired(fn)`    | `(fn) => unsubscribe`                         | 만료 이벤트 구독(컨텍스트용)                    |
-| `emitAuthExpired()`           | `() => void`                                  | 만료 통지 발행(client용)                        |
+| 심볼                            | 형태                                  | 책임                                       |
+| ------------------------------- | ------------------------------------- | ------------------------------------------ |
+| `AuthTokens`                    | type                                  | `{ accessToken: string; refreshToken: string }` |
+| `getTokens()` / `getAccess()`   | `() => AuthTokens \| null` / `string \| null` | localStorage 조회                  |
+| `setTokens(tokens)`             | `(AuthTokens) => void`                | 저장(로그인·refresh 성공 시)               |
+| `clearTokens()`                 | `() => void`                          | 삭제(로그아웃·만료)                        |
+| `subscribeAuthExpired(fn)`      | `(fn) => unsubscribe`                 | 만료 이벤트 구독(컨텍스트용)               |
+| `emitAuthExpired()`             | `() => void`                          | 만료 통지 발행(client용)                   |
 
 ### `src/shared/api/client.ts`
 
-| 심볼                            | 형태                                                       | 책임                                                    |
-| ------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------- |
-| `apiRequest<T>(path, options?)` | `(string, RequestInit & {auth?}) => Promise<{data,meta?}>` | base URL·`Authorization` 주입·envelope 언랩·401 refresh |
-| `apiGet/apiPost/...`            | 얇은 래퍼                                                  | 메서드별 단축(선택)                                     |
-| (내부) `refreshAccessToken()`   | single-flight Promise                                      | `POST /auth/refresh` 1회, 토큰 갱신/clear+emit          |
+| 심볼                              | 형태                                                   | 책임                                            |
+| --------------------------------- | ------------------------------------------------------ | ----------------------------------------------- |
+| `apiRequest<T>(path, options?)`   | `(string, RequestInit & {auth?}) => Promise<{data,meta?}>` | base URL·`Authorization` 주입·envelope 언랩·401 refresh |
+| `apiGet/apiPost/...`              | 얇은 래퍼                                              | 메서드별 단축(선택)                             |
+| (내부) `refreshAccessToken()`     | single-flight Promise                                  | `POST /auth/refresh` 1회, 토큰 갱신/clear+emit  |
 
 - 401 흐름: 요청 → 401 → (재시도 아님일 때) refresh single-flight → 성공: `setTokens` 후 원요청 1회 재시도 /
   실패: `clearTokens` + `emitAuthExpired` 후 `ApiError`(인증 만료) throw.
@@ -73,18 +73,18 @@ client(`Authorization` 주입·envelope 언랩·401 lazy refresh)를 도입한�
 
 ### `src/shared/auth/authApi.ts`
 
-| 심볼                 | 형태                                              | 책임                                        |
-| -------------------- | ------------------------------------------------- | ------------------------------------------- |
-| `login(credentials)` | `({email,password}) => Promise<AuthTokens & me?>` | `POST /auth/login` → 토큰(+`me`) DTO 어댑트 |
-| `fetchMe()`          | `() => Promise<MeUser>`                           | `GET /auth/me`(C3, Settings G11)            |
+| 심볼                  | 형태                                              | 책임                                     |
+| --------------------- | ------------------------------------------------- | ---------------------------------------- |
+| `login(credentials)`  | `({email,password}) => Promise<AuthTokens & me?>` | `POST /auth/login` → 토큰(+`me`) DTO 어댑트 |
+| `fetchMe()`           | `() => Promise<MeUser>`                            | `GET /auth/me`(C3, Settings G11)         |
 
 ### `src/shared/auth/AuthProvider.tsx`
 
-| 심볼           | 형태                                     | 책임                                                  |
-| -------------- | ---------------------------------------- | ----------------------------------------------------- |
-| `AuthProvider` | 컴포넌트                                 | 부팅 시 토큰 유무로 초기 상태, 만료 구독, 통지        |
-| `useAuth()`    | `() => { status, user?, login, logout }` | `status`: `authenticated`/`unauthenticated`/`loading` |
-| `RequireAuth`  | 라우트 가드 컴포넌트                     | 미인증 시 `/login` 리다이렉트(복귀 경로 보존)         |
+| 심볼                  | 형태                                  | 책임                                            |
+| --------------------- | ------------------------------------- | ----------------------------------------------- |
+| `AuthProvider`        | 컴포넌트                              | 부팅 시 토큰 유무로 초기 상태, 만료 구독, 통지   |
+| `useAuth()`           | `() => { status, user?, login, logout }` | `status`: `authenticated`/`unauthenticated`/`loading` |
+| `RequireAuth`         | 라우트 가드 컴포넌트                  | 미인증 시 `/login` 리다이렉트(복귀 경로 보존)    |
 
 ### `src/pages/LoginPage.tsx`
 
@@ -99,7 +99,7 @@ client(`Authorization` 주입·envelope 언랩·401 lazy refresh)를 도입한�
 - `POST /auth/login` 응답: `{ access_token, refresh_token, token_type, expires_in, (user?) }` 가정
   (Q8 계약 변경분). 키 명은 BE#96 `frontend-api-spec.md` 확정값에 맞춘다 — **어댑터에서 흡수**.
 - `POST /auth/refresh` 요청: refresh 제시(바디 `{ refresh_token }` 가정) → `{ access_token, token_type,
-expires_in, (refresh_token?) }`.
+  expires_in, (refresh_token?) }`.
 - 키/위치 차이는 `authApi`의 DTO→도메인 어댑트 1곳에서 정렬(화면·client 본문 불변).
 
 ## 범위 밖

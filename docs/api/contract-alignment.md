@@ -26,18 +26,18 @@ FE 도메인 모델은 백엔드 계약과 **독립적으로** 설계되어, 필
 
 ## 1. 통신 규약 (Communication Constraints) — 확정
 
-| #   | 항목           | 확정안                                                                   | 소유자                        | 비고                                                                                    |
-| --- | -------------- | ------------------------------------------------------------------------ | ----------------------------- | --------------------------------------------------------------------------------------- |
-| C1  | 응답 봉투      | 공통 envelope `{ data, message, error, meta }` 사용. `/health*`만 예외   | BE 유지 / FE 언랩             | FE에 unwrap 어댑터 1곳                                                                  |
-| C2  | 목록 meta      | `meta: { page, size, total }` 항상 포함                                  | BE 유지 / FE 페이징 연결      | Table을 서버 페이징으로                                                                 |
-| C3  | 인증           | `Authorization: Bearer <access_token>`(JWT) + refresh 토큰               | BE 확장 / **FE 신규**         | Q8: AT 15분·RT 2일(env 설정), `POST /auth/refresh` 신규, lazy refresh, 만료 시 재로그인 |
-| C4  | ID 체계        | 정수 `id`/`asset_id`/`portfolio_id`가 정본. `symbol`은 표시·조회 보조    | 공통                          | FE는 `symbol` 단일키 중단, asset_id 도입                                                |
-| C5  | 금액·비율 타입 | **문자열 Decimal**(`"195.64"`, `"0.4"`)이 와이어 정본                    | BE 유지 / FE 파싱             | FE 어댑터 경계에서 number 파싱, 표시 `Intl`                                             |
-| C6  | 날짜/시간      | ISO 8601, **와이어는 UTC(`Z`) 정본 / FE는 KST(Asia/Seoul) 표시**(Q6, N3) | BE 표준화(UTC) / FE 표시(KST) | 해외 종목 고려해 와이어 UTC 통일. 현재 naive `created_at`도 UTC aware로                 |
-| C7  | 정렬/필터      | 목록은 `sort=field`/`-field`, 리소스별 typed filter. 미허용 필드 `422`   | BE 유지 / FE 준수             |                                                                                         |
-| C8  | enum 표기      | 와이어 enum은 **영문 UPPER_SNAKE 정본**(`HIGH`, `UNREAD`, `RISK_ALERT`)  | BE 유지 / **FE 한글화**       | FE 현재 한글 enum(`높음`/`중간`/`낮음`)은 표시계층 매핑으로                             |
-| C9  | 에러 코드      | `ErrorCode` 문자열 정본(`error.code`). 신규 API는 코드 추가              | BE 유지 / FE 코드→메시지 매핑 | `app/core/error_codes.py`                                                               |
-| C10 | Base/버전/CORS | prefix `/api/v1`, `CORS_ORIGINS`, FE는 `VITE_API_BASE_URL` env           | 공통                          | 로컬 `http://127.0.0.1:8000`                                                            |
+| # | 항목 | 확정안 | 소유자 | 비고 |
+| --- | --- | --- | --- | --- |
+| C1 | 응답 봉투 | 공통 envelope `{ data, message, error, meta }` 사용. `/health*`만 예외 | BE 유지 / FE 언랩 | FE에 unwrap 어댑터 1곳 |
+| C2 | 목록 meta | `meta: { page, size, total }` 항상 포함 | BE 유지 / FE 페이징 연결 | Table을 서버 페이징으로 |
+| C3 | 인증 | `Authorization: Bearer <access_token>`(JWT) + refresh 토큰 | BE 확장 / **FE 신규** | Q8: AT 15분·RT 2일(env 설정), `POST /auth/refresh` 신규, lazy refresh, 만료 시 재로그인 |
+| C4 | ID 체계 | 정수 `id`/`asset_id`/`portfolio_id`가 정본. `symbol`은 표시·조회 보조 | 공통 | FE는 `symbol` 단일키 중단, asset_id 도입 |
+| C5 | 금액·비율 타입 | **문자열 Decimal**(`"195.64"`, `"0.4"`)이 와이어 정본 | BE 유지 / FE 파싱 | FE 어댑터 경계에서 number 파싱, 표시 `Intl` |
+| C6 | 날짜/시간 | ISO 8601, **와이어는 UTC(`Z`) 정본 / FE는 KST(Asia/Seoul) 표시**(Q6, N3) | BE 표준화(UTC) / FE 표시(KST) | 해외 종목 고려해 와이어 UTC 통일. 현재 naive `created_at`도 UTC aware로 |
+| C7 | 정렬/필터 | 목록은 `sort=field`/`-field`, 리소스별 typed filter. 미허용 필드 `422` | BE 유지 / FE 준수 | |
+| C8 | enum 표기 | 와이어 enum은 **영문 UPPER_SNAKE 정본**(`HIGH`, `UNREAD`, `RISK_ALERT`) | BE 유지 / **FE 한글화** | FE 현재 한글 enum(`높음`/`중간`/`낮음`)은 표시계층 매핑으로 |
+| C9 | 에러 코드 | `ErrorCode` 문자열 정본(`error.code`). 신규 API는 코드 추가 | BE 유지 / FE 코드→메시지 매핑 | `app/core/error_codes.py` |
+| C10 | Base/버전/CORS | prefix `/api/v1`, `CORS_ORIGINS`, FE는 `VITE_API_BASE_URL` env | 공통 | 로컬 `http://127.0.0.1:8000` |
 
 핵심 매핑 규칙(C8): `RiskLevel` 높음/중간/낮음 ↔ `HIGH/MEDIUM/LOW`,
 `StockStatus`/`ValuationLevel` 등 한글 enum은 모두 FE 표시계층에서만 한글화한다.
@@ -49,64 +49,64 @@ FE 도메인 모델은 백엔드 계약과 **독립적으로** 설계되어, 필
 
 ### 2.1 백엔드 구현 완료 (37 routes, frontend-api-spec.md 기준)
 
-| 그룹             | 엔드포인트                                                                                                                                              | FE 사용 예정 화면               |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
-| Auth             | `POST /auth/register`, `POST /auth/login`, `GET /auth/me`                                                                                               | (신규)로그인, 설정              |
-| Assets           | `POST /assets`, `GET /assets`, `GET /assets/{id}`, `GET /assets/{id}/detail`, `GET /assets/{id}/research-summary`, `GET·PUT /assets/{id}/buy-checklist` | Research                        |
-| Watchlists       | `POST·GET /watchlists`, `POST·GET /watchlists/{id}/items`, `DELETE /watchlists/{id}/items/{itemId}`                                                     | Watchlist                       |
-| Portfolios       | `POST·GET /portfolios`, `GET /portfolios/{id}/summary`, `POST /portfolios/{id}/check`, `POST·PATCH·DELETE /portfolios/{id}/positions...`                | Portfolio                       |
-| Theses           | `POST /theses`, `PUT /theses/{id}`, `GET /theses/latest`, `PATCH /theses/{id}/deactivate`                                                               | Research(가설) — FE 화면 미존재 |
-| Reports          | `POST·GET /reports`, `GET /reports/{id}`                                                                                                                | Research(리포트) — FE 부분      |
-| Signals          | `POST·GET /signals`, `GET /signals/{id}`                                                                                                                | Signals                         |
-| Alerts           | `GET /alerts`, `POST /alerts/{id}/read`, `POST /alerts/{id}/dismiss`                                                                                    | Alerts(인박스로 재정의)         |
-| Alert Candidates | `GET /alert-candidates`, `POST /alert-candidates/{id}/read`, `POST /alert-candidates/{id}/confirm`                                                      | Alerts(인박스)                  |
-| Ops              | `GET /job-runs`, `POST /worker/jobs/*`, `POST /worker/scheduler/...`, `GET /health*`                                                                    | (화면 불요)                     |
+| 그룹 | 엔드포인트 | FE 사용 예정 화면 |
+| --- | --- | --- |
+| Auth | `POST /auth/register`, `POST /auth/login`, `GET /auth/me` | (신규)로그인, 설정 |
+| Assets | `POST /assets`, `GET /assets`, `GET /assets/{id}`, `GET /assets/{id}/detail`, `GET /assets/{id}/research-summary`, `GET·PUT /assets/{id}/buy-checklist` | Research |
+| Watchlists | `POST·GET /watchlists`, `POST·GET /watchlists/{id}/items`, `DELETE /watchlists/{id}/items/{itemId}` | Watchlist |
+| Portfolios | `POST·GET /portfolios`, `GET /portfolios/{id}/summary`, `POST /portfolios/{id}/check`, `POST·PATCH·DELETE /portfolios/{id}/positions...` | Portfolio |
+| Theses | `POST /theses`, `PUT /theses/{id}`, `GET /theses/latest`, `PATCH /theses/{id}/deactivate` | Research(가설) — FE 화면 미존재 |
+| Reports | `POST·GET /reports`, `GET /reports/{id}` | Research(리포트) — FE 부분 |
+| Signals | `POST·GET /signals`, `GET /signals/{id}` | Signals |
+| Alerts | `GET /alerts`, `POST /alerts/{id}/read`, `POST /alerts/{id}/dismiss` | Alerts(인박스로 재정의) |
+| Alert Candidates | `GET /alert-candidates`, `POST /alert-candidates/{id}/read`, `POST /alert-candidates/{id}/confirm` | Alerts(인박스) |
+| Ops | `GET /job-runs`, `POST /worker/jobs/*`, `POST /worker/scheduler/...`, `GET /health*` | (화면 불요) |
 
 ### 2.2 프론트엔드 화면·도메인 (목 전용, API 미연동)
 
-| FE 화면     | 라우트              | 핵심 도메인 타입(`src/shared/model/domain.ts`)                                  |
-| ----------- | ------------------- | ------------------------------------------------------------------------------- |
-| Dashboard   | `/`                 | `DashboardSummary`, `AiBriefing`, `PriorityQueueItem`                           |
-| Watchlist   | `/watchlist`        | `Stock`, `WatchlistSummaryCard`, `RecentWatchlistItem`, `WatchlistAlertSetting` |
-| Signals     | `/signals`          | `Signal`(kind/confidence/trendSeries…)                                          |
-| Research    | `/research/:symbol` | `StockResearch`(pricePoints/targetPrice/catalysts/checklist…)                   |
-| Portfolio   | `/portfolio`        | `Portfolio`, `Holding`, `PortfolioRiskExposure`                                 |
-| Alerts      | `/alerts`           | `AlertRule`(규칙 빌더·채널) → 폐기                                              |
-| DecisionLog | `/decision-log`     | `DecisionLog`(의사결정 저널)                                                    |
-| Settings    | `/settings`         | (계정/알림 설정)                                                                |
+| FE 화면 | 라우트 | 핵심 도메인 타입(`src/shared/model/domain.ts`) |
+| --- | --- | --- |
+| Dashboard | `/` | `DashboardSummary`, `AiBriefing`, `PriorityQueueItem` |
+| Watchlist | `/watchlist` | `Stock`, `WatchlistSummaryCard`, `RecentWatchlistItem`, `WatchlistAlertSetting` |
+| Signals | `/signals` | `Signal`(kind/confidence/trendSeries…) |
+| Research | `/research/:symbol` | `StockResearch`(pricePoints/targetPrice/catalysts/checklist…) |
+| Portfolio | `/portfolio` | `Portfolio`, `Holding`, `PortfolioRiskExposure` |
+| Alerts | `/alerts` | `AlertRule`(규칙 빌더·채널) → 폐기 |
+| DecisionLog | `/decision-log` | `DecisionLog`(의사결정 저널) |
+| Settings | `/settings` | (계정/알림 설정) |
 
 ---
 
 ## 3. 갭 해소 결정 (소유자 지정, Q1–Q8 반영)
 
-| GAP | 내용                     | 결정                                                                                                                        | 소유자                  |
-| --- | ------------------------ | --------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
-| G1  | FE 인증 부재             | 백엔드 auth 사용 + FE에 로그인·토큰 흐름 신설(access+refresh, Q8)                                                           | **FE**                  |
-| G2  | 봉투/Decimal/enum/페이징 | FE에 어댑터 계층(언랩·파싱·한글화·서버페이징) 도입(ADR-004)                                                                 | **FE**                  |
-| G3  | 대시보드 집계 API 없음   | 경량 집계 엔드포인트 신설(Q1 확정)                                                                                          | **BE 신규**             |
-| G4  | 가격 시계열 API 없음     | OHLCV 일봉 시계열 API 신설(Q1/Q5). **Signal보다 먼저 완성**(N4). 작업지도 → `docs/designs/price-series-api.md`              | **BE 신규**             |
-| G5  | Watchlist 항목 thin      | item에 asset 시세/상태 expand 응답 신설(Q2 확정)                                                                            | **BE 확장**             |
-| G6  | symbol→asset_id 해소     | Research 라우팅이 `:symbol` 기반 → `GET /assets?symbol=` 필터 신설                                                          | **BE 확장**             |
-| G7  | asset 펀더멘털 부족      | detail에 per/peg/52주/목표가 nullable 확장(Q4 확정). catalysts는 후속                                                       | **BE 확장(nullable)**   |
-| G8  | Alerts 개념 충돌         | **BE 인박스 모델에 맞춰 FE 재정의**(Q3 확정). FE 규칙 빌더/채널 폐기, BE 규칙 API 신설 안 함                                | **FE 재정의**           |
-| G9  | Signal 모델 상이         | **BE 리스크/가설충돌 모델로 통일**(Q5 확정). 단 FE 모멘텀 시각화는 G4 가격 시계열로 재구성해 유지                           | **FE 재정의(+G4 선행)** |
-| G10 | DecisionLog 백엔드 부재  | **BE에 decision-log 도메인 신규 추가**(Q7 확정). 작업지도 → `docs/designs/decision-log-domain.md`. 추가 전까지 FE 로컬 임시 | **BE 신규**             |
-| G11 | 알림 설정(Settings)      | Q3로 Alerts가 인박스로 재정의됨 → 규칙/채널 설정 API 불요. Settings는 `auth/me`만                                           | **폐기(불요)**          |
+| GAP | 내용 | 결정 | 소유자 |
+| --- | --- | --- | --- |
+| G1 | FE 인증 부재 | 백엔드 auth 사용 + FE에 로그인·토큰 흐름 신설(access+refresh, Q8) | **FE** |
+| G2 | 봉투/Decimal/enum/페이징 | FE에 어댑터 계층(언랩·파싱·한글화·서버페이징) 도입(ADR-004) | **FE** |
+| G3 | 대시보드 집계 API 없음 | 경량 집계 엔드포인트 신설(Q1 확정) | **BE 신규** |
+| G4 | 가격 시계열 API 없음 | OHLCV 일봉 시계열 API 신설(Q1/Q5). **Signal보다 먼저 완성**(N4). 작업지도 → `docs/designs/price-series-api.md` | **BE 신규** |
+| G5 | Watchlist 항목 thin | item에 asset 시세/상태 expand 응답 신설(Q2 확정) | **BE 확장** |
+| G6 | symbol→asset_id 해소 | Research 라우팅이 `:symbol` 기반 → `GET /assets?symbol=` 필터 신설 | **BE 확장** |
+| G7 | asset 펀더멘털 부족 | detail에 per/peg/52주/목표가 nullable 확장(Q4 확정). catalysts는 후속 | **BE 확장(nullable)** |
+| G8 | Alerts 개념 충돌 | **BE 인박스 모델에 맞춰 FE 재정의**(Q3 확정). FE 규칙 빌더/채널 폐기, BE 규칙 API 신설 안 함 | **FE 재정의** |
+| G9 | Signal 모델 상이 | **BE 리스크/가설충돌 모델로 통일**(Q5 확정). 단 FE 모멘텀 시각화는 G4 가격 시계열로 재구성해 유지 | **FE 재정의(+G4 선행)** |
+| G10 | DecisionLog 백엔드 부재 | **BE에 decision-log 도메인 신규 추가**(Q7 확정). 작업지도 → `docs/designs/decision-log-domain.md`. 추가 전까지 FE 로컬 임시 | **BE 신규** |
+| G11 | 알림 설정(Settings) | Q3로 Alerts가 인박스로 재정의됨 → 규칙/채널 설정 API 불요. Settings는 `auth/me`만 | **폐기(불요)** |
 
 ---
 
 ## 4. 화면별 목표 매핑 (정렬 후)
 
-| FE 화면     | 사용할 백엔드 API(목표)                                                                                                                           | 합성/주의                                                                             |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| Dashboard   | `GET /dashboard/summary`(G3 신규)                                                                                                                 | 집계는 BE 소유                                                                        |
-| Watchlist   | `GET /watchlists`, `GET /watchlists/{id}/items`(+asset expand G5)                                                                                 | 단일평면 → 다중그룹 모델 수용                                                         |
-| Signals     | `GET /signals?asset_id=`, `GET /signals/{id}`, `GET /stocks/{symbol}/prices`(G4)                                                                  | FE Signal을 BE 모델로 교체, 모멘텀 스파크라인은 가격 시계열로 재구성(G9). G4 선행(N4) |
-| Research    | `GET /assets/{id}/detail`·`/research-summary`·`/buy-checklist`, `GET /reports?asset_id=`, `GET /theses/latest`, `GET /stocks/{symbol}/prices`(G4) | symbol→id 해소(G6), 펀더멘털(G7)                                                      |
-| Portfolio   | `GET /portfolios`, `GET /portfolios/{id}/summary`                                                                                                 | sector_weights 직접 사용, dayChange·briefing은 BE 부재                                |
-| Alerts      | `GET /alerts`(+read/dismiss), `GET /alert-candidates`(+read/confirm)                                                                              | 인박스로 재정의(G8), 규칙/채널 폐기                                                   |
-| Settings    | `GET /auth/me`                                                                                                                                    | 알림 설정 API 불요(G11)                                                               |
-| DecisionLog | `GET·POST /decision-logs`(G10 BE 신규 예정)                                                                                                       | 추가 전까지 FE 로컬 임시(G10)                                                         |
+| FE 화면 | 사용할 백엔드 API(목표) | 합성/주의 |
+| --- | --- | --- |
+| Dashboard | `GET /dashboard/summary`(G3 신규) | 집계는 BE 소유 |
+| Watchlist | `GET /watchlists`, `GET /watchlists/{id}/items`(+asset expand G5) | 단일평면 → 다중그룹 모델 수용 |
+| Signals | `GET /signals?asset_id=`, `GET /signals/{id}`, `GET /stocks/{symbol}/prices`(G4) | FE Signal을 BE 모델로 교체, 모멘텀 스파크라인은 가격 시계열로 재구성(G9). G4 선행(N4) |
+| Research | `GET /assets/{id}/detail`·`/research-summary`·`/buy-checklist`, `GET /reports?asset_id=`, `GET /theses/latest`, `GET /stocks/{symbol}/prices`(G4) | symbol→id 해소(G6), 펀더멘털(G7) |
+| Portfolio | `GET /portfolios`, `GET /portfolios/{id}/summary` | sector_weights 직접 사용, dayChange·briefing은 BE 부재 |
+| Alerts | `GET /alerts`(+read/dismiss), `GET /alert-candidates`(+read/confirm) | 인박스로 재정의(G8), 규칙/채널 폐기 |
+| Settings | `GET /auth/me` | 알림 설정 API 불요(G11) |
+| DecisionLog | `GET·POST /decision-logs`(G10 BE 신규 예정) | 추가 전까지 FE 로컬 임시(G10) |
 
 ---
 
@@ -114,15 +114,15 @@ FE 도메인 모델은 백엔드 계약과 **독립적으로** 설계되어, 필
 
 확정 시 `frontend-api-spec.md`·`tests/test_api_contract.py`에 반영. **시그니처·필드만**, 구현 없음.
 
-| ID  | Method · Path                                                             | 책임                                   | 주요 응답 필드(제안)                                                                                                            | Auth               |
-| --- | ------------------------------------------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
-| G3  | `GET /api/v1/dashboard/summary`                                           | 사용자 전체 집계 카드                  | `risk_alert_count`, `important_news_count`, `review_signal_count`, `cash_weight`, 각 delta                                      | Required           |
-| G4  | `GET /api/v1/stocks/{symbol}/prices?market=&range=&interval=1d&adjusted=` | 가격 시계열(차트 + Signal 모멘텀 공급) | item `date/open/high/low/close/adjustedClose/volume`, meta `symbol/market/currency/source/lastUpdatedAt`                        | Not required(제안) |
-| G5  | `GET /api/v1/watchlists/{id}/items?expand=asset`                          | 항목+자산 시세 조인                    | 기존 item + `asset: { symbol, name, price, change_percent, sector }`                                                            | Required           |
-| G6  | `GET /api/v1/assets?symbol={symbol}`                                      | symbol→asset 해소(필터)                | 기존 asset list(필터만 추가)                                                                                                    | Not required       |
-| G7  | `GET /api/v1/assets/{id}/detail` 확장                                     | 펀더멘털 추가                          | 기존 + `per?`, `peg?`, `fifty_two_week_low?`, `fifty_two_week_high?`, `target_price?`, `target_upside_percent?` (모두 nullable) | Not required       |
-| G10 | `GET·POST /api/v1/decision-logs` (필요 시 `PATCH /{id}`)                  | 의사결정 저널 영속화                   | 전체 컬럼·enum은 `docs/designs/decision-log-domain.md` 참조                                                                     | Required           |
-| Q8  | `POST /api/v1/auth/refresh`                                               | access 토큰 갱신                       | `access_token`, `token_type`, `expires_in` (+ refresh 발급/회전 정책)                                                           | refresh 토큰 제시  |
+| ID | Method · Path | 책임 | 주요 응답 필드(제안) | Auth |
+| --- | --- | --- | --- | --- |
+| G3 | `GET /api/v1/dashboard/summary` | 사용자 전체 집계 카드 | `risk_alert_count`, `important_news_count`, `review_signal_count`, `cash_weight`, 각 delta | Required |
+| G4 | `GET /api/v1/stocks/{symbol}/prices?market=&range=&interval=1d&adjusted=` | 가격 시계열(차트 + Signal 모멘텀 공급) | item `date/open/high/low/close/adjustedClose/volume`, meta `symbol/market/currency/source/lastUpdatedAt` | Not required(제안) |
+| G5 | `GET /api/v1/watchlists/{id}/items?expand=asset` | 항목+자산 시세 조인 | 기존 item + `asset: { symbol, name, price, change_percent, sector }` | Required |
+| G6 | `GET /api/v1/assets?symbol={symbol}` | symbol→asset 해소(필터) | 기존 asset list(필터만 추가) | Not required |
+| G7 | `GET /api/v1/assets/{id}/detail` 확장 | 펀더멘털 추가 | 기존 + `per?`, `peg?`, `fifty_two_week_low?`, `fifty_two_week_high?`, `target_price?`, `target_upside_percent?` (모두 nullable) | Not required |
+| G10 | `GET·POST /api/v1/decision-logs` (필요 시 `PATCH /{id}`) | 의사결정 저널 영속화 | 전체 컬럼·enum은 `docs/designs/decision-log-domain.md` 참조 | Required |
+| Q8 | `POST /api/v1/auth/refresh` | access 토큰 갱신 | `access_token`, `token_type`, `expires_in` (+ refresh 발급/회전 정책) | refresh 토큰 제시 |
 
 세부 작업지도: G4 → `docs/designs/price-series-api.md`(OHLCV·`stock_price_bars`·PriceProvider·
 에러코드·MVP 범위), G10 → `docs/designs/decision-log-domain.md`(컬럼·enum·소유권).
@@ -157,16 +157,16 @@ contract 변경 주의: Q8 적용 시 `POST /auth/login` 응답에 `refresh_toke
 
 ## 7. 결정 기록 (Q1–Q8 확정 + 파생 항목 N1–N4)
 
-| Q   | 결정                                                                             |
-| --- | -------------------------------------------------------------------------------- |
-| Q1  | 대시보드 집계 = **BE 신규 API**(G3)                                              |
-| Q2  | Watchlist 항목 시세 = **BE expand 응답**(G5)                                     |
-| Q3  | Alerts = **BE 인박스 모델에 맞춰 FE 재정의**. FE 규칙/채널 폐기(G8)              |
-| Q4  | asset 펀더멘털 = **BE detail nullable 확장**(G7). catalysts는 후속               |
-| Q5  | Signal = **BE 모델로 통일**. 모멘텀 시각화는 가격 시계열(G4)로 재구성해 유지(G9) |
-| Q6  | datetime = **와이어 UTC / FE KST 표시**(C6)                                      |
-| Q7  | DecisionLog = **BE에 decision-log 도메인 신규 추가**(G10)                        |
-| Q8  | 토큰 = **access + refresh**, 만료 시 refresh → 실패 시 재로그인                  |
+| Q | 결정 |
+| --- | --- |
+| Q1 | 대시보드 집계 = **BE 신규 API**(G3) |
+| Q2 | Watchlist 항목 시세 = **BE expand 응답**(G5) |
+| Q3 | Alerts = **BE 인박스 모델에 맞춰 FE 재정의**. FE 규칙/채널 폐기(G8) |
+| Q4 | asset 펀더멘털 = **BE detail nullable 확장**(G7). catalysts는 후속 |
+| Q5 | Signal = **BE 모델로 통일**. 모멘텀 시각화는 가격 시계열(G4)로 재구성해 유지(G9) |
+| Q6 | datetime = **와이어 UTC / FE KST 표시**(C6) |
+| Q7 | DecisionLog = **BE에 decision-log 도메인 신규 추가**(G10) |
+| Q8 | 토큰 = **access + refresh**, 만료 시 refresh → 실패 시 재로그인 |
 
 ### 파생 항목 (N1–N4)
 

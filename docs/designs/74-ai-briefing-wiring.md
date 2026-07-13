@@ -39,7 +39,7 @@ DashboardPage의 "AI 브리핑" 카드(`mockAiBriefing`)와 PortfolioPage의 "�
 ### 3.1 dto (`src/features/briefing/dto.ts`)
 
 - `AiBriefingDto { headline: string; body: string; risk_headline: string | null;
-risk_checks: string[]; generated_at: string }` 추가. 대시보드·포트폴리오 응답 동일 형태이므로
+  risk_checks: string[]; generated_at: string }` 추가. 대시보드·포트폴리오 응답 동일 형태이므로
   단일 dto를 공유합니다.
 
 ### 3.2 adapters (`src/features/briefing/adapters.ts`)

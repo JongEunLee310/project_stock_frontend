@@ -46,7 +46,7 @@
   파라미터는 제거한다 (BE가 range에서 interval을 파생).
 - `PUT /assets/{id}/buy-checklist` body는 `{ memo, checked_item_keys }`.
   `checked_item_keys` 허용값은 `valuation | news_overheated |
-portfolio_concentration | earnings_disclosure` (BE
+  portfolio_concentration | earnings_disclosure` (BE
   `app/domains/decision_checklist/schema.py`의 `ChecklistItemKey`).
 - 관심종목 훅은 `src/features/watchlist/queries.ts`에 이미 있다.
 
@@ -56,7 +56,6 @@ portfolio_concentration | earnings_disclosure` (BE
 ## Implementation Scope
 
 **갱신**
-
 - `src/features/research/dto.ts` — `AssetDetailDto` 가격 필드,
   `BuyChecklistDto`의 `memo`·`checked_item_keys`, `PriceSeriesDto` 메타
   필드 추가.
@@ -71,7 +70,6 @@ portfolio_concentration | earnings_disclosure` (BE
   `ResearchPage.test.tsx` 갱신 및 아래 Test Requirements 추가.
 
 **변경 불가**
-
 - `src/features/watchlist/` (훅 재사용만, 수정 금지)
 - `src/shared/api/` (client·envelope)
 - BE 계약 관련 이외의 페이지·위젯

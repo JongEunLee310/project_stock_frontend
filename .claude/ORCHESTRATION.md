@@ -16,13 +16,13 @@ The main Claude Code session is the orchestrator. It does not need a dedicated "
 
 ## Dispatch Table
 
-| Task Type                    | Example                                                              | Subagent                                                                                                                                    |
-| ---------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| Trivial edit                 | Typo fix, single-line doc change, obvious one-file fix               | None — main session handles it directly                                                                                                     |
-| Scope/impact analysis needed | Unclear affected files, design decision needed before implementation | `architect-planner`                                                                                                                         |
-| Implementation work          | Feature, bug fix, test addition, refactor                            | `architect-planner` → `codex-task-writer` → (main session runs `codex exec`, manual fallback) → `implementation-guardian` → `code-reviewer` |
-| Failure analysis             | Test, lint, typecheck, build, or CI failure                          | `test-debugger`                                                                                                                             |
-| High/Critical risk task      | Auth, payments, infra, DB migration, deployment                      | Human gate first per `docs/harness/human-gate-policy.md`; no subagent proceeds without it                                                   |
+| Task Type | Example | Subagent |
+|---|---|---|
+| Trivial edit | Typo fix, single-line doc change, obvious one-file fix | None — main session handles it directly |
+| Scope/impact analysis needed | Unclear affected files, design decision needed before implementation | `architect-planner` |
+| Implementation work | Feature, bug fix, test addition, refactor | `architect-planner` → `codex-task-writer` → (main session runs `codex exec`, manual fallback) → `implementation-guardian` → `code-reviewer` |
+| Failure analysis | Test, lint, typecheck, build, or CI failure | `test-debugger` |
+| High/Critical risk task | Auth, payments, infra, DB migration, deployment | Human gate first per `docs/harness/human-gate-policy.md`; no subagent proceeds without it |
 
 ## Subagent Invocation Principles
 

@@ -60,10 +60,10 @@
 
 ## CI Results
 
-| PR  | Branch      | Job                         | Result  |
-| --- | ----------- | --------------------------- | ------- |
-| #31 | main        | Template Self-Check         | SUCCESS |
-| #32 | fastapi     | Verify FastAPI Template     | SUCCESS |
+| PR | Branch | Job | Result |
+|----|--------|-----|--------|
+| #31 | main | Template Self-Check | SUCCESS |
+| #32 | fastapi | Verify FastAPI Template | SUCCESS |
 | #33 | spring-boot | Verify Spring Boot Template | SUCCESS |
 
 ## Follow-up Actions

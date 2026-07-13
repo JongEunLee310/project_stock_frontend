@@ -38,18 +38,8 @@
 {
   "asset_id": 7,
   "events": [
-    {
-      "event_date": "2026-07-23",
-      "title": "주요 계약의 갱신 조건과 매출 영향을 확인하세요.",
-      "event_type": "CONTRACT",
-      "is_estimated": true
-    },
-    {
-      "event_date": "2026-08-09",
-      "title": "락업 해제 이후 잠재 매도 물량을 점검하세요.",
-      "event_type": "LOCKUP",
-      "is_estimated": false
-    }
+    { "event_date": "2026-07-23", "title": "주요 계약의 갱신 조건과 매출 영향을 확인하세요.", "event_type": "CONTRACT", "is_estimated": true },
+    { "event_date": "2026-08-09", "title": "락업 해제 이후 잠재 매도 물량을 점검하세요.", "event_type": "LOCKUP", "is_estimated": false }
   ]
 }
 ```
@@ -63,7 +53,6 @@
 ## Implementation Scope
 
 **갱신**
-
 - `src/features/research/dto.ts` — `CatalystTimelineDto`.
 - `src/features/research/adapters.ts` — `CatalystEventItem`·
   `adaptCatalystTimeline`·type 라벨 상수.
@@ -74,7 +63,6 @@
   `ResearchPage.test.tsx` (+ mock 갱신이 필요한 다른 페이지 테스트).
 
 **변경 불가**
-
 - `src/shared/api/`, 다른 페이지, 라우팅.
 
 ## Test Requirements

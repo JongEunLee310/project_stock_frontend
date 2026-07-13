@@ -78,22 +78,22 @@ https://github.com/JongEunLee310/project_stock_frontend/issues/120
 
 - `src/features/watchlist-alert-templates/dto.ts`
   — `WatchlistAlertTemplateDto`: `template_type: string`, `label: string`,
-  `condition_description: string`, `is_active: boolean`
+    `condition_description: string`, `is_active: boolean`
   — `WatchlistAlertTemplateApplyDto`: `template_type: string`, `is_active: boolean`
   — `WatchlistAlertTemplateBulkRequestDto`: `templates: WatchlistAlertTemplateApplyDto[]`
 
 - `src/features/watchlist-alert-templates/adapters.ts`
   — `WatchlistAlertTemplateView` 인터페이스:
-  `templateType: string`, `label: string`, `conditionDescription: string`, `isActive: boolean`
+    `templateType: string`, `label: string`, `conditionDescription: string`, `isActive: boolean`
   — `adaptWatchlistAlertTemplate(dto: WatchlistAlertTemplateDto): WatchlistAlertTemplateView`
-  snake_case → camelCase 변환
+    snake_case → camelCase 변환
   — `adaptWatchlistAlertTemplates(dtos: WatchlistAlertTemplateDto[]): WatchlistAlertTemplateView[]`
   — `TEMPLATE_VISUAL_MAP: Record<string, { icon: string; activeClassName: string }>`
-  4종 매핑:
-  - `PRICE_SPIKE`: icon `"±"`, activeClassName (amber 계열 border 또는 background Tailwind 유틸리티 클래스)
-  - `NEWS_RISK_HIGH`: icon `"▣"`, activeClassName (rose 계열)
-  - `AI_JUDGMENT_CHANGE`: icon `"⊙"`, activeClassName (blue 계열)
-  - `THEME_OVERHEAT`: icon `"↑"`, activeClassName (orange 계열)
+    4종 매핑:
+    - `PRICE_SPIKE`: icon `"±"`, activeClassName (amber 계열 border 또는 background Tailwind 유틸리티 클래스)
+    - `NEWS_RISK_HIGH`: icon `"▣"`, activeClassName (rose 계열)
+    - `AI_JUDGMENT_CHANGE`: icon `"⊙"`, activeClassName (blue 계열)
+    - `THEME_OVERHEAT`: icon `"↑"`, activeClassName (orange 계열)
     (기존 `WatchlistPage.tsx`의 색상 시스템 `cockpit-*` 토큰 및 Tailwind 팔레트와 일관성 유지)
 
 - `src/features/watchlist-alert-templates/adapters.test.ts`
@@ -102,27 +102,27 @@ https://github.com/JongEunLee310/project_stock_frontend/issues/120
 
 - `src/features/watchlist-alert-templates/queries.ts`
   — `watchlistAlertTemplatesQueryKey` 상수: `[...watchlistQueryKey, 'alert-templates'] as const`
-  (`watchlistQueryKey`는 `@/features/watchlist/queries`에서 import)
+    (`watchlistQueryKey`는 `@/features/watchlist/queries`에서 import)
   — `useWatchlistAlertTemplates(): UseQueryResult<WatchlistAlertTemplateView[]>`
-  - queryKey: `watchlistAlertTemplatesQueryKey`
-  - queryFn: watchlistId 자기 해결(`GET /watchlists?page=1&size=20`) →
-    `GET /watchlists/{id}/alert-rule-templates` → `data`를 `adaptWatchlistAlertTemplates`로 변환
-  - watchlist 없으면 빈 배열(`[]`) 반환, 에러 미발생
-    — `useApplyWatchlistAlertTemplate(): UseMutationResult<WatchlistAlertTemplateView[], Error, { templateType: string; isActive: boolean }>`
-  - mutationFn: watchlistId 자기 해결 →
-    `apiPut('/watchlists/{id}/alert-rule-templates', { templates: [{ template_type: templateType, is_active: isActive }] })` →
-    응답 `data`를 `adaptWatchlistAlertTemplates`로 변환 후 반환
-  - onSuccess(data): `queryClient.setQueryData(watchlistAlertTemplatesQueryKey, data)` 직접 갱신
+    - queryKey: `watchlistAlertTemplatesQueryKey`
+    - queryFn: watchlistId 자기 해결(`GET /watchlists?page=1&size=20`) →
+      `GET /watchlists/{id}/alert-rule-templates` → `data`를 `adaptWatchlistAlertTemplates`로 변환
+    - watchlist 없으면 빈 배열(`[]`) 반환, 에러 미발생
+  — `useApplyWatchlistAlertTemplate(): UseMutationResult<WatchlistAlertTemplateView[], Error, { templateType: string; isActive: boolean }>`
+    - mutationFn: watchlistId 자기 해결 →
+      `apiPut('/watchlists/{id}/alert-rule-templates', { templates: [{ template_type: templateType, is_active: isActive }] })` →
+      응답 `data`를 `adaptWatchlistAlertTemplates`로 변환 후 반환
+    - onSuccess(data): `queryClient.setQueryData(watchlistAlertTemplatesQueryKey, data)` 직접 갱신
 
 - `src/features/watchlist-alert-templates/queries.test.tsx`
   — `vi.mock('@/shared/api/client', ...)` 직접 mock 패턴 (기존 `queries.test.tsx` 선례)
   — `useWatchlistAlertTemplates`:
-  - 정상 응답(4종) → `WatchlistAlertTemplateView[]` 반환 확인
-  - watchlist 배열이 비어 있으면 빈 배열 반환 확인
-  - 픽스처 `template_type` 리터럴에 출처 주석 `// app/domains/watchlists/types.py` 기재
-    — `useApplyWatchlistAlertTemplate`:
-  - mutate 호출 후 `apiPut`에 올바른 path·body 전달 확인
-  - 성공 시 `queryClient.getQueryData(watchlistAlertTemplatesQueryKey)`가 응답으로 갱신됨 확인
+    - 정상 응답(4종) → `WatchlistAlertTemplateView[]` 반환 확인
+    - watchlist 배열이 비어 있으면 빈 배열 반환 확인
+    - 픽스처 `template_type` 리터럴에 출처 주석 `// app/domains/watchlists/types.py` 기재
+  — `useApplyWatchlistAlertTemplate`:
+    - mutate 호출 후 `apiPut`에 올바른 path·body 전달 확인
+    - 성공 시 `queryClient.getQueryData(watchlistAlertTemplatesQueryKey)`가 응답으로 갱신됨 확인
 
 - `src/features/watchlist-alert-templates/QuickWatchPanel.tsx`
   — 담당: 4종 템플릿 타일 그리드 렌더링 + 원클릭 토글 인터랙션
@@ -131,49 +131,49 @@ https://github.com/JongEunLee310/project_stock_frontend/issues/120
   — 로딩 중(`isLoading: true`): 타일 4개 위치에 Skeleton 표시
   — 실패(`isError: true`): `<ErrorState ... onRetry={() => void refetch()} />` 표시
   — 정상 렌더링:
-  - `<Card>` 안에 카드 제목("빠른 감시 설정"), 타일 그리드, 하단 링크
-  - 타일 그리드: `grid grid-cols-2 gap-2` (2열 2행)
-  - 각 타일: `<button type="button" disabled={pendingType === template.templateType} onClick={...}>`
-    - 활성 타일: `TEMPLATE_VISUAL_MAP[template.templateType].activeClassName` 적용
-    - 비활성 타일: 기본 `cockpit-surface-muted` 스타일
-    - 타일 내부: 아이콘, label, conditionDescription (BE 응답값 그대로)
-  - 클릭 핸들러:
-    ```
-    setPendingType(template.templateType)
-    mutate(
-      { templateType: template.templateType, isActive: !template.isActive },
-      { onSettled: () => setPendingType(null) }
-    )
-    ```
-  - 하단 링크: `<Link to={appRoutePaths.alerts} className="...">알림 설정 관리</Link>`
-    — `appRoutePaths`는 `@/shared/config/navigation`에서 import
+    - `<Card>` 안에 카드 제목("빠른 감시 설정"), 타일 그리드, 하단 링크
+    - 타일 그리드: `grid grid-cols-2 gap-2` (2열 2행)
+    - 각 타일: `<button type="button" disabled={pendingType === template.templateType} onClick={...}>`
+      - 활성 타일: `TEMPLATE_VISUAL_MAP[template.templateType].activeClassName` 적용
+      - 비활성 타일: 기본 `cockpit-surface-muted` 스타일
+      - 타일 내부: 아이콘, label, conditionDescription (BE 응답값 그대로)
+    - 클릭 핸들러:
+      ```
+      setPendingType(template.templateType)
+      mutate(
+        { templateType: template.templateType, isActive: !template.isActive },
+        { onSettled: () => setPendingType(null) }
+      )
+      ```
+    - 하단 링크: `<Link to={appRoutePaths.alerts} className="...">알림 설정 관리</Link>`
+  — `appRoutePaths`는 `@/shared/config/navigation`에서 import
 
 - `src/features/watchlist-alert-templates/QuickWatchPanel.test.tsx`
   — `vi.mock('@/features/watchlist-alert-templates/queries', ...)` 패턴
-  (`vi.mock('@/features/watchlist/queries', ...)` 선례와 동일 구조)
+    (`vi.mock('@/features/watchlist/queries', ...)` 선례와 동일 구조)
   — 픽스처 4종 템플릿 (2개 active, 2개 inactive):
-  ```
-  { templateType: 'PRICE_SPIKE', label: '가격 급변', conditionDescription: '±3% 이상', isActive: true },
-  { templateType: 'NEWS_RISK_HIGH', label: '뉴스 위험도 상승', conditionDescription: '위험도 HIGH', isActive: false },
-  { templateType: 'AI_JUDGMENT_CHANGE', label: 'AI 판단 변경', conditionDescription: '판단 변경', isActive: true },
-  { templateType: 'THEME_OVERHEAT', label: '테마 과열', conditionDescription: '과열 감지', isActive: false },
-  // template_type 원본: app/domains/watchlists/types.py
-  ```
+    ```
+    { templateType: 'PRICE_SPIKE', label: '가격 급변', conditionDescription: '±3% 이상', isActive: true },
+    { templateType: 'NEWS_RISK_HIGH', label: '뉴스 위험도 상승', conditionDescription: '위험도 HIGH', isActive: false },
+    { templateType: 'AI_JUDGMENT_CHANGE', label: 'AI 판단 변경', conditionDescription: '판단 변경', isActive: true },
+    { templateType: 'THEME_OVERHEAT', label: '테마 과열', conditionDescription: '과열 감지', isActive: false },
+    // template_type 원본: app/domains/watchlists/types.py
+    ```
   — 테스트 케이스:
-  - 4종 타일 label이 모두 렌더링됨 확인
-  - `isActive: true` 타일에 활성 스타일 클래스가 적용됨 확인
-  - 타일 클릭 시 `mutate({ templateType, isActive: !current })`이 호출됨 확인
-  - `useWatchlistAlertTemplates`가 `{ isLoading: true }` 상태일 때 Skeleton 표시 확인
-  - `useWatchlistAlertTemplates`가 `{ isError: true }` 상태일 때 ErrorState 표시 확인
-  - `pendingType`에 해당하는 타일이 `disabled` 속성을 가짐 확인
-    (뮤테이션 `isPending` mock을 사용해 pendingType 상태를 시뮬레이션)
-  - "알림 설정 관리" 링크의 href가 `/alerts`임 확인
+    - 4종 타일 label이 모두 렌더링됨 확인
+    - `isActive: true` 타일에 활성 스타일 클래스가 적용됨 확인
+    - 타일 클릭 시 `mutate({ templateType, isActive: !current })`이 호출됨 확인
+    - `useWatchlistAlertTemplates`가 `{ isLoading: true }` 상태일 때 Skeleton 표시 확인
+    - `useWatchlistAlertTemplates`가 `{ isError: true }` 상태일 때 ErrorState 표시 확인
+    - `pendingType`에 해당하는 타일이 `disabled` 속성을 가짐 확인
+      (뮤테이션 `isPending` mock을 사용해 pendingType 상태를 시뮬레이션)
+    - "알림 설정 관리" 링크의 href가 `/alerts`임 확인
 
 **수정 파일:**
 
 - `src/pages/ui/WatchlistPage.tsx`
   — `QuickWatchPanel` import 추가:
-  `import { QuickWatchPanel } from '@/features/watchlist-alert-templates/QuickWatchPanel'`
+    `import { QuickWatchPanel } from '@/features/watchlist-alert-templates/QuickWatchPanel'`
   — aside 안 "새로 추가된 관심 종목" 카드(`line 1077`) 바로 다음에 `<QuickWatchPanel />` 추가
   — 그 외 기존 코드 수정 금지
 

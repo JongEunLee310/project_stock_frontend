@@ -13,7 +13,7 @@ BE가 로드맵 2·3단계 계약을 dev에 머지했다 (project_stock #252·#2
 - `GET /signals/changes?limit=&since=` — 스냅샷 기반 변경 타임라인
   (`SignalChangeTimelineItem[]`).
 - `GET /signals/summary?view=current` — `{ total, by_category,
-delta_by_category }`. 카테고리 키는 FE `SignalCategory`와 동일한
+  delta_by_category }`. 카테고리 키는 FE `SignalCategory`와 동일한
   WATCH / RISK / BUY / RESEARCH (BE `SignalCategory` enum).
 - `key_points: list[str]` — 모든 시그널 응답에 포함, 한국어 불릿 배열,
   기존 행은 빈 배열.
@@ -27,13 +27,13 @@ DEESCALATED / CHANGED / UNCHANGED. 스냅샷이 아직 없으면 `change: null`.
 - `SignalChangeDto` — `direction: string`, `score_delta: number | null`,
   `previous_type: string | null`, `previous_captured_at: string | null`.
 - `SignalDto` — `key_points?: string[] | null`, `change?: SignalChangeDto |
-null` 추가 (기존 필드 불변).
+  null` 추가 (기존 필드 불변).
 - `SignalSummaryDto` — `total: number`, `by_category: Record<string,
-number>`, `delta_by_category: Record<string, number>`.
+  number>`, `delta_by_category: Record<string, number>`.
 - `SignalChangeTimelineItemDto` — `asset: { symbol?, name?, market? }`,
   `snapshot_date: string`, `captured_at: string`, `change: SignalChangeDto`,
   `dominant: { signal_id: number | null, signal_type: string, score: number }
-| null`.
+  | null`.
 
 ## Adapters — `src/features/signals/adapters.ts`
 
@@ -42,22 +42,22 @@ number>`, `delta_by_category: Record<string, number>`.
 - `Signal` 뷰 모델 — `keyPoints: string[]`(누락·null → `[]`),
   `change: SignalChange | null` 추가.
 - `adaptSignalSummary(dto): SignalSummary` — `{ total, byCategory,
-deltaByCategory }`. 알 수 없는 카테고리 키는 무시하고 4축 키 누락은 0으로
+  deltaByCategory }`. 알 수 없는 카테고리 키는 무시하고 4축 키 누락은 0으로
   채운다.
 - `adaptChangeTimelineItem(dto): SignalChangeItem` — `{ symbol, companyName,
-market, snapshotDate, capturedAt, change, dominantType, dominantScore }`.
+  market, snapshotDate, capturedAt, change, dominantType, dominantScore }`.
   `dominant: null`(CLEARED)이면 dominant 필드는 null.
 
 ### direction 표기 매핑 (신규 상수, adapters 내부)
 
-| direction   | label     | 우선순위 레일 표기     |
-| ----------- | --------- | ---------------------- |
-| NEW         | 신규      | `신규`                 |
-| ESCALATED   | 점수 상승 | `▲ +{score_delta}`     |
-| DEESCALATED | 점수 하락 | `▼ {score_delta}`      |
-| CHANGED     | 유형 변경 | `유형 변경`            |
-| UNCHANGED   | 변동 없음 | `—`                    |
-| CLEARED     | 해소      | `해소` (타임라인 전용) |
+| direction | label | 우선순위 레일 표기 |
+|---|---|---|
+| NEW | 신규 | `신규` |
+| ESCALATED | 점수 상승 | `▲ +{score_delta}` |
+| DEESCALATED | 점수 하락 | `▼ {score_delta}` |
+| CHANGED | 유형 변경 | `유형 변경` |
+| UNCHANGED | 변동 없음 | `—` |
+| CLEARED | 해소 | `해소` (타임라인 전용) |
 
 `change: null`(스냅샷 미적재)은 `—`로 표시한다. 색상은 ESCALATED
 `text-red-400`, DEESCALATED `text-emerald-400`, 나머지

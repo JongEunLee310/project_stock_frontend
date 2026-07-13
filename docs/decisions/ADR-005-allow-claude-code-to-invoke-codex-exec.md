@@ -13,7 +13,7 @@ Two things changed:
 - **Token economics.** Running both design and implementation through Claude Code exhausts its usage limits quickly. Moving implementation to Codex (a separate tool with its own budget) and letting Claude Code trigger it automatically keeps the design/review loop in Claude Code while implementation runs in Codex — without a manual hand-off step for every task.
 - **The crash is avoidable.** The SIGTRAP regression was isolated to specific Codex CLI versions, not to the nested-invocation model itself. Pinning Codex CLI to a known-good version (0.140.0) sidesteps it.
 
-The role boundary from `ADR-001` (Claude Code plans/reviews, Codex implements) requires an _independent_ execution step, not a _manual_ one. Codex still runs under its own session, model, and sandbox.
+The role boundary from `ADR-001` (Claude Code plans/reviews, Codex implements) requires an *independent* execution step, not a *manual* one. Codex still runs under its own session, model, and sandbox.
 
 ## Decision
 

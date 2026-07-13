@@ -32,7 +32,7 @@ watchlist 슬라이스에 추이 DTO·adapter·query 훅을 추가하고, `Summa
   - `dto.ts`: `DashboardTrendPointDto{date, count}`·`DashboardTrendSeriesItemDto{key, data}`·
     `DashboardTrendSeriesDto{days, series}`.
   - `adapters.ts`: `getTrendCounts(dto, key)`가 `series.find(item => item.key === key)?.data
-.map(point => point.count) ?? []`로 계열별 count 배열을 추출, `adaptDashboardTrends`가 키별
+    .map(point => point.count) ?? []`로 계열별 count 배열을 추출, `adaptDashboardTrends`가 키별
     매핑. 이 형태를 watchlist에 그대로 이식한다.
   - `queries.ts`: `useDashboardTrends()`가 `apiGet<DashboardTrendSeriesDto>('/dashboard/trends')`
     후 adapter를 적용.

@@ -47,7 +47,6 @@ reports는 이 카드에서 제거한다.
 ## Implementation Scope
 
 **갱신**
-
 - `src/features/research/dto.ts` — `NewsDisclosureDto` 신설, `ReportDto`
   정리(소비처 확인 후).
 - `src/features/research/adapters.ts` — `adaptNewsDisclosure`·라벨 상수,
@@ -60,7 +59,6 @@ reports는 이 카드에서 제거한다.
   `ResearchPage.test.tsx` (+ mock 갱신이 필요한 다른 페이지 테스트).
 
 **변경 불가**
-
 - `src/shared/api/`, 다른 페이지 컴포넌트, 라우팅.
 
 ## Test Requirements

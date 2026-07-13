@@ -4,7 +4,7 @@ Open items to confirm against the Codex CLI version actually in use, before rely
 
 ## Officially documented fields, local CLI verification pending
 
-The Codex documentation describes these fields as supported for project-scoped custom agents and global agent settings. They are not unconfirmed in the spec sense — what is still pending is verifying the _locally installed_ Codex CLI version actually implements them as documented, since CLI behavior can lag or diverge from the docs.
+The Codex documentation describes these fields as supported for project-scoped custom agents and global agent settings. They are not unconfirmed in the spec sense — what is still pending is verifying the *locally installed* Codex CLI version actually implements them as documented, since CLI behavior can lag or diverge from the docs.
 
 - `sandbox_mode` in `.codex/agents/*.toml` — documented values `read-only` / `workspace-write`. Verify the local CLI honors a per-agent sandbox mode as set here.
 - `model_reasoning_effort` in `.codex/agents/*.toml` — documented values `low` / `medium` / `high`. Verify the local CLI applies it per agent.

@@ -28,11 +28,11 @@ BE #268(project_stock PR #273, dev 머지됨)의
 ## Adapters — `src/features/research/adapters.ts`
 
 - `NewsDisclosureItem` — `{ id: string, title, url, source,
-publishedAt: string | null(KST 포맷), summary: string | null,
-categoryLabel: string | null, impactLabel: string | null,
-sentiment: 'POSITIVE' | 'NEUTRAL' | 'NEGATIVE' | null }`.
+  publishedAt: string | null(KST 포맷), summary: string | null,
+  categoryLabel: string | null, impactLabel: string | null,
+  sentiment: 'POSITIVE' | 'NEUTRAL' | 'NEGATIVE' | null }`.
 - `NewsDisclosureView` — `{ news: NewsDisclosureItem[], disclosures:
-NewsDisclosureItem[] }`.
+  NewsDisclosureItem[] }`.
 - `adaptNewsDisclosure(dto): NewsDisclosureView` — 정규화(대문자화)·라벨
   변환. 알 수 없는 값은 null 처리.
 - 라벨 매핑 (신규 상수, `shared/lib/format`의 기존 라벨 관례를 따름):
@@ -46,7 +46,7 @@ NewsDisclosureItem[] }`.
 ## Queries — `src/features/research/queries.ts`
 
 - `useNewsDisclosure(assetId: number | undefined):
-UseQueryResult<NewsDisclosureView>` — `enabled: assetId != null`,
+  UseQueryResult<NewsDisclosureView>` — `enabled: assetId != null`,
   queryKey `['research', 'news-disclosure', assetId]`,
   `GET /assets/{assetId}/news-disclosure`. `useResearchView`와 독립 조회
   (카드 단위 로딩·실패 격리 — 이 카드 실패가 페이지를 막지 않는다).

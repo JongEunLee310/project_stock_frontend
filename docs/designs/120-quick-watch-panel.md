@@ -108,19 +108,19 @@ FE에서 매핑한다.
 
 - `src/features/watchlist-alert-templates/dto.ts`
   — `WatchlistAlertTemplateDto`: `template_type: string`, `label: string`,
-  `condition_description: string`, `is_active: boolean`
+    `condition_description: string`, `is_active: boolean`
   — `WatchlistAlertTemplateApplyDto`: `template_type: string`, `is_active: boolean`
   — `WatchlistAlertTemplateBulkRequestDto`: `templates: WatchlistAlertTemplateApplyDto[]`
 
 - `src/features/watchlist-alert-templates/adapters.ts`
   — `WatchlistAlertTemplateView`: `templateType: string`, `label: string`,
-  `conditionDescription: string`, `isActive: boolean`
+    `conditionDescription: string`, `isActive: boolean`
   — `adaptWatchlistAlertTemplate(dto: WatchlistAlertTemplateDto): WatchlistAlertTemplateView`
-  — snake_case → camelCase 변환 책임
+    — snake_case → camelCase 변환 책임
   — `adaptWatchlistAlertTemplates(dtos: WatchlistAlertTemplateDto[]): WatchlistAlertTemplateView[]`
   — `TEMPLATE_VISUAL_MAP: Record<string, { icon: string; activeClassName: string }>`
-  — `template_type` 기준 아이콘·활성 색상 매핑 (4종: `PRICE_SPIKE`, `NEWS_RISK_HIGH`,
-  `AI_JUDGMENT_CHANGE`, `THEME_OVERHEAT`)
+    — `template_type` 기준 아이콘·활성 색상 매핑 (4종: `PRICE_SPIKE`, `NEWS_RISK_HIGH`,
+      `AI_JUDGMENT_CHANGE`, `THEME_OVERHEAT`)
 
 - `src/features/watchlist-alert-templates/adapters.test.ts`
   — `adaptWatchlistAlertTemplate`: camelCase 변환, `is_active` 전달 단위 테스트
@@ -129,13 +129,13 @@ FE에서 매핑한다.
 - `src/features/watchlist-alert-templates/queries.ts`
   — `watchlistAlertTemplatesQueryKey: [...watchlistQueryKey, 'alert-templates']`
   — `useWatchlistAlertTemplates(): UseQueryResult<WatchlistAlertTemplateView[]>`
-  책임: watchlistId 자기 해결 → GET → `adaptWatchlistAlertTemplates` 변환 반환
+    책임: watchlistId 자기 해결 → GET → `adaptWatchlistAlertTemplates` 변환 반환
   — `useApplyWatchlistAlertTemplate(): UseMutationResult<WatchlistAlertTemplateView[], Error, { templateType: string; isActive: boolean }>`
-  책임: watchlistId 자기 해결 → `apiPut` → 응답 변환 → `setQueryData` 직접 갱신
+    책임: watchlistId 자기 해결 → `apiPut` → 응답 변환 → `setQueryData` 직접 갱신
 
 - `src/features/watchlist-alert-templates/queries.test.tsx`
   — `useWatchlistAlertTemplates`: 4종 응답 → `WatchlistAlertTemplateView[]` 반환 확인;
-  watchlist 없으면 빈 배열 반환 확인
+    watchlist 없으면 빈 배열 반환 확인
   — `useApplyWatchlistAlertTemplate`: PUT 호출 인자 확인; 성공 시 쿼리 캐시 갱신 확인
   — 픽스처 enum 리터럴에 출처 주석 `// app/domains/watchlists/types.py` 기재
 

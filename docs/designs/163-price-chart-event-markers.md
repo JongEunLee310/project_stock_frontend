@@ -41,7 +41,7 @@ eps_actual, eps_estimate, eps_surprise_percent }] }`
 ## 2. Query — `src/features/research/queries.ts`
 
 - `useAssetEvents(assetId: number | null, range: BenchmarkRange,
-enabled: boolean)` — queryKey
+  enabled: boolean)` — queryKey
   `['research', 'asset-events', assetId, range]`,
   `GET /assets/{assetId}/events?range={range}`. 기존 쿼리 훅 관례
   (fetch·에러 처리) 재사용.
@@ -60,7 +60,7 @@ enabled: boolean)` — queryKey
 ## 4. Shared chart — `src/shared/ui/charts/LineChart.tsx`
 
 - additive prop `markers?: Array<{ x: string; y: number;
-label: string; color?: string }>` 추가.
+  label: string; color?: string }>` 추가.
 - recharts `ReferenceDot`을 marker마다 렌더 — custom `shape`로
   `<circle>` + `<title>{label}</title>` + `tabIndex={0}` +
   `aria-label={label}` + `role="img"`. 기본 색은 amber 계열(범례와

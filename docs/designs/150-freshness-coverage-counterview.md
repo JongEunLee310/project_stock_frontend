@@ -34,7 +34,7 @@ BE #271(project_stock PR #275, dev 머지됨)의 두 계약을 리서치 상세�
 ## Adapters — `src/features/research/adapters.ts`
 
 - `CoverageAxisItem` — `{ axis: string, axisLabel: string,
-isCollected: boolean, lastUpdatedAt: string | null, itemCount: number }`.
+  isCollected: boolean, lastUpdatedAt: string | null, itemCount: number }`.
   - axis 라벨 매핑 (신규 상수): NEWS 뉴스 / PRICE 가격 / EARNINGS 실적 /
     VALUATION 밸류에이션 / DISCLOSURE 공시. 알 수 없는 값은 axis 원문
     폴백.
@@ -47,7 +47,7 @@ isCollected: boolean, lastUpdatedAt: string | null, itemCount: number }`.
 ## Queries — `src/features/research/queries.ts`
 
 - `useResearchCoverage(assetId: number | undefined):
-UseQueryResult<CoverageAxisItem[]>` — `enabled: assetId != null`,
+  UseQueryResult<CoverageAxisItem[]>` — `enabled: assetId != null`,
   queryKey `['research', 'coverage', assetId]`. `useCatalystTimeline`과
   같은 카드 독립 조회 패턴 (실패가 페이지를 막지 않음).
 

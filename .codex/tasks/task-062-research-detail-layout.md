@@ -45,12 +45,10 @@
 ## Implementation Scope
 
 **갱신**
-
 - `src/pages/ui/ResearchPage.tsx` — 레이아웃 재배치 (설계 문서 Page 변경 절).
 - `src/pages/ui/ResearchPage.test.tsx` — 아래 Test Requirements.
 
 **변경 불가**
-
 - `src/features/research/` 전체 (dto·adapters·queries)
 - `src/shared/` 전체
 - 다른 페이지

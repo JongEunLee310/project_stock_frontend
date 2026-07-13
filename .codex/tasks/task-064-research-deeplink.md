@@ -47,7 +47,6 @@
 ## Implementation Scope
 
 **갱신**
-
 - `src/pages/ui/ResearchPage.tsx` — 앵커 id·section 처리 effect.
 - `src/pages/ui/SignalsPage.tsx` — "근거 보기" 경로에 section 부착.
 - `src/pages/ui/DashboardPage.tsx` — 우선 확인 큐 링크에 section 부착.
@@ -55,7 +54,6 @@
   `DashboardPage.test.tsx` — 아래 Test Requirements.
 
 **변경 불가**
-
 - `src/features/`, `src/shared/` 전체
 - 라우트 정의(`router.tsx`·`navigation.ts`)
 

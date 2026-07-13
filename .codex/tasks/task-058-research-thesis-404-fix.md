@@ -30,12 +30,12 @@ ErrorState로 떨어진다. thesis 404만 `null`로 흡수해 나머지 데이�
 
 - `apiGet`은 envelope의 `error`가 있으면 `ApiError(code, message)`를 던진다
   (`src/shared/api/envelope.ts`). HTTP 상태가 아니라 `ApiError.code ===
-'THESIS_NOT_FOUND'`로 식별한다. 이 리터럴은 BE
+  'THESIS_NOT_FOUND'`로 식별한다. 이 리터럴은 BE
   `app/core/error_codes.py`의 `ErrorCode.THESIS_NOT_FOUND` 값이다.
 - FE 계약(`src/features/research/dto.ts`)은 이미 `ThesisDto | null`이고
   `adaptResearchDetail`도 null을 처리한다. 계약·어댑터 변경은 없다.
 - BE 실응답(가설 없음): `{ "data": null, "message": "투자 가설을 찾을 수
-없습니다.", "error": { "code": "THESIS_NOT_FOUND" }, "meta": null }`.
+  없습니다.", "error": { "code": "THESIS_NOT_FOUND" }, "meta": null }`.
 
 현재 브랜치 `feat/137-research-thesis-404-fix`에서 그대로 작업한다. 새
 브랜치를 만들지 않는다.
@@ -43,14 +43,12 @@ ErrorState로 떨어진다. thesis 404만 `null`로 흡수해 나머지 데이�
 ## Implementation Scope
 
 **갱신**
-
 - `src/features/research/queries.ts` — `fetchLatestThesis(assetId)` 신설
   (설계 문서 시그니처), `useResearchView`의 다섯 번째 병렬 호출을 이 함수로
   교체.
 - `src/features/research/queries.test.tsx` — 아래 Test Requirements 추가.
 
 **변경 불가**
-
 - `src/features/research/dto.ts`, `src/features/research/adapters.ts`
 - `src/pages/ui/ResearchPage.tsx`
 - `src/shared/api/` (client·envelope)

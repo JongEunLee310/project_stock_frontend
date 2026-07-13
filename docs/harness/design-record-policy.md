@@ -58,5 +58,5 @@ Fact Grounding을 따른다.
 
 - `handoff-policy.md` — design records are an input to the handoff.
 - `quality-process-policy.md` — 리터럴 계약의 출처 명시와 셀프 검토 체크포인트.
-- `docs/decisions/` — ADRs capture _why_ a durable decision was made; design records capture _what shape_ a specific change takes.
+- `docs/decisions/` — ADRs capture *why* a durable decision was made; design records capture *what shape* a specific change takes.
 - `docs/designs/README.md` — directory conventions and skeleton template.

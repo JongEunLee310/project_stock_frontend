@@ -28,37 +28,37 @@
 
 ### `Skeleton`
 
-| prop          | 타입     | 책임                                                          |
-| ------------- | -------- | ------------------------------------------------------------- |
-| `className?`  | `string` | 크기·모양 지정(호출부에서 width/height/rounded 합성)          |
-| `lines?`      | `number` | 지정 시 텍스트 줄 플레이스홀더 n개 렌더(미지정=단일 블록)     |
-| `aria-hidden` | (고정)   | 장식 — 스크린리더 무시. 로딩 영역 라이브 안내는 소비처가 담당 |
+| prop | 타입 | 책임 |
+|---|---|---|
+| `className?` | `string` | 크기·모양 지정(호출부에서 width/height/rounded 합성) |
+| `lines?` | `number` | 지정 시 텍스트 줄 플레이스홀더 n개 렌더(미지정=단일 블록) |
+| `aria-hidden` | (고정) | 장식 — 스크린리더 무시. 로딩 영역 라이브 안내는 소비처가 담당 |
 
 - 책임: `animate-pulse` 배경 블록 렌더. 레이아웃은 호출부가 className으로 구성(과한 변형 prop 금지).
 
 ### `EmptyState`
 
-| prop           | 타입            | 책임                                 |
-| -------------- | --------------- | ------------------------------------ |
-| `title`        | `ReactNode`     | 빈 상태 제목                         |
-| `description?` | `ReactNode`     | 보조 설명                            |
-| `icon?`        | `ReactNode`     | 장식 아이콘(`aria-hidden`)           |
-| `action?`      | `ReactNode`     | 선택 액션 슬롯(예: 필터 초기화 버튼) |
-| `className?`   | `string`        | 컨테이너 보정                        |
-| role           | (고정) `status` | 비긴급 안내                          |
+| prop | 타입 | 책임 |
+|---|---|---|
+| `title` | `ReactNode` | 빈 상태 제목 |
+| `description?` | `ReactNode` | 보조 설명 |
+| `icon?` | `ReactNode` | 장식 아이콘(`aria-hidden`) |
+| `action?` | `ReactNode` | 선택 액션 슬롯(예: 필터 초기화 버튼) |
+| `className?` | `string` | 컨테이너 보정 |
+| role | (고정) `status` | 비긴급 안내 |
 
 - 책임: 중앙 정렬 안내 블록. `Card` 내부에 둘 수 있도록 자체는 배경 없는 패딩 컨테이너.
 
 ### `ErrorState`
 
-| prop           | 타입           | 책임                           |
-| -------------- | -------------- | ------------------------------ |
-| `title?`       | `ReactNode`    | 기본 "문제가 발생했습니다"     |
-| `description?` | `ReactNode`    | 오류 보조 설명                 |
-| `onRetry?`     | `() => void`   | 지정 시 "재시도" `Button` 렌더 |
-| `retryLabel?`  | `string`       | 기본 "재시도"                  |
-| `className?`   | `string`       | 컨테이너 보정                  |
-| role           | (고정) `alert` | 오류 즉시 안내                 |
+| prop | 타입 | 책임 |
+|---|---|---|
+| `title?` | `ReactNode` | 기본 "문제가 발생했습니다" |
+| `description?` | `ReactNode` | 오류 보조 설명 |
+| `onRetry?` | `() => void` | 지정 시 "재시도" `Button` 렌더 |
+| `retryLabel?` | `string` | 기본 "재시도" |
+| `className?` | `string` | 컨테이너 보정 |
+| role | (고정) `alert` | 오류 즉시 안내 |
 
 - 책임: 오류 안내 + 선택적 재시도 버튼(공통 `Button`, `variant="secondary"`). `onRetry` 미지정 시 버튼 없음.
 

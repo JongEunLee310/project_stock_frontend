@@ -20,23 +20,23 @@
 
 ## 컴포넌트 책임
 
-| 컴포넌트     | 위치               | 책임                                                |
-| ------------ | ------------------ | --------------------------------------------------- |
-| `Sparkline`  | `shared/ui/charts` | 라벨/축 없는 미니 추세선(Line 기반). 카드 인라인용. |
-| `LineChart`  | `shared/ui/charts` | 축·그리드 옵션 있는 선형 차트. 가격/추이용.         |
-| `DonutChart` | `shared/ui/charts` | 비율 도넛(Pie + innerRadius). 자산 배분/구성비용.   |
-| `BarChart`   | `shared/ui/charts` | 범주형 막대. 요약 분포용.                           |
+| 컴포넌트 | 위치 | 책임 |
+| --- | --- | --- |
+| `Sparkline` | `shared/ui/charts` | 라벨/축 없는 미니 추세선(Line 기반). 카드 인라인용. |
+| `LineChart` | `shared/ui/charts` | 축·그리드 옵션 있는 선형 차트. 가격/추이용. |
+| `DonutChart` | `shared/ui/charts` | 비율 도넛(Pie + innerRadius). 자산 배분/구성비용. |
+| `BarChart` | `shared/ui/charts` | 범주형 막대. 요약 분포용. |
 | `chartTheme` | `shared/ui/charts` | 공통 색(cockpit/app 토큰 파생)·여백·축 스타일 상수. |
 
 ### 공통 Props 책임 (시그니처 수준)
 
-| Prop                | 책임                                                                |
-| ------------------- | ------------------------------------------------------------------- |
-| `data`              | 차트 데이터 배열(컴포넌트별 형태).                                  |
-| `width?` / `height` | 고정 크기. 미지정 시 반응형 폭 측정으로 폴백.                       |
-| `responsive?`       | true면 컨테이너 폭을 `ResizeObserver`로 측정(미지원/SSR 폴백 상수). |
-| `color?` / `tone?`  | 선·막대·세그먼트 색. 기본은 `chartTheme` 토큰값.                    |
-| `ariaLabel?`        | 의미 차트는 `role="img"` + 라벨, 미지정(장식)은 `aria-hidden`.      |
+| Prop | 책임 |
+| --- | --- |
+| `data` | 차트 데이터 배열(컴포넌트별 형태). |
+| `width?` / `height` | 고정 크기. 미지정 시 반응형 폭 측정으로 폴백. |
+| `responsive?` | true면 컨테이너 폭을 `ResizeObserver`로 측정(미지원/SSR 폴백 상수). |
+| `color?` / `tone?` | 선·막대·세그먼트 색. 기본은 `chartTheme` 토큰값. |
+| `ariaLabel?` | 의미 차트는 `role="img"` + 라벨, 미지정(장식)은 `aria-hidden`. |
 
 ## 핵심 결정
 

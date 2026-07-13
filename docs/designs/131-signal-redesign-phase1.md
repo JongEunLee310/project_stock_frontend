@@ -40,14 +40,14 @@ type SignalCategory = 'WATCH' | 'RISK' | 'BUY' | 'RESEARCH'
 
 signal_type → `SignalCategory` 매핑 상수 (출처: 이슈 #131 요구사항, 사용자 승인 완료).
 
-| signal_type   | category |
-| ------------- | -------- |
-| WATCH         | WATCH    |
-| RISK_ALERT    | RISK     |
-| THESIS_BROKEN | RISK     |
-| BUY_CANDIDATE | BUY      |
-| SELL_REVIEW   | RESEARCH |
-| OVERHEATED    | RESEARCH |
+| signal_type | category |
+|---|---|
+| WATCH | WATCH |
+| RISK_ALERT | RISK |
+| THESIS_BROKEN | RISK |
+| BUY_CANDIDATE | BUY |
+| SELL_REVIEW | RESEARCH |
+| OVERHEATED | RESEARCH |
 
 매핑에 없는 signal_type은 `undefined`로 처리하여 카드에 배지를 표시하지 않는다(가정: 향후 신규 signal_type 추가 시 재검토).
 
@@ -55,12 +55,12 @@ signal_type → `SignalCategory` 매핑 상수 (출처: 이슈 #131 요구사항
 
 `SignalCategory` 키별로 라벨·색상 토큰·아이콘 식별자를 보유한다.
 
-| category | label            | color token (가정)                              |
-| -------- | ---------------- | ----------------------------------------------- |
-| WATCH    | 관망 유지        | text-cockpit-text-muted / border-cockpit-border |
-| RISK     | 리스크 증가      | text-red-400 / border-red-400                   |
-| BUY      | 매수 검토 가능   | text-emerald-400 / border-emerald-400           |
-| RESEARCH | 추가 리서치 필요 | text-sky-400 / border-sky-400                   |
+| category | label | color token (가정) |
+|---|---|---|
+| WATCH | 관망 유지 | text-cockpit-text-muted / border-cockpit-border |
+| RISK | 리스크 증가 | text-red-400 / border-red-400 |
+| BUY | 매수 검토 가능 | text-emerald-400 / border-emerald-400 |
+| RESEARCH | 추가 리서치 필요 | text-sky-400 / border-sky-400 |
 
 색상 토큰은 구현 시 기존 cockpit 테마와 대조하여 확정한다(현재 값은 가정).
 
@@ -123,9 +123,9 @@ interface SignalCardProps {
 
 ```ts
 interface ConfidenceRingProps {
-  score: number // 0–100 정수, Signal.score
+  score: number          // 0–100 정수, Signal.score
   category: SignalCategory | undefined
-  symbol: string // aria-label용
+  symbol: string         // aria-label용
 }
 ```
 
@@ -147,7 +147,7 @@ interface SignalPriorityRailProps {
 ### RecentChangesRail
 
 ```ts
-interface RecentChangesRailProps {} // props 없음
+interface RecentChangesRailProps {}  // props 없음
 ```
 
 - 전체를 "준비 중" `EmptyState`로 표시한다.
@@ -202,13 +202,13 @@ interface FilterState {
 
 ## "준비 중" 처리 목록
 
-| 요소                      | 처리 방식                          |
-| ------------------------- | ---------------------------------- |
-| KPI "전일 대비" delta     | `—` 텍스트                         |
-| 우선순위 레일 "변화" 컬럼 | `—` 텍스트                         |
-| RecentChangesRail 전체    | `EmptyState` ("준비 중")           |
-| 근거 불릿 구조화          | `signal.reason` 문자열 그대로 렌더 |
-| 알림 설정 버튼            | `disabled` + "준비 중" aria-label  |
+| 요소 | 처리 방식 |
+|---|---|
+| KPI "전일 대비" delta | `—` 텍스트 |
+| 우선순위 레일 "변화" 컬럼 | `—` 텍스트 |
+| RecentChangesRail 전체 | `EmptyState` ("준비 중") |
+| 근거 불릿 구조화 | `signal.reason` 문자열 그대로 렌더 |
+| 알림 설정 버튼 | `disabled` + "준비 중" aria-label |
 
 ## Out of Scope
 

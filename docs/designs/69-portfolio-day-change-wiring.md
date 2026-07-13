@@ -14,12 +14,12 @@ BE summary가 `day_change_value`/`day_change_percent`를 제공하므로 이 두
 
 ## 1. 변경 범위
 
-| 파일                                 | 변경                                                                                                                                |
-| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `src/features/portfolio/dto.ts`      | `PortfolioSummaryDto`에 `day_change_value`, `day_change_percent`(string \| null) 추가                                               |
-| `src/features/portfolio/adapters.ts` | `PortfolioView`에 `dayChangeValue`, `dayChangePercent`(number) 추가, 매핑                                                           |
-| `src/features/portfolio/queries.ts`  | 빈 포트폴리오 fallback 객체에 두 필드 0 추가                                                                                        |
-| `src/pages/ui/PortfolioPage.tsx`     | 요약 섹션에 "일간 변동" `SummaryCard` 신규 추가(현재 3개 → 4개, `2xl:grid-cols-4` 빈 칸), `portfolio.dayChangeValue/Percent` 바인딩 |
+| 파일 | 변경 |
+| --- | --- |
+| `src/features/portfolio/dto.ts` | `PortfolioSummaryDto`에 `day_change_value`, `day_change_percent`(string \| null) 추가 |
+| `src/features/portfolio/adapters.ts` | `PortfolioView`에 `dayChangeValue`, `dayChangePercent`(number) 추가, 매핑 |
+| `src/features/portfolio/queries.ts` | 빈 포트폴리오 fallback 객체에 두 필드 0 추가 |
+| `src/pages/ui/PortfolioPage.tsx` | 요약 섹션에 "일간 변동" `SummaryCard` 신규 추가(현재 3개 → 4개, `2xl:grid-cols-4` 빈 칸), `portfolio.dayChangeValue/Percent` 바인딩 |
 
 현재 PortfolioPage는 일간 변동을 렌더하지 않고 mock 주석(`dayChange ... 후속 API까지 mock`)만 남아 있다. 따라서 단순 교체가 아니라 **일간 변동 카드 신규 추가**다. 요약 카드는 총 자산/현금 비중/상위 3종목 비중 3개뿐이고 레이아웃이 4컬럼이라 자리가 비어 있다.
 

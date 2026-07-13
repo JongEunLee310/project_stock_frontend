@@ -63,7 +63,6 @@ task-018에서 이미 도입되어 있으므로 추가 설치 없음.
 ### 신규 세그먼트
 
 **`src/features/signals/`**
-
 - `dto.ts`: `SignalDto`, `PriceBarDto`, `SignalDetailDto`
 - `adapters.ts`:
   - `adaptSignal(dto: SignalDto, sparkline: number[]): Signal`
@@ -75,7 +74,6 @@ task-018에서 이미 도입되어 있으므로 추가 설치 없음.
 - `adapters.test.ts`
 
 **`src/features/research/`**
-
 - `dto.ts`: `AssetLookupDto`, `AssetDetailDto`, `ResearchSummaryDto`, `BuyChecklistDto`,
   `ReportDto`, `ThesisDto`
 - `adapters.ts`:
@@ -88,7 +86,6 @@ task-018에서 이미 도입되어 있으므로 추가 설치 없음.
 - `adapters.test.ts`
 
 **`src/features/alerts/`**
-
 - `dto.ts`: `AlertDto`, `AlertCandidateDto`
 - `adapters.ts`:
   - `adaptAlert(dto: AlertDto): Alert`
@@ -103,14 +100,12 @@ task-018에서 이미 도입되어 있으므로 추가 설치 없음.
 - `adapters.test.ts`
 
 **`src/features/settings/`**
-
 - `dto.ts`: `MeDto`
 - `adapters.ts`: `adaptMe(dto: MeDto): UserProfile`
 - `queries.ts`: `useMe(): UseQueryResult<UserProfile>`
 - `adapters.test.ts`
 
 **`src/features/decision-log/`**
-
 - `dto.ts`: `DecisionLogDto`, `CreateDecisionLogBody`
 - `adapters.ts`: `adaptDecisionLog(dto: DecisionLogDto): DecisionLog`
 - `queries.ts`:

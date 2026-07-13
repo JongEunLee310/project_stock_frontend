@@ -13,9 +13,9 @@
   `source`, `last_updated_at`, `bars[]` 포함. market은
   `KRX | NASDAQ | NYSE` Literal.
 - `PUT /assets/{id}/buy-checklist` — body `{ memo: string | null,
-checked_item_keys: ChecklistItemKey[] }`. `ChecklistItemKey`는
+  checked_item_keys: ChecklistItemKey[] }`. `ChecklistItemKey`는
   `valuation | news_overheated | portfolio_concentration |
-earnings_disclosure` (BE `app/domains/decision_checklist/schema.py`).
+  earnings_disclosure` (BE `app/domains/decision_checklist/schema.py`).
   GET/PUT 응답 모두 `memo`, `checked_item_keys`, `is_complete`,
   `decided_at`을 포함한다.
 - 관심종목 — `useWatchlistAssets`, `useAddAssetToFirstWatchlist`,
@@ -38,7 +38,7 @@ earnings_disclosure` (BE `app/domains/decision_checklist/schema.py`).
   `checklistMemo: string | null` 추가.
 - `adaptResearchDetail` — 위 필드 매핑 추가 (`parseDecimal` 재사용).
 - `PriceSeriesView` 신설 — `{ closes: number[], currency: string | null,
-source: string | null, lastUpdatedAt: string | null }`.
+  source: string | null, lastUpdatedAt: string | null }`.
 
 ## Queries — `src/features/research/queries.ts`
 

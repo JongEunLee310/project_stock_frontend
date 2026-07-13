@@ -49,14 +49,14 @@ Author: value-for-fable:itsvff (Sonnet) 위임
 대시보드의 `DashboardTrendPointDto`, `DashboardTrendSeriesItemDto`, `DashboardTrendSeriesDto`와
 동형이나, watchlist 슬라이스에 독립 선언합니다. 대시보드 dto를 import하지 않습니다.
 
-| 타입                          | 필드     | 타입                            | 설명                                     |
-| ----------------------------- | -------- | ------------------------------- | ---------------------------------------- |
-| `WatchlistTrendPointDto`      | `date`   | `string`                        | `YYYY-MM-DD` 형식, 오름차순              |
-|                               | `count`  | `number`                        | 해당 날짜의 종목 수                      |
-| `WatchlistTrendSeriesItemDto` | `key`    | `string`                        | `watchlist_total` 또는 `risk_increasing` |
-|                               | `data`   | `WatchlistTrendPointDto[]`      | 날짜별 포인트 배열                       |
-| `WatchlistTrendSeriesDto`     | `days`   | `number`                        | 조회 윈도우 크기                         |
-|                               | `series` | `WatchlistTrendSeriesItemDto[]` | 계열 배열(2개 고정)                      |
+| 타입 | 필드 | 타입 | 설명 |
+|---|---|---|---|
+| `WatchlistTrendPointDto` | `date` | `string` | `YYYY-MM-DD` 형식, 오름차순 |
+| | `count` | `number` | 해당 날짜의 종목 수 |
+| `WatchlistTrendSeriesItemDto` | `key` | `string` | `watchlist_total` 또는 `risk_increasing` |
+| | `data` | `WatchlistTrendPointDto[]` | 날짜별 포인트 배열 |
+| `WatchlistTrendSeriesDto` | `days` | `number` | 조회 윈도우 크기 |
+| | `series` | `WatchlistTrendSeriesItemDto[]` | 계열 배열(2개 고정) |
 
 ### 3.2 Adapter (`src/features/watchlist/adapters.ts`)
 
@@ -73,23 +73,23 @@ interface WatchlistSummaryTrendsView {
 
 **함수 시그니처**
 
-| 함수                          | 시그니처                                                       | 책임                                                                                          |
-| ----------------------------- | -------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `getWatchlistTrendCounts`     | `(dto: WatchlistTrendSeriesDto, key: string) => number[]`      | `series.find(key).data.map(p => p.count)`로 계열별 count 배열 추출. 키가 없으면 빈 배열 반환. |
-| `adaptWatchlistSummaryTrends` | `(dto: WatchlistTrendSeriesDto) => WatchlistSummaryTrendsView` | `watchlist_total`·`risk_increasing` 두 계열을 각 필드에 매핑하여 반환.                        |
+| 함수 | 시그니처 | 책임 |
+|---|---|---|
+| `getWatchlistTrendCounts` | `(dto: WatchlistTrendSeriesDto, key: string) => number[]` | `series.find(key).data.map(p => p.count)`로 계열별 count 배열 추출. 키가 없으면 빈 배열 반환. |
+| `adaptWatchlistSummaryTrends` | `(dto: WatchlistTrendSeriesDto) => WatchlistSummaryTrendsView` | `watchlist_total`·`risk_increasing` 두 계열을 각 필드에 매핑하여 반환. |
 
 ### 3.3 Query 훅 (`src/features/watchlist/queries.ts`)
 
 `useWatchlistSummary`의 첫 watchlist 조회 방어 패턴을 동일하게 적용합니다.
 
-| 항목              | 내용                                                                                                                                          |
-| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| 시그니처          | `useWatchlistSummaryTrends(): UseQueryResult<WatchlistSummaryTrendsView>`                                                                     |
-| queryKey          | `['watchlist', 'summary', 'trends']`                                                                                                          |
-| queryFn 흐름      | `GET /watchlists?page=1&size=20` → 첫 watchlist id 확보 → `GET /watchlists/${id}/summary/trends?days=14` → `adaptWatchlistSummaryTrends` 적용 |
-| 첫 watchlist 없음 | `{ watchlistTotal: [], riskIncreasing: [] }` 반환(빈값, throw 안 함)                                                                          |
-| 실패 처리         | try/catch로 API 오류 시 동일 빈값 반환 — `useWatchlistSummary`의 방어 패턴과 일관                                                             |
-| enabled 조건      | 별도 없음(훅 내부 try/catch로 방어)                                                                                                           |
+| 항목 | 내용 |
+|---|---|
+| 시그니처 | `useWatchlistSummaryTrends(): UseQueryResult<WatchlistSummaryTrendsView>` |
+| queryKey | `['watchlist', 'summary', 'trends']` |
+| queryFn 흐름 | `GET /watchlists?page=1&size=20` → 첫 watchlist id 확보 → `GET /watchlists/${id}/summary/trends?days=14` → `adaptWatchlistSummaryTrends` 적용 |
+| 첫 watchlist 없음 | `{ watchlistTotal: [], riskIncreasing: [] }` 반환(빈값, throw 안 함) |
+| 실패 처리 | try/catch로 API 오류 시 동일 빈값 반환 — `useWatchlistSummary`의 방어 패턴과 일관 |
+| enabled 조건 | 별도 없음(훅 내부 try/catch로 방어) |
 
 React Query v5에서 disabled 쿼리는 `isLoading: false`입니다. 이 훅은 disabled를 사용하지
 않으므로 해당 주의사항은 적용되지 않으나, 훅을 소비하는 컴포넌트에서 `isLoading` 상태를
@@ -112,12 +112,12 @@ React Query v5에서 disabled 쿼리는 `isLoading: false`입니다. 이 훅은 
 슬롯 단위 독립 처리를 적용합니다. #78 시그널 스파크라인·#77 대시보드 추이 설계에서 확립한
 원칙과 일관됩니다.
 
-| 상태                               | 처리                                                                                       |
-| ---------------------------------- | ------------------------------------------------------------------------------------------ |
-| `isLoading: true`                  | `<Skeleton className="h-10 w-20" />` 렌더 — 기존 `UiSparkline` 슬롯(`h-10 w-20`) 크기 유지 |
-| `data`의 해당 계열이 빈 배열(`[]`) | 스파크라인 비표시(placeholder 또는 슬롯 공백) — 카드 전체를 오류 상태로 승격하지 않음      |
-| error                              | 동일하게 스파크라인 비표시 — 카드·페이지 전체는 정상 렌더 유지                             |
-| 데이터 있음                        | `<UiSparkline data={...} />` 렌더(기존 색상·마진·strokeWidth 유지)                         |
+| 상태 | 처리 |
+|---|---|
+| `isLoading: true` | `<Skeleton className="h-10 w-20" />` 렌더 — 기존 `UiSparkline` 슬롯(`h-10 w-20`) 크기 유지 |
+| `data`의 해당 계열이 빈 배열(`[]`) | 스파크라인 비표시(placeholder 또는 슬롯 공백) — 카드 전체를 오류 상태로 승격하지 않음 |
+| error | 동일하게 스파크라인 비표시 — 카드·페이지 전체는 정상 렌더 유지 |
+| 데이터 있음 | `<UiSparkline data={...} />` 렌더(기존 색상·마진·strokeWidth 유지) |
 
 `data` 포인트 매핑 형태는 기존과 동일합니다(`{ point: index, value: count }`).
 

@@ -1,9 +1,9 @@
 ---
 name: Refactor
 about: Improve structure without changing behavior
-title: '[Refactor] '
+title: "[Refactor] "
 labels: refactor
-assignees: ''
+assignees: ""
 ---
 
 ## Purpose

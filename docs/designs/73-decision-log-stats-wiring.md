@@ -29,11 +29,11 @@ DecisionLogPage 우측 aside의 두 mock 카드를 BE 052 신규 엔드포인트
 
 ### 3.1 dto `DecisionLogStatsDto`
 
-| 필드                   | 타입                     |
-| ---------------------- | ------------------------ |
+| 필드 | 타입 |
+|------|------|
 | `decision_type_counts` | `Record<string, number>` |
-| `total`                | `number`                 |
-| `recent_reviewed`      | `ReviewedDecisionDto[]`  |
+| `total` | `number` |
+| `recent_reviewed` | `ReviewedDecisionDto[]` |
 
 `ReviewedDecisionDto`: `id:number`, `ticker:string`, `company_name?:string\|null`, `decision_type:string`, `reason?:string\|null`, `risk_note?:string\|null`, `reviewed_at:string`.
 

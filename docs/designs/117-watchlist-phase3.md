@@ -62,24 +62,24 @@ Phase 2 완료 상태).
 `resolveStatusBadge` 패턴(`{ label: string; className: string }` 반환)을 그대로 따른다.
 알 수 없는 값에는 중립 폴백을 반환하며 런타임 에러를 발생시키지 않는다.
 
-| 필드               | enum 값           | FE 라벨   | 색상 방향     |
-| ------------------ | ----------------- | --------- | ------------- |
-| `news_risk`        | `HIGH`            | 높음      | 위험(rose)    |
-|                    | `MEDIUM`          | 중간      | 경고(amber)   |
-|                    | `LOW`             | 낮음      | 안전(emerald) |
-|                    | 폴백              | 중간      | 중립(slate)   |
-| `valuation_burden` | `HIGH`            | 고평가    | 위험(rose)    |
-|                    | `MODERATE`        | 적정      | 중립(slate)   |
-|                    | `LOW`             | 저평가    | 안전(emerald) |
-|                    | 폴백              | 적정      | 중립(slate)   |
-| `theme_heat`       | `OVERHEATED`      | 과열      | 위험(rose)    |
-|                    | `NEUTRAL`         | 중립      | 중립(slate)   |
-|                    | `COLD`            | 냉각      | 안전(emerald) |
-|                    | 폴백              | 중립      | 중립(slate)   |
-| `ai_judgment`      | `RISK_INCREASING` | 위험 증가 | 위험(rose)    |
-|                    | `WATCH`           | 관망      | 경고(amber)   |
-|                    | `STABLE`          | 안정      | 안전(emerald) |
-|                    | 폴백              | 안정      | 안전(emerald) |
+| 필드 | enum 값 | FE 라벨 | 색상 방향 |
+|------|---------|---------|----------|
+| `news_risk` | `HIGH` | 높음 | 위험(rose) |
+| | `MEDIUM` | 중간 | 경고(amber) |
+| | `LOW` | 낮음 | 안전(emerald) |
+| | 폴백 | 중간 | 중립(slate) |
+| `valuation_burden` | `HIGH` | 고평가 | 위험(rose) |
+| | `MODERATE` | 적정 | 중립(slate) |
+| | `LOW` | 저평가 | 안전(emerald) |
+| | 폴백 | 적정 | 중립(slate) |
+| `theme_heat` | `OVERHEATED` | 과열 | 위험(rose) |
+| | `NEUTRAL` | 중립 | 중립(slate) |
+| | `COLD` | 냉각 | 안전(emerald) |
+| | 폴백 | 중립 | 중립(slate) |
+| `ai_judgment` | `RISK_INCREASING` | 위험 증가 | 위험(rose) |
+| | `WATCH` | 관망 | 경고(amber) |
+| | `STABLE` | 안정 | 안전(emerald) |
+| | 폴백 | 안정 | 안전(emerald) |
 
 `className`은 Tailwind 유틸리티 클래스를 직접 사용한다. 기존
 `stockStatusClassNames`는 `안정`/`관망`/`위험 증가` 3단계에 최적화되어 있으므로 새 4단계
@@ -144,19 +144,19 @@ Phase 2 완료 상태).
 
 - `src/features/watchlist/dto.ts`
   — `WatchlistItemEvaluationDto`: `symbol: string`, `news_risk: string`, `valuation_burden: string`,
-  `theme_heat: string`, `ai_judgment: string`
+    `theme_heat: string`, `ai_judgment: string`
   — `WatchlistEvaluationsResponseDto`: `items: WatchlistItemEvaluationDto[]`,
-  `needs_research_count: number`, `generated_at: string`
+    `needs_research_count: number`, `generated_at: string`
   — `BuyReadinessDto`: `level: string`, `level_label: string`, `cash_weight: string`,
-  `buy_candidate_count: number`, `message: string`
+    `buy_candidate_count: number`, `message: string`
   — `WatchlistSummaryDto`에 `buy_readiness?: BuyReadinessDto | null` 추가
 
 - `src/features/watchlist/adapters.ts`
   — `WatchlistEvaluationRow`: `symbol: string`, `newsRisk: string`, `valuationBurden: string`,
-  `themeHeat: string`, `aiJudgment: string`
+    `themeHeat: string`, `aiJudgment: string`
   — `WatchlistEvaluationMap` type alias: `Record<string, WatchlistEvaluationRow>`
   — `BuyReadinessView`: `level: string`, `levelLabel: string`, `cashWeight: number`,
-  `buyCandidateCount: number`, `message: string`
+    `buyCandidateCount: number`, `message: string`
   — `WatchlistSummaryView`에 `buyReadiness: BuyReadinessView | null` 추가
   — `resolveNewsRiskBadge(value: string): { label: string; className: string }` 추가
   — `resolveValuationBadge(value: string): { label: string; className: string }` 추가
@@ -169,10 +169,10 @@ Phase 2 완료 상태).
 - `src/features/watchlist/queries.ts`
   — `WatchlistEvaluationsResult` 타입: `{ map: WatchlistEvaluationMap; needsResearchCount: number }`
   — `useWatchlistEvaluations(): UseQueryResult<WatchlistEvaluationsResult>` 추가:
-  queryKey `[...watchlistQueryKey, 'evaluations']`,
-  staleTime `10 * 60 * 1000`,
-  첫 번째 관심목록 ID 조회 후 `/watchlists/{id}/evaluations` 호출,
-  `adaptWatchlistEvaluations`로 변환
+    queryKey `[...watchlistQueryKey, 'evaluations']`,
+    staleTime `10 * 60 * 1000`,
+    첫 번째 관심목록 ID 조회 후 `/watchlists/{id}/evaluations` 호출,
+    `adaptWatchlistEvaluations`로 변환
   — `emptyWatchlistSummary`에 `buyReadiness: null` 추가
 
 - `src/pages/ui/WatchlistPage.tsx`
@@ -191,24 +191,24 @@ Phase 2 완료 상태).
 
 - `src/features/watchlist/adapters.test.ts`
   — `resolveNewsRiskBadge`: `HIGH`/`MEDIUM`/`LOW`/폴백 → 라벨·className 단위 테스트.
-  픽스처 enum 리터럴에 출처 주석 `// app/domains/watchlists/types.py` 기재.
+    픽스처 enum 리터럴에 출처 주석 `// app/domains/watchlists/types.py` 기재.
   — `resolveValuationBadge`: `HIGH`/`MODERATE`/`LOW`/폴백 단위 테스트 (동일 주석).
   — `resolveThemeHeatBadge`: `OVERHEATED`/`NEUTRAL`/`COLD`/폴백 단위 테스트.
   — `resolveAiJudgmentBadge`: `RISK_INCREASING`/`WATCH`/`STABLE`/폴백 단위 테스트.
   — `adaptWatchlistEvaluations`: 정상 items → map 반환, `needsResearchCount` 전달 확인,
-  items에 없는 symbol이 map에 존재하지 않음 확인.
+    items에 없는 symbol이 map에 존재하지 않음 확인.
   — `adaptWatchlistSummary`: `buy_readiness` 있는 경우 `buyReadiness` 필드 포함,
-  null인 경우 `buyReadiness: null` 확인.
+    null인 경우 `buyReadiness: null` 확인.
 
 - `src/features/watchlist/queries.test.tsx`
   — `useWatchlistEvaluations`: 정상 응답 → `map`·`needsResearchCount` 반환,
-  빈 `items` → `map: {}` 반환.
+    빈 `items` → `map: {}` 반환.
 
 - `src/pages/ui/WatchlistPage.test.tsx`
   — `watchlistEvaluationsQueryState` mock 상태 추가:
-  `{ data: { map: { NVDA: { symbol: 'NVDA', newsRisk: 'HIGH', ... }, ... }, needsResearchCount: 2 }, isLoading: false, isError: false, ... }`
+    `{ data: { map: { NVDA: { symbol: 'NVDA', newsRisk: 'HIGH', ... }, ... }, needsResearchCount: 2 }, isLoading: false, isError: false, ... }`
   — `vi.mock('@/features/watchlist/queries', ...)` 블록에
-  `useWatchlistEvaluations: () => watchlistEvaluationsQueryState` 추가.
+    `useWatchlistEvaluations: () => watchlistEvaluationsQueryState` 추가.
   — 배지 렌더링: `newsRisk: 'HIGH'`인 NVDA 행에 `높음` 배지 렌더링 확인.
   — 로딩 중: `isLoading: true` 시 배지 셀에 스켈레톤 표시, 기존 `상태`·`현재가` 셀은 정상 확인.
   — 실패: `isError: true` 시 배지 셀에 `—` 표시, 테이블 렌더링 유지 확인.
