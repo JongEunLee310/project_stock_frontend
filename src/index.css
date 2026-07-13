@@ -53,17 +53,17 @@
   --color-status-reduce-text: #fed7aa;
   --color-status-reduce-border: #9a5a2e;
 
-  --color-status-level-high-bg: #3b1d2f;
-  --color-status-level-high-text: #fbcfe8;
-  --color-status-level-high-border: #9f4674;
+  --color-status-level-high-bg: #37151d;
+  --color-status-level-high-text: #f87171;
+  --color-status-level-high-border: #dc2626;
 
-  --color-status-level-medium-bg: #27304a;
-  --color-status-level-medium-text: #c7d2fe;
-  --color-status-level-medium-border: #5867a6;
+  --color-status-level-medium-bg: #332508;
+  --color-status-level-medium-text: #fbbf24;
+  --color-status-level-medium-border: #d97706;
 
-  --color-status-level-low-bg: #12333a;
-  --color-status-level-low-text: #a5f3fc;
-  --color-status-level-low-border: #2b7b8a;
+  --color-status-level-low-bg: #0f2e1d;
+  --color-status-level-low-text: #34d399;
+  --color-status-level-low-border: #059669;
 
   --spacing-page: 1.5rem;
   --spacing-panel: 1rem;
