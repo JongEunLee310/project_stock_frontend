@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { LuClipboardList, LuStar } from 'react-icons/lu'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 
 import {
   SymbolNotFoundError,
@@ -46,6 +47,7 @@ import {
   Card,
   EmptyState,
   ErrorState,
+  InfoTooltip,
   LineChart,
   Skeleton,
   Table,
@@ -88,6 +90,13 @@ const riskRank: Record<string, number> = {
   높음: 3,
   중간: 2,
   낮음: 1,
+}
+
+// 불릿은 전경색 토큰(-text)을 배경으로 재사용한다 — 수준별 대비가 배지 텍스트와 동일해야 해서다
+const riskDotClassNames: Record<string, string> = {
+  높음: 'bg-status-level-high-text',
+  중간: 'bg-status-level-medium-text',
+  낮음: 'bg-status-level-low-text',
 }
 
 const sentimentClassNames: Record<NewsDisclosureSentiment, string> = {
@@ -742,7 +751,7 @@ function HeaderCard({
   isFavoritePending: boolean
   onToggleFavorite: () => void
 }) {
-  const navigate = useNavigate()
+  const [isLogoLoadFailed, setIsLogoLoadFailed] = useState(false)
   const changeDirection = research.change ?? research.changePercent
   const changeClassName =
     changeDirection === null
@@ -780,51 +789,57 @@ function HeaderCard({
 
   return (
     <Card>
-      <div className="mb-5 flex flex-wrap justify-end gap-2">
-        <Button
-          type="button"
-          variant={isFavorite ? 'primary' : 'secondary'}
-          aria-pressed={isFavorite}
-          disabled={isFavoritePending}
-          className="min-h-8 px-3 py-1 text-xs"
-          onClick={onToggleFavorite}
-        >
-          {isFavorite ? '관심종목 등록됨' : '관심종목 추가'}
-        </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          className="min-h-8 px-3 py-1 text-xs"
-          onClick={() => navigate(appRoutePaths.watchlist)}
-        >
-          워치리스트
-        </Button>
-        <Button
-          type="button"
-          className="min-h-8 px-3 py-1 text-xs"
-          onClick={() =>
-            navigate(
-              `${appRoutePaths.decisionLog}?symbol=${encodeURIComponent(research.symbol)}`,
-            )
-          }
-        >
-          판단 기록
-        </Button>
-      </div>
-
       <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-[minmax(12rem,1.1fr)_minmax(10rem,0.7fr)_minmax(12rem,0.85fr)_minmax(19rem,1.6fr)]">
         <div className="flex min-w-0 items-start gap-4">
-          <div
-            className="grid h-14 w-14 shrink-0 place-items-center rounded-control border border-app-border bg-app-surface-muted text-xl font-bold text-app-accent"
-            aria-hidden="true"
-          >
-            {research.symbol[0]}
-          </div>
+          {isLogoLoadFailed ? (
+            <div
+              className="grid h-14 w-14 shrink-0 place-items-center rounded-control border border-app-border bg-app-surface-muted text-xl font-bold text-app-accent"
+              aria-hidden="true"
+            >
+              {research.symbol[0]}
+            </div>
+          ) : (
+            <div className="h-14 w-14 shrink-0 overflow-hidden rounded-control border border-app-border bg-app-surface-muted">
+              <img
+                src={`https://assets.parqet.com/logos/symbol/${research.symbol}?format=png`}
+                alt=""
+                referrerPolicy="no-referrer"
+                className="h-full w-full object-contain p-1.5"
+                onError={() => setIsLogoLoadFailed(true)}
+              />
+            </div>
+          )}
           <div className="min-w-0">
             <div className="flex flex-wrap items-end gap-3">
-              <h2 className="text-3xl font-bold text-app-text">
-                {research.symbol}
-              </h2>
+              <div className="flex items-center gap-1">
+                <h2 className="text-3xl font-bold text-app-text">
+                  {research.symbol}
+                </h2>
+                <button
+                  type="button"
+                  aria-label={isFavorite ? '관심종목 해제' : '관심종목 추가'}
+                  aria-pressed={isFavorite}
+                  disabled={isFavoritePending}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-control text-app-text-muted transition-colors hover:bg-app-surface-muted hover:text-app-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent disabled:cursor-not-allowed disabled:opacity-50"
+                  onClick={onToggleFavorite}
+                >
+                  <LuStar
+                    className={`h-5 w-5 ${
+                      isFavorite
+                        ? 'fill-current text-app-accent'
+                        : 'fill-none text-app-text-muted'
+                    }`}
+                    aria-hidden="true"
+                  />
+                </button>
+                <Link
+                  to={`${appRoutePaths.decisionLog}?symbol=${encodeURIComponent(research.symbol)}`}
+                  aria-label="판단 기록 보기"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-control text-app-text-muted transition-colors hover:bg-app-surface-muted hover:text-app-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent"
+                >
+                  <LuClipboardList className="h-5 w-5" aria-hidden="true" />
+                </Link>
+              </div>
               <span className="pb-1 text-base font-medium text-app-text-muted">
                 {research.name}
               </span>
@@ -865,17 +880,22 @@ function HeaderCard({
                 ? '신뢰도 없음'
                 : `신뢰도 ${Math.round(research.stanceConfidence)}%`}
             </span>
+            {research.confidenceBasis || research.stanceComment ? (
+              <InfoTooltip
+                label="신뢰도 상세 보기"
+                content={
+                  <div className="space-y-2">
+                    {research.confidenceBasis ? (
+                      <p>{research.confidenceBasis}</p>
+                    ) : null}
+                    {research.stanceComment ? (
+                      <p>{research.stanceComment}</p>
+                    ) : null}
+                  </div>
+                }
+              />
+            ) : null}
           </div>
-          {research.confidenceBasis ? (
-            <p className="mt-2 text-xs leading-5 text-app-text-muted">
-              {research.confidenceBasis}
-            </p>
-          ) : null}
-          {research.stanceComment ? (
-            <p className="mt-2 text-xs leading-5 text-app-text-muted">
-              {research.stanceComment}
-            </p>
-          ) : null}
         </div>
 
         <dl className="grid grid-cols-2 gap-x-5 gap-y-4 sm:grid-cols-3">
@@ -908,29 +928,49 @@ function RiskPanel({ research }: { research: ResearchView }) {
         </div>
       </div>
       {research.keyRisks.length > 0 ? (
-        <ul className="mt-4 flex flex-col gap-3">
+        <ul className="mt-4 divide-y divide-app-border">
           {research.keyRisks.map((risk) => (
             <li
               key={risk.id}
-              className="rounded-control border border-app-border bg-app-surface-muted p-4"
+              className="flex min-w-0 items-center gap-3 py-2.5 first:pt-0 last:pb-0"
             >
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <h3 className="font-semibold text-app-text">{risk.title}</h3>
+              <span
+                className={`h-2 w-2 shrink-0 rounded-full ${riskDotClassNames[risk.level] ?? 'bg-app-text-muted'}`}
+                aria-hidden="true"
+              />
+              <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
+                <span className="inline-flex min-w-0 items-center gap-1.5">
+                  <h3
+                    className="truncate font-semibold text-app-text"
+                    title={risk.title}
+                  >
+                    {risk.title}
+                  </h3>
+                  {(risk.evidence?.length ?? 0) > 0 ? (
+                    <InfoTooltip
+                      label={`${risk.title} 근거`}
+                      className="shrink-0 [&_button]:text-app-text-muted [&_button:hover]:text-app-text"
+                      content={
+                        <div className="space-y-2">
+                          <p>{risk.description}</p>
+                          <ul className="list-disc space-y-1 pl-5">
+                            {risk.evidence?.map((evidence) => (
+                              <li key={evidence}>{evidence}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      }
+                    />
+                  ) : null}
+                </span>
                 <Badge riskLevel={risk.level as '낮음' | '중간' | '높음'} />
+                <p
+                  className="min-w-0 flex-1 truncate text-sm text-app-text-muted"
+                  title={risk.description}
+                >
+                  {risk.description}
+                </p>
               </div>
-              <p className="mt-2 text-sm leading-6 text-app-text-muted">
-                {risk.description}
-              </p>
-              {(risk.evidence?.length ?? 0) > 0 ? (
-                <div className="mt-3">
-                  <h4 className="text-sm font-semibold text-app-text">근거</h4>
-                  <ul className="mt-1 list-disc space-y-1 pl-5 text-sm leading-6 text-app-text-muted">
-                    {risk.evidence?.map((evidence) => (
-                      <li key={evidence}>{evidence}</li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
             </li>
           ))}
         </ul>
@@ -963,18 +1003,16 @@ function CounterViewPanel({ items }: { items: string[] }) {
 
 function CoverageAxisRow({ item }: { item: CoverageAxisItem }) {
   return (
-    <li className="rounded-control border border-app-border bg-app-surface-muted p-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="font-semibold text-app-text">{item.axisLabel}</span>
-        <Badge tone={item.isCollected ? 'info' : 'neutral'}>
-          {item.isCollected ? '수집됨' : '미수집'}
-        </Badge>
-      </div>
-      <p className="mt-2 text-sm text-app-text-muted">
+    <li className="flex flex-wrap items-center gap-x-2 gap-y-1 py-2.5 first:pt-0 last:pb-0">
+      <span className="font-semibold text-app-text">{item.axisLabel}</span>
+      <Badge tone={item.isCollected ? 'info' : 'neutral'}>
+        {item.isCollected ? '수집됨' : '미수집'}
+      </Badge>
+      <span className="text-sm text-app-text-muted">
         {item.isCollected
           ? `갱신 ${item.lastUpdatedAt ?? '-'} · ${item.itemCount}건`
           : '데이터 없음'}
-      </p>
+      </span>
     </li>
   )
 }
@@ -1004,7 +1042,7 @@ function ResearchCoveragePanel({ assetId }: { assetId: number }) {
           className="py-6"
         />
       ) : (
-        <ul className="mt-4 flex flex-col gap-3">
+        <ul className="mt-4 divide-y divide-app-border">
           {axes.map((item) => (
             <CoverageAxisRow key={item.axis} item={item} />
           ))}
@@ -1505,6 +1543,7 @@ export function ResearchPage() {
       </header>
 
       <HeaderCard
+        key={research.symbol}
         research={research}
         isFavorite={isFavorite}
         isFavoritePending={isFavoritePending}
