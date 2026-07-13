@@ -884,7 +884,7 @@ function RiskPanel({ research }: { research: ResearchView }) {
 
 function CounterViewPanel({ items }: { items: string[] }) {
   return (
-    <Card>
+    <Card className="h-full">
       <h2 className="text-xl font-bold text-app-text">반대 관점</h2>
       <p className="mt-2 text-sm leading-6 text-app-text-muted">
         현재 판단과 반대되는 근거를 함께 확인해 확증 편향을 줄이세요.
@@ -926,7 +926,7 @@ function ResearchCoveragePanel({ assetId }: { assetId: number }) {
   const collectedCount = axes.filter((item) => item.isCollected).length
 
   return (
-    <Card>
+    <Card className="h-full">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-bold text-app-text">데이터 커버리지</h2>
         {!coverageQuery.isLoading && !coverageQuery.isError ? (
@@ -1433,10 +1433,13 @@ export function ResearchPage() {
               ) : null,
             )}
           </Card>
-          <CounterViewPanel items={research.counterView} />
           <RiskPanel research={research} />
-          <ResearchCoveragePanel assetId={research.assetId} />
         </aside>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <CounterViewPanel items={research.counterView} />
+        <ResearchCoveragePanel assetId={research.assetId} />
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
