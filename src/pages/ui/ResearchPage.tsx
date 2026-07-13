@@ -1389,7 +1389,7 @@ export function ResearchPage() {
         onToggleFavorite={toggleFavorite}
       />
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)] xl:items-start">
         <PriceChartCard research={research} />
         <aside className="flex flex-col gap-6">
           <Card id={researchSectionIds.briefing} tabIndex={-1}>
