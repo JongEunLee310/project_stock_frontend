@@ -1384,15 +1384,23 @@ describe('ResearchPage', () => {
     expect(
       screen.getByText('Example News · 2026. 7. 10. 오전 9:00'),
     ).toBeVisible()
-    expect(screen.getByText('A new product cycle begins.')).toBeVisible()
-    expect(screen.getByText('영향 긍정')).toHaveClass('text-emerald-200')
-    expect(screen.getByText('중요도 중간')).toBeVisible()
+    expect(
+      screen.queryByText('A new product cycle begins.'),
+    ).not.toBeInTheDocument()
+    expect(screen.queryByText('영향 긍정')).not.toBeInTheDocument()
+    expect(screen.queryByText('중요도 중간')).not.toBeInTheDocument()
     expect(
       screen.getByRole('link', { name: 'New accelerator announced' }),
     ).toHaveAttribute('href', 'https://example.com/news/17')
     expect(
       screen.getByRole('link', { name: 'New accelerator announced' }),
     ).toHaveAttribute('target', '_blank')
+    expect(
+      screen.getByRole('link', { name: 'New accelerator announced' }),
+    ).toHaveAttribute('title', 'New accelerator announced')
+    expect(
+      screen.queryByRole('button', { name: '더 보기' }),
+    ).not.toBeInTheDocument()
 
     fireEvent.click(disclosuresTab)
 
@@ -1403,6 +1411,70 @@ describe('ResearchPage', () => {
     expect(
       screen.queryByText('New accelerator announced'),
     ).not.toBeInTheDocument()
+  })
+
+  it('shows three compact news items and expands and collapses the full list', async () => {
+    const createItems = (kind: 'News' | 'Disclosure') =>
+      Array.from({ length: 4 }, (_, index) => ({
+        id: `${kind.toLowerCase()}-${index + 1}`,
+        title: `${kind} title ${index + 1}`,
+        url: `https://example.com/${kind.toLowerCase()}/${index + 1}`,
+        source: 'Example News',
+        publishedAt: `2026. 7. ${12 - index}.`,
+        summary: `${kind} summary ${index + 1}`,
+        categoryLabel: '제품',
+        impactLabel: '중간',
+        sentiment: 'POSITIVE' as const,
+      }))
+
+    mockUseNewsDisclosure.mockReturnValue({
+      data: {
+        news: createItems('News'),
+        disclosures: createItems('Disclosure'),
+      },
+      error: null,
+      isError: false,
+      isLoading: false,
+      refetch: mockNewsDisclosureRefetch,
+    })
+    renderResearch()
+
+    await screen.findByRole('heading', { name: 'NVDA 리서치' })
+    for (const title of ['News title 1', 'News title 2', 'News title 3']) {
+      expect(screen.getByRole('link', { name: title })).toBeVisible()
+    }
+    expect(
+      screen.queryByRole('link', { name: 'News title 4' }),
+    ).not.toBeInTheDocument()
+    expect(screen.queryByText('News summary 1')).not.toBeInTheDocument()
+
+    const expandButton = screen.getByRole('button', { name: '더 보기' })
+    expect(expandButton).toHaveAttribute('aria-expanded', 'false')
+    fireEvent.click(expandButton)
+
+    expect(screen.getByRole('link', { name: 'News title 4' })).toBeVisible()
+    expect(screen.getByText('News summary 1')).toBeVisible()
+    expect(screen.getAllByText('영향 긍정')).toHaveLength(4)
+    const collapseButton = screen.getByRole('button', { name: '접기' })
+    expect(collapseButton).toHaveAttribute('aria-expanded', 'true')
+    fireEvent.click(collapseButton)
+
+    expect(
+      screen.queryByRole('link', { name: 'News title 4' }),
+    ).not.toBeInTheDocument()
+    expect(screen.queryByText('News summary 1')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '더 보기' })).toBeVisible()
+
+    fireEvent.click(screen.getByRole('button', { name: '더 보기' }))
+    fireEvent.click(screen.getByRole('tab', { name: '공시' }))
+
+    expect(
+      screen.queryByRole('link', { name: 'Disclosure title 4' }),
+    ).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '더 보기' })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    )
   })
 
   it('isolates a news and disclosure error and retries inside the card', async () => {
