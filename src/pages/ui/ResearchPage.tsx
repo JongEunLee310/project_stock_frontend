@@ -1201,30 +1201,40 @@ function NewsDisclosurePanel({ assetId }: { assetId: number }) {
     <Card id={researchSectionIds.news} tabIndex={-1} className="h-full">
       <h2 className="text-xl font-bold text-app-text">뉴스 및 공시 요약</h2>
       <div
-        className="mt-4 flex gap-2 border-b border-app-border pb-3"
+        className="mt-4 flex gap-5 border-b border-app-border"
         role="tablist"
         aria-label="뉴스 및 공시"
       >
-        <Button
+        <button
           id="research-news-tab"
           role="tab"
-          variant={isNewsTab ? 'selected' : 'ghost'}
+          type="button"
           aria-selected={isNewsTab}
           aria-controls="research-news-disclosure-panel"
+          className={`-mb-px border-b-2 px-1 pb-2.5 pt-1 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent ${
+            isNewsTab
+              ? 'border-app-accent font-bold text-app-accent'
+              : 'border-transparent font-semibold text-app-text-muted hover:text-app-text'
+          }`}
           onClick={() => selectTab('news')}
         >
           뉴스
-        </Button>
-        <Button
+        </button>
+        <button
           id="research-disclosures-tab"
           role="tab"
-          variant={isNewsTab ? 'ghost' : 'selected'}
+          type="button"
           aria-selected={!isNewsTab}
           aria-controls="research-news-disclosure-panel"
+          className={`-mb-px border-b-2 px-1 pb-2.5 pt-1 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent ${
+            !isNewsTab
+              ? 'border-app-accent font-bold text-app-accent'
+              : 'border-transparent font-semibold text-app-text-muted hover:text-app-text'
+          }`}
           onClick={() => selectTab('disclosures')}
         >
           공시
-        </Button>
+        </button>
       </div>
       <div
         id="research-news-disclosure-panel"

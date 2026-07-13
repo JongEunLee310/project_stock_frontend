@@ -40,7 +40,8 @@ PR #176은 배지 축소·accent 배지 저채도화·ghost hover 완화만 반�
 
 - 차트 탭(가격·밸류에이션·실적)은 면 하이라이트 대신 밑줄 + bold +
   accent 색의 밑줄형 탭으로 바꾼다 (plain button, role=tab 유지).
-  뉴스/공시 탭과 기간 버튼은 selected variant 유지.
+  뉴스/공시 탭도 동일한 밑줄형으로 통일한다. 기간 버튼·벤치마크
+  토글은 selected variant 유지.
 - 차트 현재가 pill(`renderLastValueShape`)을 저채도화한다: 표면색
   베이스 rect 위에 accent 틴트(fillOpacity 0.16)·보더(strokeOpacity
   0.45)를 얹고 텍스트는 accent 색으로 표시한다.
