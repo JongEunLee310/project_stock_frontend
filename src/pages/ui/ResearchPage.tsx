@@ -53,8 +53,8 @@ import {
 } from '@/shared/ui'
 
 const priceRanges: PriceRange[] = ['1D', '1M', '3M', '6M', '1Y']
+const priceChartColor = '#5fa8ff'
 const priceChartSeries = [
-  { dataKey: 'close', color: '#5fa8ff' },
   { dataKey: 'ma20', color: '#f59e0b', strokeDasharray: '6 4' },
 ] as const
 const benchmarkColors = ['#5fa8ff', '#34d399', '#a855f7'] as const
@@ -191,6 +191,25 @@ function PriceSparkline({ research }: { research: ResearchView }) {
   const priceSeries = priceSeriesQuery.data
   const data = priceSeries?.points ?? []
   const hasVolume = data.some((point) => point.volume !== null)
+  const validCloses = data.flatMap((point) =>
+    Number.isFinite(point.close) ? [point.close] : [],
+  )
+  const latestClose = validCloses.at(-1) ?? null
+  const previousClose = validCloses.at(-2) ?? null
+  const priceChange =
+    latestClose !== null && previousClose !== null
+      ? latestClose - previousClose
+      : null
+  const priceChangePercent =
+    priceChange !== null && previousClose !== null && previousClose !== 0
+      ? (priceChange / previousClose) * 100
+      : null
+  const priceChangeClassName =
+    priceChange === null || priceChange === 0
+      ? 'text-app-text-muted'
+      : priceChange > 0
+        ? 'text-emerald-400'
+        : 'text-red-400'
   const benchmarkSeries = benchmarkQuery.data ?? emptyBenchmarkSeries
   const eventMarkers = snapEventsToChartPoints(
     assetEventsQuery.data ?? [],
@@ -304,6 +323,7 @@ function PriceSparkline({ research }: { research: ResearchView }) {
             margin={{ top: 10, right: 12, bottom: 4, left: 4 }}
             showGrid
             showTooltip
+            yAxisOrientation="right"
           />
         </div>
       ) : isBenchmarkEnabled ? (
@@ -326,7 +346,23 @@ function PriceSparkline({ research }: { research: ResearchView }) {
           >
             <li className="flex items-center gap-2">
               <span className="h-0.5 w-5 bg-[#5fa8ff]" aria-hidden="true" />
-              현재가
+              <span className="font-semibold text-app-text">
+                {research.symbol}
+              </span>
+              <span aria-hidden="true">·</span>
+              <span>
+                {formatCurrency(
+                  latestClose,
+                  priceSeries?.currency ?? research.currency,
+                )}
+              </span>
+              <span className={priceChangeClassName} aria-label="등락">
+                {formatSignedCurrency(
+                  priceChange,
+                  priceSeries?.currency ?? research.currency,
+                )}{' '}
+                ({formatSignedPercent(priceChangePercent)})
+              </span>
             </li>
             <li className="flex items-center gap-2">
               <span
@@ -350,21 +386,32 @@ function PriceSparkline({ research }: { research: ResearchView }) {
             ariaLabel={`${research.symbol} 최근 가격 추이`}
             xDataKey="date"
             series={[...priceChartSeries]}
+            areaSeries={{ dataKey: 'close', color: priceChartColor }}
             markers={eventMarkers}
-            margin={{ top: 10, right: 12, bottom: 4, left: 4 }}
+            margin={{
+              top: 10,
+              right: 12,
+              bottom: hasVolume ? 0 : 4,
+              left: 4,
+            }}
             showGrid
             showTooltip
+            yAxisOrientation="right"
+            hideXAxis={hasVolume}
+            lastValueLabel={{ dataKey: 'close', color: priceChartColor }}
           />
           {hasVolume ? (
             <BarChart
-              className="mt-3 h-20 w-full"
+              className="mt-0 h-20 w-full"
               data={data}
               height={80}
               color="#475569"
               ariaLabel={`${research.symbol} 거래량`}
               xDataKey="date"
               yDataKey="volume"
-              margin={{ top: 4, right: 12, bottom: 0, left: 4 }}
+              // right 60 = 가격 차트의 right margin 12 + 우측 YAxis 폭 48 (플롯 영역 정렬)
+              margin={{ top: 0, right: 60, bottom: 0, left: 4 }}
+              showAxes
             />
           ) : null}
         </div>
@@ -727,6 +774,7 @@ function HeaderCard({
           variant={isFavorite ? 'primary' : 'secondary'}
           aria-pressed={isFavorite}
           disabled={isFavoritePending}
+          className="min-h-8 px-3 py-1 text-xs"
           onClick={onToggleFavorite}
         >
           {isFavorite ? '관심종목 등록됨' : '관심종목 추가'}
@@ -734,12 +782,14 @@ function HeaderCard({
         <Button
           type="button"
           variant="secondary"
+          className="min-h-8 px-3 py-1 text-xs"
           onClick={() => navigate(appRoutePaths.watchlist)}
         >
           워치리스트
         </Button>
         <Button
           type="button"
+          className="min-h-8 px-3 py-1 text-xs"
           onClick={() =>
             navigate(
               `${appRoutePaths.decisionLog}?symbol=${encodeURIComponent(research.symbol)}`,
@@ -750,7 +800,7 @@ function HeaderCard({
         </Button>
       </div>
 
-      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-[minmax(12rem,1.1fr)_minmax(10rem,0.7fr)_minmax(12rem,0.85fr)_minmax(19rem,1.4fr)]">
+      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-[minmax(12rem,1.1fr)_minmax(10rem,0.7fr)_minmax(12rem,0.85fr)_minmax(19rem,1.6fr)]">
         <div className="flex min-w-0 items-start gap-4">
           <div
             className="grid h-14 w-14 shrink-0 place-items-center rounded-control border border-app-border bg-app-surface-muted text-xl font-bold text-app-accent"
@@ -773,10 +823,10 @@ function HeaderCard({
           </div>
         </div>
 
-        <div className="flex flex-col justify-center rounded-control border border-app-border bg-app-surface-muted p-4">
+        <div className="flex flex-col justify-center">
           <p className="text-xs font-medium text-app-text-muted">현재가</p>
           <strong
-            className="mt-2 text-2xl font-bold text-app-text"
+            className="mt-1 text-3xl font-bold text-app-text"
             aria-label="현재가"
           >
             {formatCurrency(research.price, research.currency)}
@@ -791,43 +841,38 @@ function HeaderCard({
         </div>
 
         <div className="rounded-control border border-app-border bg-app-surface-muted p-4">
-          <div>
-            <p className="text-sm font-semibold text-app-text-muted">
-              AI 투자 스탠스
-            </p>
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <Badge tone="accent">
-                {research.stanceConfidence === null
-                  ? '신뢰도 없음'
-                  : `신뢰도 ${Math.round(research.stanceConfidence)}%`}
-              </Badge>
-            </div>
-            {research.confidenceBasis ? (
-              <p className="mt-2 text-xs leading-5 text-app-text-muted">
-                {research.confidenceBasis}
-              </p>
-            ) : null}
-            <p className="mt-4 text-sm font-semibold leading-6 text-app-text">
+          <p className="text-xs font-medium text-app-text-muted">
+            AI 투자 스탠스
+          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Badge tone="accent" className="text-xs font-semibold">
               {research.stance}
-            </p>
-            {research.stanceComment ? (
-              <p className="mt-2 text-xs leading-5 text-app-text-muted">
-                {research.stanceComment}
-              </p>
-            ) : null}
+            </Badge>
+            <span className="text-xs font-semibold text-app-text">
+              {research.stanceConfidence === null
+                ? '신뢰도 없음'
+                : `신뢰도 ${Math.round(research.stanceConfidence)}%`}
+            </span>
           </div>
+          {research.confidenceBasis ? (
+            <p className="mt-2 text-xs leading-5 text-app-text-muted">
+              {research.confidenceBasis}
+            </p>
+          ) : null}
+          {research.stanceComment ? (
+            <p className="mt-2 text-xs leading-5 text-app-text-muted">
+              {research.stanceComment}
+            </p>
+          ) : null}
         </div>
 
-        <dl className="grid grid-cols-2 gap-3">
+        <dl className="grid grid-cols-2 gap-x-5 gap-y-4 sm:grid-cols-3">
           {metricTiles.map((metric) => (
-            <div
-              key={metric.label}
-              className="min-h-20 rounded-control border border-app-border bg-app-surface-muted p-3"
-            >
+            <div key={metric.label} className="min-w-0">
               <dt className="text-xs font-medium text-app-text-muted">
                 {metric.label}
               </dt>
-              <dd className="mt-2 text-sm font-bold leading-5 text-app-text">
+              <dd className="mt-1 text-sm font-semibold leading-5 text-app-text">
                 {metric.value}
               </dd>
             </div>
@@ -886,7 +931,7 @@ function RiskPanel({ research }: { research: ResearchView }) {
 
 function CounterViewPanel({ items }: { items: string[] }) {
   return (
-    <Card>
+    <Card className="h-full">
       <h2 className="text-xl font-bold text-app-text">반대 관점</h2>
       <p className="mt-2 text-sm leading-6 text-app-text-muted">
         현재 판단과 반대되는 근거를 함께 확인해 확증 편향을 줄이세요.
@@ -928,7 +973,7 @@ function ResearchCoveragePanel({ assetId }: { assetId: number }) {
   const collectedCount = axes.filter((item) => item.isCollected).length
 
   return (
-    <Card>
+    <Card className="h-full">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-bold text-app-text">데이터 커버리지</h2>
         {!coverageQuery.isLoading && !coverageQuery.isError ? (
@@ -1002,15 +1047,39 @@ function ChecklistPanel({
   )
 }
 
-function NewsDisclosureList({ items }: { items: NewsDisclosureItem[] }) {
+function NewsDisclosureList({
+  items,
+  variant,
+}: {
+  items: NewsDisclosureItem[]
+  variant: 'compact' | 'full'
+}) {
+  const isCompact = variant === 'compact'
+
   return (
-    <ul className="mt-4 flex flex-col gap-3">
+    <ul
+      className={
+        isCompact
+          ? 'mt-4 divide-y divide-app-border'
+          : 'mt-4 flex flex-col gap-3'
+      }
+    >
       {items.map((item) => (
         <li
           key={item.id}
-          className="rounded-control border border-app-border bg-app-surface-muted p-4"
+          className={
+            isCompact
+              ? 'py-3 first:pt-0 last:pb-0'
+              : 'rounded-control border border-app-border bg-app-surface-muted p-4'
+          }
         >
-          <div className="flex flex-wrap items-start gap-2">
+          <div
+            className={
+              isCompact
+                ? 'flex min-w-0 items-center gap-2'
+                : 'flex flex-wrap items-start gap-2'
+            }
+          >
             {item.categoryLabel ? (
               <Badge tone="info" className="shrink-0 text-xs">
                 {item.categoryLabel}
@@ -1021,7 +1090,10 @@ function NewsDisclosureList({ items }: { items: NewsDisclosureItem[] }) {
                 href={item.url}
                 target="_blank"
                 rel="noreferrer"
-                className="underline decoration-app-border underline-offset-4 transition-colors hover:text-app-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent"
+                title={isCompact ? item.title : undefined}
+                className={`underline decoration-app-border underline-offset-4 transition-colors hover:text-app-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent ${
+                  isCompact ? 'block truncate' : ''
+                }`}
               >
                 {item.title}
               </a>
@@ -1031,12 +1103,12 @@ function NewsDisclosureList({ items }: { items: NewsDisclosureItem[] }) {
             {item.source}
             {item.publishedAt ? ` · ${item.publishedAt}` : null}
           </p>
-          {item.summary ? (
+          {!isCompact && item.summary ? (
             <p className="mt-2 text-sm leading-6 text-app-text-muted">
               {item.summary}
             </p>
           ) : null}
-          {item.sentiment || item.impactLabel ? (
+          {!isCompact && (item.sentiment || item.impactLabel) ? (
             <div className="mt-3 flex flex-wrap gap-2">
               {item.sentiment ? (
                 <Badge
@@ -1057,11 +1129,23 @@ function NewsDisclosureList({ items }: { items: NewsDisclosureItem[] }) {
   )
 }
 
+const COMPACT_NEWS_DISCLOSURE_LIMIT = 3
+
 function NewsDisclosurePanel({ assetId }: { assetId: number }) {
   const [activeTab, setActiveTab] = useState<'news' | 'disclosures'>('news')
+  const [isExpanded, setIsExpanded] = useState(false)
   const newsDisclosureQuery = useNewsDisclosure(assetId)
   const items = newsDisclosureQuery.data?.[activeTab] ?? []
   const isNewsTab = activeTab === 'news'
+  const hasMoreItems = items.length > COMPACT_NEWS_DISCLOSURE_LIMIT
+  const visibleItems = isExpanded
+    ? items
+    : items.slice(0, COMPACT_NEWS_DISCLOSURE_LIMIT)
+
+  const selectTab = (tab: 'news' | 'disclosures') => {
+    setActiveTab(tab)
+    setIsExpanded(false)
+  }
 
   return (
     <Card id={researchSectionIds.news} tabIndex={-1} className="h-full">
@@ -1077,7 +1161,7 @@ function NewsDisclosurePanel({ assetId }: { assetId: number }) {
           variant={isNewsTab ? 'primary' : 'ghost'}
           aria-selected={isNewsTab}
           aria-controls="research-news-disclosure-panel"
-          onClick={() => setActiveTab('news')}
+          onClick={() => selectTab('news')}
         >
           뉴스
         </Button>
@@ -1087,7 +1171,7 @@ function NewsDisclosurePanel({ assetId }: { assetId: number }) {
           variant={isNewsTab ? 'ghost' : 'primary'}
           aria-selected={!isNewsTab}
           aria-controls="research-news-disclosure-panel"
-          onClick={() => setActiveTab('disclosures')}
+          onClick={() => selectTab('disclosures')}
         >
           공시
         </Button>
@@ -1109,7 +1193,33 @@ function NewsDisclosurePanel({ assetId }: { assetId: number }) {
             className="py-6"
           />
         ) : items.length > 0 ? (
-          <NewsDisclosureList items={items} />
+          <>
+            <NewsDisclosureList
+              items={visibleItems}
+              variant={isExpanded ? 'full' : 'compact'}
+            />
+            {hasMoreItems ? (
+              <div className="mt-2 flex justify-end">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="min-h-8 gap-1 px-2 py-1 text-app-text-muted"
+                  aria-expanded={isExpanded}
+                  onClick={() => setIsExpanded((current) => !current)}
+                >
+                  {isExpanded ? (
+                    <>
+                      접기 <span aria-hidden="true">‹</span>
+                    </>
+                  ) : (
+                    <>
+                      더 보기 <span aria-hidden="true">›</span>
+                    </>
+                  )}
+                </Button>
+              </div>
+            ) : null}
+          </>
         ) : (
           <EmptyState
             title={
@@ -1435,10 +1545,13 @@ export function ResearchPage() {
               ) : null,
             )}
           </Card>
-          <CounterViewPanel items={research.counterView} />
           <RiskPanel research={research} />
-          <ResearchCoveragePanel assetId={research.assetId} />
         </aside>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <CounterViewPanel items={research.counterView} />
+        <ResearchCoveragePanel assetId={research.assetId} />
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
