@@ -40,18 +40,18 @@
 
 ## 컴포넌트 책임
 
-| 요소 | 위치 | 책임 |
-| --- | --- | --- |
-| `ResearchPage` | `pages/ui` | 심볼 해석·mock 조회·미발견 처리·하위 조합·체크리스트/메모/관심종목 로컬 상태 보유. |
-| 헤더 카드 | 페이지 내부 | `mockStocks` 조인 + research 지표 타일·AI 스탠스 박스 표시. |
-| 지표 타일 | 페이지 내부 | 라벨 + 값(타일 반복). |
-| 차트 영역(자리표시) | 페이지 내부(재사용 시 `shared/ui` 후보) | 탭·기간 프레임 + `pricePoints` 스파크라인(SVG). |
-| AI 브리핑 패널 | 페이지 내부 | `briefing` 표시. |
-| 핵심 리스크 패널 | 페이지 내부 | `keyRisks` 리스트 + 위험도 `Badge`. |
-| 뉴스 요약 | 페이지 내부 | `news` 리스트(카테고리·위험도 `Badge`). |
-| 촉매 타임라인 | 페이지 내부 | `catalysts` 정렬·타임라인. |
-| 체크리스트 | 페이지 내부 | 항목 체크 토글·진행도 파생. |
-| 메모 | 페이지 내부 | textarea 로컬 입력. |
+| 요소                | 위치                                    | 책임                                                                               |
+| ------------------- | --------------------------------------- | ---------------------------------------------------------------------------------- |
+| `ResearchPage`      | `pages/ui`                              | 심볼 해석·mock 조회·미발견 처리·하위 조합·체크리스트/메모/관심종목 로컬 상태 보유. |
+| 헤더 카드           | 페이지 내부                             | `mockStocks` 조인 + research 지표 타일·AI 스탠스 박스 표시.                        |
+| 지표 타일           | 페이지 내부                             | 라벨 + 값(타일 반복).                                                              |
+| 차트 영역(자리표시) | 페이지 내부(재사용 시 `shared/ui` 후보) | 탭·기간 프레임 + `pricePoints` 스파크라인(SVG).                                    |
+| AI 브리핑 패널      | 페이지 내부                             | `briefing` 표시.                                                                   |
+| 핵심 리스크 패널    | 페이지 내부                             | `keyRisks` 리스트 + 위험도 `Badge`.                                                |
+| 뉴스 요약           | 페이지 내부                             | `news` 리스트(카테고리·위험도 `Badge`).                                            |
+| 촉매 타임라인       | 페이지 내부                             | `catalysts` 정렬·타임라인.                                                         |
+| 체크리스트          | 페이지 내부                             | 항목 체크 토글·진행도 파생.                                                        |
+| 메모                | 페이지 내부                             | textarea 로컬 입력.                                                                |
 
 ### 위험도/상태/카테고리 표시
 
@@ -66,25 +66,25 @@
 
 ### 신규 enum (`src/shared/model/`)
 
-| 파일 | 정의 | 값 |
-| --- | --- | --- |
-| `newsCategory.ts` | `newsCategories` + `NewsCategory` | 실적 · 제품 · 파트너십 · 규제 |
-| `catalystCategory.ts` | `catalystCategories` + `CatalystCategory` | 이벤트 · 실적 · 제품 · 공급 |
+| 파일                  | 정의                                      | 값                            |
+| --------------------- | ----------------------------------------- | ----------------------------- |
+| `newsCategory.ts`     | `newsCategories` + `NewsCategory`         | 실적 · 제품 · 파트너십 · 규제 |
+| `catalystCategory.ts` | `catalystCategories` + `CatalystCategory` | 이벤트 · 실적 · 제품 · 공급   |
 
 ### 타입 필드 추가 (`src/shared/model/domain.ts`)
 
-| 타입 | 추가 필드 | 의미 |
-| --- | --- | --- |
-| `StockResearch` | `priceAsOf: string` | 시세 기준 시각 표시(예 "05.24 16:00 ET · 종가") |
-| `StockResearch` | `stanceConfidence: number` | AI 스탠스 신뢰도(0~100) |
-| `StockResearch` | `marketCap: string` | 시가총액 표시값(예 "2.54T USD") |
-| `StockResearch` | `fiftyTwoWeekLow: number` / `fiftyTwoWeekHigh: number` | 52주 저가/고가 |
-| `StockResearch` | `sector: string` | 섹터(예 "정보기술") |
-| `StockResearch` | `nextEarningsDate: string` | 다음 실적 발표일(YYYY-MM-DD); 미래면 "예정" 표시는 파생 |
-| `StockResearch` | `targetPrice: number` / `targetUpsidePercent: number` | 평균 목표주가·상승여력% |
-| `NewsItem` | `category: NewsCategory` | 뉴스 분류 태그 |
-| `CatalystItem` | `category: CatalystCategory` | 촉매 분류 태그 |
-| `ChecklistItem` | `description: string` | 체크 항목 보조 설명 |
+| 타입            | 추가 필드                                              | 의미                                                    |
+| --------------- | ------------------------------------------------------ | ------------------------------------------------------- |
+| `StockResearch` | `priceAsOf: string`                                    | 시세 기준 시각 표시(예 "05.24 16:00 ET · 종가")         |
+| `StockResearch` | `stanceConfidence: number`                             | AI 스탠스 신뢰도(0~100)                                 |
+| `StockResearch` | `marketCap: string`                                    | 시가총액 표시값(예 "2.54T USD")                         |
+| `StockResearch` | `fiftyTwoWeekLow: number` / `fiftyTwoWeekHigh: number` | 52주 저가/고가                                          |
+| `StockResearch` | `sector: string`                                       | 섹터(예 "정보기술")                                     |
+| `StockResearch` | `nextEarningsDate: string`                             | 다음 실적 발표일(YYYY-MM-DD); 미래면 "예정" 표시는 파생 |
+| `StockResearch` | `targetPrice: number` / `targetUpsidePercent: number`  | 평균 목표주가·상승여력%                                 |
+| `NewsItem`      | `category: NewsCategory`                               | 뉴스 분류 태그                                          |
+| `CatalystItem`  | `category: CatalystCategory`                           | 촉매 분류 태그                                          |
+| `ChecklistItem` | `description: string`                                  | 체크 항목 보조 설명                                     |
 
 > `marketCap`은 조 단위 표기를 위한 포매팅 유틸 도입을 피하려 표시 문자열로 둔다(WHY: 현 단계
 > 불필요한 추상화 회피). 가격/목표가/52주가는 숫자 유지.

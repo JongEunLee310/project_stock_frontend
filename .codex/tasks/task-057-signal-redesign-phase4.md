@@ -50,6 +50,7 @@ UNCHANGED)과 표기·색상 매핑은 설계 문서 표를 따른다. CLEARED�
 ## Implementation Scope
 
 **갱신**
+
 - `src/features/signals/dto.ts` — `SignalChangeDto`·`SignalSummaryDto`·
   `SignalChangeTimelineItemDto` 신설, `SignalDto`에 `key_points`·`change`
   추가.
@@ -67,6 +68,7 @@ UNCHANGED)과 표기·색상 매핑은 설계 문서 표를 따른다. CLEARED�
   및 아래 Test Requirements 추가.
 
 **변경 불가**
+
 - `src/features/signals/signalCategories.ts`
 - `src/pages/ui/DashboardPage.tsx`
 - BE 계약 관련 이외의 페이지·위젯

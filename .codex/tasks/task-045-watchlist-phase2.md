@@ -79,19 +79,19 @@ aria-label, S4 시장 필터 page 미초기화, S2 isPending 전 행 공유)을 
 - `src/features/watchlist/adapters.ts`
   — `WatchlistAssetRow`에서 `createdAt: string` 제거, `status: string`·`referenceAt: string | null` 추가
   — `resolveStatusBadge(status: string): { label: string; className: string }` 추가:
-    `NORMAL` → `{ label: '안정', className: stockStatusClassNames['안정'] }`;
-    `WATCH`·`BUY_CANDIDATE` → `{ label: '관망', ... }`;
-    `RISK_ALERT`·`THESIS_BROKEN`·`SELL_REVIEW`·`OVERHEATED` → `{ label: '위험 증가', ... }`;
-    폴백 → `{ label: '안정', ... }`
+  `NORMAL` → `{ label: '안정', className: stockStatusClassNames['안정'] }`;
+  `WATCH`·`BUY_CANDIDATE` → `{ label: '관망', ... }`;
+  `RISK_ALERT`·`THESIS_BROKEN`·`SELL_REVIEW`·`OVERHEATED` → `{ label: '위험 증가', ... }`;
+  폴백 → `{ label: '안정', ... }`
   — `adaptWatchlistAsset`: `status: item.status`, `referenceAt: item.asset.reference_at ?? null` 추가,
-    `createdAt` 제거
+  `createdAt` 제거
 
 - `src/features/watchlist/queries.ts`
   — `useWatchlistSparklines(range: string = '1M'): UseQueryResult<Record<string, number[]>>` 추가:
-    queryKey `[...watchlistQueryKey, 'sparklines', range]`,
-    `staleTime: 5 * 60 * 1000`,
-    첫 번째 관심목록 ID 조회 후 `/watchlists/{id}/sparklines?range={range}` 호출,
-    `items`를 `symbol → number[]`(parseDecimal 파싱)로 변환
+  queryKey `[...watchlistQueryKey, 'sparklines', range]`,
+  `staleTime: 5 * 60 * 1000`,
+  첫 번째 관심목록 ID 조회 후 `/watchlists/{id}/sparklines?range={range}` 호출,
+  `items`를 `symbol → number[]`(parseDecimal 파싱)로 변환
 
 - `src/pages/ui/WatchlistPage.tsx`
   — `SortKey` 타입에서 `createdAt` 제거, `sortLabels`에서 `createdAt: '추가일'` 제거
@@ -101,9 +101,9 @@ aria-label, S4 시장 필터 page 미초기화, S2 isPending 전 행 공유)을 
   — 위험 필터 드롭다운: `['안정', '관망', '위험 증가']` 고정 옵션, 변경 시 `setPage(1)`
   — `setMarketFilter` 핸들러에 `setPage(1)` 추가 (S4)
   — `removingItemId: number | null` state 추가,
-    `onRemove` 핸들러에서 `setRemovingItemId(itemId)` 후 mutation 호출,
-    mutation의 `onSettled`에서 `setRemovingItemId(null)`,
-    `RowMenu.isRemoving`을 `removingItemId === stock.id`로 변경 (S2)
+  `onRemove` 핸들러에서 `setRemovingItemId(itemId)` 후 mutation 호출,
+  mutation의 `onSettled`에서 `setRemovingItemId(null)`,
+  `RowMenu.isRemoving`을 `removingItemId === stock.id`로 변경 (S2)
   — `useWatchlistSparklines()` 호출, 각 행에 스파크라인 데이터 전달
   — `SummaryVisual`에 전일 대비 델타 표시 추가 (배열 길이 2 이상일 때만)
   — `visibleStocks` 필터링에 `statusFilter` 조건 추가
@@ -115,13 +115,13 @@ aria-label, S4 시장 필터 page 미초기화, S2 isPending 전 행 공유)을 
 
 - `src/features/watchlist/adapters.test.ts`
   — `resolveStatusBadge` 단위 테스트: 7개 status 값 각각 → 3단계 라벨·className 확인.
-    픽스처 status 리터럴에 출처 주석 기재.
+  픽스처 status 리터럴에 출처 주석 기재.
   — `adaptWatchlistAsset` 갱신: `status`·`referenceAt` 포함, `createdAt` 미포함 확인.
 
 - `src/features/watchlist/queries.test.ts`
   — `useWatchlistSparklines` 단위 테스트:
-    정상 응답(2개 종목) → `{ AAPL: [134, 136], NVDA: [450, 460] }` 형태 반환;
-    빈 `items` 배열 → `{}` 반환.
+  정상 응답(2개 종목) → `{ AAPL: [134, 136], NVDA: [450, 460] }` 형태 반환;
+  빈 `items` 배열 → `{}` 반환.
 
 - `src/pages/ui/WatchlistPage.test.tsx`
   — `RISK_ALERT` status 행에 `위험 증가` 배지 렌더링 확인.
@@ -132,7 +132,7 @@ aria-label, S4 시장 필터 page 미초기화, S2 isPending 전 행 공유)을 
 
 - `src/widgets/FloatingMarketCard.test.tsx`
   — S1 수정 후 `getByLabelText('시장 요약')` 단일 셀렉터로 통과 확인.
-    (`getAllByLabelText` → `getByLabelText` 복원)
+  (`getAllByLabelText` → `getByLabelText` 복원)
 
 ## Out of Scope
 

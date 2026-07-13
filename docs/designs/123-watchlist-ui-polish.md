@@ -22,7 +22,7 @@ watchlist 페이지 기능 범위(#117, #120)가 완결된 뒤 확인된 시각 
 - 테이블 헤더: `WatchlistPage.tsx:760-768` — 12개 th 전부 `text-left`,
   `first:w-10 last:w-10`.
 - 상태 배지: `WatchlistPage.tsx:795-801` — `rounded-full border px-2 py-1 text-xs
-  font-semibold min-w-16` pill + `resolveStatusBadge`가 반환하는
+font-semibold min-w-16` pill + `resolveStatusBadge`가 반환하는
   `stockStatusClassNames`(공유 토큰, `src/shared/ui/stockStatus.ts`) 조합.
 - 평가 배지: `EvaluationBadgeCell`(WatchlistPage.tsx) — 상태 배지와 동일한 pill
   마크업 + `evaluationBadgeClassNames`(`src/features/watchlist/adapters.ts:87-92`,
@@ -71,12 +71,12 @@ bg-*-400`. border는 제거한다.
 
 톤 매핑 (adapters.ts에서 정의, `stockStatusClassNames` 의존 제거):
 
-| tone | 배경/텍스트 | dot | 사용처 |
-|---|---|---|---|
-| danger | `bg-rose-500/10 text-rose-300` | `bg-rose-400` | 위험 증가, 높음, 고평가, 과열 |
-| warning | `bg-amber-500/10 text-amber-300` | `bg-amber-400` | 관망, 중간 |
-| safe | `bg-emerald-500/10 text-emerald-300` | `bg-emerald-400` | 안정, 낮음, 저평가, 냉각 |
-| neutral | `bg-slate-500/10 text-slate-300` | `bg-slate-400` | 적정, 중립, 폴백 |
+| tone    | 배경/텍스트                          | dot              | 사용처                        |
+| ------- | ------------------------------------ | ---------------- | ----------------------------- |
+| danger  | `bg-rose-500/10 text-rose-300`       | `bg-rose-400`    | 위험 증가, 높음, 고평가, 과열 |
+| warning | `bg-amber-500/10 text-amber-300`     | `bg-amber-400`   | 관망, 중간                    |
+| safe    | `bg-emerald-500/10 text-emerald-300` | `bg-emerald-400` | 안정, 낮음, 저평가, 냉각      |
+| neutral | `bg-slate-500/10 text-slate-300`     | `bg-slate-400`   | 적정, 중립, 폴백              |
 
 구현 방식:
 
@@ -98,9 +98,9 @@ bg-*-400`. border는 제거한다.
 
 - `src/features/watchlist/adapters.ts`
   — `evaluationBadgeClassNames` 스타일 교체, `evaluationBadgeDotClassNames` 추가
-    (R1에서 `indicator` 맵으로 대체됨 — Revision R1 절 참조)
+  (R1에서 `indicator` 맵으로 대체됨 — Revision R1 절 참조)
   — resolver 5종 반환 타입에 `dotClassName` 추가 (R1에서 `indicator`로 대체됨),
-    `resolveStatusBadge`의 `stockStatusClassNames` 의존 제거
+  `resolveStatusBadge`의 `stockStatusClassNames` 의존 제거
 - `src/pages/ui/WatchlistPage.tsx`
   — 툴바 단일 flex 행 재구성 (Decisions §1)
   — th `text-center`, 배지 셀 5개 `text-center` (Decisions §2)
@@ -110,10 +110,10 @@ bg-*-400`. border는 제거한다.
 
 - `src/features/watchlist/adapters.test.ts`
   — resolver 5종 단언을 새 반환 형태(`className`·`dotClassName`)에 맞게 갱신.
-    enum 픽스처와 출처 주석은 유지한다.
+  enum 픽스처와 출처 주석은 유지한다.
 - `src/pages/ui/WatchlistPage.test.tsx`
   — 배지 라벨 기반 단언은 그대로 통과해야 한다 (라벨 변경 없음).
-    클래스 문자열을 직접 단언하는 테스트가 있으면 새 스타일로 갱신한다.
+  클래스 문자열을 직접 단언하는 테스트가 있으면 새 스타일로 갱신한다.
 
 ## Revision R1 — 배지 인디케이터 기호 분화
 
@@ -124,19 +124,19 @@ bg-*-400`. border는 제거한다.
 
 - 톤별 인디케이터를 분화한다:
 
-| tone | indicator | 표기 |
-|---|---|---|
-| danger | glyph `⚠︎` (U+26A0 U+FE0E, 텍스트 표현 강제) | `text-rose-400` |
-| warning | glyph `!` | `text-amber-400 font-bold` |
-| safe | dot | `bg-emerald-400` (기존 유지) |
-| neutral | dot | `bg-slate-400` (기존 유지) |
+| tone    | indicator                                   | 표기                         |
+| ------- | ------------------------------------------- | ---------------------------- |
+| danger  | glyph `⚠︎` (U+26A0 U+FE0E, 텍스트 표현 강제) | `text-rose-400`              |
+| warning | glyph `!`                                   | `text-amber-400 font-bold`   |
+| safe    | dot                                         | `bg-emerald-400` (기존 유지) |
+| neutral | dot                                         | `bg-slate-400` (기존 유지)   |
 
 - resolver 5종의 반환 타입을 `{ label, className, indicator }`로 바꾼다.
   `indicator`는 `{ kind: 'dot' | 'glyph'; className: string; glyph?: string }`.
   기존 `dotClassName` 필드는 제거한다 (소비처는 `TableBadge`와 테스트뿐).
 - `TableBadge`는 `indicator.kind`에 따라 분기한다: `dot`이면 기존
   `h-1.5 w-1.5 rounded-full` span, `glyph`면 `<span aria-hidden="true"
-  className={indicator.className}>{indicator.glyph}</span>` (크기는 `text-[11px]`
+className={indicator.className}>{indicator.glyph}</span>` (크기는 `text-[11px]`
   수준으로 배지 텍스트보다 작거나 같게). 두 경우 모두 `aria-hidden`을 유지하고
   상태 의미는 라벨 텍스트가 전달한다.
 - 라벨·톤 배경/텍스트 클래스·폴백 규칙은 R0과 동일하다.

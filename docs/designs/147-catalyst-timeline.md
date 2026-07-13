@@ -23,7 +23,7 @@ BE #269(project_stock PR #274, dev 머지됨)의
 ## Adapters — `src/features/research/adapters.ts`
 
 - `CatalystEventItem` — `{ key: string, dateLabel: string,
-  title: string, typeLabel: string, isEstimated: boolean }`.
+title: string, typeLabel: string, isEstimated: boolean }`.
   - `key`는 `{event_date}:{event_type}:{index}` 조합 (내용 문자열 단독 key
     금지 관례).
   - `dateLabel`은 `MM.DD` 형식 (연도가 오늘과 다르면 `YYYY.MM.DD`).
@@ -37,7 +37,7 @@ BE #269(project_stock PR #274, dev 머지됨)의
 ## Queries — `src/features/research/queries.ts`
 
 - `useCatalystTimeline(assetId: number | undefined):
-  UseQueryResult<CatalystEventItem[]>` — `enabled: assetId != null`,
+UseQueryResult<CatalystEventItem[]>` — `enabled: assetId != null`,
   queryKey `['research', 'catalysts', assetId]`. `useNewsDisclosure`와
   같은 카드 독립 조회 패턴 (실패가 페이지를 막지 않음).
 

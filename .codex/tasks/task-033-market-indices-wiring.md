@@ -62,7 +62,7 @@ watchlist-observations 슬라이스와 동일한 dto·adapter·query 패턴으�
 
 - `src/features/market-indices/dto.ts` —
   `MarketIndexQuoteDto { symbol: string; name: string; value: string; change_percent: string;
-  reference_at: string }`. snake_case·문자열 보존.
+reference_at: string }`. snake_case·문자열 보존.
 - `src/features/market-indices/adapters.ts` —
   `adaptMarketIndexBoard(dtos: MarketIndexQuoteDto[]): MarketIndexBoard`. 순수 함수.
   각 dto를 `MarketIndex`로 매핑(`value`·`change_percent`는 `parseDecimal`, `null`이면 `0`

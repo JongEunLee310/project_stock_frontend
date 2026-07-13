@@ -61,8 +61,8 @@ enum 처리(기존 `as const` 배열 + 파생 union 패턴 = `stockStatus.ts` �
   `decisionOutcomes = ['진행 중','대기','리서치 중'] as const` + `type DecisionOutcome`.
 - `src/shared/model/cognitiveRisk.ts` — 신규:
   `cognitiveRisks = ['밸류에이션','마진 압박','경쟁 심화','수요 둔화','규제','거시·금리','환율','공급망','기타'] as const`
-  + `type CognitiveRisk`. (배열명이 `DecisionLog.cognitiveRisks` 필드명과 겹치니 export 충돌 없게 주의 —
-  enum 배열 export명은 그대로 `cognitiveRisks`로 두되, 도메인 타입 필드는 `CognitiveRisk[]` 타입만 참조.)
+  - `type CognitiveRisk`. (배열명이 `DecisionLog.cognitiveRisks` 필드명과 겹치니 export 충돌 없게 주의 —
+    enum 배열 export명은 그대로 `cognitiveRisks`로 두되, 도메인 타입 필드는 `CognitiveRisk[]` 타입만 참조.)
 - `src/shared/model/index.ts`에 신규 enum 값·타입 re-export 추가.
 
 `src/shared/model/domain.ts` 타입 변경:

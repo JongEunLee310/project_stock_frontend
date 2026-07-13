@@ -44,6 +44,7 @@ https://github.com/JongEunLee310/project_stock_frontend/issues/117
 - `appRoutePaths.decisionLog = '/decision-log'` — `src/shared/config/navigation.ts:8`
 
 기존 패턴:
+
 - `apiGet` + `unwrapEnvelope`가 `meta`를 함께 반환 (`src/shared/api/client.ts`)
 - 테스트 픽스처는 `WatchlistPage.test.tsx`의 `watchlistRows` 배열을 따른다. 수정
   후에도 픽스처의 `id` 필드는 삭제 mutation 테스트에 활용된다.
@@ -56,8 +57,8 @@ https://github.com/JongEunLee310/project_stock_frontend/issues/117
 
 - `src/widgets/FloatingMarketCard.tsx`
   — `<FxRateStrip />` + `<MarketSummary />` 컨테이너. `position: fixed`,
-    `bottom: 1rem`, `left: 1rem`, `z-index: 30`. `hidden lg:flex flex-col gap-3`.
-    너비 `w-[calc(16rem-2rem)]`.
+  `bottom: 1rem`, `left: 1rem`, `z-index: 30`. `hidden lg:flex flex-col gap-3`.
+  너비 `w-[calc(16rem-2rem)]`.
 
 **수정 파일:**
 
@@ -71,13 +72,13 @@ https://github.com/JongEunLee310/project_stock_frontend/issues/117
 - `src/features/watchlist/queries.ts`
   — `useWatchlistAssets(page: number, size: number)`: 파라미터 추가, `meta` 함께 반환
   — `useRemoveWatchlistItem()`: `apiDelete` 호출 mutation 추가,
-    `onSuccess`에서 `watchlistQueryKey` + `[...watchlistQueryKey, 'summary']` invalidate
+  `onSuccess`에서 `watchlistQueryKey` + `[...watchlistQueryKey, 'summary']` invalidate
 
 - `src/pages/ui/WatchlistPage.tsx`
   — `page` state (기본값 1), `pageSize` state (10 | 25 | 50, 기본값 10),
-    `marketFilter` state (기본값 `''`) 추가
+  `marketFilter` state (기본값 `''`) 추가
   — 즐겨찾기 관련 모두 제거: `favoriteBySymbol`, `toggleFavorite`, `isFavorite`
-    overlay 로직, 즐겨찾기 `<td>` 컬럼, 헤더 배열 조정
+  overlay 로직, 즐겨찾기 `<td>` 컬럼, 헤더 배열 조정
   — `unreadAlertSummaryQuery`, `alertSummary`, 알림 현황 `<Card>` 전체 제거
   — 클라이언트 `slice`·`visiblePageNumbers` 계산 제거, `meta` 기반 페이지 수 계산
   — 표시 개수 select를 10/25/50 옵션으로 활성화, 변경 시 `page` 를 1로 초기화

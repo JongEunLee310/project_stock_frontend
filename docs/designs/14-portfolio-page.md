@@ -48,11 +48,11 @@
 
 ## 도메인·Mock 확장 (Part A)
 
-| 대상 | 변경 | 비고 |
-| --- | --- | --- |
-| `Holding` | `name: string`, `sector: string`, `dailyChangePercent: number` 추가 | 테이블 표시·섹터 합산·일간 변화. 기존 `symbol`/`quantity`/`avgPrice`/`currentValue` 유지. |
-| `Portfolio` | `cash: number`, `dayChangeValue: number`, `dayChangePercent: number`, `aiBriefing: AiBriefing`, `riskExposures: PortfolioRiskExposure[]` 추가 | `totalValue == Σ currentValue` 불변식 유지. |
-| `PortfolioRiskExposure`(신규) | `id: string`, `label: string`, `level: RiskLevel`, `description: string` | 리스크 노출 카드용. `RiskLevel` 재사용. `model/index.ts` 타입 export 추가. |
+| 대상                          | 변경                                                                                                                                          | 비고                                                                                      |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `Holding`                     | `name: string`, `sector: string`, `dailyChangePercent: number` 추가                                                                           | 테이블 표시·섹터 합산·일간 변화. 기존 `symbol`/`quantity`/`avgPrice`/`currentValue` 유지. |
+| `Portfolio`                   | `cash: number`, `dayChangeValue: number`, `dayChangePercent: number`, `aiBriefing: AiBriefing`, `riskExposures: PortfolioRiskExposure[]` 추가 | `totalValue == Σ currentValue` 불변식 유지.                                               |
+| `PortfolioRiskExposure`(신규) | `id: string`, `label: string`, `level: RiskLevel`, `description: string`                                                                      | 리스크 노출 카드용. `RiskLevel` 재사용. `model/index.ts` 타입 export 추가.                |
 
 Mock 갱신(`mockPortfolio`): 현재 3종 보유를 **2~3개 섹터에 걸친 5~6종으로 확장**(섹터 익스포저·집중도가
 의미 있도록), 각 종목 `name`/`sector`/`dailyChangePercent` 채움. `cash`·`dayChange*`·`aiBriefing`(한국어)·

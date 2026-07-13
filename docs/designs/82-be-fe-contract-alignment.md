@@ -56,17 +56,17 @@ adapter는 `parseDecimal`로 그대로 파싱하고 `ResearchPage`는 `Math.roun
 
 ## 3. 계약 정렬 정의
 
-| 항목 | BE 와이어(확정) | 현재 FE 표시 | 정정 후 FE 표시 |
-| --- | --- | --- | --- |
-| stance | `BUY_CANDIDATE` / `WATCH` | 와이어 원문 그대로 | 한글 라벨 |
-| stance_confidence | `"0.72"` (0~1 분수) | `1%` | `72%` |
+| 항목              | BE 와이어(확정)           | 현재 FE 표시       | 정정 후 FE 표시 |
+| ----------------- | ------------------------- | ------------------ | --------------- |
+| stance            | `BUY_CANDIDATE` / `WATCH` | 와이어 원문 그대로 | 한글 라벨       |
+| stance_confidence | `"0.72"` (0~1 분수)       | `1%`               | `72%`           |
 
 라벨 매핑 표기는 기존 `alertTypeLabels`와 일관되게 유지합니다.
 
-| wire | label |
-| --- | --- |
+| wire            | label     |
+| --------------- | --------- |
 | `BUY_CANDIDATE` | 매수 후보 |
-| `WATCH` | 관찰 |
+| `WATCH`         | 관찰      |
 
 미지의 stance 값·null은 기존 fallback(`판단 보류`)을 유지합니다.
 

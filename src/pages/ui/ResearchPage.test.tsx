@@ -757,15 +757,22 @@ describe('ResearchPage', () => {
     })
     renderResearch()
 
-    expect(
-      await screen.findByRole('img', { name: 'NVDA 최근 가격 추이' }),
-    ).toBeVisible()
-    expect(screen.getByRole('img', { name: 'NVDA 거래량' })).toBeVisible()
+    const priceChart = await screen.findByRole('img', {
+      name: 'NVDA 최근 가격 추이',
+    })
+    const volumeChart = screen.getByRole('img', { name: 'NVDA 거래량' })
+    expect(priceChart).toBeVisible()
+    expect(volumeChart).toBeVisible()
     const priceLegend = screen.getByRole('list', {
       name: '가격 차트 범례',
     })
-    expect(within(priceLegend).getByText('현재가')).toBeVisible()
+    expect(within(priceLegend).getByText('NVDA')).toBeVisible()
+    expect(within(priceLegend).getByText('$130.25')).toBeVisible()
+    const change = within(priceLegend).getByLabelText('등락')
+    expect(change).toHaveTextContent('+$1.75 (+1.36%)')
+    expect(change).toHaveClass('text-emerald-400')
     expect(within(priceLegend).getByText('MA20')).toBeVisible()
+    expect(volumeChart).toHaveClass('mt-0')
     expect(
       screen.getByText('차트 데이터: polygon · 2026-07-10T00:00:00Z'),
     ).toBeVisible()
@@ -900,9 +907,10 @@ describe('ResearchPage', () => {
 
     renderResearch()
 
-    expect(
-      await screen.findByRole('img', { name: 'NVDA 최근 가격 추이' }),
-    ).toBeVisible()
+    const priceChart = await screen.findByRole('img', {
+      name: 'NVDA 최근 가격 추이',
+    })
+    expect(priceChart).toBeVisible()
     expect(
       screen.queryByRole('img', { name: 'NVDA 거래량' }),
     ).not.toBeInTheDocument()
@@ -922,9 +930,10 @@ describe('ResearchPage', () => {
 
     expect(comparisonToggle).toHaveAttribute('aria-pressed', 'true')
     expect(mockUseBenchmarkComparison).toHaveBeenLastCalledWith(1, '3M', true)
-    expect(
-      screen.getByRole('img', { name: 'NVDA 벤치마크 수익률 비교' }),
-    ).toBeVisible()
+    const benchmarkChart = screen.getByRole('img', {
+      name: 'NVDA 벤치마크 수익률 비교',
+    })
+    expect(benchmarkChart).toBeVisible()
     expect(screen.getByText('NASDAQ 100')).toBeVisible()
     expect(screen.getByText('Technology Select Sector SPDR Fund')).toBeVisible()
     expect(

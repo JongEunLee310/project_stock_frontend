@@ -1,9 +1,9 @@
 ---
 name: Docs
 about: Request documentation changes
-title: "[Docs] "
+title: '[Docs] '
 labels: documentation
-assignees: ""
+assignees: ''
 ---
 
 ## Purpose

@@ -43,7 +43,15 @@ BE 실응답 필드는 설계 문서 Background 절과 같다. 픽스처 참고�
   "caution_factors": ["...", "..."],
   "next_checks": ["...", "..."],
   "confidence_basis": "매출 성장과 현금흐름 지표는 긍정적이지만 밸류에이션과 환율 변수의 불확실성이 남아 있습니다.",
-  "key_risks": [{ "id": "valuation", "title": "...", "level": "MEDIUM", "description": "...", "evidence": ["...", "..."] }],
+  "key_risks": [
+    {
+      "id": "valuation",
+      "title": "...",
+      "level": "MEDIUM",
+      "description": "...",
+      "evidence": ["...", "..."]
+    }
+  ],
   "created_at": "..."
 }
 ```
@@ -56,6 +64,7 @@ BE 실응답 필드는 설계 문서 Background 절과 같다. 픽스처 참고�
 ## Implementation Scope
 
 **갱신**
+
 - `src/features/research/dto.ts` — `ResearchSummaryDto` 확장.
 - `src/features/research/adapters.ts` — `ResearchView`·`ResearchRisk` 확장
   (설계 문서 Adapters 절).
@@ -65,6 +74,7 @@ BE 실응답 필드는 설계 문서 Background 절과 같다. 픽스처 참고�
   Requirements.
 
 **변경 불가**
+
 - `src/features/research/queries.ts` (호출 경로 변화 없음)
 - `src/shared/`, 다른 페이지, 레이아웃 그리드 구조
 

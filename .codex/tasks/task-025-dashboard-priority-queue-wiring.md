@@ -28,17 +28,21 @@ BE 스키마(`project_stock/app/domains/alert_candidates/schema.py`, `types.py`)
 ## Implementation Scope
 
 **`src/features/alerts/dto.ts`**
+
 - `AlertCandidateDto`: `reason: string` 제거 → `message: string | null`; `importance: string` 추가; top-level `symbol` 제거(`asset_id?: number | null` 유지); `asset?: AlertCandidateAssetDto` 추가.
 - 신규 `AlertCandidateAssetDto`: watchlist `WatchlistItemAssetDto`와 동형 — `{ symbol: string; name: string; price: string | null; change_percent: string | null; sector?: string | null }`.
 
 **`src/features/alerts/adapters.ts`**
+
 - `AlertCandidate` 인터페이스에 `riskLevel: RiskLevel` 추가(`@/shared/model`에서 `RiskLevel` import).
 - `adaptAlertCandidate`: `symbol` ← `dto.asset?.symbol ?? null`; `reason` ← `dto.message ?? ''`; `riskLevel` ← `toLabel(riskLevelLabels, dto.importance) as RiskLevel`(`riskLevelLabels` import 추가). candidateType/status/createdAt 기존 유지.
 
 **`src/features/alerts/queries.ts`**
+
 - `useAlertCandidates`: `apiGet<AlertCandidateDto[]>('/alert-candidates?expand=asset')`로 경로 변경. 나머지 동일.
 
 **`src/pages/ui/DashboardPage.tsx`**
+
 - import: `mockPriorityQueue` 제거(`mockAiBriefing`은 유지 — BE 없음). `useAlertCandidates` from `@/features/alerts/queries`, `AlertCandidate` 타입 추가.
 - 모듈 최상위 mock 기반 `priorityQueue` 정렬 상수 + `/* TODO: BE 엔드포인트 없음 — mock 유지 */`(priorityQueue 쪽) 제거.
 - 컴포넌트: `const priorityQueueQuery = useAlertCandidates()`. 상위 3개 = riskLevel 높음→중간→낮음 정렬 후 `slice(0, 3)`(기존 riskRank {높음:0,중간:1,낮음:2} 동치).

@@ -81,124 +81,124 @@ summary의 `buy_readiness` 필드(이미 BE dev에 머지됨)를 소비해 테�
 
 - `src/features/watchlist/dto.ts`
   — `WatchlistItemEvaluationDto` 추가: `symbol`, `news_risk`, `valuation_burden`,
-    `theme_heat`, `ai_judgment` (모두 `string`)
+  `theme_heat`, `ai_judgment` (모두 `string`)
   — `WatchlistEvaluationsResponseDto` 추가: `items: WatchlistItemEvaluationDto[]`,
-    `needs_research_count: number`, `generated_at: string`
+  `needs_research_count: number`, `generated_at: string`
   — `BuyReadinessDto` 추가: `level: string`, `level_label: string`, `cash_weight: string`,
-    `buy_candidate_count: number`, `message: string`
+  `buy_candidate_count: number`, `message: string`
   — `WatchlistSummaryDto`에 `buy_readiness?: BuyReadinessDto | null` 추가
 
 - `src/features/watchlist/adapters.ts`
   — `WatchlistEvaluationRow` 인터페이스 추가:
-    `symbol: string`, `newsRisk: string`, `valuationBurden: string`, `themeHeat: string`,
-    `aiJudgment: string`
+  `symbol: string`, `newsRisk: string`, `valuationBurden: string`, `themeHeat: string`,
+  `aiJudgment: string`
   — `WatchlistEvaluationMap` type alias 추가: `Record<string, WatchlistEvaluationRow>`
   — `BuyReadinessView` 인터페이스 추가:
-    `level: string`, `levelLabel: string`, `cashWeight: number`, `buyCandidateCount: number`,
-    `message: string`
+  `level: string`, `levelLabel: string`, `cashWeight: number`, `buyCandidateCount: number`,
+  `message: string`
   — `WatchlistSummaryView`에 `buyReadiness: BuyReadinessView | null` 추가
   — `resolveNewsRiskBadge(value: string): { label: string; className: string }` 추가:
-    `HIGH` → `{ label: '높음', className: ... }` (위험 색상);
-    `MEDIUM` → `{ label: '중간', ... }` (경고 색상);
-    `LOW` → `{ label: '낮음', ... }` (안전 색상);
-    폴백 → `{ label: '중간', ... }` (중립 색상)
+  `HIGH` → `{ label: '높음', className: ... }` (위험 색상);
+  `MEDIUM` → `{ label: '중간', ... }` (경고 색상);
+  `LOW` → `{ label: '낮음', ... }` (안전 색상);
+  폴백 → `{ label: '중간', ... }` (중립 색상)
   — `resolveValuationBadge(value: string)` 추가:
-    `HIGH` → `'고평가'`(위험); `MODERATE` → `'적정'`(중립); `LOW` → `'저평가'`(안전);
-    폴백 → `'적정'`(중립)
+  `HIGH` → `'고평가'`(위험); `MODERATE` → `'적정'`(중립); `LOW` → `'저평가'`(안전);
+  폴백 → `'적정'`(중립)
   — `resolveThemeHeatBadge(value: string)` 추가:
-    `OVERHEATED` → `'과열'`(위험); `NEUTRAL` → `'중립'`(중립); `COLD` → `'냉각'`(안전);
-    폴백 → `'중립'`(중립)
+  `OVERHEATED` → `'과열'`(위험); `NEUTRAL` → `'중립'`(중립); `COLD` → `'냉각'`(안전);
+  폴백 → `'중립'`(중립)
   — `resolveAiJudgmentBadge(value: string)` 추가:
-    `RISK_INCREASING` → `'위험 증가'`(위험); `WATCH` → `'관망'`(경고);
-    `STABLE` → `'안정'`(안전); 폴백 → `'안정'`(안전)
+  `RISK_INCREASING` → `'위험 증가'`(위험); `WATCH` → `'관망'`(경고);
+  `STABLE` → `'안정'`(안전); 폴백 → `'안정'`(안전)
   — `adaptWatchlistEvaluations(dto: WatchlistEvaluationsResponseDto): { map: WatchlistEvaluationMap; needsResearchCount: number }` 추가:
-    `items`를 `symbol` 키로 reduce해 map 생성, `needs_research_count` 전달
+  `items`를 `symbol` 키로 reduce해 map 생성, `needs_research_count` 전달
   — `adaptBuyReadiness(dto: BuyReadinessDto): BuyReadinessView` 추가:
-    camelCase 변환 + `cash_weight`는 `parseDecimal`로 파싱 (null이면 0으로 fallback)
+  camelCase 변환 + `cash_weight`는 `parseDecimal`로 파싱 (null이면 0으로 fallback)
   — `adaptWatchlistSummary` 수정:
-    `buyReadiness: dto.buy_readiness ? adaptBuyReadiness(dto.buy_readiness) : null` 추가
+  `buyReadiness: dto.buy_readiness ? adaptBuyReadiness(dto.buy_readiness) : null` 추가
 
 - `src/features/watchlist/queries.ts`
   — `WatchlistEvaluationsResult` 타입 추가:
-    `{ map: WatchlistEvaluationMap; needsResearchCount: number }`
+  `{ map: WatchlistEvaluationMap; needsResearchCount: number }`
   — `useWatchlistEvaluations(): UseQueryResult<WatchlistEvaluationsResult>` 추가:
-    queryKey `[...watchlistQueryKey, 'evaluations']`,
-    staleTime `10 * 60 * 1000`,
-    첫 번째 관심목록 ID 조회 후 `GET /watchlists/{id}/evaluations` 호출,
-    `adaptWatchlistEvaluations`로 변환
+  queryKey `[...watchlistQueryKey, 'evaluations']`,
+  staleTime `10 * 60 * 1000`,
+  첫 번째 관심목록 ID 조회 후 `GET /watchlists/{id}/evaluations` 호출,
+  `adaptWatchlistEvaluations`로 변환
   — `emptyWatchlistSummary`에 `buyReadiness: null` 추가
 
 - `src/pages/ui/WatchlistPage.tsx`
   — `useWatchlistEvaluations` import 추가
   — `watchlistEvaluationsQuery` 호출 추가
   — 테이블 헤더 배열에 `'뉴스 위험도'`, `'밸류에이션'`, `'테마 과열'`, `'AI 판단'` 추가
-    (`'상태'` 바로 뒤, 목업 순서)
+  (`'상태'` 바로 뒤, 목업 순서)
   — 각 행(stock)에 4개 배지 셀 추가:
-    `watchlistEvaluationsQuery.isLoading` → Skeleton,
-    `evaluationRow` 없거나 isError → `—`,
-    정상 → `resolveNewsRiskBadge`·`resolveValuationBadge`·`resolveThemeHeatBadge`·
-    `resolveAiJudgmentBadge` 결과로 배지 렌더링
+  `watchlistEvaluationsQuery.isLoading` → Skeleton,
+  `evaluationRow` 없거나 isError → `—`,
+  정상 → `resolveNewsRiskBadge`·`resolveValuationBadge`·`resolveThemeHeatBadge`·
+  `resolveAiJudgmentBadge` 결과로 배지 렌더링
   — `colSpan={8}` → `colSpan={12}` 갱신
   — 카드 그리드 className: `md:grid-cols-2` → `md:grid-cols-2 xl:grid-cols-4`
   — `summaryIconClassNames`·`summaryIcons` 배열에 Card 2·3 항목 추가
   — Card 2("추가 리서치 필요") 렌더링 추가:
-    값 자리에 `watchlistEvaluationsQuery.data?.needsResearchCount ?? 0`,
-    isLoading → Skeleton, isError → `—`
+  값 자리에 `watchlistEvaluationsQuery.data?.needsResearchCount ?? 0`,
+  isLoading → Skeleton, isError → `—`
   — Card 3("신규 매수 여력") 렌더링 추가:
-    `summary.buyReadiness` 존재 시 `levelLabel`을 대형 텍스트, `message`를 보조 문구로 표시;
-    null 시 `"포트폴리오 없음"` 표시
+  `summary.buyReadiness` 존재 시 `levelLabel`을 대형 텍스트, `message`를 보조 문구로 표시;
+  null 시 `"포트폴리오 없음"` 표시
   — `summary` fallback 객체에 `buyReadiness: null` 추가
 
 **테스트 파일:**
 
 - `src/features/watchlist/adapters.test.ts`
   — `resolveNewsRiskBadge` 단위 테스트: `"HIGH"`/`"MEDIUM"`/`"LOW"`/폴백 → 라벨·className 확인.
-    픽스처 리터럴에 출처 주석 `// app/domains/watchlists/types.py` 기재.
+  픽스처 리터럴에 출처 주석 `// app/domains/watchlists/types.py` 기재.
   — `resolveValuationBadge`, `resolveThemeHeatBadge`, `resolveAiJudgmentBadge` 각각 동일 구조.
   — `adaptWatchlistEvaluations`:
-    2개 종목 items → 각 symbol이 map 키에 존재 확인;
-    items에 없는 symbol이 map에 없음 확인;
-    `needsResearchCount` 값 전달 확인.
+  2개 종목 items → 각 symbol이 map 키에 존재 확인;
+  items에 없는 symbol이 map에 없음 확인;
+  `needsResearchCount` 값 전달 확인.
   — `adaptWatchlistSummary`:
-    `buy_readiness` 객체 있는 경우 `buyReadiness` 필드 포함 확인;
-    `buy_readiness: null`인 경우 `buyReadiness: null` 확인.
+  `buy_readiness` 객체 있는 경우 `buyReadiness` 필드 포함 확인;
+  `buy_readiness: null`인 경우 `buyReadiness: null` 확인.
 
 - `src/features/watchlist/queries.test.tsx`
   — `useWatchlistEvaluations`:
-    정상 응답(2개 종목) → `map`에 두 symbol 존재, `needsResearchCount` 일치 확인;
-    빈 `items` → `map: {}`, `needsResearchCount: 0` 확인.
-    `apiGet` mock 패턴은 기존 `useWatchlistSparklines` 테스트와 동일하게 작성.
+  정상 응답(2개 종목) → `map`에 두 symbol 존재, `needsResearchCount` 일치 확인;
+  빈 `items` → `map: {}`, `needsResearchCount: 0` 확인.
+  `apiGet` mock 패턴은 기존 `useWatchlistSparklines` 테스트와 동일하게 작성.
 
 - `src/pages/ui/WatchlistPage.test.tsx`
   — `watchlistEvaluationsQueryState` 변수 추가:
-    ```
-    {
-      data: {
-        map: {
-          NVDA: {
-            symbol: 'NVDA',
-            newsRisk: 'HIGH',       // app/domains/watchlists/types.py
-            valuationBurden: 'HIGH', // app/domains/watchlists/types.py
-            themeHeat: 'OVERHEATED', // app/domains/watchlists/types.py
-            aiJudgment: 'RISK_INCREASING', // app/domains/watchlists/types.py
-          },
-          AAPL: {
-            symbol: 'AAPL',
-            newsRisk: 'LOW',
-            valuationBurden: 'MODERATE',
-            themeHeat: 'NEUTRAL',
-            aiJudgment: 'STABLE',
-          },
+  ```
+  {
+    data: {
+      map: {
+        NVDA: {
+          symbol: 'NVDA',
+          newsRisk: 'HIGH',       // app/domains/watchlists/types.py
+          valuationBurden: 'HIGH', // app/domains/watchlists/types.py
+          themeHeat: 'OVERHEATED', // app/domains/watchlists/types.py
+          aiJudgment: 'RISK_INCREASING', // app/domains/watchlists/types.py
         },
-        needsResearchCount: 2,
+        AAPL: {
+          symbol: 'AAPL',
+          newsRisk: 'LOW',
+          valuationBurden: 'MODERATE',
+          themeHeat: 'NEUTRAL',
+          aiJudgment: 'STABLE',
+        },
       },
-      isLoading: false,
-      isError: false,
-      error: null,
-    }
-    ```
+      needsResearchCount: 2,
+    },
+    isLoading: false,
+    isError: false,
+    error: null,
+  }
+  ```
   — `vi.mock('@/features/watchlist/queries', ...)` 블록에
-    `useWatchlistEvaluations: () => watchlistEvaluationsQueryState` 추가.
+  `useWatchlistEvaluations: () => watchlistEvaluationsQueryState` 추가.
   — 배지 렌더링: NVDA 행에 `높음` 배지 표시 확인 (news_risk HIGH → 높음).
   — 로딩 중: `isLoading: true` 시 기존 items 컬럼은 정상, 배지 셀에만 Skeleton 표시 확인.
   — 실패: `isError: true`, `data: undefined` 시 배지 셀 `—` 표시, 테이블 렌더링 유지 확인.
@@ -206,17 +206,17 @@ summary의 `buy_readiness` 필드(이미 BE dev에 머지됨)를 소비해 테�
   — "추가 리서치 필요" 카드: `needsResearchCount: 2` → 카드에 `2` 표시 확인.
   — "신규 매수 여력" 카드: `buyReadiness.levelLabel: '제한적'`·`message` 표시 확인.
   — "신규 매수 여력" 카드 null: `watchlistSummaryQueryState.data.buyReadiness = null` 시
-    "포트폴리오 없음" 표시 확인.
+  "포트폴리오 없음" 표시 확인.
   — `watchlistSummaryQueryState.data`에 `buyReadiness` 필드 추가:
-    ```
-    buyReadiness: {
-      level: 'LIMITED',       // app/domains/watchlists/types.py
-      levelLabel: '제한적',
-      cashWeight: 0.12,
-      buyCandidateCount: 1,
-      message: '현금 비중이 낮아 신규 매수 여력이 제한적입니다.',
-    }
-    ```
+  ```
+  buyReadiness: {
+    level: 'LIMITED',       // app/domains/watchlists/types.py
+    levelLabel: '제한적',
+    cashWeight: 0.12,
+    buyCandidateCount: 1,
+    message: '현금 비중이 낮아 신규 매수 여력이 제한적입니다.',
+  }
+  ```
 
 ## Out of Scope
 

@@ -19,7 +19,7 @@ BE #270(project_stock PR #277, dev 머지됨)의 두 계약을 리서치 상세 
 - `metrics`: 항상 7개 고정 순서 — `PER` / `FORWARD_PER` / `PSR` / `PBR`
   / `EV_EBITDA` / `PEG` / `FCF_YIELD`. 각 항목
   `{ metric, value: decimal str | null, five_year_median: decimal str |
-  null, percentile: int | null }`. 산출 불가(적자 등)면 null.
+null, percentile: int | null }`. 산출 불가(적자 등)면 null.
 
 **2. `GET /assets/{asset_id}/earnings-summary`**
 
@@ -27,8 +27,8 @@ BE #270(project_stock PR #277, dev 머지됨)의 두 계약을 리서치 상세 
 
 - `quarters`: 최근 4분기 오름차순.
   `{ period("2025Q4"), revenue, operating_income, eps,
-  revenue_yoy_percent | null, operating_margin_percent,
-  eps_estimate | null, eps_surprise_percent | null }` (금액류 decimal
+revenue_yoy_percent | null, operating_margin_percent,
+eps_estimate | null, eps_surprise_percent | null }` (금액류 decimal
   str).
 - `guidance: string | null` — 한국어 요약 문장.
 - `segments`: `{ name, revenue_share_percent, yoy_growth_percent }[]`.
@@ -43,24 +43,24 @@ BE #270(project_stock PR #277, dev 머지됨)의 두 계약을 리서치 상세 
 ## Adapters — `src/features/research/adapters.ts`
 
 - `ValuationMetricItem` — `{ metric: string, metricLabel: string,
-  value: number | null, fiveYearMedian: number | null,
-  percentile: number | null, isHighlighted: boolean }`.
+value: number | null, fiveYearMedian: number | null,
+percentile: number | null, isHighlighted: boolean }`.
   - metric 라벨 매핑 (신규 상수): PER `PER` / FORWARD_PER `Forward PER`
     / PSR `PSR` / PBR `PBR` / EV_EBITDA `EV/EBITDA` / PEG `PEG` /
     FCF_YIELD `FCF 수익률`. 알 수 없는 값은 metric 원문 폴백.
   - `isHighlighted`는 `highlighted_metrics` 포함 여부에서 파생.
 - `ValuationView` — `{ profileLabel: string, metrics:
-  ValuationMetricItem[] }`.
+ValuationMetricItem[] }`.
   - profile 라벨 매핑: FINANCIAL 금융 / HIGH_GROWTH 고성장 / DEFICIT
     적자 전환 관찰 / DIVIDEND 배당 / GENERAL 일반. 알 수 없는 값 폴백.
 - `adaptValuationMetrics(dto): ValuationView` — 순서는 응답 순서 유지.
 - `EarningsQuarterItem` — `{ period, revenue, operatingIncome, eps:
-  number, revenueYoyPercent: number | null, operatingMarginPercent:
-  number, epsEstimate: number | null, epsSurprisePercent: number |
-  null }` (`parseDecimal` 적용).
+number, revenueYoyPercent: number | null, operatingMarginPercent:
+number, epsEstimate: number | null, epsSurprisePercent: number |
+null }` (`parseDecimal` 적용).
 - `EarningsView` — `{ quarters: EarningsQuarterItem[], guidance:
-  string | null, segments: { name, revenueSharePercent,
-  yoyGrowthPercent }[] }`.
+string | null, segments: { name, revenueSharePercent,
+yoyGrowthPercent }[] }`.
 - `adaptEarningsSummary(dto): EarningsView`.
 
 ## Queries — `src/features/research/queries.ts`

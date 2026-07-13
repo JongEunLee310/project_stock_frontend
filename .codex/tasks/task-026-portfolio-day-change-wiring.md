@@ -30,16 +30,20 @@ BE #114가 `/portfolios/{id}/summary` 응답에 `day_change_value`/`day_change_p
 ## Implementation Scope
 
 **`src/features/portfolio/dto.ts`**
+
 - `PortfolioSummaryDto`에 `day_change_value: string | null`, `day_change_percent: string | null` 추가(기존 필드 뒤).
 
 **`src/features/portfolio/adapters.ts`**
+
 - `PortfolioView`에 `dayChangeValue: number`, `dayChangePercent: number` 추가.
 - `adaptPortfolioSummary` 반환에 `dayChangeValue: parseDecimal(dto.day_change_value) ?? 0`, `dayChangePercent: parseDecimal(dto.day_change_percent) ?? 0` 추가.
 
 **`src/features/portfolio/queries.ts`**
+
 - 빈 포트폴리오 fallback 객체(`{ totalValue: 0, cash: 0, holdings: [], sectorExposure: [] }`)에 `dayChangeValue: 0`, `dayChangePercent: 0` 추가(타입 충족).
 
 **`src/pages/ui/PortfolioPage.tsx`**
+
 - `PortfolioPageView` 요약 `<section>`에 4번째 `SummaryCard` 추가: `label="일간 변동"`, `value={formatKrw(portfolio.dayChangeValue)}`, `helper={formatPercent(portfolio.dayChangePercent)}`. `visual`은 기존 카드 중 적절한 값 재사용(예 `"wallet"`/`"risk"` 등 기존 허용값; 새 visual 타입 추가 금지). 부호/색상 강조가 기존 SummaryCard에서 지원되면 그 props만 사용하고, 없으면 추가하지 말 것(범위 내 최소 변경).
 - mock 주석(`{/* dayChange, riskExposures, aiBriefing은 BE 출처가 없어 ... */}`)에서 dayChange 언급을 제거하고 riskExposures/aiBriefing만 남기도록 정정.
 

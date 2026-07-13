@@ -1,9 +1,9 @@
 ---
 name: Bug
 about: Report a defect
-title: "[Bug] "
+title: '[Bug] '
 labels: bug
-assignees: ""
+assignees: ''
 ---
 
 ## Purpose

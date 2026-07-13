@@ -29,6 +29,11 @@ describe('LineChart', () => {
     )
 
     expect(container.querySelectorAll('.recharts-line')).toHaveLength(1)
+    expect(container.querySelector('.recharts-area')).not.toBeInTheDocument()
+    expect(container.querySelector('linearGradient')).not.toBeInTheDocument()
+    expect(
+      container.querySelector('[data-last-value-label]'),
+    ).not.toBeInTheDocument()
   })
 
   it('renders every configured series', () => {
@@ -75,5 +80,71 @@ describe('LineChart', () => {
     render(<LineChart data={data} height={120} width={240} />)
 
     expect(screen.queryByRole('img')).not.toBeInTheDocument()
+  })
+
+  it('renders an area gradient, right axis, and last valid value label', () => {
+    const { container } = render(
+      <LineChart
+        data={[...data, { name: 'D', value: null }]}
+        height={120}
+        width={240}
+        areaSeries={{ dataKey: 'value', color: '#5fa8ff' }}
+        yAxisOrientation="right"
+        lastValueLabel={{ dataKey: 'value', color: '#5fa8ff' }}
+      />,
+    )
+
+    const gradient = container.querySelector('linearGradient')
+    const area = container.querySelector('.recharts-area-area')
+    const yAxisTick = container.querySelector(
+      '.recharts-yAxis-tick-labels .recharts-cartesian-axis-tick-value',
+    )
+
+    expect(gradient).toBeInTheDocument()
+    expect(area).toBeInTheDocument()
+    expect(area).toHaveAttribute('fill', `url(#${gradient?.id})`)
+    expect(yAxisTick).toHaveAttribute('text-anchor', 'start')
+    expect(
+      container.querySelector('[data-last-value-label="11"]'),
+    ).toBeInTheDocument()
+  })
+
+  it('hides the x axis when hideXAxis is set', () => {
+    const { container, rerender } = render(
+      <LineChart data={data} height={120} width={240} />,
+    )
+
+    expect(container.querySelector('.recharts-xAxis')).toBeInTheDocument()
+
+    rerender(<LineChart data={data} height={120} width={240} hideXAxis />)
+
+    expect(container.querySelector('.recharts-xAxis')).not.toBeInTheDocument()
+  })
+
+  it('uses a unique area gradient id for each chart instance', () => {
+    const { container } = render(
+      <>
+        <LineChart
+          data={data}
+          height={120}
+          width={240}
+          areaSeries={{ dataKey: 'value', color: '#5fa8ff' }}
+        />
+        <LineChart
+          data={data}
+          height={120}
+          width={240}
+          areaSeries={{ dataKey: 'value', color: '#5fa8ff' }}
+        />
+      </>,
+    )
+
+    const gradientIds = Array.from(
+      container.querySelectorAll('linearGradient'),
+      (gradient) => gradient.id,
+    )
+
+    expect(gradientIds).toHaveLength(2)
+    expect(new Set(gradientIds).size).toBe(2)
   })
 })

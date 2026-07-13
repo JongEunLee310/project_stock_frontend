@@ -48,7 +48,7 @@ dto·adapter·query 패턴으로 신규 feature 슬라이스를 추가하고, �
 - `src/features/watchlist-observations/dto.ts` —
   `WatchlistObservationItemDto { symbol: string; note: string }`,
   `WatchlistObservationsDto { summary: string; items: WatchlistObservationItemDto[];
-  generated_at: string }`, watchlist id 추출용 최소 dto
+generated_at: string }`, watchlist id 추출용 최소 dto
   `ObservationsWatchlistDto { id: number }`(briefing의 `BriefingPortfolioDto` 패턴).
 - `src/features/watchlist-observations/adapters.ts` —
   `adaptWatchlistObservations(dto: WatchlistObservationsDto): WatchlistObservations`.

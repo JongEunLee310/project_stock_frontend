@@ -35,17 +35,21 @@
 다음 파일을 변경하거나 신설할 수 있다.
 
 **신설**
+
 - `src/features/signals/signalCategories.ts` — `SignalCategory` 타입, `SIGNAL_CATEGORY_MAP`, `CATEGORY_META`, `categoryOf` 헬퍼
 
 **재구성(대폭 변경)**
+
 - `src/pages/ui/SignalsPage.tsx` — `SummaryCards` → `SignalKpiRow`, 필터 상태 모델 교체, `SignalCard` 재구성, `ScoreRing` → `ConfidenceRing` 개명, `SignalPriorityRail` 교체, `RecentChangesRail` placeholder 추가
 
 **갱신**
+
 - `src/pages/ui/SignalsPage.test.tsx` — 기존 테스트를 새 구조에 맞게 갱신하고, 아래 Test Requirements의 항목을 추가
 
 선택적 분리 — `SignalCard`·`ConfidenceRing`·`SignalKpiRow`·`SignalFilters`·`SignalPriorityRail`·`RecentChangesRail`를 `src/pages/ui/` 내 별도 파일로 분리할 수 있다. 단, 파일 분리 자체가 목적이 아니며 `SignalsPage.tsx` 내 로컬 컴포넌트로 유지해도 무방하다.
 
 **변경 불가**
+
 - `src/features/signals/queries.ts`
 - `src/features/signals/adapters.ts`
 - `src/features/signals/dto.ts`
@@ -90,15 +94,18 @@
 기존 테스트는 새 구조에 맞게 업데이트한다(삭제하지 않고 갱신).
 
 **KPI**
+
 - 총 시그널 카운트가 올바르게 표시된다.
 - 카테고리별 카운트와 비율이 `signalRows` 픽스처에서 올바르게 파생된다.
 
 **필터**
+
 - 카테고리 필터 선택 시 해당 카테고리 카드만 표시된다.
 - 검색어 입력 시 심볼 또는 회사명에 매치되는 카드만 표시된다.
 - 필터 초기화 버튼 클릭 시 모든 필터가 초기값으로 복원되고 전체 카드가 표시된다.
 
 **카드**
+
 - 카테고리 배지 텍스트(`CATEGORY_META[category].label`)가 카드에 표시된다.
 - `ConfidenceRing`이 `role="meter"`, `aria-valuenow`, 점수 텍스트를 가진다.
 - 1M 등락률이 스파크라인 데이터에서 올바르게 계산되어 표시된다(양수/음수 케이스).
@@ -106,13 +113,16 @@
 - 버튼 3개(근거 보기·판단 기록·알림 설정)가 존재하며, 알림 설정은 `disabled` 상태다.
 
 **우선순위 레일**
+
 - 순위 번호, 심볼, 카테고리 배지가 렌더된다.
 - `signal.score` 내림차순 상위 6건만 표시된다.
 
 **RecentChangesRail**
+
 - "준비 중" 자리표시가 렌더된다.
 
 **기존 테스트 갱신**
+
 - `aria-label`이 새 컴포넌트 구조에 맞게 변경된 경우 픽스처와 단언을 함께 업데이트한다.
 - 리스크 라벨 기반 KPI 단언(`낮음 리스크` 등)은 카테고리 기반으로 교체한다.
 

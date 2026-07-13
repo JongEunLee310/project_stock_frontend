@@ -50,11 +50,13 @@ PR #140 로컬 리뷰(`docs/reviews/pr-140.md`)의 Blocking B1 및 동반 처리
 ## Implementation Scope
 
 **갱신**
+
 - `src/pages/ui/ResearchPage.tsx`
 - `src/pages/ui/ResearchPage.test.tsx`
 - `src/features/research/adapters.test.ts`
 
 **변경 불가**
+
 - `src/features/research/dto.ts`, `src/features/research/queries.ts`
   (S1 통합이 페이지 내 인스턴스 정리만으로 가능하므로 훅 시그니처는
   유지한다)

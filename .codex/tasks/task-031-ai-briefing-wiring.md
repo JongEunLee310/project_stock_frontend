@@ -37,7 +37,7 @@ BE 브리핑 API로 전환한다. 공통 브리핑 feature 슬라이스(dto·ada
 ## Implementation Scope
 
 - `src/features/briefing/dto.ts` — `AiBriefingDto { headline, body, risk_headline, risk_checks,
-  generated_at }`.
+generated_at }`.
 - `src/features/briefing/adapters.ts` — `adaptAiBriefing(dto): AiBriefing`. snake→camel,
   `risk_checks ?? []`, falsy `risk_headline`은 `riskHeadline` 생략, `generated_at` 버림.
 - `src/features/briefing/queries.ts` — `useDashboardBriefing()`, `usePortfolioBriefing()`

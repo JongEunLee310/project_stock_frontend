@@ -1,9 +1,9 @@
 ---
 name: Feature
 about: Request a new capability
-title: "[Feature] "
+title: '[Feature] '
 labels: feature
-assignees: ""
+assignees: ''
 ---
 
 ## Purpose

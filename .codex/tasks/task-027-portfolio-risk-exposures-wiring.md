@@ -34,18 +34,22 @@ BE #115가 `/portfolios/{id}/summary` 응답에 `risk_exposures[]`(`code`/`label
 ## Implementation Scope
 
 **`src/features/portfolio/dto.ts`**
+
 - 신규 `RiskExposureDto { code: string; label: string; level: string; description: string }`.
 - `PortfolioSummaryDto`에 `risk_exposures: RiskExposureDto[]`(또는 `RiskExposureDto[] | null`) 추가(기존 필드 뒤).
 
 **`src/features/portfolio/adapters.ts`**
+
 - `PortfolioView`에 `riskExposures: PortfolioRiskExposure[]` 추가(`src/shared/model`에서 타입 import).
 - `adaptPortfolioSummary`: `dto.risk_exposures ?? []`를 매핑 — `{ id: code, label, level: mapLevel(level), description }`.
 - level 변환 헬퍼(모듈 내 작은 함수): `HIGH→'높음'`, `MEDIUM→'중간'`, 그 외 `'중간'`.
 
 **`src/features/portfolio/queries.ts`**
+
 - 빈 포트폴리오 fallback 객체에 `riskExposures: []` 추가(타입 충족, dayChange=0 선례와 동일).
 
 **`src/pages/ui/PortfolioPage.tsx`**
+
 - "리스크 노출 분석" 카드의 `mockPortfolio.riskExposures.map(...)`를 `portfolio.riskExposures.map(...)`로 교체.
   `risk.id`/`risk.label`/`risk.level`/`risk.description`은 동일 필드명이라 렌더 JSX 거의 그대로.
 - `portfolio.riskExposures.length === 0`이면 빈 상태 문구 렌더.

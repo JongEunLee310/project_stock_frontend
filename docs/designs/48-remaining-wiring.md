@@ -50,15 +50,15 @@ previousStatus`)을 BE 계약 필드(`signal_type/score/risk_level/reason/eviden
 호출해 sparkline 시계열을 생성한다. G4 API가 미완성(BE 선행 필요)인 경우 sparkline은 빈
 배열로 처리하고 이를 주석으로 명시한다.
 
-| FE(domain) | 와이어 | 변환 |
-| --- | --- | --- |
-| `signalType` | `signal_type: string(UPPER_SNAKE)` | 그대로(표시는 toLabel) |
-| `score` | `score: string(Decimal)` | `parseDecimal` |
-| `riskLevel` | `risk_level: string` | `riskLevelLabels`로 한글화 |
-| `reason` | `reason: string` | 그대로 |
-| `evidence` | `evidence: string \| null` | null 허용 |
-| `expiresAt` | `expires_at: string(UTC ISO)` | `formatKstDateTime` |
-| `sparkline` | G4 `/stocks/{symbol}/prices` close 배열 | 빈 배열 fallback(G4 선행) |
+| FE(domain)   | 와이어                                  | 변환                       |
+| ------------ | --------------------------------------- | -------------------------- |
+| `signalType` | `signal_type: string(UPPER_SNAKE)`      | 그대로(표시는 toLabel)     |
+| `score`      | `score: string(Decimal)`                | `parseDecimal`             |
+| `riskLevel`  | `risk_level: string`                    | `riskLevelLabels`로 한글화 |
+| `reason`     | `reason: string`                        | 그대로                     |
+| `evidence`   | `evidence: string \| null`              | null 허용                  |
+| `expiresAt`  | `expires_at: string(UTC ISO)`           | `formatKstDateTime`        |
+| `sparkline`  | G4 `/stocks/{symbol}/prices` close 배열 | 빈 배열 fallback(G4 선행)  |
 
 - BE 출처 없는 mock 전용 필드(연동 제외): `confidence`(게이지) → `score`로 대체.
   `previousStatus` 델타 → 폐기. `kind` 분류 → `signalType`으로 대체.
@@ -74,15 +74,15 @@ previousStatus`)을 BE 계약 필드(`signal_type/score/risk_level/reason/eviden
 (`detail`, `research-summary`, `buy-checklist`, `reports?asset_id=`). `theses/latest`는
 단독 쿼리(전체 최신 가설). 가격 스파크라인은 symbol 기준 G4 경로.
 
-| FE(domain) | 와이어 | 변환 |
-| --- | --- | --- |
-| `assetId` | `id: int`(assets 응답) | 그대로 |
-| `per/peg/52w/targetPrice` | `detail` nullable 확장(G7) | `parseDecimal`, null 허용 |
-| `researchSummary.*` | `research-summary` 응답 | snake_case→camelCase, Decimal 파싱 |
-| `buyChecklist` | `buy-checklist` 응답 | 그대로(구조 유지) |
-| `reports` | `reports?asset_id=` 목록 | `created_at`→`formatKstDateTime` |
-| `latestThesis` | `theses/latest` | `created_at`→`formatKstDateTime` |
-| `priceSparkline` | G4 close 배열 | 빈 배열 fallback(G4 선행) |
+| FE(domain)                | 와이어                     | 변환                               |
+| ------------------------- | -------------------------- | ---------------------------------- |
+| `assetId`                 | `id: int`(assets 응답)     | 그대로                             |
+| `per/peg/52w/targetPrice` | `detail` nullable 확장(G7) | `parseDecimal`, null 허용          |
+| `researchSummary.*`       | `research-summary` 응답    | snake_case→camelCase, Decimal 파싱 |
+| `buyChecklist`            | `buy-checklist` 응답       | 그대로(구조 유지)                  |
+| `reports`                 | `reports?asset_id=` 목록   | `created_at`→`formatKstDateTime`   |
+| `latestThesis`            | `theses/latest`            | `created_at`→`formatKstDateTime`   |
+| `priceSparkline`          | G4 close 배열              | 빈 배열 fallback(G4 선행)          |
 
 - BE 출처 없는 mock 전용 필드: `catalysts`(G7 후속), `pricePoints`(G4 선행). mock 유지 + 주석.
 
@@ -95,12 +95,12 @@ previousStatus`)을 BE 계약 필드(`signal_type/score/risk_level/reason/eviden
 **mutation 설계**: read/dismiss/confirm은 모두 POST mutation. 성공 시 각 목록 쿼리 무효화
 (`['alerts']`, `['alert-candidates']`). 실패 시 `ErrorState` 토스트 표시(네이티브 alert 금지).
 
-| FE(domain) | 와이어 | 변환 |
-| --- | --- | --- |
-| `alertStatus` | `status: UNREAD \| READ \| DISMISSED` | `alertStatusLabels` 한글화 |
-| `createdAt` | `created_at: string(UTC ISO)` | `formatKstDateTime` |
-| `candidateStatus` | `status: UNREAD \| READ \| CONFIRMED` | toLabel 매핑 |
-| `alertType / candidateType` | `alert_type / candidate_type: string(UPPER_SNAKE)` | toLabel |
+| FE(domain)                  | 와이어                                             | 변환                       |
+| --------------------------- | -------------------------------------------------- | -------------------------- |
+| `alertStatus`               | `status: UNREAD \| READ \| DISMISSED`              | `alertStatusLabels` 한글화 |
+| `createdAt`                 | `created_at: string(UTC ISO)`                      | `formatKstDateTime`        |
+| `candidateStatus`           | `status: UNREAD \| READ \| CONFIRMED`              | toLabel 매핑               |
+| `alertType / candidateType` | `alert_type / candidate_type: string(UPPER_SNAKE)` | toLabel                    |
 
 - BE 출처 없는 mock 전용 필드: 규칙 빌더·채널 설정 일체 → 폐기(컴포넌트도 삭제 또는 빈 컴포넌트로 대체).
 
@@ -108,10 +108,10 @@ previousStatus`)을 BE 계약 필드(`signal_type/score/risk_level/reason/eviden
 
 **단순 프로필 조회**: G11로 알림 설정 API는 불요. `auth/me` 응답의 계정 정보만 표시.
 
-| FE(domain) | 와이어 | 변환 |
-| --- | --- | --- |
-| `email` | `email: string` | 그대로 |
-| `username` | `username: string` | 그대로 |
+| FE(domain)  | 와이어                        | 변환                |
+| ----------- | ----------------------------- | ------------------- |
+| `email`     | `email: string`               | 그대로              |
+| `username`  | `username: string`            | 그대로              |
 | `createdAt` | `created_at: string(UTC ISO)` | `formatKstDateTime` |
 
 - 알림 설정 UI는 규칙 빌더 폐기(G8/G11)에 따라 이번 스코프에서 제거(또는 빈 섹션 주석).
@@ -125,13 +125,13 @@ previousStatus`)을 BE 계약 필드(`signal_type/score/risk_level/reason/eviden
 **POST**: 새 의사결정 생성은 `useMutation`으로 `apiPost('/decision-logs', body)`. 성공 시
 `['decision-logs']` 쿼리 무효화.
 
-| FE(domain) | 와이어(N1 확정) | 변환 |
-| --- | --- | --- |
-| `decisionType` | `decision_type: string(UPPER_SNAKE)` — 10종 | toLabel |
-| `decisionStatus` | `decision_status: OPEN \| REVIEWED \| CLOSED` | toLabel |
-| `createdBy` | `created_by: USER \| AI \| SYSTEM` | toLabel |
-| `cognitiveRisks` | `cognitive_risks: string[] \| null` | 그대로 |
-| `createdAt` | `created_at: string(UTC ISO)` | `formatKstDateTime` |
+| FE(domain)       | 와이어(N1 확정)                               | 변환                |
+| ---------------- | --------------------------------------------- | ------------------- |
+| `decisionType`   | `decision_type: string(UPPER_SNAKE)` — 10종   | toLabel             |
+| `decisionStatus` | `decision_status: OPEN \| REVIEWED \| CLOSED` | toLabel             |
+| `createdBy`      | `created_by: USER \| AI \| SYSTEM`            | toLabel             |
+| `cognitiveRisks` | `cognitive_risks: string[] \| null`           | 그대로              |
+| `createdAt`      | `created_at: string(UTC ISO)`                 | `formatKstDateTime` |
 
 ## 4. 신규/변경 파일 (시그니처·책임만)
 

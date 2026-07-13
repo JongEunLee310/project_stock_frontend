@@ -33,10 +33,10 @@ dot + soft tint 스타일로 리디자인한다.
   `ml-auto`. 컨트롤 높이 `min-h-11` → `min-h-9`, Card `p-4` → `p-3`.
 - 헤더: th 공통 클래스 `text-left` → `text-center`.
 - 배지 공통 마크업: `inline-flex items-center gap-1.5 rounded-md px-2 py-0.5
-  text-xs font-medium` + 톤 클래스, dot은
+text-xs font-medium` + 톤 클래스, dot은
   `<span aria-hidden="true" className="h-1.5 w-1.5 rounded-full …" />`.
 - 톤 4종 (danger/warning/safe/neutral): `bg-{rose|amber|emerald|slate}-500/10
-  text-{…}-300`, dot `bg-{…}-400`. 설계 문서 Decisions §3 표 참조.
+text-{…}-300`, dot `bg-{…}-400`. 설계 문서 Decisions §3 표 참조.
 - resolver 5종 반환 타입을 `{ label, className, dotClassName }`으로 확장.
   `resolveStatusBadge`는 `stockStatusClassNames` 의존을 제거하고 adapters 내부
   톤 매핑을 사용한다 (안정 → safe, 관망 → warning, 위험 증가 → danger).
@@ -49,14 +49,14 @@ dot + soft tint 스타일로 리디자인한다.
 - `src/features/watchlist/adapters.ts`
   — `evaluationBadgeClassNames` 새 스타일로 교체, `evaluationBadgeDotClassNames` 추가
   — resolver 5종(`resolveStatusBadge`, `resolveNewsRiskBadge`, `resolveValuationBadge`,
-    `resolveThemeHeatBadge`, `resolveAiJudgmentBadge`)에 `dotClassName` 추가
+  `resolveThemeHeatBadge`, `resolveAiJudgmentBadge`)에 `dotClassName` 추가
   — `stockStatusClassNames` import 제거 (다른 사용처가 없는지 확인 후)
 - `src/pages/ui/WatchlistPage.tsx`
   — 툴바 재구성 (WatchlistPage.tsx:454-528 영역)
   — th `text-center` (760-768 영역), 상태 배지 셀·`EvaluationBadgeCell` 셀
-    `text-center`, `EvaluationBadgeCell`의 Skeleton `mx-auto`·`—` 동일 정렬
+  `text-center`, `EvaluationBadgeCell`의 Skeleton `mx-auto`·`—` 동일 정렬
   — 상태 배지 span과 `EvaluationBadgeCell`의 배지 마크업을 dot 스타일로 통일.
-    공통 렌더링 추출 가능 (예: 파일 내 `TableBadge` 컴포넌트)
+  공통 렌더링 추출 가능 (예: 파일 내 `TableBadge` 컴포넌트)
 
 **테스트 파일:**
 

@@ -52,7 +52,7 @@ range 전환)가 있다. 구현 전 Verified Facts를 실제 파일과 대조하
 
 - `src/pages/ui/WatchlistPage.tsx`
   — `StockIdentity`(190-221)·aside(1140-1160 부근) 마크를 `StockLogo`로 교체.
-    `symbolMarks`는 폴백 소스로 유지 (StockLogo로 이동 가능)
+  `symbolMarks`는 폴백 소스로 유지 (StockLogo로 이동 가능)
   — AI 관찰 메모(1074-1095) 더보기/접기
   — 헤더 배열(780-803) 객체화 + 3개 헤더 `InfoTooltip`
   — `useWatchlistSparklines('1D')`(392)

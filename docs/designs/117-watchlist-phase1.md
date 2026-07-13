@@ -108,7 +108,7 @@ query string 없이 페이지 최상위로 이동한다. symbol 기반 사전 �
 
 - `src/widgets/FloatingMarketCard.tsx`
   — `<FxRateStrip />` + `<MarketSummary />` 컨테이너. `position: fixed` 배치.
-    `AppShell`에서 렌더링한다. 로딩·오류 상태는 각 하위 컴포넌트에 위임한다.
+  `AppShell`에서 렌더링한다. 로딩·오류 상태는 각 하위 컴포넌트에 위임한다.
 
 ### 수정
 
@@ -121,9 +121,9 @@ query string 없이 페이지 최상위로 이동한다. symbol 기반 사전 �
 
 - `src/features/watchlist/queries.ts`
   — `useWatchlistAssets(page: number, size: number): UseQueryResult<{ rows: WatchlistAssetRow[]; meta: ApiMeta | undefined }>`
-    반환 타입 변경 및 파라미터 추가
+  반환 타입 변경 및 파라미터 추가
   — `useRemoveWatchlistItem(): UseMutationResult<void, Error, { watchlistId: number; itemId: number }>`
-    신규 추가
+  신규 추가
 
 - `src/pages/ui/WatchlistPage.tsx`
   — `page`, `pageSize`, `marketFilter` state 추가

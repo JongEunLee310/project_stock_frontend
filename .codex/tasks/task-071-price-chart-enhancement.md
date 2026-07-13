@@ -14,11 +14,11 @@
    파생(순수 함수 분리, 20개 미만 구간 null), 메인 라인차트 아래
    BarChart 거래량(전부 null이면 생략), Tooltip 활성화.
 2. **LineChart 다중 시리즈 지원** — `series?: Array<{ dataKey, color,
-   strokeWidth?, strokeDasharray? }>` prop을 additive로 추가. 기존
+strokeWidth?, strokeDasharray? }>` prop을 additive로 추가. 기존
    단일 시리즈 API 불변 (다른 소비처 수정 없음). 범례는 페이지 쪽
    렌더.
 3. **벤치마크 비교 모드** — `GET
-   /assets/{asset_id}/benchmark-comparison?range=` (1M/3M/6M/1Y) 소비:
+/assets/{asset_id}/benchmark-comparison?range=` (1M/3M/6M/1Y) 소비:
    DTO·adapter·`useBenchmarkComparison(assetId, range, enabled)` (비교
    ON일 때만 조회). "벤치마크 비교" 토글(`aria-pressed`), 1D에서
    disabled·ON이면 해제, 비교 모드는 세 시리즈(ASSET·INDEX·SECTOR_ETF)

@@ -54,16 +54,16 @@
   `aria-label`을 `Market summary` → `시장 요약`으로 변경(App.test 동반 갱신).
 - **`Topbar`**: 동기화 상태·새로고침·알림·도움말·프로필 아바타로 한국어 재구성.
 - **`AppShell`**: 메인에서 `MarketSummary` 제거, 그리드/패딩 조정.
-- **`src/index.css` `@theme`**: 관제 콘솔 톤에 맞춰 app-* 색/`--spacing-page` 값 조정.
+- **`src/index.css` `@theme`**: 관제 콘솔 톤에 맞춰 app-\* 색/`--spacing-page` 값 조정.
 
 ## 도메인·Mock 확장 (Part A)
 
-| 대상 | 변경 | 비고 |
-| --- | --- | --- |
-| `Stock` | `per: number`, `peg: number` 추가 | 필수. `mockStocks` 4종 전수 채움(시안값). Watchlist 도메인 공유 — 표시는 안 하나 타입 확장. |
-| `DashboardSummary` | 델타 표시 필드 4종 추가 | 예: `riskAlertDelta`·`importantNewsDelta`·`reviewSignalDelta`·`cashRatioDelta`(표시 문자열). |
-| `PriorityQueueItem` | `title: string` 추가 | 필수. `mockPriorityQueue` 3종 채움. reason은 상세 설명으로 유지. |
-| `AiBriefing` | `riskHeadline?`·`riskChecks?: string[]` 추가 | **선택 필드**(StockResearch.briefing 인라인 객체 무변경). `mockAiBriefing`만 채움. |
+| 대상                | 변경                                         | 비고                                                                                         |
+| ------------------- | -------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `Stock`             | `per: number`, `peg: number` 추가            | 필수. `mockStocks` 4종 전수 채움(시안값). Watchlist 도메인 공유 — 표시는 안 하나 타입 확장.  |
+| `DashboardSummary`  | 델타 표시 필드 4종 추가                      | 예: `riskAlertDelta`·`importantNewsDelta`·`reviewSignalDelta`·`cashRatioDelta`(표시 문자열). |
+| `PriorityQueueItem` | `title: string` 추가                         | 필수. `mockPriorityQueue` 3종 채움. reason은 상세 설명으로 유지.                             |
+| `AiBriefing`        | `riskHeadline?`·`riskChecks?: string[]` 추가 | **선택 필드**(StockResearch.briefing 인라인 객체 무변경). `mockAiBriefing`만 채움.           |
 
 Mock 갱신: `mockDashboardSummary` 값을 시안에 맞춤(위험 3 / 뉴스 8 / 시그널 5 / 현금 22.7%) + 델타.
 `mockAiBriefing` 한국어 재작성 + riskHeadline/riskChecks. `mockPriorityQueue` 한국어 title/reason + 위험도.
@@ -86,4 +86,4 @@ Mock 갱신: `mockDashboardSummary` 값을 시안에 맞춤(위험 3 / 뉴스 8 
 - 차트 라이브러리 **본격 분석 차트**(캔들·거래량·비교) = 이슈 19. (대시보드 미니 시각요소용 `recharts`는 본
   작업에 포함.)
 - "자세히 보기"·필터 등 자리표시 동작 = 후속.
-- 색상 토큰화: 등락 emerald/rose·카테고리 톤은 여전히 원시 Tailwind 색 사용 → `@theme` app-* 토큰 통일 후속.
+- 색상 토큰화: 등락 emerald/rose·카테고리 톤은 여전히 원시 Tailwind 색 사용 → `@theme` app-\* 토큰 통일 후속.

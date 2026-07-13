@@ -54,15 +54,15 @@ Phase 1 구현(PR #118)으로 서버 페이지네이션, 시장 필터, 관심 �
 기존 `stockStatusClassNames`의 `관망`·`위험 증가` 스타일을 재사용해 별도 디자인 토큰 추가를
 피한다.
 
-| BE status | FE 배지 라벨 | 색상 그룹 | 근거 |
-|-----------|-------------|-----------|------|
-| `"NORMAL"` | 안정 | `status-stable` | 활성 시그널 없음 |
-| `"WATCH"` | 관망 | `status-watch` | 관찰 단계 진입, 위험 미확정 |
-| `"BUY_CANDIDATE"` | 관망 | `status-watch` | 긍정 시그널이나 아직 관찰 단계; BE 우선순위상 하위 그룹 |
-| `"RISK_ALERT"` | 위험 증가 | `status-risk` | 직접적 위험 경보 |
-| `"THESIS_BROKEN"` | 위험 증가 | `status-risk` | 투자 논리 붕괴 = 심각한 위험 |
-| `"SELL_REVIEW"` | 위험 증가 | `status-risk` | 매도 검토 단계는 위험 범주 |
-| `"OVERHEATED"` | 위험 증가 | `status-risk` | 과열 = 하락 위험 |
+| BE status         | FE 배지 라벨 | 색상 그룹       | 근거                                                    |
+| ----------------- | ------------ | --------------- | ------------------------------------------------------- |
+| `"NORMAL"`        | 안정         | `status-stable` | 활성 시그널 없음                                        |
+| `"WATCH"`         | 관망         | `status-watch`  | 관찰 단계 진입, 위험 미확정                             |
+| `"BUY_CANDIDATE"` | 관망         | `status-watch`  | 긍정 시그널이나 아직 관찰 단계; BE 우선순위상 하위 그룹 |
+| `"RISK_ALERT"`    | 위험 증가    | `status-risk`   | 직접적 위험 경보                                        |
+| `"THESIS_BROKEN"` | 위험 증가    | `status-risk`   | 투자 논리 붕괴 = 심각한 위험                            |
+| `"SELL_REVIEW"`   | 위험 증가    | `status-risk`   | 매도 검토 단계는 위험 범주                              |
+| `"OVERHEATED"`    | 위험 증가    | `status-risk`   | 과열 = 하락 위험                                        |
 
 `BUY_CANDIDATE`를 관망으로 분류하는 이유: 매수 검토가 필요하다는 의미는 아직 결론이 나지 않은
 관찰 상태이며, 디자인 시안의 3단계 중 중간값이 관망에 해당한다. BE 우선순위
@@ -150,7 +150,7 @@ queryKey는 `[...watchlistQueryKey, 'sparklines', range]`.
 - `src/features/watchlist/adapters.ts`
   — `WatchlistAssetRow`: `createdAt` 제거, `status: string`·`referenceAt: string | null` 추가
   — `resolveStatusBadge(status: string): { label: string; className: string }` 추가
-    (알 수 없는 값은 `안정`/`status-stable` 폴백)
+  (알 수 없는 값은 `안정`/`status-stable` 폴백)
   — `adaptWatchlistAsset`: `status`, `referenceAt` 전달, `createdAt` 삭제
 
 - `src/features/watchlist/queries.ts`
@@ -173,12 +173,12 @@ queryKey는 `[...watchlistQueryKey, 'sparklines', range]`.
 
 - `src/features/watchlist/adapters.test.ts`
   — `resolveStatusBadge` 단위 테스트: 7개 BE status 값 → 3단계 FE 라벨·className 매핑 각각 확인.
-    픽스처의 status 리터럴에 출처 주석 `// app/domains/signals/types.py:4-13` 기재.
+  픽스처의 status 리터럴에 출처 주석 `// app/domains/signals/types.py:4-13` 기재.
   — `adaptWatchlistAsset`: `status`·`referenceAt` 포함, `createdAt` 미포함 확인.
 
 - `src/features/watchlist/queries.test.ts`
   — `useWatchlistSparklines`: 정상 응답 → `Record<string, number[]>` 반환,
-    빈 `items` → `{}` 반환.
+  빈 `items` → `{}` 반환.
 
 - `src/pages/ui/WatchlistPage.test.tsx`
   — 상태 배지 렌더링: `RISK_ALERT` status 행에 `위험 증가` 배지 렌더링 확인.

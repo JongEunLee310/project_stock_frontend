@@ -38,13 +38,13 @@
 
 ### 3.1 Dashboard — `GET /dashboard/summary`
 
-| FE(domain) | 와이어 | 변환 |
-| --- | --- | --- |
-| `riskAlertCount` | `risk_alert_count:int` | 그대로 |
-| `importantNewsCount` | `important_news_count:int` | 그대로 |
-| `reviewSignalCount` | `review_signal_count:int` | 그대로 |
-| `cashRatio` | `cash_weight:string\|null`(0~1) | `parseDecimal × 100`, null→0 |
-| `*Delta` | `*_delta:null`(항상) | **항상 null → 증감 배지 숨김** |
+| FE(domain)           | 와이어                          | 변환                           |
+| -------------------- | ------------------------------- | ------------------------------ |
+| `riskAlertCount`     | `risk_alert_count:int`          | 그대로                         |
+| `importantNewsCount` | `important_news_count:int`      | 그대로                         |
+| `reviewSignalCount`  | `review_signal_count:int`       | 그대로                         |
+| `cashRatio`          | `cash_weight:string\|null`(0~1) | `parseDecimal × 100`, null→0   |
+| `*Delta`             | `*_delta:null`(항상)            | **항상 null → 증감 배지 숨김** |
 
 - 연동 영역 = **Today Brief 4카드만**. AI 브리핑·우선확인큐·관심종목 테이블·시그널·최근
   판단기록 섹션은 BE 출처가 없거나 타 화면 소관 → **mock 유지**.
@@ -56,13 +56,13 @@
   (그룹 선택 UI는 스코프 밖; 단일 그룹 표시 MVP.)
 - item.asset = `{ symbol, name, price(str Decimal), change_percent(str Decimal), sector? }`.
 
-| FE 표시 행 | 와이어 | 변환 |
-| --- | --- | --- |
-| symbol/name | `asset.symbol`/`asset.name` | 그대로 |
-| price | `asset.price` | `parseDecimal` |
-| changePercent | `asset.change_percent` | `parseDecimal` |
-| sector | `asset.sector?` | null→`'UNKNOWN'` |
-| reason/tags/memo | item.reason/tags/memo | 그대로(보조 표시) |
+| FE 표시 행       | 와이어                      | 변환              |
+| ---------------- | --------------------------- | ----------------- |
+| symbol/name      | `asset.symbol`/`asset.name` | 그대로            |
+| price            | `asset.price`               | `parseDecimal`    |
+| changePercent    | `asset.change_percent`      | `parseDecimal`    |
+| sector           | `asset.sector?`             | null→`'UNKNOWN'`  |
+| reason/tags/memo | item.reason/tags/memo       | 그대로(보조 표시) |
 
 - **BE 출처 없는 mock 전용 필드(연동 제외, 이번 스코프 mock 유지 또는 행에서 제거)**:
   `Stock.per/peg/status/newsRisk/valuation/aiVerdict/themeHeat/changeSeries`,
@@ -76,14 +76,14 @@
 - 흐름: 포트폴리오 목록 → **첫 포트폴리오** 선택 → summary 조회.
 - summary positions = `{ asset_id, quantity, avg_buy_price, cost_value, market_value, weight, exceeds_threshold, ... }`(전부 문자열 Decimal). sector는 **집계(`sector_weights`)에만** 존재.
 
-| FE(domain) | 와이어 | 변환 |
-| --- | --- | --- |
-| `Portfolio.totalValue` | `total_value` | `parseDecimal` |
-| `Portfolio.cash` | `cash_balance` | `parseDecimal` |
-| `Holding.quantity/avgPrice/currentValue` | position `quantity`/`avg_buy_price`/`market_value` | `parseDecimal` |
-| `Holding.weight`(파생) | position `weight`(0~1) | `× 100` |
-| `Holding.symbol/name` | position엔 `asset_id`만 | **`GET /assets/{asset_id}`로 식별 해소** |
-| 섹터 익스포저 | `sector_weights[]` | `weight × 100`, sector null→`UNKNOWN` |
+| FE(domain)                               | 와이어                                             | 변환                                     |
+| ---------------------------------------- | -------------------------------------------------- | ---------------------------------------- |
+| `Portfolio.totalValue`                   | `total_value`                                      | `parseDecimal`                           |
+| `Portfolio.cash`                         | `cash_balance`                                     | `parseDecimal`                           |
+| `Holding.quantity/avgPrice/currentValue` | position `quantity`/`avg_buy_price`/`market_value` | `parseDecimal`                           |
+| `Holding.weight`(파생)                   | position `weight`(0~1)                             | `× 100`                                  |
+| `Holding.symbol/name`                    | position엔 `asset_id`만                            | **`GET /assets/{asset_id}`로 식별 해소** |
+| 섹터 익스포저                            | `sector_weights[]`                                 | `weight × 100`, sector null→`UNKNOWN`    |
 
 - **asset 식별 해소**: position에 symbol/name/sector가 없으므로 각 position의 `asset_id`로
   `GET /assets/{asset_id}`(auth 불요)를 병렬 조회해 symbol/name/sector를 채운다. 실패 시
@@ -95,6 +95,7 @@
 ## 4. 신규/변경 파일 (시그니처·책임만)
 
 신규:
+
 - `src/shared/api/queryClient.ts` — `createQueryClient(): QueryClient`.
 - `src/features/dashboard/{dto,adapters,queries}.ts` + `adapters.test.ts`
   - `adaptDashboardSummary(dto: DashboardSummaryDto): DashboardSummary`
@@ -107,6 +108,7 @@
   - `usePortfolioSummary(): UseQueryResult<PortfolioView>`
 
 변경:
+
 - `src/app/App.tsx` — `QueryClientProvider` 추가.
 - `src/pages/ui/DashboardPage.tsx` — Today Brief를 `useDashboardSummary`로, 상태 컴포넌트 연결.
 - `src/pages/ui/WatchlistPage.tsx` — 자산 행을 `useWatchlistAssets`로, 상태 컴포넌트 연결.

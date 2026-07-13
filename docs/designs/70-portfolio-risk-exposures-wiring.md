@@ -14,12 +14,12 @@ PortfolioPage "리스크 노출 분석" 카드가 `mockPortfolio.riskExposures`�
 
 ## 1. 변경 범위
 
-| 파일 | 변경 |
-| --- | --- |
-| `src/features/portfolio/dto.ts` | `PortfolioSummaryDto`에 `risk_exposures` 추가 |
+| 파일                                 | 변경                                                                   |
+| ------------------------------------ | ---------------------------------------------------------------------- |
+| `src/features/portfolio/dto.ts`      | `PortfolioSummaryDto`에 `risk_exposures` 추가                          |
 | `src/features/portfolio/adapters.ts` | `PortfolioView`에 `riskExposures` 추가, DTO→뷰 매핑(level 한국어 변환) |
-| `src/features/portfolio/queries.ts` | 빈 포트폴리오 fallback에 `riskExposures: []` 추가 |
-| `src/pages/ui/PortfolioPage.tsx` | 카드를 `portfolio.riskExposures`로 렌더, 빈 상태 처리, mock 주석 갱신 |
+| `src/features/portfolio/queries.ts`  | 빈 포트폴리오 fallback에 `riskExposures: []` 추가                      |
+| `src/pages/ui/PortfolioPage.tsx`     | 카드를 `portfolio.riskExposures`로 렌더, 빈 상태 처리, mock 주석 갱신  |
 
 ## 2. 계약 매핑 (BE 049 §3 정본)
 
@@ -27,8 +27,8 @@ PortfolioPage "리스크 노출 분석" 카드가 `mockPortfolio.riskExposures`�
 
 `PortfolioSummaryDto`에 추가(snake_case, BE 와이어 그대로):
 
-| 필드 | 타입 |
-| --- | --- |
+| 필드             | 타입                |
+| ---------------- | ------------------- |
 | `risk_exposures` | `RiskExposureDto[]` |
 
 신규 `RiskExposureDto`: `{ code: string; label: string; level: string; description: string }`.

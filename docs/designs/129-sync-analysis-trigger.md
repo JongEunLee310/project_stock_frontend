@@ -16,14 +16,14 @@ Author: value-for-fable:itsvff (Sonnet) 위임
 
 ## 2. BE 계약 (BE PR #244 기준)
 
-| 항목 | 내용 |
-|---|---|
-| 엔드포인트 | `POST /api/v1/worker/jobs/analysis` |
-| 인증 | Bearer 토큰 필수 (`apiPost` 기본값 `auth: true` 적용) |
-| 요청 본문 | `{"watchlist_id": <int>}` |
-| 성공 응답 | `{data: {job_id: string, status: "queued"}}` (공통 엔벨로프) |
-| rate limit | 사용자당 60초 1회 |
-| 429 응답 | HTTP 429 + `Retry-After: 60` 헤더 + `{error: {code: "RATE_LIMIT_EXCEEDED", ...}}` |
+| 항목       | 내용                                                                              |
+| ---------- | --------------------------------------------------------------------------------- |
+| 엔드포인트 | `POST /api/v1/worker/jobs/analysis`                                               |
+| 인증       | Bearer 토큰 필수 (`apiPost` 기본값 `auth: true` 적용)                             |
+| 요청 본문  | `{"watchlist_id": <int>}`                                                         |
+| 성공 응답  | `{data: {job_id: string, status: "queued"}}` (공통 엔벨로프)                      |
+| rate limit | 사용자당 60초 1회                                                                 |
+| 429 응답   | HTTP 429 + `Retry-After: 60` 헤더 + `{error: {code: "RATE_LIMIT_EXCEEDED", ...}}` |
 
 잡은 비동기 큐잉이며 완료 대기는 없습니다. `job_id` 수신 시점을 "동기화 요청됨" 상태의 기준으로 사용합니다.
 
@@ -62,11 +62,11 @@ triggerAnalysis(watchlistId: number): Promise<{ job_id: string; status: 'queued'
 
 `handleRefresh` 내에서 `apiGet<WatchlistDto[]>('/watchlists?page=1&size=20')`으로 첫 번째 watchlist ID를 조회합니다. 이는 `src/features/watchlist/queries.ts:62-65`의 기존 패턴과 동일합니다.
 
-| 조건 | 처리 |
-|---|---|
-| `data[0]` 존재 | `watchlist_id = data[0].id`로 트리거 호출 |
-| `data[0]` 없음 | 트리거 건너뜀, 캐시 무효화는 그대로 수행 |
-| GET 실패 (네트워크·5xx) | 트리거 건너뜀, 캐시 무효화는 그대로 수행 |
+| 조건                    | 처리                                      |
+| ----------------------- | ----------------------------------------- |
+| `data[0]` 존재          | `watchlist_id = data[0].id`로 트리거 호출 |
+| `data[0]` 없음          | 트리거 건너뜀, 캐시 무효화는 그대로 수행  |
+| GET 실패 (네트워크·5xx) | 트리거 건너뜀, 캐시 무효화는 그대로 수행  |
 
 ### 4.3 `handleRefresh` 실행 순서
 
@@ -85,11 +85,11 @@ triggerAnalysis(watchlistId: number): Promise<{ job_id: string; status: 'queued'
 
 `triggerStatus: 'idle' | 'requested' | 'rate-limited'` 로컬 상태로 관리합니다. 자동 복원 타이머는 도입하지 않으며, 다음 `handleRefresh` 호출 시 `'idle'`로 초기화됩니다.
 
-| `triggerStatus` | 동기화 영역 표시 문구 | 동기화 시각(`HH:mm`) |
-|---|---|---|
-| `'idle'` | `동기화` | 표시 |
-| `'requested'` | `동기화 요청됨` | 표시 (갱신된 시각 유지) |
-| `'rate-limited'` | `잠시 후 다시 시도해 주세요 (약 60초)` | 표시하지 않음 |
+| `triggerStatus`  | 동기화 영역 표시 문구                  | 동기화 시각(`HH:mm`)    |
+| ---------------- | -------------------------------------- | ----------------------- |
+| `'idle'`         | `동기화`                               | 표시                    |
+| `'requested'`    | `동기화 요청됨`                        | 표시 (갱신된 시각 유지) |
+| `'rate-limited'` | `잠시 후 다시 시도해 주세요 (약 60초)` | 표시하지 않음           |
 
 "요청됨"·"잠시 후 다시 시도해 주세요 (약 60초)" 문구는 Codex가 임의로 변경하지 않습니다. 이 설계 문서를 정본으로 사용합니다.
 

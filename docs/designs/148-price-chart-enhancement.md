@@ -31,7 +31,7 @@ BE #270(PR #277)의 `benchmark-comparison` 계약과 기존 가격 계약의
 ## Shared UI — `src/shared/ui/charts/LineChart.tsx`
 
 - 다중 시리즈 지원을 additive로 추가한다: `series?: Array<{ dataKey,
-  color, strokeWidth?, strokeDasharray? }>` prop. 지정 시 `yDataKey`
+color, strokeWidth?, strokeDasharray? }>` prop. 지정 시 `yDataKey`
   단일 렌더 대신 시리즈별 `<Line>`을 렌더한다. **기존 단일 시리즈
   API(yDataKey·color)는 불변** — 기존 소비처(대시보드 등) 수정 없음.
 - 범례는 LineChart에 넣지 않는다 — 페이지 쪽에서 시리즈 라벨·색상
@@ -42,7 +42,7 @@ BE #270(PR #277)의 `benchmark-comparison` 계약과 기존 가격 계약의
 - `PriceBarDto`에 `date?: string | null` · `volume?: number | null`
   추가 (BE 실계약 필드, additive).
 - `PriceSeriesView`를 `points: Array<{ date: string, close: number,
-  volume: number | null, ma20: number | null }>` 중심으로 확장
+volume: number | null, ma20: number | null }>` 중심으로 확장
   (`closes`는 유지하거나 points에서 파생 — 소비처가 PriceSparkline
   뿐이므로 교체 허용).
   - `ma20`은 adapter에서 파생: 직전 20개 close 단순 평균, 20개 미만
@@ -50,7 +50,7 @@ BE #270(PR #277)의 `benchmark-comparison` 계약과 기존 가격 계약의
     같은 시그니처, adapter 파일 내).
 - `BenchmarkComparisonDto` — PR #277 응답 형태 그대로.
 - `BenchmarkSeriesItem` — `{ kind: string, label: string, points:
-  [{ date, returnPercent: number }] }`,
+[{ date, returnPercent: number }] }`,
   `adaptBenchmarkComparison(dto): BenchmarkSeriesItem[]` — 순서는 응답
   순서 유지. kind 라벨 병기는 label 필드를 그대로 쓴다 (BE가 표시명
   제공).

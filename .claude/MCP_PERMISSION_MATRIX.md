@@ -4,14 +4,14 @@ No MCP server is configured in this template yet (no `.mcp.json`). This document
 
 ## Matrix
 
-| Agent | Filesystem | GitHub | Test Runner | CI Logs | Docs | DB | Deploy | Monitoring |
-|---|---|---|---|---|---|---|---|---|
-| Main session | Read/Write | Read/Write | Run | Read | Read/Write | None | None | Read |
-| `architect-planner` | Read | Read | None | None | Read | None | None | None |
-| `codex-task-writer` | Read | Read | None | None | Read | None | None | None |
-| `implementation-guardian` | Read | Read | None | Read | Read | None | None | None |
-| `code-reviewer` | Read | Read/Comment | Run (read-only verification) | Read | Read | None | None | None |
-| `test-debugger` | Read | Read | Run | Read | Read | None | None | None |
+| Agent                     | Filesystem | GitHub       | Test Runner                  | CI Logs | Docs       | DB   | Deploy | Monitoring |
+| ------------------------- | ---------- | ------------ | ---------------------------- | ------- | ---------- | ---- | ------ | ---------- |
+| Main session              | Read/Write | Read/Write   | Run                          | Read    | Read/Write | None | None   | Read       |
+| `architect-planner`       | Read       | Read         | None                         | None    | Read       | None | None   | None       |
+| `codex-task-writer`       | Read       | Read         | None                         | None    | Read       | None | None   | None       |
+| `implementation-guardian` | Read       | Read         | None                         | Read    | Read       | None | None   | None       |
+| `code-reviewer`           | Read       | Read/Comment | Run (read-only verification) | Read    | Read       | None | None   | None       |
+| `test-debugger`           | Read       | Read         | Run                          | Read    | Read       | None | None   | None       |
 
 ## Principles
 

@@ -37,7 +37,7 @@
   aria-label. 4행이라 페이지네이션 불필요.
 - 타임존: 로컬 KST, CI UTC. 모든 `Intl.DateTimeFormat`에 `timeZone: 'Asia/Seoul'` 명시. 시점 의존 로직
   금지(정렬은 고정 mock `createdAt` 기준). `TZ=UTC pnpm test`로 재현·검증.
-- `src/index.css` `@theme` 토큰은 **추가만** 가능(보호 성격). 이번 작업은 기존 app-*/status-* 토큰으로 충분 —
+- `src/index.css` `@theme` 토큰은 **추가만** 가능(보호 성격). 이번 작업은 기존 app-_/status-_ 토큰으로 충분 —
   신규 토큰 없이 구현할 것.
 
 ## Implementation Scope
@@ -98,7 +98,7 @@
 
 - 공통 컴포넌트 재사용(`Card`/`Badge`/`Table`/`Button`/`Link`), 인라인 색상·뱃지 스타일 복제 금지.
 - 네이티브 다이얼로그 금지(이번 페이지는 폼/검증 없음, 해당 시 인앱 UI).
-- 신규 `@theme` 토큰 없이 기존 app-*/status-* 토큰으로 구현.
+- 신규 `@theme` 토큰 없이 기존 app-_/status-_ 토큰으로 구현.
 - 필수 필드 추가 후 모든 mock 항목 채워 `typecheck` 통과(satisfies).
 - 모든 시간 포매터 `timeZone: 'Asia/Seoul'` 고정, 시점 의존 로직 금지.
 

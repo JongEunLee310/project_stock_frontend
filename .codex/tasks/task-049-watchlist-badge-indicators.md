@@ -35,14 +35,14 @@ safe·neutral은 기존 dot을 유지한다.
 
 - `src/features/watchlist/adapters.ts`
   — resolver 5종 반환 타입을 `{ label, className, indicator }`로 변경.
-    `indicator: { kind: 'dot' | 'glyph'; className: string; glyph?: string }`.
-    `dotClassName` 필드와 `evaluationBadgeDotClassNames`는 새 인디케이터 맵으로
-    대체한다 (danger → glyph `⚠︎`/`text-rose-400`, warning → glyph `!`/
-    `text-amber-400 font-bold`, safe → dot `bg-emerald-400`, neutral → dot
-    `bg-slate-400`).
+  `indicator: { kind: 'dot' | 'glyph'; className: string; glyph?: string }`.
+  `dotClassName` 필드와 `evaluationBadgeDotClassNames`는 새 인디케이터 맵으로
+  대체한다 (danger → glyph `⚠︎`/`text-rose-400`, warning → glyph `!`/
+  `text-amber-400 font-bold`, safe → dot `bg-emerald-400`, neutral → dot
+  `bg-slate-400`).
 - `src/pages/ui/WatchlistPage.tsx`
   — `TableBadge`가 `indicator`를 받아 `kind`로 분기 렌더링.
-    상태 배지·`EvaluationBadgeCell`의 prop 전달을 새 형태로 갱신.
+  상태 배지·`EvaluationBadgeCell`의 prop 전달을 새 형태로 갱신.
 
 **테스트 파일:**
 
