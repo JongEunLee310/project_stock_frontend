@@ -11,6 +11,7 @@ import { ApiError } from '@/shared/api/envelope'
 
 import {
   adaptBenchmarkComparison,
+  adaptAssetEvents,
   adaptCatalystTimeline,
   adaptEarningsSummary,
   adaptNewsDisclosure,
@@ -20,6 +21,7 @@ import {
   adaptResearchListRow,
   adaptValuationMetrics,
   type BenchmarkSeriesItem,
+  type AssetEventItem,
   type CatalystEventItem,
   type EarningsView,
   type NewsDisclosureView,
@@ -31,6 +33,7 @@ import {
 } from './adapters'
 import type {
   AssetDetailDto,
+  AssetEventHistoryDto,
   AssetLookupDto,
   BenchmarkComparisonDto,
   BuyChecklistDto,
@@ -166,6 +169,26 @@ export function useBenchmarkComparison(
       )
 
       return adaptBenchmarkComparison(data)
+    },
+  })
+}
+
+export function useAssetEvents(
+  assetId: number | null,
+  range: BenchmarkRange,
+  enabled: boolean,
+): UseQueryResult<AssetEventItem[]> {
+  return useQuery<AssetEventItem[]>({
+    queryKey: ['research', 'asset-events', assetId, range],
+    enabled: assetId !== null && enabled,
+    queryFn: async () => {
+      if (assetId === null) return []
+
+      const { data } = await apiGet<AssetEventHistoryDto>(
+        `/assets/${assetId}/events?range=${range}`,
+      )
+
+      return adaptAssetEvents(data)
     },
   })
 }

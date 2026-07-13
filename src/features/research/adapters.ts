@@ -8,6 +8,7 @@ import {
 
 import type {
   AssetDetailDto,
+  AssetEventHistoryDto,
   AssetLookupDto,
   BenchmarkComparisonDto,
   BuyChecklistDto,
@@ -170,6 +171,21 @@ export interface BenchmarkSeriesItem {
   }>
 }
 
+export interface AssetEventItem {
+  eventDate: string
+  eventType: string
+  epsActual: number | null
+  epsEstimate: number | null
+  epsSurprisePercent: number | null
+  label: string
+}
+
+export interface ChartEventMarker {
+  x: string
+  y: number
+  label: string
+}
+
 export interface ValuationMetricItem {
   metric: string
   metricLabel: string
@@ -324,6 +340,69 @@ export function adaptBenchmarkComparison(
       return returnPercent === null ? [] : [{ date: point.date, returnPercent }]
     }),
   }))
+}
+
+function formatEps(value: number) {
+  return value.toLocaleString('en-US', { maximumFractionDigits: 2 })
+}
+
+function formatSurprisePercent(value: number) {
+  const sign = value > 0 ? '+' : ''
+  return `${sign}${value.toFixed(2)}%`
+}
+
+export function adaptAssetEvents(dto: AssetEventHistoryDto): AssetEventItem[] {
+  return dto.events.map((event) => {
+    const epsActual = parseDecimal(event.eps_actual)
+    const epsEstimate = parseDecimal(event.eps_estimate)
+    const epsSurprisePercent = parseDecimal(event.eps_surprise_percent)
+    const [, month, day] = event.event_date.split('-')
+    const supplementalDetails = [
+      epsEstimate === null ? null : `예상 ${formatEps(epsEstimate)}`,
+      epsSurprisePercent === null
+        ? null
+        : `서프라이즈 ${formatSurprisePercent(epsSurprisePercent)}`,
+    ].filter((detail): detail is string => detail !== null)
+    const detailLabel =
+      epsActual === null
+        ? supplementalDetails.length > 0
+          ? ` · ${supplementalDetails.join(', ')}`
+          : ''
+        : ` · EPS ${formatEps(epsActual)}${
+            supplementalDetails.length > 0
+              ? ` (${supplementalDetails.join(', ')})`
+              : ''
+          }`
+
+    return {
+      eventDate: event.event_date,
+      eventType: event.event_type,
+      epsActual,
+      epsEstimate,
+      epsSurprisePercent,
+      label: `${month}.${day} 실적 발표${detailLabel}`,
+    }
+  })
+}
+
+export function snapEventsToChartPoints(
+  events: AssetEventItem[],
+  points: Array<{ date: string; close: number }>,
+): ChartEventMarker[] {
+  return events.flatMap((event) => {
+    const snappedPoint = points.reduce<(typeof points)[number] | null>(
+      (latestPoint, point) => {
+        if (point.date > event.eventDate) return latestPoint
+        if (!latestPoint || point.date > latestPoint.date) return point
+        return latestPoint
+      },
+      null,
+    )
+
+    return snappedPoint
+      ? [{ x: snappedPoint.date, y: snappedPoint.close, label: event.label }]
+      : []
+  })
 }
 
 export const newsDisclosureCategoryLabels: Record<string, string> = {

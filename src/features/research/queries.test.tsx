@@ -13,6 +13,7 @@ import { formatKstDateTime } from '@/shared/lib/format'
 
 import {
   useCatalystTimeline,
+  useAssetEvents,
   useBenchmarkComparison,
   useEarningsSummary,
   useNewsDisclosure,
@@ -627,6 +628,56 @@ describe('research queries', () => {
         queryKey: ['research', 'benchmark', 11, '3M'],
       }),
     ).toBeDefined()
+  })
+
+  it('fetches asset events only while event markers are enabled', async () => {
+    const assetId = 11
+    vi.mocked(apiGet).mockResolvedValue({
+      data: {
+        asset_id: assetId,
+        range: '3M',
+        events: [
+          {
+            event_date: '2026-07-10',
+            event_type: 'EARNINGS',
+            eps_actual: '1.52',
+            eps_estimate: '1.48',
+            eps_surprise_percent: '2.70',
+          },
+        ],
+      },
+      meta: undefined,
+    })
+    const queryClient = createTestQueryClient()
+    const { result, rerender } = renderHook(
+      ({ enabled }) => useAssetEvents(assetId, '3M', enabled),
+      { initialProps: { enabled: false }, wrapper: wrapperFor(queryClient) },
+    )
+
+    expect(apiGet).not.toHaveBeenCalled()
+
+    rerender({ enabled: true })
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(apiGet).toHaveBeenCalledWith(`/assets/${assetId}/events?range=3M`)
+    expect(result.current.data?.[0].label).toBe(
+      '07.10 실적 발표 · EPS 1.52 (예상 1.48, 서프라이즈 +2.70%)',
+    )
+    expect(
+      queryClient.getQueryCache().find({
+        queryKey: ['research', 'asset-events', assetId, '3M'],
+      }),
+    ).toBeDefined()
+  })
+
+  it('does not fetch asset events without an asset id', () => {
+    const queryClient = createTestQueryClient()
+
+    renderHook(() => useAssetEvents(null, '1M', true), {
+      wrapper: wrapperFor(queryClient),
+    })
+
+    expect(apiGet).not.toHaveBeenCalled()
   })
 
   it('does not fetch benchmark comparison without an asset id', () => {

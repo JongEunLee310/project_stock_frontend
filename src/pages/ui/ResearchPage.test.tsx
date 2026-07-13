@@ -19,6 +19,7 @@ import {
 } from '@/test-utils/authTestSetup'
 
 const mockUseResearchPriceSeries = vi.hoisted(() => vi.fn())
+const mockUseAssetEvents = vi.hoisted(() => vi.fn())
 const mockUseBenchmarkComparison = vi.hoisted(() => vi.fn())
 const mockBenchmarkComparisonRefetch = vi.hoisted(() => vi.fn())
 const mockUseValuationMetrics = vi.hoisted(() => vi.fn())
@@ -226,6 +227,7 @@ vi.mock('@/features/research/queries', async () => {
     useCatalystTimeline: mockUseCatalystTimeline,
     useResearchCoverage: mockUseResearchCoverage,
     useResearchPriceSeries: mockUseResearchPriceSeries,
+    useAssetEvents: mockUseAssetEvents,
     useBenchmarkComparison: mockUseBenchmarkComparison,
     useValuationMetrics: mockUseValuationMetrics,
     useEarningsSummary: mockUseEarningsSummary,
@@ -323,6 +325,13 @@ beforeEach(() => {
       source: null,
       lastUpdatedAt: null,
     },
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: vi.fn(),
+  })
+  mockUseAssetEvents.mockReturnValue({
+    data: [],
     error: null,
     isError: false,
     isLoading: false,
@@ -772,6 +781,99 @@ describe('ResearchPage', () => {
       'aria-pressed',
       'true',
     )
+  })
+
+  it('renders earnings markers only in price mode', async () => {
+    mockUseResearchPriceSeries.mockReturnValue({
+      data: {
+        closes: [128.5, 130.25],
+        points: [
+          { date: '2026-07-09', close: 128.5, volume: null, ma20: null },
+          { date: '2026-07-10', close: 130.25, volume: null, ma20: null },
+        ],
+        currency: 'USD',
+        source: 'polygon',
+        lastUpdatedAt: '2026-07-10T00:00:00Z',
+      },
+      error: null,
+      isError: false,
+      isLoading: false,
+      refetch: vi.fn(),
+    })
+    const markerLabel =
+      '07.10 실적 발표 · EPS 1.52 (예상 1.48, 서프라이즈 +2.70%)'
+    mockUseAssetEvents.mockReturnValue({
+      data: [
+        {
+          eventDate: '2026-07-10',
+          eventType: 'EARNINGS',
+          epsActual: 1.52,
+          epsEstimate: 1.48,
+          epsSurprisePercent: 2.7,
+          label: markerLabel,
+        },
+      ],
+      error: null,
+      isError: false,
+      isLoading: false,
+      refetch: vi.fn(),
+    })
+
+    renderResearch()
+
+    expect(await screen.findByRole('img', { name: markerLabel })).toBeVisible()
+    expect(
+      within(screen.getByRole('list', { name: '가격 차트 범례' })).getByText(
+        '실적 발표',
+      ),
+    ).toBeVisible()
+    expect(mockUseAssetEvents).toHaveBeenLastCalledWith(
+      researchBySymbol.NVDA.assetId,
+      '3M',
+      true,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: '벤치마크 비교' }))
+
+    expect(
+      screen.queryByRole('img', { name: markerLabel }),
+    ).not.toBeInTheDocument()
+    expect(mockUseAssetEvents).toHaveBeenLastCalledWith(
+      researchBySymbol.NVDA.assetId,
+      '3M',
+      false,
+    )
+  })
+
+  it('keeps the price chart visible when the asset event query fails', async () => {
+    mockUseResearchPriceSeries.mockReturnValue({
+      data: {
+        closes: [130.25],
+        points: [
+          { date: '2026-07-10', close: 130.25, volume: null, ma20: null },
+        ],
+        currency: 'USD',
+        source: 'polygon',
+        lastUpdatedAt: '2026-07-10T00:00:00Z',
+      },
+      error: null,
+      isError: false,
+      isLoading: false,
+      refetch: vi.fn(),
+    })
+    mockUseAssetEvents.mockReturnValue({
+      data: undefined,
+      error: new Error('asset events failed'),
+      isError: true,
+      isLoading: false,
+      refetch: vi.fn(),
+    })
+
+    renderResearch()
+
+    expect(
+      await screen.findByRole('img', { name: 'NVDA 최근 가격 추이' }),
+    ).toBeVisible()
   })
 
   it('omits the volume chart when every volume value is null', async () => {

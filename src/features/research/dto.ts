@@ -120,6 +120,20 @@ export interface PriceSeriesDto {
   bars: PriceBarDto[]
 }
 
+export interface AssetEventDto {
+  event_date: string
+  event_type: string
+  eps_actual: string | null
+  eps_estimate: string | null
+  eps_surprise_percent: string | null
+}
+
+export interface AssetEventHistoryDto {
+  asset_id: number
+  range: string
+  events: AssetEventDto[]
+}
+
 export interface BenchmarkComparisonDto {
   series: Array<{
     kind: string

@@ -2,10 +2,12 @@ import {
   CartesianGrid,
   Line,
   LineChart as RechartsLineChart,
+  ReferenceDot,
   Tooltip,
   XAxis,
   YAxis,
   type Margin,
+  type DotProps,
 } from 'recharts'
 
 import { classNames } from '@/shared/ui/classNames'
@@ -44,6 +46,27 @@ export interface LineChartProps<T extends LineChartPoint = LineChartPoint> {
   showGrid?: boolean
   showTooltip?: boolean
   series?: Array<LineChartSeries<T>>
+  markers?: Array<{ x: string; y: number; label: string; color?: string }>
+}
+
+const DEFAULT_MARKER_COLOR = '#f59e0b'
+
+function renderMarkerShape(label: string, color: string) {
+  return ({ cx, cy, r }: DotProps) => (
+    <circle
+      cx={cx}
+      cy={cy}
+      r={r}
+      fill={color}
+      stroke="#fef3c7"
+      strokeWidth={2}
+      tabIndex={0}
+      aria-label={label}
+      role="img"
+    >
+      <title>{label}</title>
+    </circle>
+  )
 }
 
 export function LineChart<T extends LineChartPoint = LineChartPoint>({
@@ -61,6 +84,7 @@ export function LineChart<T extends LineChartPoint = LineChartPoint>({
   showGrid = true,
   showTooltip = false,
   series,
+  markers,
 }: LineChartProps<T>) {
   const { containerRef, chartWidth } = useMeasuredChartWidth(
     responsive ? width : (width ?? chartTheme.fallbackWidth),
@@ -121,6 +145,19 @@ export function LineChart<T extends LineChartPoint = LineChartPoint>({
             dot={false}
             connectNulls={false}
             isAnimationActive={false}
+          />
+        ))}
+        {markers?.map((marker, index) => (
+          <ReferenceDot
+            key={`${marker.x}:${marker.label}:${index}`}
+            x={marker.x}
+            y={marker.y}
+            r={5}
+            ifOverflow="discard"
+            shape={renderMarkerShape(
+              marker.label,
+              marker.color ?? DEFAULT_MARKER_COLOR,
+            )}
           />
         ))}
       </RechartsLineChart>
