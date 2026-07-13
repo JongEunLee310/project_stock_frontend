@@ -1518,7 +1518,7 @@ describe('ResearchPage', () => {
     expect(screen.getByText('표시할 공시가 없습니다.')).toBeVisible()
   })
 
-  it('shows key risks with badges and non-empty evidence lists', async () => {
+  it('shows evidence tooltips only for key risks with evidence', async () => {
     renderResearch()
 
     await screen.findByRole('heading', { name: 'NVDA 리서치' })
@@ -1527,26 +1527,25 @@ describe('ResearchPage', () => {
       .closest('section')
 
     expect(riskPanel).not.toBeNull()
-    const marginRisk = screen
-      .getByRole('heading', { name: 'Margin pressure' })
-      .closest('li')
-    const supplyRisk = screen
-      .getByRole('heading', { name: 'Supply' })
-      .closest('li')
+    const marginRisk = screen.getByText('Margin pressure').closest('li')
+    const supplyRisk = screen.getByText('Supply').closest('li')
 
     expect(marginRisk).not.toBeNull()
     expect(supplyRisk).not.toBeNull()
+    const evidenceTrigger = within(marginRisk as HTMLElement).getByRole(
+      'button',
+      { name: 'Margin pressure 근거' },
+    )
+
+    fireEvent.focus(evidenceTrigger)
+
+    const tooltip = screen.getByRole('tooltip')
+    expect(tooltip).toHaveTextContent('Gross margin normalization.')
+    expect(tooltip).toHaveTextContent('최근 분기 매출총이익률 하락')
+    expect(tooltip).toHaveTextContent('원가 상승 압력')
     expect(
-      within(marginRisk as HTMLElement).getByRole('heading', { name: '근거' }),
-    ).toBeVisible()
-    expect(
-      within(marginRisk as HTMLElement).getByText(
-        '최근 분기 매출총이익률 하락',
-      ),
-    ).toBeVisible()
-    expect(
-      within(supplyRisk as HTMLElement).queryByRole('heading', {
-        name: '근거',
+      within(supplyRisk as HTMLElement).queryByRole('button', {
+        name: 'Supply 근거',
       }),
     ).not.toBeInTheDocument()
   })
