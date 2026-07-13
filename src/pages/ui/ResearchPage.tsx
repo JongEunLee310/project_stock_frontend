@@ -91,6 +91,7 @@ const riskRank: Record<string, number> = {
   낮음: 1,
 }
 
+// 불릿은 전경색 토큰(-text)을 배경으로 재사용한다 — 수준별 대비가 배지 텍스트와 동일해야 해서다
 const riskDotClassNames: Record<string, string> = {
   높음: 'bg-status-level-high-text',
   중간: 'bg-status-level-medium-text',
@@ -915,7 +916,10 @@ function RiskPanel({ research }: { research: ResearchView }) {
               />
               <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
                 <span className="inline-flex min-w-0 items-center gap-1.5">
-                  <h3 className="truncate font-semibold text-app-text">
+                  <h3
+                    className="truncate font-semibold text-app-text"
+                    title={risk.title}
+                  >
                     {risk.title}
                   </h3>
                   {(risk.evidence?.length ?? 0) > 0 ? (
