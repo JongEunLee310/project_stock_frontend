@@ -4,6 +4,7 @@ import { formatKstDateTime } from '@/shared/lib/format'
 
 import {
   adaptBenchmarkComparison,
+  adaptAssetEvents,
   adaptCatalystTimeline,
   adaptEarningsSummary,
   adaptNewsDisclosure,
@@ -14,9 +15,11 @@ import {
   adaptThesis,
   adaptValuationMetrics,
   withMovingAverage,
+  snapEventsToChartPoints,
 } from './adapters'
 import type {
   AssetDetailDto,
+  AssetEventHistoryDto,
   BuyChecklistDto,
   CatalystTimelineDto,
   EarningsSummaryDto,
@@ -556,6 +559,105 @@ describe('research adapters', () => {
       { date: '2026-06-01', returnPercent: 0 },
       { date: '2026-06-02', returnPercent: 1.25 },
     ])
+  })
+
+  it('adapts asset event decimals and omits unavailable label details', () => {
+    const dto: AssetEventHistoryDto = {
+      asset_id: detail.id,
+      range: '3M',
+      events: [
+        {
+          event_date: '2026-05-21',
+          event_type: 'EARNINGS',
+          eps_actual: null,
+          eps_estimate: null,
+          eps_surprise_percent: null,
+        },
+        {
+          event_date: '2026-06-18',
+          event_type: 'EARNINGS',
+          eps_actual: '1.52',
+          eps_estimate: null,
+          eps_surprise_percent: '-2.70',
+        },
+        {
+          event_date: '2026-07-10',
+          event_type: 'EARNINGS',
+          eps_actual: '1.52',
+          eps_estimate: '1.48',
+          eps_surprise_percent: '2.70',
+        },
+      ],
+    }
+
+    const events = adaptAssetEvents(dto)
+
+    // BE #282의 Decimal 문자열 픽스처를 number로 변환한 기대값이다.
+    expect(events[1]).toMatchObject({
+      eventDate: '2026-06-18',
+      eventType: 'EARNINGS',
+      epsActual: 1.52,
+      epsEstimate: null,
+      epsSurprisePercent: -2.7,
+      label: '06.18 실적 발표 · EPS 1.52 (서프라이즈 -2.70%)',
+    })
+    expect(events.map((event) => event.label)).toEqual([
+      '05.21 실적 발표',
+      '06.18 실적 발표 · EPS 1.52 (서프라이즈 -2.70%)',
+      '07.10 실적 발표 · EPS 1.52 (예상 1.48, 서프라이즈 +2.70%)',
+    ])
+  })
+
+  it('snaps events to the nearest previous chart date and keeps overlaps', () => {
+    const events = adaptAssetEvents({
+      asset_id: detail.id,
+      range: '1M',
+      events: [
+        {
+          event_date: '2026-07-01',
+          event_type: 'EARNINGS',
+          eps_actual: null,
+          eps_estimate: null,
+          eps_surprise_percent: null,
+        },
+        {
+          event_date: '2026-07-05',
+          event_type: 'EARNINGS',
+          eps_actual: '1.2',
+          eps_estimate: null,
+          eps_surprise_percent: null,
+        },
+        {
+          event_date: '2026-07-06',
+          event_type: 'EARNINGS',
+          eps_actual: null,
+          eps_estimate: '1.1',
+          eps_surprise_percent: null,
+        },
+        {
+          event_date: '2026-07-06',
+          event_type: 'EARNINGS',
+          eps_actual: null,
+          eps_estimate: null,
+          eps_surprise_percent: '-1.5',
+        },
+      ],
+    })
+    const points = [
+      { date: '2026-07-02', close: 100 },
+      { date: '2026-07-03', close: 101 },
+      { date: '2026-07-06', close: 105 },
+    ]
+
+    const markers = snapEventsToChartPoints(events, points)
+
+    // 위 가격 픽스처의 거래일 종가를 그대로 기대한다.
+    expect(markers.map(({ x, y }) => ({ x, y }))).toEqual([
+      { x: '2026-07-03', y: 101 },
+      { x: '2026-07-06', y: 105 },
+      { x: '2026-07-06', y: 105 },
+    ])
+    expect(markers[0].label).toBe(events[1].label)
   })
 
   it('keeps stance and confidence fallbacks for null or invalid wire values', () => {

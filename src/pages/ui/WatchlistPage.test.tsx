@@ -405,6 +405,13 @@ vi.mock('@/features/research/queries', () => ({
     isLoading: false,
     refetch: vi.fn(),
   }),
+  useAssetEvents: () => ({
+    data: [],
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: vi.fn(),
+  }),
   useBenchmarkComparison: () => ({
     data: undefined,
     error: null,

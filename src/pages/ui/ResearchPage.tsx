@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
   SymbolNotFoundError,
   useBenchmarkComparison,
+  useAssetEvents,
   useCatalystTimeline,
   useEarningsSummary,
   useNewsDisclosure,
@@ -28,7 +29,10 @@ import type {
   ValuationMetricItem,
   ValuationView,
 } from '@/features/research/adapters'
-import { newsDisclosureSentimentLabels } from '@/features/research/adapters'
+import {
+  newsDisclosureSentimentLabels,
+  snapEventsToChartPoints,
+} from '@/features/research/adapters'
 import {
   useAddAssetToFirstWatchlist,
   useRemoveWatchlistItem,
@@ -179,10 +183,19 @@ function PriceSparkline({ research }: { research: ResearchView }) {
     benchmarkRange,
     isBenchmarkEnabled && range !== '1D',
   )
+  const assetEventsQuery = useAssetEvents(
+    research.assetId,
+    benchmarkRange,
+    !isBenchmarkEnabled && range !== '1D',
+  )
   const priceSeries = priceSeriesQuery.data
   const data = priceSeries?.points ?? []
   const hasVolume = data.some((point) => point.volume !== null)
   const benchmarkSeries = benchmarkQuery.data ?? emptyBenchmarkSeries
+  const eventMarkers = snapEventsToChartPoints(
+    assetEventsQuery.data ?? [],
+    data,
+  )
   const benchmarkData = useMemo<BenchmarkChartPoint[]>(() => {
     const dates = benchmarkSeries[0]?.points.map((point) => point.date) ?? []
     const valuesBySeries = benchmarkSeries.map(
@@ -322,6 +335,13 @@ function PriceSparkline({ research }: { research: ResearchView }) {
               />
               MA20
             </li>
+            <li className="flex items-center gap-2">
+              <span
+                className="h-2.5 w-2.5 rounded-full bg-amber-500"
+                aria-hidden="true"
+              />
+              실적 발표
+            </li>
           </ul>
           <LineChart
             className="h-44 w-full"
@@ -330,6 +350,7 @@ function PriceSparkline({ research }: { research: ResearchView }) {
             ariaLabel={`${research.symbol} 최근 가격 추이`}
             xDataKey="date"
             series={[...priceChartSeries]}
+            markers={eventMarkers}
             margin={{ top: 10, right: 12, bottom: 4, left: 4 }}
             showGrid
             showTooltip

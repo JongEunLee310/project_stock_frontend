@@ -50,4 +50,30 @@ describe('LineChart', () => {
 
     expect(container.querySelectorAll('.recharts-line')).toHaveLength(2)
   })
+
+  it('renders accessible event markers when configured', () => {
+    const label = '07.10 실적 발표 · EPS 1.52 (예상 1.48, 서프라이즈 +2.70%)'
+
+    render(
+      <LineChart
+        data={data}
+        height={120}
+        width={240}
+        ariaLabel="가격"
+        markers={[{ x: 'B', y: 12, label }]}
+      />,
+    )
+
+    expect(screen.getByRole('img', { name: label })).toHaveAttribute(
+      'tabindex',
+      '0',
+    )
+    expect(screen.getByText(label, { selector: 'title' })).toBeInTheDocument()
+  })
+
+  it('does not render event markers when markers are omitted', () => {
+    render(<LineChart data={data} height={120} width={240} />)
+
+    expect(screen.queryByRole('img')).not.toBeInTheDocument()
+  })
 })
