@@ -1000,15 +1000,39 @@ function ChecklistPanel({
   )
 }
 
-function NewsDisclosureList({ items }: { items: NewsDisclosureItem[] }) {
+function NewsDisclosureList({
+  items,
+  variant,
+}: {
+  items: NewsDisclosureItem[]
+  variant: 'compact' | 'full'
+}) {
+  const isCompact = variant === 'compact'
+
   return (
-    <ul className="mt-4 flex flex-col gap-3">
+    <ul
+      className={
+        isCompact
+          ? 'mt-4 divide-y divide-app-border'
+          : 'mt-4 flex flex-col gap-3'
+      }
+    >
       {items.map((item) => (
         <li
           key={item.id}
-          className="rounded-control border border-app-border bg-app-surface-muted p-4"
+          className={
+            isCompact
+              ? 'py-3 first:pt-0 last:pb-0'
+              : 'rounded-control border border-app-border bg-app-surface-muted p-4'
+          }
         >
-          <div className="flex flex-wrap items-start gap-2">
+          <div
+            className={
+              isCompact
+                ? 'flex min-w-0 items-center gap-2'
+                : 'flex flex-wrap items-start gap-2'
+            }
+          >
             {item.categoryLabel ? (
               <Badge tone="info" className="shrink-0 text-xs">
                 {item.categoryLabel}
@@ -1019,7 +1043,10 @@ function NewsDisclosureList({ items }: { items: NewsDisclosureItem[] }) {
                 href={item.url}
                 target="_blank"
                 rel="noreferrer"
-                className="underline decoration-app-border underline-offset-4 transition-colors hover:text-app-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent"
+                title={isCompact ? item.title : undefined}
+                className={`underline decoration-app-border underline-offset-4 transition-colors hover:text-app-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent ${
+                  isCompact ? 'block truncate' : ''
+                }`}
               >
                 {item.title}
               </a>
@@ -1029,12 +1056,12 @@ function NewsDisclosureList({ items }: { items: NewsDisclosureItem[] }) {
             {item.source}
             {item.publishedAt ? ` · ${item.publishedAt}` : null}
           </p>
-          {item.summary ? (
+          {!isCompact && item.summary ? (
             <p className="mt-2 text-sm leading-6 text-app-text-muted">
               {item.summary}
             </p>
           ) : null}
-          {item.sentiment || item.impactLabel ? (
+          {!isCompact && (item.sentiment || item.impactLabel) ? (
             <div className="mt-3 flex flex-wrap gap-2">
               {item.sentiment ? (
                 <Badge
@@ -1055,11 +1082,23 @@ function NewsDisclosureList({ items }: { items: NewsDisclosureItem[] }) {
   )
 }
 
+const COMPACT_NEWS_DISCLOSURE_LIMIT = 3
+
 function NewsDisclosurePanel({ assetId }: { assetId: number }) {
   const [activeTab, setActiveTab] = useState<'news' | 'disclosures'>('news')
+  const [isExpanded, setIsExpanded] = useState(false)
   const newsDisclosureQuery = useNewsDisclosure(assetId)
   const items = newsDisclosureQuery.data?.[activeTab] ?? []
   const isNewsTab = activeTab === 'news'
+  const hasMoreItems = items.length > COMPACT_NEWS_DISCLOSURE_LIMIT
+  const visibleItems = isExpanded
+    ? items
+    : items.slice(0, COMPACT_NEWS_DISCLOSURE_LIMIT)
+
+  const selectTab = (tab: 'news' | 'disclosures') => {
+    setActiveTab(tab)
+    setIsExpanded(false)
+  }
 
   return (
     <Card id={researchSectionIds.news} tabIndex={-1} className="h-full">
@@ -1075,7 +1114,7 @@ function NewsDisclosurePanel({ assetId }: { assetId: number }) {
           variant={isNewsTab ? 'primary' : 'ghost'}
           aria-selected={isNewsTab}
           aria-controls="research-news-disclosure-panel"
-          onClick={() => setActiveTab('news')}
+          onClick={() => selectTab('news')}
         >
           뉴스
         </Button>
@@ -1085,7 +1124,7 @@ function NewsDisclosurePanel({ assetId }: { assetId: number }) {
           variant={isNewsTab ? 'ghost' : 'primary'}
           aria-selected={!isNewsTab}
           aria-controls="research-news-disclosure-panel"
-          onClick={() => setActiveTab('disclosures')}
+          onClick={() => selectTab('disclosures')}
         >
           공시
         </Button>
@@ -1107,7 +1146,33 @@ function NewsDisclosurePanel({ assetId }: { assetId: number }) {
             className="py-6"
           />
         ) : items.length > 0 ? (
-          <NewsDisclosureList items={items} />
+          <>
+            <NewsDisclosureList
+              items={visibleItems}
+              variant={isExpanded ? 'full' : 'compact'}
+            />
+            {hasMoreItems ? (
+              <div className="mt-2 flex justify-end">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="min-h-8 gap-1 px-2 py-1 text-app-text-muted"
+                  aria-expanded={isExpanded}
+                  onClick={() => setIsExpanded((current) => !current)}
+                >
+                  {isExpanded ? (
+                    <>
+                      접기 <span aria-hidden="true">‹</span>
+                    </>
+                  ) : (
+                    <>
+                      더 보기 <span aria-hidden="true">›</span>
+                    </>
+                  )}
+                </Button>
+              </div>
+            ) : null}
+          </>
         ) : (
           <EmptyState
             title={
