@@ -625,7 +625,11 @@ describe('ResearchPage', () => {
   it('navigates to the decision log with the research symbol', async () => {
     const router = renderResearch()
 
-    fireEvent.click(await screen.findByRole('button', { name: '판단 기록' }))
+    const decisionLogLink = await screen.findByRole('link', {
+      name: '판단 기록 보기',
+    })
+    expect(decisionLogLink).toHaveAttribute('href', '/decision-log?symbol=NVDA')
+    fireEvent.click(decisionLogLink)
 
     await waitFor(() => {
       expect(router.state.location.pathname).toBe('/decision-log')
@@ -685,6 +689,13 @@ describe('ResearchPage', () => {
     ).toBeVisible()
     expect(screen.getByRole('heading', { name: 'NVDA' })).toBeVisible()
     expect(screen.getByText('NVIDIA Corp.')).toBeVisible()
+    expect(
+      screen.queryByRole('button', { name: '워치리스트' }),
+    ).not.toBeInTheDocument()
+    expect(screen.getByRole('presentation')).toHaveAttribute(
+      'src',
+      'https://assets.parqet.com/logos/symbol/NVDA?format=png',
+    )
     expect(screen.getByLabelText('현재가')).toHaveTextContent('$142.62')
 
     const change = screen.getByText('+$2.51 (+1.79%)')
@@ -999,7 +1010,7 @@ describe('ResearchPage', () => {
     ).toBeVisible()
   })
 
-  it('renders the header band investment stance and metric tiles', async () => {
+  it('renders stance details in the confidence tooltip and metric tiles', async () => {
     renderResearch()
 
     await screen.findByRole('heading', { name: 'NVDA 리서치' })
@@ -1012,12 +1023,26 @@ describe('ResearchPage', () => {
     ).toBeVisible()
     expect(screen.getByText('신뢰도 65%')).toBeVisible()
     expect(
-      screen.getByText(
+      screen.queryByText(
+        '성장 지표는 긍정적이지만 밸류에이션 불확실성이 남아 있습니다.',
+      ),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByText(
+        '성장성과 현금흐름 개선을 확인하되 가격 부담을 함께 검토할 단계입니다.',
+      ),
+    ).not.toBeInTheDocument()
+
+    fireEvent.focus(screen.getByRole('button', { name: '신뢰도 상세 보기' }))
+
+    const stanceTooltip = screen.getByRole('tooltip')
+    expect(
+      within(stanceTooltip).getByText(
         '성장 지표는 긍정적이지만 밸류에이션 불확실성이 남아 있습니다.',
       ),
     ).toBeVisible()
     expect(
-      screen.getByText(
+      within(stanceTooltip).getByText(
         '성장성과 현금흐름 개선을 확인하되 가격 부담을 함께 검토할 단계입니다.',
       ),
     ).toBeVisible()
@@ -1038,6 +1063,9 @@ describe('ResearchPage', () => {
     await screen.findByRole('heading', { name: 'MSFT 리서치' })
 
     expect(screen.getByText('신뢰도 없음')).toBeVisible()
+    expect(
+      screen.queryByRole('button', { name: '신뢰도 상세 보기' }),
+    ).not.toBeInTheDocument()
     expect(
       screen.queryByText(
         '성장 지표는 긍정적이지만 밸류에이션 불확실성이 남아 있습니다.',
@@ -1518,7 +1546,7 @@ describe('ResearchPage', () => {
     expect(screen.getByText('표시할 공시가 없습니다.')).toBeVisible()
   })
 
-  it('shows key risks with badges and non-empty evidence lists', async () => {
+  it('shows evidence tooltips only for key risks with evidence', async () => {
     renderResearch()
 
     await screen.findByRole('heading', { name: 'NVDA 리서치' })
@@ -1527,26 +1555,25 @@ describe('ResearchPage', () => {
       .closest('section')
 
     expect(riskPanel).not.toBeNull()
-    const marginRisk = screen
-      .getByRole('heading', { name: 'Margin pressure' })
-      .closest('li')
-    const supplyRisk = screen
-      .getByRole('heading', { name: 'Supply' })
-      .closest('li')
+    const marginRisk = screen.getByText('Margin pressure').closest('li')
+    const supplyRisk = screen.getByText('Supply').closest('li')
 
     expect(marginRisk).not.toBeNull()
     expect(supplyRisk).not.toBeNull()
+    const evidenceTrigger = within(marginRisk as HTMLElement).getByRole(
+      'button',
+      { name: 'Margin pressure 근거' },
+    )
+
+    fireEvent.focus(evidenceTrigger)
+
+    const tooltip = screen.getByRole('tooltip')
+    expect(tooltip).toHaveTextContent('Gross margin normalization.')
+    expect(tooltip).toHaveTextContent('최근 분기 매출총이익률 하락')
+    expect(tooltip).toHaveTextContent('원가 상승 압력')
     expect(
-      within(marginRisk as HTMLElement).getByRole('heading', { name: '근거' }),
-    ).toBeVisible()
-    expect(
-      within(marginRisk as HTMLElement).getByText(
-        '최근 분기 매출총이익률 하락',
-      ),
-    ).toBeVisible()
-    expect(
-      within(supplyRisk as HTMLElement).queryByRole('heading', {
-        name: '근거',
+      within(supplyRisk as HTMLElement).queryByRole('button', {
+        name: 'Supply 근거',
       }),
     ).not.toBeInTheDocument()
   })
@@ -1670,9 +1697,11 @@ YYYY-MM-DD`
   it('adds an asset that is not registered in a watchlist', async () => {
     renderResearch()
 
-    fireEvent.click(
-      await screen.findByRole('button', { name: '관심종목 추가' }),
-    )
+    const favoriteToggle = await screen.findByRole('button', {
+      name: '관심종목 추가',
+    })
+    expect(favoriteToggle).toHaveAttribute('aria-pressed', 'false')
+    fireEvent.click(favoriteToggle)
 
     expect(mockUseWatchlistAssets).toHaveBeenCalledWith(1, 100)
     expect(mockAddWatchlistAsset).toHaveBeenCalledWith({ asset_id: 1 })
@@ -1688,11 +1717,25 @@ YYYY-MM-DD`
     })
     renderResearch()
 
-    fireEvent.click(
-      await screen.findByRole('button', { name: '관심종목 등록됨' }),
-    )
+    const favoriteToggle = await screen.findByRole('button', {
+      name: '관심종목 해제',
+    })
+    expect(favoriteToggle).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.click(favoriteToggle)
 
     expect(mockRemoveWatchlistItem).toHaveBeenCalledWith({ itemId: 77 })
+  })
+
+  it('falls back to the symbol initial when the stock logo fails to load', async () => {
+    renderResearch()
+
+    const logo = await screen.findByRole('presentation')
+    expect(screen.queryByText('N')).not.toBeInTheDocument()
+
+    fireEvent.error(logo)
+
+    expect(screen.getByText('N')).toBeVisible()
+    expect(screen.queryByRole('presentation')).not.toBeInTheDocument()
   })
 
   it('shows an empty state for unsupported symbols', async () => {
