@@ -2,7 +2,7 @@ import type { ComponentPropsWithoutRef } from 'react'
 
 import { classNames } from './classNames'
 
-type ButtonVariant = 'primary' | 'secondary' | 'ghost'
+type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'selected'
 
 const buttonVariantClassNames: Record<ButtonVariant, string> = {
   primary:
@@ -11,6 +11,8 @@ const buttonVariantClassNames: Record<ButtonVariant, string> = {
     'border-app-border bg-app-surface-muted text-app-text hover:border-app-accent focus-visible:outline-app-accent',
   ghost:
     'border-transparent bg-transparent text-app-text-muted hover:bg-app-surface-muted/60 hover:text-app-text focus-visible:outline-app-accent',
+  selected:
+    'border-app-accent/40 bg-app-accent/15 text-app-accent hover:bg-app-accent/25 focus-visible:outline-app-accent',
 }
 
 interface ButtonProps extends ComponentPropsWithoutRef<'button'> {

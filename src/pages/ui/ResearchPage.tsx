@@ -263,7 +263,7 @@ function PriceSparkline({ research }: { research: ResearchView }) {
             <Button
               key={priceRange}
               type="button"
-              variant={range === priceRange ? 'primary' : 'ghost'}
+              variant={range === priceRange ? 'selected' : 'ghost'}
               aria-pressed={range === priceRange}
               className="min-h-8 px-3 py-1 text-xs"
               onClick={() => selectRange(priceRange)}
@@ -280,7 +280,7 @@ function PriceSparkline({ research }: { research: ResearchView }) {
           ) : null}
           <Button
             type="button"
-            variant={isBenchmarkEnabled ? 'primary' : 'ghost'}
+            variant={isBenchmarkEnabled ? 'selected' : 'ghost'}
             aria-pressed={isBenchmarkEnabled}
             disabled={range === '1D'}
             className="min-h-8 px-3 py-1 text-xs"
@@ -655,43 +655,55 @@ function PriceChartCard({ research }: { research: ResearchView }) {
   return (
     <Card>
       <div
-        className="flex flex-wrap gap-2 border-b border-app-border pb-4"
+        className="flex flex-wrap gap-5 border-b border-app-border"
         role="tablist"
         aria-label="차트 지표"
       >
-        <Button
+        <button
           id={chartTabIds.price.tab}
           role="tab"
           type="button"
-          variant={activeTab === 'price' ? 'primary' : 'ghost'}
           aria-controls={chartTabIds.price.panel}
           aria-selected={activeTab === 'price'}
+          className={`-mb-px border-b-2 px-1 pb-2.5 pt-1 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent ${
+            activeTab === 'price'
+              ? 'border-app-accent font-bold text-app-accent'
+              : 'border-transparent font-semibold text-app-text-muted hover:text-app-text'
+          }`}
           onClick={() => setActiveTab('price')}
         >
           가격
-        </Button>
-        <Button
+        </button>
+        <button
           id={chartTabIds.valuation.tab}
           role="tab"
           type="button"
-          variant={activeTab === 'valuation' ? 'primary' : 'ghost'}
           aria-controls={chartTabIds.valuation.panel}
           aria-selected={activeTab === 'valuation'}
+          className={`-mb-px border-b-2 px-1 pb-2.5 pt-1 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent ${
+            activeTab === 'valuation'
+              ? 'border-app-accent font-bold text-app-accent'
+              : 'border-transparent font-semibold text-app-text-muted hover:text-app-text'
+          }`}
           onClick={() => setActiveTab('valuation')}
         >
           밸류에이션
-        </Button>
-        <Button
+        </button>
+        <button
           id={chartTabIds.earnings.tab}
           role="tab"
           type="button"
-          variant={activeTab === 'earnings' ? 'primary' : 'ghost'}
           aria-controls={chartTabIds.earnings.panel}
           aria-selected={activeTab === 'earnings'}
+          className={`-mb-px border-b-2 px-1 pb-2.5 pt-1 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent ${
+            activeTab === 'earnings'
+              ? 'border-app-accent font-bold text-app-accent'
+              : 'border-transparent font-semibold text-app-text-muted hover:text-app-text'
+          }`}
           onClick={() => setActiveTab('earnings')}
         >
           실적
-        </Button>
+        </button>
       </div>
       <div
         id={chartTabIds[activeTab].panel}
@@ -1189,30 +1201,40 @@ function NewsDisclosurePanel({ assetId }: { assetId: number }) {
     <Card id={researchSectionIds.news} tabIndex={-1} className="h-full">
       <h2 className="text-xl font-bold text-app-text">뉴스 및 공시 요약</h2>
       <div
-        className="mt-4 flex gap-2 border-b border-app-border pb-3"
+        className="mt-4 flex gap-5 border-b border-app-border"
         role="tablist"
         aria-label="뉴스 및 공시"
       >
-        <Button
+        <button
           id="research-news-tab"
           role="tab"
-          variant={isNewsTab ? 'primary' : 'ghost'}
+          type="button"
           aria-selected={isNewsTab}
           aria-controls="research-news-disclosure-panel"
+          className={`-mb-px border-b-2 px-1 pb-2.5 pt-1 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent ${
+            isNewsTab
+              ? 'border-app-accent font-bold text-app-accent'
+              : 'border-transparent font-semibold text-app-text-muted hover:text-app-text'
+          }`}
           onClick={() => selectTab('news')}
         >
           뉴스
-        </Button>
-        <Button
+        </button>
+        <button
           id="research-disclosures-tab"
           role="tab"
-          variant={isNewsTab ? 'ghost' : 'primary'}
+          type="button"
           aria-selected={!isNewsTab}
           aria-controls="research-news-disclosure-panel"
+          className={`-mb-px border-b-2 px-1 pb-2.5 pt-1 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent ${
+            !isNewsTab
+              ? 'border-app-accent font-bold text-app-accent'
+              : 'border-transparent font-semibold text-app-text-muted hover:text-app-text'
+          }`}
           onClick={() => selectTab('disclosures')}
         >
           공시
-        </Button>
+        </button>
       </div>
       <div
         id="research-news-disclosure-panel"
