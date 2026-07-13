@@ -103,6 +103,15 @@ function renderLastValueShape(value: number, color: string) {
         stroke="#e2e8f0"
         strokeWidth={1.5}
       />
+      {/* 반투명 틴트 아래에 표면색 베이스를 깔아 뒤의 가격선이 비치지 않게 한다 */}
+      <rect
+        x={cx - labelWidth - 8}
+        y={cy - 11}
+        width={labelWidth}
+        height={22}
+        rx={11}
+        fill="#111827"
+      />
       <rect
         x={cx - labelWidth - 8}
         y={cy - 11}
@@ -110,11 +119,15 @@ function renderLastValueShape(value: number, color: string) {
         height={22}
         rx={11}
         fill={color}
+        fillOpacity={0.16}
+        stroke={color}
+        strokeOpacity={0.45}
+        strokeWidth={1}
       />
       <text
         x={cx - labelWidth / 2 - 8}
         y={cy}
-        fill="#ffffff"
+        fill={color}
         fontSize={11}
         fontWeight={700}
         textAnchor="middle"
