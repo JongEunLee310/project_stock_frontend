@@ -887,7 +887,7 @@ function RiskPanel({ research }: { research: ResearchView }) {
   const highestRiskLevel = getHighestRiskLevel(research.keyRisks)
 
   return (
-    <Card id={researchSectionIds.risks} tabIndex={-1}>
+    <Card id={researchSectionIds.risks} tabIndex={-1} className="h-full">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-bold text-app-text">핵심 리스크</h2>
         <div className="flex items-center gap-2">
@@ -1545,13 +1545,13 @@ export function ResearchPage() {
               ) : null,
             )}
           </Card>
-          <RiskPanel research={research} />
         </aside>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
         <CounterViewPanel items={research.counterView} />
         <ResearchCoveragePanel assetId={research.assetId} />
+        <RiskPanel research={research} />
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
