@@ -43,7 +43,7 @@ export const riskLevelClassNames: Record<RiskLevel, string> = {
 
 export const badgeToneClassNames: Record<BadgeTone, string> = {
   neutral: 'border-app-border bg-app-surface-muted text-app-text-muted',
-  accent: 'border-app-accent-strong bg-app-accent-strong text-app-accent-text',
+  accent: 'border-app-accent/40 bg-app-accent/15 text-app-accent',
   info: 'border-sky-400/40 bg-sky-400/10 text-sky-200',
   warning: 'border-amber-400/40 bg-amber-400/10 text-amber-200',
 }

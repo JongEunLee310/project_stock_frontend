@@ -10,7 +10,7 @@ const buttonVariantClassNames: Record<ButtonVariant, string> = {
   secondary:
     'border-app-border bg-app-surface-muted text-app-text hover:border-app-accent focus-visible:outline-app-accent',
   ghost:
-    'border-transparent bg-transparent text-app-text-muted hover:bg-app-surface-muted hover:text-app-text focus-visible:outline-app-accent',
+    'border-transparent bg-transparent text-app-text-muted hover:bg-app-surface-muted/60 hover:text-app-text focus-visible:outline-app-accent',
 }
 
 interface ButtonProps extends ComponentPropsWithoutRef<'button'> {

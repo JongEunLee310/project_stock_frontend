@@ -65,7 +65,7 @@ export function Badge({
   return (
     <span
       className={classNames(
-        'inline-flex min-h-7 items-center rounded-control border px-2.5 py-1 text-sm font-medium leading-none',
+        'inline-flex min-h-6 items-center rounded-control border px-2 py-0.5 text-xs font-semibold leading-none',
         toneClassName,
         className,
       )}
