@@ -254,7 +254,7 @@ function PriceSparkline({ research }: { research: ResearchView }) {
             <Button
               key={priceRange}
               type="button"
-              variant={range === priceRange ? 'primary' : 'ghost'}
+              variant={range === priceRange ? 'selected' : 'ghost'}
               aria-pressed={range === priceRange}
               className="min-h-8 px-3 py-1 text-xs"
               onClick={() => selectRange(priceRange)}
@@ -271,7 +271,7 @@ function PriceSparkline({ research }: { research: ResearchView }) {
           ) : null}
           <Button
             type="button"
-            variant={isBenchmarkEnabled ? 'primary' : 'ghost'}
+            variant={isBenchmarkEnabled ? 'selected' : 'ghost'}
             aria-pressed={isBenchmarkEnabled}
             disabled={range === '1D'}
             className="min-h-8 px-3 py-1 text-xs"
@@ -654,7 +654,7 @@ function PriceChartCard({ research }: { research: ResearchView }) {
           id={chartTabIds.price.tab}
           role="tab"
           type="button"
-          variant={activeTab === 'price' ? 'primary' : 'ghost'}
+          variant={activeTab === 'price' ? 'selected' : 'ghost'}
           aria-controls={chartTabIds.price.panel}
           aria-selected={activeTab === 'price'}
           onClick={() => setActiveTab('price')}
@@ -665,7 +665,7 @@ function PriceChartCard({ research }: { research: ResearchView }) {
           id={chartTabIds.valuation.tab}
           role="tab"
           type="button"
-          variant={activeTab === 'valuation' ? 'primary' : 'ghost'}
+          variant={activeTab === 'valuation' ? 'selected' : 'ghost'}
           aria-controls={chartTabIds.valuation.panel}
           aria-selected={activeTab === 'valuation'}
           onClick={() => setActiveTab('valuation')}
@@ -676,7 +676,7 @@ function PriceChartCard({ research }: { research: ResearchView }) {
           id={chartTabIds.earnings.tab}
           role="tab"
           type="button"
-          variant={activeTab === 'earnings' ? 'primary' : 'ghost'}
+          variant={activeTab === 'earnings' ? 'selected' : 'ghost'}
           aria-controls={chartTabIds.earnings.panel}
           aria-selected={activeTab === 'earnings'}
           onClick={() => setActiveTab('earnings')}
@@ -1158,7 +1158,7 @@ function NewsDisclosurePanel({ assetId }: { assetId: number }) {
         <Button
           id="research-news-tab"
           role="tab"
-          variant={isNewsTab ? 'primary' : 'ghost'}
+          variant={isNewsTab ? 'selected' : 'ghost'}
           aria-selected={isNewsTab}
           aria-controls="research-news-disclosure-panel"
           onClick={() => selectTab('news')}
@@ -1168,7 +1168,7 @@ function NewsDisclosurePanel({ assetId }: { assetId: number }) {
         <Button
           id="research-disclosures-tab"
           role="tab"
-          variant={isNewsTab ? 'ghost' : 'primary'}
+          variant={isNewsTab ? 'ghost' : 'selected'}
           aria-selected={!isNewsTab}
           aria-controls="research-news-disclosure-panel"
           onClick={() => selectTab('disclosures')}
