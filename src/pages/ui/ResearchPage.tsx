@@ -1076,7 +1076,12 @@ function CounterViewPanel({ items }: { items: string[] }) {
 function CoverageAxisRow({ item }: { item: CoverageAxisItem }) {
   return (
     <li className="grid grid-cols-[5.5rem_auto_minmax(0,1fr)] items-center gap-x-2 py-2.5 first:pt-0 last:pb-0">
-      <span className="font-semibold text-app-text">{item.axisLabel}</span>
+      <span
+        className="min-w-0 truncate font-semibold text-app-text"
+        title={item.axisLabel}
+      >
+        {item.axisLabel}
+      </span>
       <Badge tone={item.isCollected ? 'info' : 'neutral'}>
         {item.isCollected ? '수집됨' : '미수집'}
       </Badge>
