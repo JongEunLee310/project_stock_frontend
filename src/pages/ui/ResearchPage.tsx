@@ -105,6 +105,80 @@ const sentimentClassNames: Record<NewsDisclosureSentiment, string> = {
   NEGATIVE: 'border-red-400/40 bg-red-400/10 text-red-200',
 }
 
+interface CategoryToneClassNames {
+  badge: string
+  timelineDot: string
+}
+
+const categoryToneClassNames: Record<string, CategoryToneClassNames> = {
+  실적: {
+    badge: 'border-amber-400/40 bg-amber-400/10 text-amber-300',
+    timelineDot: 'border-amber-400',
+  },
+  제품: {
+    badge: 'border-sky-400/40 bg-sky-400/10 text-sky-300',
+    timelineDot: 'border-sky-400',
+  },
+  파트너십: {
+    badge: 'border-emerald-400/40 bg-emerald-400/10 text-emerald-300',
+    timelineDot: 'border-emerald-400',
+  },
+  규제: {
+    badge: 'border-red-400/40 bg-red-400/10 text-red-300',
+    timelineDot: 'border-red-400',
+  },
+  인사: {
+    badge: 'border-purple-400/40 bg-purple-400/10 text-purple-300',
+    timelineDot: 'border-purple-400',
+  },
+  자본: {
+    badge: 'border-indigo-400/40 bg-indigo-400/10 text-indigo-300',
+    timelineDot: 'border-indigo-400',
+  },
+  시황: {
+    badge: 'border-teal-400/40 bg-teal-400/10 text-teal-300',
+    timelineDot: 'border-teal-400',
+  },
+  경제지표: {
+    badge: 'border-teal-400/40 bg-teal-400/10 text-teal-300',
+    timelineDot: 'border-teal-400',
+  },
+  계약: {
+    badge: 'border-emerald-400/40 bg-emerald-400/10 text-emerald-300',
+    timelineDot: 'border-emerald-400',
+  },
+  배당: {
+    badge: 'border-green-400/40 bg-green-400/10 text-green-300',
+    timelineDot: 'border-green-400',
+  },
+  주주총회: {
+    badge: 'border-purple-400/40 bg-purple-400/10 text-purple-300',
+    timelineDot: 'border-purple-400',
+  },
+  '락업 해제': {
+    badge: 'border-rose-400/40 bg-rose-400/10 text-rose-300',
+    timelineDot: 'border-rose-400',
+  },
+  콘퍼런스: {
+    badge: 'border-indigo-400/40 bg-indigo-400/10 text-indigo-300',
+    timelineDot: 'border-indigo-400',
+  },
+  기타: {
+    badge: 'border-app-border bg-app-surface-muted text-app-text-muted',
+    timelineDot: 'border-app-border',
+  },
+  미지정: {
+    badge: 'border-app-border bg-app-surface-muted text-app-text-muted',
+    timelineDot: 'border-app-border',
+  },
+}
+
+function getCategoryToneClassNames(label: string | null | undefined) {
+  return (
+    categoryToneClassNames[label ?? '미지정'] ?? categoryToneClassNames.미지정
+  )
+}
+
 function getResearchSymbol(symbol: string | undefined) {
   return symbol?.trim().toUpperCase() || 'UNKNOWN'
 }
@@ -932,45 +1006,43 @@ function RiskPanel({ research }: { research: ResearchView }) {
           {research.keyRisks.map((risk) => (
             <li
               key={risk.id}
-              className="flex min-w-0 items-center gap-3 py-2.5 first:pt-0 last:pb-0"
+              className="grid min-w-0 grid-cols-[0.5rem_minmax(0,9rem)_auto_minmax(0,1fr)] items-center gap-x-2 py-2.5 first:pt-0 last:pb-0"
             >
               <span
                 className={`h-2 w-2 shrink-0 rounded-full ${riskDotClassNames[risk.level] ?? 'bg-app-text-muted'}`}
                 aria-hidden="true"
               />
-              <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
-                <span className="inline-flex min-w-0 items-center gap-1.5">
-                  <h3
-                    className="truncate font-semibold text-app-text"
-                    title={risk.title}
-                  >
-                    {risk.title}
-                  </h3>
-                  {(risk.evidence?.length ?? 0) > 0 ? (
-                    <InfoTooltip
-                      label={`${risk.title} 근거`}
-                      className="shrink-0 [&_button]:text-app-text-muted [&_button:hover]:text-app-text"
-                      content={
-                        <div className="space-y-2">
-                          <p>{risk.description}</p>
-                          <ul className="list-disc space-y-1 pl-5">
-                            {risk.evidence?.map((evidence) => (
-                              <li key={evidence}>{evidence}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      }
-                    />
-                  ) : null}
-                </span>
-                <Badge riskLevel={risk.level as '낮음' | '중간' | '높음'} />
-                <p
-                  className="min-w-0 flex-1 truncate text-sm text-app-text-muted"
-                  title={risk.description}
+              <span className="inline-flex min-w-0 items-center gap-1.5">
+                <h3
+                  className="truncate font-semibold text-app-text"
+                  title={risk.title}
                 >
-                  {risk.description}
-                </p>
-              </div>
+                  {risk.title}
+                </h3>
+                {(risk.evidence?.length ?? 0) > 0 ? (
+                  <InfoTooltip
+                    label={`${risk.title} 근거`}
+                    className="shrink-0 [&_button]:text-app-text-muted [&_button:hover]:text-app-text"
+                    content={
+                      <div className="space-y-2">
+                        <p>{risk.description}</p>
+                        <ul className="list-disc space-y-1 pl-5">
+                          {risk.evidence?.map((evidence) => (
+                            <li key={evidence}>{evidence}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    }
+                  />
+                ) : null}
+              </span>
+              <Badge riskLevel={risk.level as '낮음' | '중간' | '높음'} />
+              <p
+                className="min-w-0 truncate text-sm text-app-text-muted"
+                title={risk.description}
+              >
+                {risk.description}
+              </p>
             </li>
           ))}
         </ul>
@@ -1003,8 +1075,13 @@ function CounterViewPanel({ items }: { items: string[] }) {
 
 function CoverageAxisRow({ item }: { item: CoverageAxisItem }) {
   return (
-    <li className="flex flex-wrap items-center gap-x-2 gap-y-1 py-2.5 first:pt-0 last:pb-0">
-      <span className="font-semibold text-app-text">{item.axisLabel}</span>
+    <li className="grid grid-cols-[5.5rem_auto_minmax(0,1fr)] items-center gap-x-2 py-2.5 first:pt-0 last:pb-0">
+      <span
+        className="min-w-0 truncate font-semibold text-app-text"
+        title={item.axisLabel}
+      >
+        {item.axisLabel}
+      </span>
       <Badge tone={item.isCollected ? 'info' : 'neutral'}>
         {item.isCollected ? '수집됨' : '미수집'}
       </Badge>
@@ -1070,23 +1147,26 @@ function ChecklistPanel({
         </Badge>
       </div>
       {checklist.length > 0 ? (
-        <ul className="mt-4 flex flex-col gap-3">
+        <ul className="mt-4 divide-y divide-app-border">
           {checklist.map((item) => (
-            <li key={item.id}>
-              <label className="flex cursor-pointer items-start gap-3 rounded-control border border-app-border bg-app-surface-muted p-3 text-sm leading-6 text-app-text">
+            <li
+              key={item.id}
+              className="flex min-w-0 items-center gap-3 py-3 first:pt-0 last:pb-0"
+            >
+              <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 text-sm text-app-text">
                 <input
                   type="checkbox"
-                  className="mt-1 h-4 w-4 rounded border-app-border accent-app-accent"
+                  className="h-4 w-4 shrink-0 rounded border-app-border accent-app-accent"
                   checked={item.checked}
                   onChange={() => onToggle(item.id)}
                 />
-                <span>
-                  <span className="block font-semibold">{item.label}</span>
-                  <span className="mt-1 block text-app-text-muted">
-                    {item.description}
-                  </span>
-                </span>
+                <span className="min-w-0 font-semibold">{item.label}</span>
               </label>
+              <InfoTooltip
+                label={`${item.label} 설명`}
+                content={item.description}
+                className="shrink-0"
+              />
             </li>
           ))}
         </ul>
@@ -1131,7 +1211,10 @@ function NewsDisclosureList({
             }
           >
             {item.categoryLabel ? (
-              <Badge tone="info" className="shrink-0 text-xs">
+              <Badge
+                tone="neutral"
+                className={`shrink-0 text-xs ${getCategoryToneClassNames(item.categoryLabel).badge}`}
+              >
                 {item.categoryLabel}
               </Badge>
             ) : null}
@@ -1311,37 +1394,49 @@ function CatalystTimelinePanel({ assetId }: { assetId: number }) {
         />
       ) : events.length > 0 ? (
         <ol className="mt-5">
-          {events.map((event, index) => (
-            <li
-              key={event.key}
-              className="relative grid grid-cols-[0.75rem_minmax(0,1fr)] gap-3 pb-5 last:pb-0"
-            >
-              <div className="relative flex justify-center" aria-hidden="true">
-                <span className="mt-1.5 h-2.5 w-2.5 rounded-full border-2 border-app-accent bg-app-surface" />
-                {index < events.length - 1 ? (
-                  <span className="absolute bottom-[-1.25rem] top-4 w-px bg-app-border" />
-                ) : null}
-              </div>
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm font-semibold text-app-accent">
-                    {event.dateLabel}
-                  </span>
-                  <Badge tone="info" className="text-xs">
-                    {event.typeLabel}
-                  </Badge>
-                  {event.isEstimated ? (
-                    <Badge tone="neutral" className="text-xs">
-                      예상
-                    </Badge>
+          {events.map((event, index) => {
+            const categoryTone = getCategoryToneClassNames(event.typeLabel)
+
+            return (
+              <li
+                key={event.key}
+                className="relative grid grid-cols-[0.75rem_minmax(0,1fr)] gap-3 pb-5 last:pb-0"
+              >
+                <div
+                  className="relative flex justify-center"
+                  aria-hidden="true"
+                >
+                  <span
+                    className={`mt-1.5 h-2.5 w-2.5 rounded-full border-2 bg-app-surface ${categoryTone.timelineDot}`}
+                  />
+                  {index < events.length - 1 ? (
+                    <span className="absolute bottom-[-1.25rem] top-4 w-px bg-app-border" />
                   ) : null}
                 </div>
-                <p className="mt-2 text-sm leading-6 text-app-text">
-                  {event.title}
-                </p>
-              </div>
-            </li>
-          ))}
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-semibold text-app-accent">
+                      {event.dateLabel}
+                    </span>
+                    <Badge
+                      tone="neutral"
+                      className={`text-xs ${categoryTone.badge}`}
+                    >
+                      {event.typeLabel}
+                    </Badge>
+                    {event.isEstimated ? (
+                      <Badge tone="neutral" className="text-xs">
+                        예상
+                      </Badge>
+                    ) : null}
+                  </div>
+                  <p className="mt-2 text-sm leading-6 text-app-text">
+                    {event.title}
+                  </p>
+                </div>
+              </li>
+            )
+          })}
         </ol>
       ) : (
         <EmptyState title="예정된 이벤트가 없습니다." className="py-6" />
@@ -1610,9 +1705,9 @@ export function ResearchPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+        <RiskPanel research={research} />
         <CounterViewPanel items={research.counterView} />
         <ResearchCoveragePanel assetId={research.assetId} />
-        <RiskPanel research={research} />
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
