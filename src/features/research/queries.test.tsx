@@ -12,6 +12,7 @@ import {
 
 import {
   useCatalystTimeline,
+  useAssetIdBySymbol,
   useAssetEvents,
   useBenchmarkComparison,
   useEarningsSummary,
@@ -289,6 +290,23 @@ describe('research queries', () => {
         sourceLabel: '분기 실적 자료',
       },
     ])
+  })
+
+  it('resolves a normalized symbol with the asset-id query key', async () => {
+    const queryClient = createTestQueryClient()
+    const { result } = renderHook(() => useAssetIdBySymbol(' nvda '), {
+      wrapper: wrapperFor(queryClient),
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(apiGet).toHaveBeenCalledWith('/assets?symbol=NVDA')
+    expect(result.current.data).toBe(11)
+    expect(
+      queryClient.getQueryCache().find({
+        queryKey: ['asset-id', 'NVDA'],
+      }),
+    ).toBeDefined()
   })
 
   it('fetches news and disclosures with an asset-scoped query key', async () => {

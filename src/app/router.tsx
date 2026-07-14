@@ -8,6 +8,7 @@ import {
   NotFoundPage,
   PortfolioPage,
   ResearchListPage,
+  ResearchNewsPage,
   ResearchPage,
   SettingsPage,
   SignalsPage,
@@ -34,6 +35,10 @@ export const appRouteObjects: RouteObject[] = [
       { path: appRoutePaths.watchlist.slice(1), element: <WatchlistPage /> },
       { path: appRoutePaths.signals.slice(1), element: <SignalsPage /> },
       { path: appRoutePaths.research.slice(1), element: <ResearchListPage /> },
+      {
+        path: appRoutePaths.researchNews.slice(1),
+        element: <ResearchNewsPage />,
+      },
       {
         path: appRoutePaths.researchDetail.slice(1),
         element: <ResearchPage />,
