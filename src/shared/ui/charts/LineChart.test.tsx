@@ -109,6 +109,42 @@ describe('LineChart', () => {
     ).toBeInTheDocument()
   })
 
+  it.each([
+    {
+      caseName: '구간 최저',
+      points: [
+        { name: 'A', value: 12 },
+        { name: 'B', value: 10 },
+      ],
+      expectedY: '90',
+    },
+    {
+      caseName: '구간 최고',
+      points: [
+        { name: 'A', value: 10 },
+        { name: 'B', value: 12 },
+      ],
+      expectedY: '12',
+    },
+  ])(
+    'keeps the last value pill inside the plot at the $caseName',
+    ({ points, expectedY }) => {
+      const { container } = render(
+        <LineChart
+          data={points}
+          height={120}
+          width={240}
+          hideXAxis
+          lastValueLabel={{ dataKey: 'value' }}
+        />,
+      )
+
+      const pill = container.querySelector('[data-last-value-label]')
+
+      expect(pill?.querySelector('rect')).toHaveAttribute('y', expectedY)
+    },
+  )
+
   it('hides the x axis when hideXAxis is set', () => {
     const { container, rerender } = render(
       <LineChart data={data} height={120} width={240} />,
