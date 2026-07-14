@@ -13,6 +13,7 @@ import type {
   BenchmarkComparisonDto,
   BuyChecklistDto,
   CatalystTimelineDto,
+  CounterPointDto,
   EarningsSummaryDto,
   NewsDisclosureDto,
   PriceSeriesDto,
@@ -28,6 +29,17 @@ export interface ResearchRisk {
   level: string
   description: string
   evidence: string[]
+}
+
+export type CounterPointStrength = 'WEAK' | 'MODERATE' | 'STRONG'
+
+export interface CounterPointItem {
+  id: string
+  claim: string
+  basis: string
+  basisTypeLabel: string
+  strength: CounterPointStrength | null
+  sourceLabel: string | null
 }
 
 export interface ChecklistItem {
@@ -94,6 +106,7 @@ export interface ResearchView {
   stanceConfidence: number | null
   stanceComment: string | null
   confidenceBasis: string | null
+  counterPoints: CounterPointItem[]
   counterView: string[]
   briefing: {
     headline: string
@@ -554,6 +567,27 @@ function normalizeStanceConfidence(
   return parsed === null ? null : parsed * 100
 }
 
+const counterPointBasisTypeLabels: Record<
+  CounterPointDto['basis_type'],
+  string
+> = {
+  VALUATION: '밸류에이션',
+  FUNDAMENTALS: '펀더멘털',
+  COMPETITION: '경쟁',
+  MACRO: '매크로',
+  SENTIMENT: '심리',
+}
+
+function normalizeCounterPointStrength(
+  value: string,
+): CounterPointStrength | null {
+  if (value === 'WEAK' || value === 'MODERATE' || value === 'STRONG') {
+    return value
+  }
+
+  return null
+}
+
 export function adaptResearchDetail(
   detail: AssetDetailDto,
   summary: ResearchSummaryDto,
@@ -583,6 +617,15 @@ export function adaptResearchDetail(
     stanceConfidence: normalizeStanceConfidence(summary.stance_confidence),
     stanceComment: summary.stance_comment ?? null,
     confidenceBasis: summary.confidence_basis ?? null,
+    counterPoints: (summary.counter_points ?? []).map((point) => ({
+      id: point.id,
+      claim: point.claim,
+      basis: point.basis,
+      basisTypeLabel:
+        counterPointBasisTypeLabels[point.basis_type] ?? point.basis_type,
+      strength: normalizeCounterPointStrength(point.strength),
+      sourceLabel: point.source_label,
+    })),
     counterView: summary.counter_view ?? [],
     briefing: {
       headline: summary.headline ?? '리서치 요약 없음',

@@ -65,6 +65,40 @@ const researchBySymbol = {
       '성장성과 현금흐름 개선을 확인하되 가격 부담을 함께 검토할 단계입니다.',
     confidenceBasis:
       '성장 지표는 긍정적이지만 밸류에이션 불확실성이 남아 있습니다.',
+    counterPoints: [
+      {
+        id: 'counter-valuation',
+        claim: '현재 멀티플은 성장 기대를 과도하게 반영합니다.',
+        basis: '선행 PER이 5년 중앙값을 크게 웃돕니다.',
+        basisTypeLabel: '밸류에이션',
+        strength: 'STRONG' as const,
+        sourceLabel: '분기 실적 자료',
+      },
+      {
+        id: 'counter-fundamentals',
+        claim: '마진 정상화가 예상보다 빠를 수 있습니다.',
+        basis: '최근 분기 매출총이익률이 연속 하락했습니다.',
+        basisTypeLabel: '펀더멘털',
+        strength: 'MODERATE' as const,
+        sourceLabel: null,
+      },
+      {
+        id: 'counter-macro',
+        claim: '금리 경로가 성장주 수요를 제약할 수 있습니다.',
+        basis: '장기 금리가 높은 수준을 유지하고 있습니다.',
+        basisTypeLabel: '매크로',
+        strength: 'WEAK' as const,
+        sourceLabel: null,
+      },
+      {
+        id: 'counter-sentiment',
+        claim: '투자 심리가 빠르게 반전될 수 있습니다.',
+        basis: '포지셔닝이 낙관 쪽으로 치우쳐 있습니다.',
+        basisTypeLabel: '심리',
+        strength: null,
+        sourceLabel: null,
+      },
+    ],
     counterView: [
       'AI 인프라 투자가 예상보다 빠르게 둔화될 수 있습니다.',
       '높은 밸류에이션이 추가 상승 여력을 제한할 수 있습니다.',
@@ -133,6 +167,7 @@ const researchBySymbol = {
     stanceConfidence: null,
     stanceComment: null,
     confidenceBasis: null,
+    counterPoints: [],
     counterView: [],
     briefing: {
       headline: 'Cloud growth checkpoint',
@@ -170,7 +205,8 @@ const researchBySymbol = {
     stanceConfidence: null,
     stanceComment: null,
     confidenceBasis: null,
-    counterView: [],
+    counterPoints: [],
+    counterView: ['구계약 반대 관점 불릿입니다.'],
     briefing: {
       headline: 'No price data',
       body: '기존 브리핑 문단만 표시합니다.',
@@ -1190,12 +1226,7 @@ describe('ResearchPage', () => {
     })
 
     expect(
-      screen.getByText('AI 인프라 투자가 예상보다 빠르게 둔화될 수 있습니다.'),
-    ).toBeVisible()
-    expect(
-      screen.getByText(
-        '높은 밸류에이션이 추가 상승 여력을 제한할 수 있습니다.',
-      ),
+      screen.getByText('현재 멀티플은 성장 기대를 과도하게 반영합니다.'),
     ).toBeVisible()
     expect(
       briefingHeading.compareDocumentPosition(riskHeading) &
@@ -1209,6 +1240,53 @@ describe('ResearchPage', () => {
       counterViewHeading.compareDocumentPosition(coverageHeading) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy()
+  })
+
+  it('renders structured counter points with strength, basis type, and evidence tooltips', async () => {
+    renderResearch()
+
+    await screen.findByRole('heading', { name: 'NVDA 리서치' })
+    const counterViewPanel = screen
+      .getByRole('heading', { name: '반대 관점' })
+      .closest('section')
+
+    expect(counterViewPanel).not.toBeNull()
+    const panel = within(counterViewPanel as HTMLElement)
+    expect(panel.getByText('강함')).toHaveClass('text-status-level-high-text')
+    expect(panel.getByText('보통')).toHaveClass('text-status-level-medium-text')
+    expect(panel.getByText('약함')).toHaveClass('text-app-text-muted')
+    expect(panel.getByText('밸류에이션')).toBeVisible()
+    expect(panel.getByText('펀더멘털')).toBeVisible()
+    expect(panel.getByText('매크로')).toBeVisible()
+    expect(panel.getByText('심리')).toBeVisible()
+    expect(
+      panel.queryByText('AI 인프라 투자가 예상보다 빠르게 둔화될 수 있습니다.'),
+    ).not.toBeInTheDocument()
+
+    const pointWithoutStrength = panel
+      .getByText('투자 심리가 빠르게 반전될 수 있습니다.')
+      .closest('li')
+    expect(pointWithoutStrength).not.toBeNull()
+    expect(
+      within(pointWithoutStrength as HTMLElement).getAllByText('심리'),
+    ).toHaveLength(1)
+
+    const evidenceTrigger = panel.getByRole('button', {
+      name: '현재 멀티플은 성장 기대를 과도하게 반영합니다. 근거',
+    })
+    fireEvent.focus(evidenceTrigger)
+
+    const tooltip = screen.getByRole('tooltip')
+    expect(tooltip).toHaveTextContent('선행 PER이 5년 중앙값을 크게 웃돕니다.')
+    expect(tooltip).toHaveTextContent('출처 분기 실적 자료')
+  })
+
+  it('keeps the legacy counter-view bullet fallback when structured points are empty', async () => {
+    renderResearch('/research/NULLS')
+
+    const fallbackItem = await screen.findByText('구계약 반대 관점 불릿입니다.')
+    expect(fallbackItem).toBeVisible()
+    expect(fallbackItem.closest('ul')).toHaveClass('list-disc')
   })
 
   it('shows an empty counter-view state', async () => {

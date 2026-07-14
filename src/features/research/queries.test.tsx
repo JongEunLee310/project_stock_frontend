@@ -67,6 +67,16 @@ function responseFor(path: string) {
       return {
         headline: 'Demand stays resilient',
         body: 'Data center run rate remains strong.',
+        counter_points: [
+          {
+            id: 'counter-valuation',
+            claim: '현재 멀티플은 성장 기대를 과도하게 반영합니다.',
+            basis: '선행 PER이 5년 중앙값을 웃돕니다.',
+            basis_type: 'VALUATION',
+            strength: 'STRONG',
+            source_label: '분기 실적 자료',
+          },
+        ],
         created_at: '2026-05-24T00:00:00.000Z',
       }
     case '/assets/11/buy-checklist':
@@ -323,6 +333,16 @@ describe('research queries', () => {
     expect(apiGet).not.toHaveBeenCalledWith(expect.stringContaining('/reports'))
     expect(result.current.data).not.toHaveProperty('priceSparkline')
     expect(result.current.data).not.toHaveProperty('reports')
+    expect(result.current.data?.counterPoints).toEqual([
+      {
+        id: 'counter-valuation',
+        claim: '현재 멀티플은 성장 기대를 과도하게 반영합니다.',
+        basis: '선행 PER이 5년 중앙값을 웃돕니다.',
+        basisTypeLabel: '밸류에이션',
+        strength: 'STRONG',
+        sourceLabel: '분기 실적 자료',
+      },
+    ])
   })
 
   it('resolves a normalized symbol with the asset-id query key', async () => {
