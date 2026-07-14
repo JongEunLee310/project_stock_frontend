@@ -56,6 +56,8 @@ import {
 } from '@/shared/ui'
 import { NewsDisclosureList } from '@/widgets/NewsDisclosureList'
 
+import { formatResearchChartTooltipLabel } from './ResearchPage.lib'
+
 const priceRanges: PriceRange[] = ['1D', '1M', '3M', '6M', '1Y']
 const priceChartColor = '#5fa8ff'
 const priceChartSeries = [
@@ -469,6 +471,7 @@ function PriceSparkline({ research }: { research: ResearchView }) {
             }}
             showGrid
             showTooltip
+            tooltipLabelFormatter={formatResearchChartTooltipLabel}
             yAxisOrientation="right"
             hideXAxis={hasVolume}
             lastValueLabel={{ dataKey: 'close', color: priceChartColor }}
@@ -492,6 +495,7 @@ function PriceSparkline({ research }: { research: ResearchView }) {
                   : String(value),
                 '거래량',
               ]}
+              tooltipLabelFormatter={formatResearchChartTooltipLabel}
               // right 60 = 가격 차트의 right margin 12 + 우측 YAxis 폭 48 (플롯 영역 정렬)
               margin={{ top: 0, right: 60, bottom: 0, left: 4 }}
               showAxes

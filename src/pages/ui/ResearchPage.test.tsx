@@ -19,6 +19,8 @@ import {
   teardownAuthenticatedUser,
 } from '@/test-utils/authTestSetup'
 
+import { formatResearchChartTooltipLabel } from './ResearchPage.lib'
+
 const mockUseResearchPriceSeries = vi.hoisted(() => vi.fn())
 const mockUseAssetEvents = vi.hoisted(() => vi.fn())
 const mockUseBenchmarkComparison = vi.hoisted(() => vi.fn())
@@ -687,6 +689,18 @@ function renderResearch(path = '/research/NVDA') {
 
   return router
 }
+
+describe('formatResearchChartTooltipLabel', () => {
+  it('formats an intraday ISO datetime as KST', () => {
+    expect(formatResearchChartTooltipLabel('2026-07-14T15:30:00Z')).toBe(
+      '2026-07-15 00:30',
+    )
+  })
+
+  it('keeps a daily date unchanged', () => {
+    expect(formatResearchChartTooltipLabel('2026-07-14')).toBe('2026-07-14')
+  })
+})
 
 describe('ResearchPage', () => {
   it('navigates to the decision log with the research symbol', async () => {

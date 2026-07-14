@@ -13,6 +13,7 @@ export type {
   LineChartPoint,
   LineChartProps,
   LineChartSeries,
+  LineChartTooltipLabelFormatter,
 } from './LineChart'
 export { Sparkline } from './Sparkline'
 export type { SparklinePoint, SparklineProps } from './Sparkline'
