@@ -478,6 +478,7 @@ function PriceSparkline({ research }: { research: ResearchView }) {
                   : String(value),
                 '거래량',
               ]}
+              tooltipLabelFormatter={formatResearchChartTooltipLabel}
               // right 60 = 가격 차트의 right margin 12 + 우측 YAxis 폭 48 (플롯 영역 정렬)
               margin={{ top: 0, right: 60, bottom: 0, left: 4 }}
               showAxes

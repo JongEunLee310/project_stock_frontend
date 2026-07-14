@@ -20,6 +20,7 @@ import {
 export type BarChartPoint = Record<string, number | string | null>
 export type BarChartDataKey<T extends BarChartPoint> = Extract<keyof T, string>
 export type BarChartTooltipFormatter = TooltipProps['formatter']
+export type BarChartTooltipLabelFormatter = TooltipProps['labelFormatter']
 
 export interface BarChartProps<T extends BarChartPoint = BarChartPoint> {
   data: T[]
@@ -37,6 +38,7 @@ export interface BarChartProps<T extends BarChartPoint = BarChartPoint> {
   getBarColor?: (point: T, index: number) => string
   showTooltip?: boolean
   tooltipFormatter?: BarChartTooltipFormatter
+  tooltipLabelFormatter?: BarChartTooltipLabelFormatter
 }
 
 export function BarChart<T extends BarChartPoint = BarChartPoint>({
@@ -55,6 +57,7 @@ export function BarChart<T extends BarChartPoint = BarChartPoint>({
   getBarColor,
   showTooltip = false,
   tooltipFormatter,
+  tooltipLabelFormatter,
 }: BarChartProps<T>) {
   const { containerRef, chartWidth } = useMeasuredChartWidth(
     responsive ? width : (width ?? chartTheme.fallbackWidth),
@@ -98,6 +101,7 @@ export function BarChart<T extends BarChartPoint = BarChartPoint>({
             }}
             itemStyle={{ color: chartTheme.tooltipTextColor }}
             formatter={tooltipFormatter}
+            labelFormatter={tooltipLabelFormatter}
             isAnimationActive={false}
             separator=" "
           />
