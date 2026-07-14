@@ -116,6 +116,32 @@ describe('ResearchNewsPage', () => {
     expect(mockUseNewsDisclosure).toHaveBeenCalledWith(undefined)
   })
 
+  it('renders the asset error and retries the asset id query', () => {
+    mockUseAssetIdBySymbol.mockReturnValue({
+      data: undefined,
+      error: new Error('symbol not found'),
+      isError: true,
+      isLoading: false,
+      refetch: mockAssetIdRefetch,
+    })
+    mockUseNewsDisclosure.mockReturnValue({
+      data: undefined,
+      error: null,
+      isError: false,
+      isLoading: false,
+      refetch: mockNewsDisclosureRefetch,
+    })
+    renderPage()
+
+    expect(
+      screen.getByRole('heading', {
+        name: '종목 정보를 불러오지 못했습니다',
+      }),
+    ).toBeVisible()
+    fireEvent.click(screen.getByRole('button', { name: '재시도' }))
+    expect(mockAssetIdRefetch).toHaveBeenCalledOnce()
+  })
+
   it('renders the news error and retries the news query', () => {
     mockUseNewsDisclosure.mockReturnValue({
       data: undefined,
