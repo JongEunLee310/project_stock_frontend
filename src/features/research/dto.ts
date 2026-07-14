@@ -47,7 +47,6 @@ export interface ResearchSummaryDto {
   caution_factors?: string[] | null
   next_checks?: string[] | null
   confidence_basis?: string | null
-  counter_view?: string[] | null
   counter_points?: CounterPointDto[] | null
   key_risks?: Array<{
     id?: string | number

@@ -99,10 +99,6 @@ const researchBySymbol = {
         sourceLabel: null,
       },
     ],
-    counterView: [
-      'AI 인프라 투자가 예상보다 빠르게 둔화될 수 있습니다.',
-      '높은 밸류에이션이 추가 상승 여력을 제한할 수 있습니다.',
-    ],
     briefing: {
       headline: 'AI demand remains durable',
       body: 'Margins remain the key checkpoint.',
@@ -168,7 +164,6 @@ const researchBySymbol = {
     stanceComment: null,
     confidenceBasis: null,
     counterPoints: [],
-    counterView: [],
     briefing: {
       headline: 'Cloud growth checkpoint',
       body: 'Watch Azure.',
@@ -206,7 +201,6 @@ const researchBySymbol = {
     stanceComment: null,
     confidenceBasis: null,
     counterPoints: [],
-    counterView: ['구계약 반대 관점 불릿입니다.'],
     briefing: {
       headline: 'No price data',
       body: '기존 브리핑 문단만 표시합니다.',
@@ -1277,10 +1271,6 @@ describe('ResearchPage', () => {
     expect(panel.getByText('펀더멘털')).toBeVisible()
     expect(panel.getByText('매크로')).toBeVisible()
     expect(panel.getByText('심리')).toBeVisible()
-    expect(
-      panel.queryByText('AI 인프라 투자가 예상보다 빠르게 둔화될 수 있습니다.'),
-    ).not.toBeInTheDocument()
-
     const pointWithoutStrength = panel
       .getByText('투자 심리가 빠르게 반전될 수 있습니다.')
       .closest('li')
@@ -1297,14 +1287,6 @@ describe('ResearchPage', () => {
     const tooltip = screen.getByRole('tooltip')
     expect(tooltip).toHaveTextContent('선행 PER이 5년 중앙값을 크게 웃돕니다.')
     expect(tooltip).toHaveTextContent('출처 분기 실적 자료')
-  })
-
-  it('keeps the legacy counter-view bullet fallback when structured points are empty', async () => {
-    renderResearch('/research/NULLS')
-
-    const fallbackItem = await screen.findByText('구계약 반대 관점 불릿입니다.')
-    expect(fallbackItem).toBeVisible()
-    expect(fallbackItem.closest('ul')).toHaveClass('list-disc')
   })
 
   it('shows an empty counter-view state', async () => {
@@ -1333,6 +1315,30 @@ describe('ResearchPage', () => {
     ).toBeVisible()
     expect(coverage.getAllByText('미수집')).toHaveLength(3)
     expect(coverage.getAllByText('데이터 없음')).toHaveLength(3)
+  })
+
+  it('truncates a long research coverage axis label and exposes its full text', async () => {
+    const longAxisLabel = '대체 데이터 기반의 매우 긴 커버리지 축 라벨'
+    mockUseResearchCoverage.mockReturnValue({
+      data: [
+        {
+          axis: 'ALTERNATIVE_DATA',
+          axisLabel: longAxisLabel,
+          isCollected: false,
+          lastUpdatedAt: null,
+          itemCount: 0,
+        },
+      ],
+      error: null,
+      isError: false,
+      isLoading: false,
+      refetch: mockResearchCoverageRefetch,
+    })
+    renderResearch()
+
+    const axisLabel = await screen.findByTitle(longAxisLabel)
+    expect(axisLabel).toHaveClass('min-w-0', 'truncate')
+    expect(axisLabel).toHaveTextContent(longAxisLabel)
   })
 
   it('isolates a research coverage error and retries inside the card', async () => {

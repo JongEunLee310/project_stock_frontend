@@ -107,7 +107,6 @@ export interface ResearchView {
   stanceComment: string | null
   confidenceBasis: string | null
   counterPoints: CounterPointItem[]
-  counterView: string[]
   briefing: {
     headline: string
     body: string
@@ -626,7 +625,6 @@ export function adaptResearchDetail(
       strength: normalizeCounterPointStrength(point.strength),
       sourceLabel: point.source_label,
     })),
-    counterView: summary.counter_view ?? [],
     briefing: {
       headline: summary.headline ?? '리서치 요약 없음',
       body: summary.body ?? '',
