@@ -58,7 +58,12 @@ import { NewsDisclosureList } from '@/widgets/NewsDisclosureList'
 
 import { formatResearchChartTooltipLabel } from './ResearchPage.lib'
 
-const priceRanges: PriceRange[] = ['1D', '1M', '3M', '6M', '1Y']
+const priceRanges: PriceRange[] = ['1D', '1W', '1M', '3M', '6M', '1Y', '5Y']
+const unsupportedBenchmarkRanges: ReadonlySet<PriceRange> = new Set([
+  '1D',
+  '1W',
+  '5Y',
+])
 const priceChartColor = '#5fa8ff'
 const priceChartSeries = [
   { dataKey: 'ma20', color: '#f59e0b', strokeDasharray: '6 4' },
@@ -158,6 +163,10 @@ function getResearchSymbol(symbol: string | undefined) {
   return symbol?.trim().toUpperCase() || 'UNKNOWN'
 }
 
+function isBenchmarkRange(range: PriceRange): range is BenchmarkRange {
+  return !unsupportedBenchmarkRanges.has(range)
+}
+
 function isResearchSection(value: string | null): value is ResearchSection {
   return (
     value !== null &&
@@ -235,15 +244,16 @@ function PriceSparkline({ research }: { research: ResearchView }) {
     research.market,
     range,
   )
-  const benchmarkRange: BenchmarkRange = range === '1D' ? '1M' : range
+  const isBenchmarkSupported = isBenchmarkRange(range)
+  const benchmarkRange: BenchmarkRange = isBenchmarkSupported ? range : '1M'
   const benchmarkQuery = useBenchmarkComparison(
     research.assetId,
     benchmarkRange,
-    isBenchmarkEnabled && range !== '1D',
+    isBenchmarkEnabled && isBenchmarkSupported,
   )
   const assetEventsQuery = useAssetEvents(
     research.assetId,
-    benchmarkRange,
+    range,
     !isBenchmarkEnabled && range !== '1D',
   )
   const priceSeries = priceSeriesQuery.data
@@ -295,7 +305,7 @@ function PriceSparkline({ research }: { research: ResearchView }) {
 
   const selectRange = (nextRange: PriceRange) => {
     setRange(nextRange)
-    if (nextRange === '1D') {
+    if (!isBenchmarkRange(nextRange)) {
       setIsBenchmarkEnabled(false)
     }
   }
@@ -322,16 +332,16 @@ function PriceSparkline({ research }: { research: ResearchView }) {
           ))}
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2">
-          {range === '1D' ? (
+          {!isBenchmarkSupported ? (
             <span className="text-xs text-app-text-muted">
-              1D에서는 비교할 수 없습니다.
+              {range}에서는 비교할 수 없습니다.
             </span>
           ) : null}
           <Button
             type="button"
             variant={isBenchmarkEnabled ? 'selected' : 'ghost'}
             aria-pressed={isBenchmarkEnabled}
-            disabled={range === '1D'}
+            disabled={!isBenchmarkSupported}
             className="min-h-8 px-3 py-1 text-xs"
             onClick={() => setIsBenchmarkEnabled((enabled) => !enabled)}
           >
