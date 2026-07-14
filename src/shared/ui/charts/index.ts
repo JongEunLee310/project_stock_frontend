@@ -1,5 +1,10 @@
 export { BarChart } from './BarChart'
-export type { BarChartDataKey, BarChartPoint, BarChartProps } from './BarChart'
+export type {
+  BarChartDataKey,
+  BarChartPoint,
+  BarChartProps,
+  BarChartTooltipFormatter,
+} from './BarChart'
 export { DonutChart } from './DonutChart'
 export type { DonutChartPoint, DonutChartProps } from './DonutChart'
 export { LineChart } from './LineChart'

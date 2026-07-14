@@ -1,6 +1,23 @@
 import { describe, expect, it } from 'vitest'
 
-import { formatKstDate, formatKstDateTime, formatKstTime } from './datetime'
+import {
+  formatKstDate,
+  formatKstDateTime,
+  formatKstTime,
+  formatLocalDateTime,
+} from './datetime'
+
+describe('formatLocalDateTime', () => {
+  it('ISO 일시를 로컬 YYYY-MM-DD HH:mm:ss 형식으로 변환한다', () => {
+    expect(formatLocalDateTime('2026-07-10T12:34:56')).toBe(
+      '2026-07-10 12:34:56',
+    )
+  })
+
+  it('파싱할 수 없는 문자열은 원문을 유지한다', () => {
+    expect(formatLocalDateTime('수집 시각 미상')).toBe('수집 시각 미상')
+  })
+})
 
 // TZ=UTC 환경에서 실행해야 함. KST(Asia/Seoul, UTC+9)는 항상 하드코딩됨.
 describe('formatKstDate', () => {

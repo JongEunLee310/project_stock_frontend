@@ -1,5 +1,20 @@
 const KST_TIMEZONE = 'Asia/Seoul'
 
+function padDateTimePart(value: number): string {
+  return String(value).padStart(2, '0')
+}
+
+export function formatLocalDateTime(value: string): string {
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) return value
+
+  return [
+    `${date.getFullYear()}-${padDateTimePart(date.getMonth() + 1)}-${padDateTimePart(date.getDate())}`,
+    `${padDateTimePart(date.getHours())}:${padDateTimePart(date.getMinutes())}:${padDateTimePart(date.getSeconds())}`,
+  ].join(' ')
+}
+
 export function formatKstDate(iso: string): string {
   return new Intl.DateTimeFormat('ko-KR', {
     timeZone: KST_TIMEZONE,

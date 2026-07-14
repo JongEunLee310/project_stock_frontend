@@ -25,6 +25,7 @@ import type {
   EarningsView,
   NewsDisclosureItem,
   NewsDisclosureSentiment,
+  PriceSeriesPoint,
   ResearchRisk,
   ResearchView,
   ValuationMetricItem,
@@ -40,6 +41,7 @@ import {
   useWatchlistAssets,
 } from '@/features/watchlist/queries'
 import { appRoutePaths } from '@/shared/config/navigation'
+import { formatLocalDateTime } from '@/shared/lib/format'
 import {
   Badge,
   BarChart,
@@ -60,6 +62,11 @@ const priceChartSeries = [
   { dataKey: 'ma20', color: '#f59e0b', strokeDasharray: '6 4' },
 ] as const
 const benchmarkColors = ['#5fa8ff', '#34d399', '#a855f7'] as const
+const volumeBarColors = {
+  increase: '#34d399',
+  decrease: '#f87171',
+  neutral: '#475569',
+} as const
 const emptyBenchmarkSeries: BenchmarkSeriesItem[] = []
 type BenchmarkChartPoint = Record<string, string | number | null> & {
   date: string
@@ -103,6 +110,38 @@ const sentimentClassNames: Record<NewsDisclosureSentiment, string> = {
   POSITIVE: 'border-emerald-400/40 bg-emerald-400/10 text-emerald-200',
   NEUTRAL: 'border-app-border bg-app-surface-muted text-app-text-muted',
   NEGATIVE: 'border-red-400/40 bg-red-400/10 text-red-200',
+}
+
+const valuationMetricDescriptions: Record<string, string> = {
+  PER: '주가를 주당순이익으로 나눈 값입니다. 낮을수록 이익 대비 주가 부담이 작다는 뜻이지만 업종과 성장률을 함께 봐야 합니다.',
+  FORWARD_PER:
+    '현재 주가를 향후 12개월 예상 주당순이익으로 나눈 값입니다. 실적 전망이 바뀌면 수치도 크게 달라질 수 있습니다.',
+  PSR: '시가총액을 매출액으로 나눈 값입니다. 아직 이익이 안정적이지 않은 성장 기업의 가격 부담을 비교할 때 유용합니다.',
+  PBR: '주가를 주당순자산으로 나눈 값입니다. 자산 가치 대비 시장이 부여한 프리미엄을 보여줍니다.',
+  EV_EBITDA:
+    '기업가치를 EBITDA로 나눈 값입니다. 자본 구조와 감가상각 차이를 줄여 기업 간 영업가치 수준을 비교합니다.',
+  PEG: 'PER을 예상 이익 성장률로 나눈 값입니다. 이익 대비 가격 부담을 성장 속도와 함께 평가합니다.',
+  FCF_YIELD:
+    '잉여현금흐름을 시가총액으로 나눈 수익률입니다. 높을수록 주가 대비 현금 창출력이 크다는 뜻입니다.',
+}
+
+function getVolumeBarColor(
+  data: PriceSeriesPoint[],
+  point: PriceSeriesPoint,
+  index: number,
+) {
+  if (!Number.isFinite(point.close)) return volumeBarColors.neutral
+
+  for (let previousIndex = index - 1; previousIndex >= 0; previousIndex -= 1) {
+    const previousClose = data[previousIndex].close
+
+    if (!Number.isFinite(previousClose)) continue
+    if (point.close > previousClose) return volumeBarColors.increase
+    if (point.close < previousClose) return volumeBarColors.decrease
+    return volumeBarColors.neutral
+  }
+
+  return volumeBarColors.neutral
 }
 
 function getResearchSymbol(symbol: string | undefined) {
@@ -320,9 +359,9 @@ function PriceSparkline({ research }: { research: ResearchView }) {
             ))}
           </ul>
           <LineChart
-            className="h-44 w-full"
+            className="h-64 w-full"
             data={benchmarkData}
-            height={176}
+            height={256}
             ariaLabel={`${research.symbol} 벤치마크 수익률 비교`}
             xDataKey="date"
             series={benchmarkSeries.map((series, index) => ({
@@ -418,6 +457,16 @@ function PriceSparkline({ research }: { research: ResearchView }) {
               ariaLabel={`${research.symbol} 거래량`}
               xDataKey="date"
               yDataKey="volume"
+              getBarColor={(point, index) =>
+                getVolumeBarColor(data, point, index)
+              }
+              showTooltip
+              tooltipFormatter={(value) => [
+                typeof value === 'number'
+                  ? value.toLocaleString()
+                  : String(value),
+                '거래량',
+              ]}
               // right 60 = 가격 차트의 right margin 12 + 우측 YAxis 폭 48 (플롯 영역 정렬)
               margin={{ top: 0, right: 60, bottom: 0, left: 4 }}
               showAxes
@@ -430,7 +479,8 @@ function PriceSparkline({ research }: { research: ResearchView }) {
       priceSeries?.source &&
       priceSeries.lastUpdatedAt ? (
         <p className="mt-3 text-xs text-app-text-muted">
-          차트 데이터: {priceSeries.source} · {priceSeries.lastUpdatedAt}
+          차트 데이터: {priceSeries.source} ·{' '}
+          {formatLocalDateTime(priceSeries.lastUpdatedAt)}
         </p>
       ) : null}
     </div>
@@ -459,6 +509,12 @@ function ValuationTable({ valuation }: { valuation: ValuationView }) {
       cell: (metric) => (
         <div className="flex flex-wrap items-center gap-2">
           <span>{metric.metricLabel}</span>
+          {valuationMetricDescriptions[metric.metric] ? (
+            <InfoTooltip
+              label={`${metric.metricLabel} 지표 설명`}
+              content={valuationMetricDescriptions[metric.metric]}
+            />
+          ) : null}
           {metric.isHighlighted ? <Badge tone="info">우선 지표</Badge> : null}
         </div>
       ),
