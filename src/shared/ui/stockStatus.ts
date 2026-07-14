@@ -2,7 +2,13 @@ import type { DecisionType, RiskLevel, StockStatus } from '@/shared/model'
 
 export type { DecisionType, RiskLevel, StockStatus } from '@/shared/model'
 
-export type BadgeTone = 'neutral' | 'accent' | 'info' | 'warning'
+export type BadgeTone =
+  | 'neutral'
+  | 'accent'
+  | 'info'
+  | 'warning'
+  | 'danger'
+  | 'success'
 
 export const stockStatusClassNames: Record<StockStatus, string> = {
   안정: 'border-status-stable-border bg-status-stable-bg text-status-stable-text',
@@ -46,4 +52,6 @@ export const badgeToneClassNames: Record<BadgeTone, string> = {
   accent: 'border-app-accent/40 bg-app-accent/15 text-app-accent',
   info: 'border-sky-400/40 bg-sky-400/10 text-sky-200',
   warning: 'border-amber-400/40 bg-amber-400/10 text-amber-200',
+  danger: 'border-red-400/40 bg-red-400/10 text-red-200',
+  success: 'border-emerald-400/40 bg-emerald-400/10 text-emerald-200',
 }

@@ -265,7 +265,6 @@ vi.mock('@/features/research/queries', async () => {
 
   return {
     SymbolNotFoundError: actual.SymbolNotFoundError,
-    useResearchList: actual.useResearchList,
     useNewsDisclosure: mockUseNewsDisclosure,
     useCatalystTimeline: mockUseCatalystTimeline,
     useResearchCoverage: mockUseResearchCoverage,

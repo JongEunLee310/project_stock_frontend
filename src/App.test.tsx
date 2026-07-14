@@ -143,18 +143,32 @@ vi.mock('@/features/market-indices/queries', () => ({
 
 vi.mock('@/features/research/queries', () => ({
   SymbolNotFoundError: class SymbolNotFoundError extends Error {},
-  useResearchList: () => ({
-    data: [
-      {
-        assetId: 1,
-        symbol: 'NVDA',
-        name: 'NVIDIA Corp.',
-        market: 'NASDAQ',
-        sector: 'Technology',
-        stanceLabel: '매수 후보',
-        summaryUpdatedAt: '2026. 5. 24. 오전 9:00',
+  useResearchQueue: () => ({
+    data: {
+      summary: {
+        totalResearchCount: 1,
+        needsAttentionCount: 0,
+        updatedTodayCount: 1,
+        insufficientCount: 0,
       },
-    ],
+      items: [
+        {
+          assetId: 1,
+          symbol: 'NVDA',
+          name: 'NVIDIA Corp.',
+          market: 'NASDAQ',
+          researchStatusLabel: '분석 완료',
+          researchStatusTone: 'success',
+          completenessPct: 100,
+          stanceLabel: '매수 후보',
+          headline: 'AI 수요가 견조합니다.',
+          keyIssue: '마진을 확인해야 합니다.',
+          lastUpdatedAt: '2026. 5. 24. 오전 9:00',
+          signalType: null,
+        },
+      ],
+      meta: { page: 1, size: 20, total: 1 },
+    },
     error: null,
     isError: false,
     isLoading: false,

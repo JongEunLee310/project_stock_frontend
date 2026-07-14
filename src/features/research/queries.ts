@@ -18,7 +18,7 @@ import {
   adaptPriceSeries,
   adaptResearchCoverage,
   adaptResearchDetail,
-  adaptResearchListRow,
+  toResearchQueueView,
   adaptValuationMetrics,
   type BenchmarkSeriesItem,
   type AssetEventItem,
@@ -27,7 +27,7 @@ import {
   type NewsDisclosureView,
   type PriceSeriesView,
   type CoverageAxisItem,
-  type ResearchListRow,
+  type ResearchQueueView,
   type ResearchView,
   type ValuationView,
 } from './adapters'
@@ -42,6 +42,7 @@ import type {
   NewsDisclosureDto,
   PriceSeriesDto,
   ResearchCoverageDto,
+  ResearchQueueResponseDto,
   ResearchSummaryDto,
   ThesisDto,
   ValuationMetricsDto,
@@ -98,26 +99,37 @@ export function useAssetIdBySymbol(symbol: string): UseQueryResult<number> {
   })
 }
 
-export function useResearchList(): UseQueryResult<ResearchListRow[]> {
-  return useQuery<ResearchListRow[]>({
-    queryKey: ['research', 'list'],
+export type ResearchQueueFilter =
+  | 'needs_research'
+  | 'risk_increasing'
+  | 'earnings_upcoming'
+  | 'recently_updated'
+
+const researchQueuePageSize = 20
+
+export function useResearchQueue(
+  filter: ResearchQueueFilter | undefined,
+  page: number,
+): UseQueryResult<ResearchQueueView> {
+  return useQuery<ResearchQueueView>({
+    queryKey: ['research', 'queue', filter, page],
     queryFn: async () => {
-      const { data: assets } = await apiGet<AssetLookupDto[]>(
-        '/assets?page=1&size=100',
+      const searchParams = new URLSearchParams({
+        page: String(page),
+        size: String(researchQueuePageSize),
+      })
+
+      if (filter) {
+        searchParams.set('filter', filter)
+      }
+
+      const { data, meta } = await apiGet<ResearchQueueResponseDto>(
+        `/research-queue?${searchParams.toString()}`,
       )
 
-      return Promise.all(
-        assets.map(async (asset) => {
-          try {
-            const { data: summary } = await apiGet<ResearchSummaryDto>(
-              `/assets/${asset.id}/research-summary`,
-            )
-
-            return adaptResearchListRow(asset, summary)
-          } catch {
-            return adaptResearchListRow(asset, null)
-          }
-        }),
+      return toResearchQueueView(
+        data,
+        meta ?? { page, size: researchQueuePageSize, total: data.items.length },
       )
     },
   })
