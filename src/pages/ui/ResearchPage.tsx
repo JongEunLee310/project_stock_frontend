@@ -1172,13 +1172,7 @@ function CounterPointStrengthBadge({
   )
 }
 
-function CounterViewPanel({
-  points,
-  fallbackItems,
-}: {
-  points: CounterPointItem[]
-  fallbackItems: string[]
-}) {
+function CounterViewPanel({ points }: { points: CounterPointItem[] }) {
   return (
     <Card className="h-full">
       <h2 className="text-xl font-bold text-app-text">반대 관점</h2>
@@ -1224,12 +1218,6 @@ function CounterViewPanel({
                 />
               </span>
             </li>
-          ))}
-        </ul>
-      ) : fallbackItems.length > 0 ? (
-        <ul className="mt-4 list-disc space-y-2 pl-5 text-sm leading-6 text-app-text-muted">
-          {fallbackItems.map((item) => (
-            <li key={item}>{item}</li>
           ))}
         </ul>
       ) : (
@@ -1872,10 +1860,7 @@ export function ResearchPage() {
 
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
         <RiskPanel research={research} />
-        <CounterViewPanel
-          points={research.counterPoints}
-          fallbackItems={research.counterView}
-        />
+        <CounterViewPanel points={research.counterPoints} />
         <ResearchCoveragePanel assetId={research.assetId} />
       </div>
 
