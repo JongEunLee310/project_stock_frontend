@@ -1155,11 +1155,18 @@ function CounterPointStrengthBadge({
   strength: CounterPointStrength
 }) {
   if (strength === 'WEAK') {
-    return <Badge tone="neutral">{counterPointStrengthLabels[strength]}</Badge>
+    return (
+      <Badge tone="neutral" className="justify-self-start">
+        {counterPointStrengthLabels[strength]}
+      </Badge>
+    )
   }
 
   return (
-    <Badge riskLevel={counterPointStrengthRiskLevels[strength]}>
+    <Badge
+      riskLevel={counterPointStrengthRiskLevels[strength]}
+      className="justify-self-start"
+    >
       {counterPointStrengthLabels[strength]}
     </Badge>
   )
@@ -1183,14 +1190,14 @@ function CounterViewPanel({
           {points.map((point) => (
             <li
               key={point.id}
-              className="grid grid-cols-[auto_auto_minmax(0,1fr)] items-center gap-x-2 py-2.5 first:pt-0 last:pb-0"
+              className="grid grid-cols-[3.25rem_6rem_minmax(0,1fr)] items-center gap-x-2 py-2.5 first:pt-0 last:pb-0"
             >
               {point.strength ? (
                 <CounterPointStrengthBadge strength={point.strength} />
               ) : null}
               <Badge
                 tone="neutral"
-                className={point.strength ? undefined : 'col-start-2'}
+                className={`justify-self-start ${point.strength ? '' : 'col-start-2'}`}
               >
                 {point.basisTypeLabel}
               </Badge>
