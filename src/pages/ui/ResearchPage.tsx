@@ -835,12 +835,11 @@ function HeaderCard({
         : changeDirection < 0
           ? 'text-red-400'
           : 'text-app-text-muted'
-  const metricTiles = [
+  const primaryMetricTiles = [
     {
       label: '시가총액',
       value: formatCurrency(research.marketCap, research.currency),
     },
-    { label: '섹터', value: research.sector ?? '-' },
     {
       label: '52주 범위',
       value: `${formatCurrency(
@@ -848,6 +847,9 @@ function HeaderCard({
         research.currency,
       )} ~ ${formatCurrency(research.fiftyTwoWeekHigh, research.currency)}`,
     },
+  ]
+  const secondaryMetricTiles = [
+    { label: '섹터', value: research.sector ?? '-' },
     {
       label: '다음 실적 발표',
       value: research.nextEarningsDate ?? '-',
@@ -863,7 +865,7 @@ function HeaderCard({
 
   return (
     <Card>
-      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-[minmax(12rem,1.1fr)_minmax(10rem,0.7fr)_minmax(12rem,0.85fr)_minmax(19rem,1.6fr)]">
+      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-[minmax(12rem,1.1fr)_minmax(10rem,0.7fr)_minmax(10rem,0.5fr)_minmax(19rem,1.6fr)]">
         <div className="flex min-w-0 items-start gap-4">
           {isLogoLoadFailed ? (
             <div
@@ -941,14 +943,14 @@ function HeaderCard({
           </span>
         </div>
 
-        <div className="rounded-control border border-app-border bg-app-surface-muted p-4">
+        <div className="flex flex-col items-center justify-center gap-2 rounded-control border border-app-border p-4 text-center">
           <p className="text-xs font-medium text-app-text-muted">
             AI 투자 스탠스
           </p>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <Badge tone="accent" className="text-xs font-semibold">
-              {research.stance}
-            </Badge>
+          <Badge tone="accent" className="px-4 py-1.5 text-lg font-bold">
+            {research.stance}
+          </Badge>
+          <div className="flex flex-wrap items-center justify-center gap-2">
             <span className="text-xs font-semibold text-app-text">
               {research.stanceConfidence === null
                 ? '신뢰도 없음'
@@ -972,18 +974,32 @@ function HeaderCard({
           </div>
         </div>
 
-        <dl className="grid grid-cols-2 gap-x-5 gap-y-4 sm:grid-cols-3">
-          {metricTiles.map((metric) => (
-            <div key={metric.label} className="min-w-0">
-              <dt className="text-xs font-medium text-app-text-muted">
-                {metric.label}
-              </dt>
-              <dd className="mt-1 text-sm font-semibold leading-5 text-app-text">
-                {metric.value}
-              </dd>
-            </div>
-          ))}
-        </dl>
+        <div className="space-y-4">
+          <dl className="grid grid-cols-2 gap-x-5">
+            {primaryMetricTiles.map((metric) => (
+              <div key={metric.label} className="min-w-0">
+                <dt className="text-xs font-medium text-app-text-muted">
+                  {metric.label}
+                </dt>
+                <dd className="mt-1 text-sm font-semibold leading-5 text-app-text">
+                  {metric.value}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          <dl className="grid grid-cols-3 gap-x-5">
+            {secondaryMetricTiles.map((metric) => (
+              <div key={metric.label} className="min-w-0">
+                <dt className="text-xs font-medium text-app-text-muted">
+                  {metric.label}
+                </dt>
+                <dd className="mt-1 text-sm font-semibold leading-5 text-app-text">
+                  {metric.value}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
       </div>
     </Card>
   )
