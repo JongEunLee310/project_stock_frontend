@@ -9,6 +9,7 @@ describe('getActiveNavigationItem', () => {
     const researchItem = navigationItems.find((item) => item.id === 'research')
 
     expect(appRoutePaths.research).toBe('/research')
+    expect(appRoutePaths.researchNews).toBe('/research/:symbol/news')
     expect(appRoutePaths.researchDetail).toBe('/research/:symbol')
     expect(researchItem).toMatchObject({
       href: '/research',
@@ -23,5 +24,6 @@ describe('getActiveNavigationItem', () => {
 
   it('matches the research menu for nested symbol routes', () => {
     expect(getActiveNavigationItem('/research/NVDA')?.id).toBe('research')
+    expect(getActiveNavigationItem('/research/NVDA/news')?.id).toBe('research')
   })
 })

@@ -25,18 +25,14 @@ import type {
   CoverageAxisItem,
   EarningsQuarterItem,
   EarningsView,
-  NewsDisclosureItem,
-  NewsDisclosureSentiment,
   PriceSeriesPoint,
   ResearchRisk,
   ResearchView,
   ValuationMetricItem,
   ValuationView,
 } from '@/features/research/adapters'
-import {
-  newsDisclosureSentimentLabels,
-  snapEventsToChartPoints,
-} from '@/features/research/adapters'
+import { snapEventsToChartPoints } from '@/features/research/adapters'
+import { getCategoryToneClassNames } from '@/features/research/categoryTone'
 import {
   useAddAssetToFirstWatchlist,
   useRemoveWatchlistItem,
@@ -58,6 +54,7 @@ import {
   Table,
   type TableColumn,
 } from '@/shared/ui'
+import { NewsDisclosureList } from '@/widgets/NewsDisclosureList'
 
 const priceRanges: PriceRange[] = ['1D', '1M', '3M', '6M', '1Y']
 const priceChartColor = '#5fa8ff'
@@ -123,12 +120,6 @@ const counterPointStrengthRiskLevels: Record<
   MODERATE: '중간',
 }
 
-const sentimentClassNames: Record<NewsDisclosureSentiment, string> = {
-  POSITIVE: 'border-emerald-400/40 bg-emerald-400/10 text-emerald-200',
-  NEUTRAL: 'border-app-border bg-app-surface-muted text-app-text-muted',
-  NEGATIVE: 'border-red-400/40 bg-red-400/10 text-red-200',
-}
-
 const valuationMetricDescriptions: Record<string, string> = {
   PER: '주가를 주당순이익으로 나눈 값입니다. 낮을수록 이익 대비 주가 부담이 작다는 뜻이지만 업종과 성장률을 함께 봐야 합니다.',
   FORWARD_PER:
@@ -159,80 +150,6 @@ function getVolumeBarColor(
   }
 
   return volumeBarColors.neutral
-}
-
-interface CategoryToneClassNames {
-  badge: string
-  timelineDot: string
-}
-
-const categoryToneClassNames: Record<string, CategoryToneClassNames> = {
-  실적: {
-    badge: 'border-amber-400/40 bg-amber-400/10 text-amber-300',
-    timelineDot: 'border-amber-400',
-  },
-  제품: {
-    badge: 'border-sky-400/40 bg-sky-400/10 text-sky-300',
-    timelineDot: 'border-sky-400',
-  },
-  파트너십: {
-    badge: 'border-emerald-400/40 bg-emerald-400/10 text-emerald-300',
-    timelineDot: 'border-emerald-400',
-  },
-  규제: {
-    badge: 'border-red-400/40 bg-red-400/10 text-red-300',
-    timelineDot: 'border-red-400',
-  },
-  인사: {
-    badge: 'border-purple-400/40 bg-purple-400/10 text-purple-300',
-    timelineDot: 'border-purple-400',
-  },
-  자본: {
-    badge: 'border-indigo-400/40 bg-indigo-400/10 text-indigo-300',
-    timelineDot: 'border-indigo-400',
-  },
-  시황: {
-    badge: 'border-teal-400/40 bg-teal-400/10 text-teal-300',
-    timelineDot: 'border-teal-400',
-  },
-  경제지표: {
-    badge: 'border-teal-400/40 bg-teal-400/10 text-teal-300',
-    timelineDot: 'border-teal-400',
-  },
-  계약: {
-    badge: 'border-emerald-400/40 bg-emerald-400/10 text-emerald-300',
-    timelineDot: 'border-emerald-400',
-  },
-  배당: {
-    badge: 'border-green-400/40 bg-green-400/10 text-green-300',
-    timelineDot: 'border-green-400',
-  },
-  주주총회: {
-    badge: 'border-purple-400/40 bg-purple-400/10 text-purple-300',
-    timelineDot: 'border-purple-400',
-  },
-  '락업 해제': {
-    badge: 'border-rose-400/40 bg-rose-400/10 text-rose-300',
-    timelineDot: 'border-rose-400',
-  },
-  콘퍼런스: {
-    badge: 'border-indigo-400/40 bg-indigo-400/10 text-indigo-300',
-    timelineDot: 'border-indigo-400',
-  },
-  기타: {
-    badge: 'border-app-border bg-app-surface-muted text-app-text-muted',
-    timelineDot: 'border-app-border',
-  },
-  미지정: {
-    badge: 'border-app-border bg-app-surface-muted text-app-text-muted',
-    timelineDot: 'border-app-border',
-  },
-}
-
-function getCategoryToneClassNames(label: string | null | undefined) {
-  return (
-    categoryToneClassNames[label ?? '미지정'] ?? categoryToneClassNames.미지정
-  )
 }
 
 function getResearchSymbol(symbol: string | undefined) {
@@ -1320,108 +1237,21 @@ function ChecklistPanel({
   )
 }
 
-function NewsDisclosureList({
-  items,
-  variant,
-}: {
-  items: NewsDisclosureItem[]
-  variant: 'compact' | 'full'
-}) {
-  const isCompact = variant === 'compact'
-
-  return (
-    <ul
-      className={
-        isCompact
-          ? 'mt-4 divide-y divide-app-border'
-          : 'mt-4 flex flex-col gap-3'
-      }
-    >
-      {items.map((item) => (
-        <li
-          key={item.id}
-          className={
-            isCompact
-              ? 'py-3 first:pt-0 last:pb-0'
-              : 'rounded-control border border-app-border bg-app-surface-muted p-4'
-          }
-        >
-          <div
-            className={
-              isCompact
-                ? 'flex min-w-0 items-center gap-2'
-                : 'flex flex-wrap items-start gap-2'
-            }
-          >
-            {item.categoryLabel ? (
-              <Badge
-                tone="neutral"
-                className={`shrink-0 text-xs ${getCategoryToneClassNames(item.categoryLabel).badge}`}
-              >
-                {item.categoryLabel}
-              </Badge>
-            ) : null}
-            <h3 className="min-w-0 flex-1 font-semibold text-app-text">
-              <a
-                href={item.url}
-                target="_blank"
-                rel="noreferrer"
-                title={isCompact ? item.title : undefined}
-                className={`underline decoration-app-border underline-offset-4 transition-colors hover:text-app-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent ${
-                  isCompact ? 'block truncate' : ''
-                }`}
-              >
-                {item.title}
-              </a>
-            </h3>
-          </div>
-          <p className="mt-2 text-sm text-app-text-muted">
-            {item.source}
-            {item.publishedAt ? ` · ${item.publishedAt}` : null}
-          </p>
-          {!isCompact && item.summary ? (
-            <p className="mt-2 text-sm leading-6 text-app-text-muted">
-              {item.summary}
-            </p>
-          ) : null}
-          {!isCompact && (item.sentiment || item.impactLabel) ? (
-            <div className="mt-3 flex flex-wrap gap-2">
-              {item.sentiment ? (
-                <Badge
-                  tone="neutral"
-                  className={sentimentClassNames[item.sentiment]}
-                >
-                  영향 {newsDisclosureSentimentLabels[item.sentiment]}
-                </Badge>
-              ) : null}
-              {item.impactLabel ? (
-                <Badge tone="neutral">중요도 {item.impactLabel}</Badge>
-              ) : null}
-            </div>
-          ) : null}
-        </li>
-      ))}
-    </ul>
-  )
-}
-
 const COMPACT_NEWS_DISCLOSURE_LIMIT = 3
 
-function NewsDisclosurePanel({ assetId }: { assetId: number }) {
+function NewsDisclosurePanel({
+  assetId,
+  symbol,
+}: {
+  assetId: number
+  symbol: string
+}) {
   const [activeTab, setActiveTab] = useState<'news' | 'disclosures'>('news')
-  const [isExpanded, setIsExpanded] = useState(false)
   const newsDisclosureQuery = useNewsDisclosure(assetId)
   const items = newsDisclosureQuery.data?.[activeTab] ?? []
   const isNewsTab = activeTab === 'news'
-  const hasMoreItems = items.length > COMPACT_NEWS_DISCLOSURE_LIMIT
-  const visibleItems = isExpanded
-    ? items
-    : items.slice(0, COMPACT_NEWS_DISCLOSURE_LIMIT)
-
-  const selectTab = (tab: 'news' | 'disclosures') => {
-    setActiveTab(tab)
-    setIsExpanded(false)
-  }
+  const visibleItems = items.slice(0, COMPACT_NEWS_DISCLOSURE_LIMIT)
+  const newsPath = appRoutePaths.researchNews.replace(':symbol', symbol)
 
   return (
     <Card id={researchSectionIds.news} tabIndex={-1} className="h-full">
@@ -1442,7 +1272,7 @@ function NewsDisclosurePanel({ assetId }: { assetId: number }) {
               ? 'border-app-accent font-bold text-app-accent'
               : 'border-transparent font-semibold text-app-text-muted hover:text-app-text'
           }`}
-          onClick={() => selectTab('news')}
+          onClick={() => setActiveTab('news')}
         >
           뉴스
         </button>
@@ -1457,7 +1287,7 @@ function NewsDisclosurePanel({ assetId }: { assetId: number }) {
               ? 'border-app-accent font-bold text-app-accent'
               : 'border-transparent font-semibold text-app-text-muted hover:text-app-text'
           }`}
-          onClick={() => selectTab('disclosures')}
+          onClick={() => setActiveTab('disclosures')}
         >
           공시
         </button>
@@ -1480,31 +1310,15 @@ function NewsDisclosurePanel({ assetId }: { assetId: number }) {
           />
         ) : items.length > 0 ? (
           <>
-            <NewsDisclosureList
-              items={visibleItems}
-              variant={isExpanded ? 'full' : 'compact'}
-            />
-            {hasMoreItems ? (
-              <div className="mt-2 flex justify-end">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="min-h-8 gap-1 px-2 py-1 text-app-text-muted"
-                  aria-expanded={isExpanded}
-                  onClick={() => setIsExpanded((current) => !current)}
-                >
-                  {isExpanded ? (
-                    <>
-                      접기 <span aria-hidden="true">‹</span>
-                    </>
-                  ) : (
-                    <>
-                      더 보기 <span aria-hidden="true">›</span>
-                    </>
-                  )}
-                </Button>
-              </div>
-            ) : null}
+            <NewsDisclosureList items={visibleItems} variant="compact" />
+            <div className="mt-2 flex justify-end">
+              <Link
+                to={newsPath}
+                className="inline-flex min-h-8 items-center justify-center gap-1 rounded-control border border-transparent bg-transparent px-2 py-1 text-sm font-semibold text-app-text-muted transition-colors hover:bg-app-surface-muted/60 hover:text-app-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent"
+              >
+                더 보기 <span aria-hidden="true">›</span>
+              </Link>
+            </div>
           </>
         ) : (
           <EmptyState
@@ -1854,7 +1668,10 @@ export function ResearchPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-        <NewsDisclosurePanel assetId={research.assetId} />
+        <NewsDisclosurePanel
+          assetId={research.assetId}
+          symbol={research.symbol}
+        />
         <CatalystTimelinePanel assetId={research.assetId} />
         <ChecklistPanel
           checklist={displayedChecklist}

@@ -3,6 +3,7 @@ export const appRoutePaths = {
   watchlist: '/watchlist',
   signals: '/signals',
   research: '/research',
+  researchNews: '/research/:symbol/news',
   researchDetail: '/research/:symbol',
   portfolio: '/portfolio',
   alerts: '/alerts',

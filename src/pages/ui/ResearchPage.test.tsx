@@ -266,6 +266,13 @@ vi.mock('@/features/research/queries', async () => {
   return {
     SymbolNotFoundError: actual.SymbolNotFoundError,
     useResearchList: actual.useResearchList,
+    useAssetIdBySymbol: () => ({
+      data: 1,
+      error: null,
+      isError: false,
+      isLoading: false,
+      refetch: vi.fn(),
+    }),
     useNewsDisclosure: mockUseNewsDisclosure,
     useCatalystTimeline: mockUseCatalystTimeline,
     useResearchCoverage: mockUseResearchCoverage,
@@ -1668,9 +1675,10 @@ describe('ResearchPage', () => {
     expect(
       screen.getByRole('link', { name: 'New accelerator announced' }),
     ).toHaveAttribute('title', 'New accelerator announced')
-    expect(
-      screen.queryByRole('button', { name: '더 보기' }),
-    ).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '더 보기' })).toHaveAttribute(
+      'href',
+      '/research/NVDA/news',
+    )
 
     fireEvent.click(disclosuresTab)
 
@@ -1720,7 +1728,7 @@ describe('ResearchPage', () => {
     )
   })
 
-  it('shows three compact news items and expands and collapses the full list', async () => {
+  it('shows three compact items and links to the full news page without expanding the card', async () => {
     const createItems = (kind: 'News' | 'Disclosure') =>
       Array.from({ length: 4 }, (_, index) => ({
         id: `${kind.toLowerCase()}-${index + 1}`,
@@ -1755,32 +1763,20 @@ describe('ResearchPage', () => {
     ).not.toBeInTheDocument()
     expect(screen.queryByText('News summary 1')).not.toBeInTheDocument()
 
-    const expandButton = screen.getByRole('button', { name: '더 보기' })
-    expect(expandButton).toHaveAttribute('aria-expanded', 'false')
-    fireEvent.click(expandButton)
+    const moreLink = screen.getByRole('link', { name: '더 보기' })
+    expect(moreLink).toHaveAttribute('href', '/research/NVDA/news')
+    expect(screen.queryByRole('button', { name: '더 보기' })).toBeNull()
+    expect(screen.queryByRole('button', { name: '접기' })).toBeNull()
 
-    expect(screen.getByRole('link', { name: 'News title 4' })).toBeVisible()
-    expect(screen.getByText('News summary 1')).toBeVisible()
-    expect(screen.getAllByText('영향 긍정')).toHaveLength(4)
-    const collapseButton = screen.getByRole('button', { name: '접기' })
-    expect(collapseButton).toHaveAttribute('aria-expanded', 'true')
-    fireEvent.click(collapseButton)
-
-    expect(
-      screen.queryByRole('link', { name: 'News title 4' }),
-    ).not.toBeInTheDocument()
-    expect(screen.queryByText('News summary 1')).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '더 보기' })).toBeVisible()
-
-    fireEvent.click(screen.getByRole('button', { name: '더 보기' }))
     fireEvent.click(screen.getByRole('tab', { name: '공시' }))
 
     expect(
       screen.queryByRole('link', { name: 'Disclosure title 4' }),
     ).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '더 보기' })).toHaveAttribute(
-      'aria-expanded',
-      'false',
+    expect(screen.queryByText('Disclosure summary 1')).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '더 보기' })).toHaveAttribute(
+      'href',
+      '/research/NVDA/news',
     )
   })
 
