@@ -56,6 +56,9 @@ const researchBySymbol = {
     fiftyTwoWeekLow: 88.12,
     fiftyTwoWeekHigh: null,
     targetPrice: 1145.32,
+    targetPriceHigh: 1300,
+    targetPriceLow: 900,
+    targetAnalystCount: 42,
     targetUpsidePercent: 11.8,
     nextEarningsDate: '2026-08-20',
     updatedAt: null,
@@ -155,8 +158,11 @@ const researchBySymbol = {
     peg: null,
     fiftyTwoWeekLow: null,
     fiftyTwoWeekHigh: null,
-    targetPrice: null,
-    targetUpsidePercent: null,
+    targetPrice: 500,
+    targetPriceHigh: null,
+    targetPriceLow: null,
+    targetAnalystCount: null,
+    targetUpsidePercent: 11.1,
     nextEarningsDate: null,
     updatedAt: null,
     stance: 'Hold',
@@ -193,6 +199,9 @@ const researchBySymbol = {
     fiftyTwoWeekLow: null,
     fiftyTwoWeekHigh: null,
     targetPrice: null,
+    targetPriceHigh: null,
+    targetPriceLow: null,
+    targetAnalystCount: null,
     targetUpsidePercent: null,
     nextEarningsDate: null,
     updatedAt: null,
@@ -1167,6 +1176,9 @@ describe('ResearchPage', () => {
     expect(screen.getByText('52주 범위')).toBeVisible()
     expect(screen.getByText('다음 실적 발표')).toBeVisible()
     expect(screen.getByText('평균 목표주가')).toBeVisible()
+    expect(
+      screen.getByText('$1,145.32 ($900.00–$1,300.00) (11.8%)'),
+    ).toBeVisible()
     expect(screen.queryByText('PER / PEG')).not.toBeInTheDocument()
     expect(
       screen.getByRole('heading', { name: '뉴스 및 공시 요약' }),
@@ -1192,6 +1204,7 @@ describe('ResearchPage', () => {
         '성장성과 현금흐름 개선을 확인하되 가격 부담을 함께 검토할 단계입니다.',
       ),
     ).not.toBeInTheDocument()
+    expect(screen.getByText('$500.00 (11.1%)')).toBeVisible()
   })
 
   it('renders all structured briefing groups as bullet lists', async () => {

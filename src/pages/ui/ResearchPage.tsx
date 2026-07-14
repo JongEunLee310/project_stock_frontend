@@ -181,6 +181,23 @@ function formatPercent(value: number | null) {
   return value === null ? '-' : `${value.toFixed(1)}%`
 }
 
+function formatTargetPrice(
+  average: number | null,
+  low: number | null,
+  high: number | null,
+  upsidePercent: number | null,
+  currency: string | null,
+) {
+  const averageLabel = formatCurrency(average, currency)
+  const upsideLabel = formatPercent(upsidePercent)
+
+  if (low === null || high === null) {
+    return `${averageLabel} (${upsideLabel})`
+  }
+
+  return `${averageLabel} (${formatCurrency(low, currency)}–${formatCurrency(high, currency)}) (${upsideLabel})`
+}
+
 function formatSignedCurrency(value: number | null, currency: string | null) {
   if (value === null) return '-'
 
@@ -853,10 +870,13 @@ function HeaderCard({
     },
     {
       label: '평균 목표주가',
-      value: `${formatCurrency(
+      value: formatTargetPrice(
         research.targetPrice,
+        research.targetPriceLow,
+        research.targetPriceHigh,
+        research.targetUpsidePercent,
         research.currency,
-      )} (${formatPercent(research.targetUpsidePercent)})`,
+      ),
     },
   ]
 
