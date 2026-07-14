@@ -507,14 +507,18 @@ function ValuationTable({ valuation }: { valuation: ValuationView }) {
       key: 'metric',
       header: '지표명',
       cell: (metric) => (
-        <div className="flex flex-wrap items-center gap-2">
-          <span>{metric.metricLabel}</span>
-          {valuationMetricDescriptions[metric.metric] ? (
-            <InfoTooltip
-              label={`${metric.metricLabel} 지표 설명`}
-              content={valuationMetricDescriptions[metric.metric]}
-            />
-          ) : null}
+        <div className="grid grid-cols-[8rem_auto] items-center gap-2">
+          <span className="inline-flex min-w-0 items-center gap-1.5">
+            <span className="truncate" title={metric.metricLabel}>
+              {metric.metricLabel}
+            </span>
+            {valuationMetricDescriptions[metric.metric] ? (
+              <InfoTooltip
+                label={`${metric.metricLabel} 지표 설명`}
+                content={valuationMetricDescriptions[metric.metric]}
+              />
+            ) : null}
+          </span>
           {metric.isHighlighted ? <Badge tone="info">우선 지표</Badge> : null}
         </div>
       ),
