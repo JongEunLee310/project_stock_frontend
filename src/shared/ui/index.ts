@@ -45,6 +45,7 @@ export type {
   LineChartPoint,
   LineChartProps,
   LineChartSeries,
+  LineChartTooltipLabelFormatter,
   SparklinePoint,
   SparklineProps,
 } from './charts'

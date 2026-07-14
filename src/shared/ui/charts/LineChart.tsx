@@ -10,6 +10,7 @@ import {
   YAxis,
   type DotProps,
   type Margin,
+  type TooltipProps,
 } from 'recharts'
 
 import { classNames } from '@/shared/ui/classNames'
@@ -25,6 +26,7 @@ export type LineChartDataKey<T extends LineChartPoint> = Extract<
   keyof T,
   string
 >
+export type LineChartTooltipLabelFormatter = TooltipProps['labelFormatter']
 
 export interface LineChartSeries<T extends LineChartPoint = LineChartPoint> {
   dataKey: LineChartDataKey<T>
@@ -47,6 +49,7 @@ export interface LineChartProps<T extends LineChartPoint = LineChartPoint> {
   showAxes?: boolean
   showGrid?: boolean
   showTooltip?: boolean
+  tooltipLabelFormatter?: LineChartTooltipLabelFormatter
   series?: Array<LineChartSeries<T>>
   markers?: Array<{ x: string; y: number; label: string; color?: string }>
   areaSeries?: {
@@ -66,6 +69,8 @@ export interface LineChartProps<T extends LineChartPoint = LineChartPoint> {
 const DEFAULT_MARKER_COLOR = '#f59e0b'
 const DEFAULT_GRADIENT_OPACITY_FROM = 0.32
 const DEFAULT_GRADIENT_OPACITY_TO = 0.02
+const LAST_VALUE_PILL_HEIGHT = 22
+const LAST_VALUE_PILL_RADIUS = LAST_VALUE_PILL_HEIGHT / 2
 
 function renderMarkerShape(label: string, color: string) {
   return ({ cx, cy, r }: DotProps) => (
@@ -89,54 +94,71 @@ function formatLastValue(value: number) {
   return value.toLocaleString('en-US', { maximumFractionDigits: 2 })
 }
 
-function renderLastValueShape(value: number, color: string) {
+function renderLastValueShape(
+  value: number,
+  color: string,
+  plotTop: number,
+  plotBottom: number,
+) {
   const label = formatLastValue(value)
   const labelWidth = Math.max(label.length * 7 + 16, 48)
 
-  return ({ cx = 0, cy = 0 }: DotProps) => (
-    <g data-last-value-label={label} aria-hidden="true">
-      <circle
-        cx={cx}
-        cy={cy}
-        r={3.5}
-        fill={color}
-        stroke="#e2e8f0"
-        strokeWidth={1.5}
-      />
-      {/* 반투명 틴트 아래에 표면색 베이스를 깔아 뒤의 가격선이 비치지 않게 한다 */}
-      <rect
-        x={cx - labelWidth - 8}
-        y={cy - 11}
-        width={labelWidth}
-        height={22}
-        rx={11}
-        fill="#111827"
-      />
-      <rect
-        x={cx - labelWidth - 8}
-        y={cy - 11}
-        width={labelWidth}
-        height={22}
-        rx={11}
-        fill={color}
-        fillOpacity={0.16}
-        stroke={color}
-        strokeOpacity={0.45}
-        strokeWidth={1}
-      />
-      <text
-        x={cx - labelWidth / 2 - 8}
-        y={cy}
-        fill={color}
-        fontSize={11}
-        fontWeight={700}
-        textAnchor="middle"
-        dominantBaseline="central"
-      >
-        {label}
-      </text>
-    </g>
-  )
+  return ({ cx = 0, cy = 0 }: DotProps) => {
+    const minimumLabelCenterY = plotTop + LAST_VALUE_PILL_RADIUS
+    const maximumLabelCenterY = Math.max(
+      plotBottom - LAST_VALUE_PILL_RADIUS,
+      minimumLabelCenterY,
+    )
+    const labelCenterY = Math.min(
+      Math.max(cy, minimumLabelCenterY),
+      maximumLabelCenterY,
+    )
+
+    return (
+      <g data-last-value-label={label} aria-hidden="true">
+        <circle
+          cx={cx}
+          cy={cy}
+          r={3.5}
+          fill={color}
+          stroke="#e2e8f0"
+          strokeWidth={1.5}
+        />
+        {/* 반투명 틴트 아래에 표면색 베이스를 깔아 뒤의 가격선이 비치지 않게 한다 */}
+        <rect
+          x={cx - labelWidth - 8}
+          y={labelCenterY - LAST_VALUE_PILL_RADIUS}
+          width={labelWidth}
+          height={LAST_VALUE_PILL_HEIGHT}
+          rx={LAST_VALUE_PILL_RADIUS}
+          fill="#111827"
+        />
+        <rect
+          x={cx - labelWidth - 8}
+          y={labelCenterY - LAST_VALUE_PILL_RADIUS}
+          width={labelWidth}
+          height={LAST_VALUE_PILL_HEIGHT}
+          rx={LAST_VALUE_PILL_RADIUS}
+          fill={color}
+          fillOpacity={0.16}
+          stroke={color}
+          strokeOpacity={0.45}
+          strokeWidth={1}
+        />
+        <text
+          x={cx - labelWidth / 2 - 8}
+          y={labelCenterY}
+          fill={color}
+          fontSize={11}
+          fontWeight={700}
+          textAnchor="middle"
+          dominantBaseline="central"
+        >
+          {label}
+        </text>
+      </g>
+    )
+  }
 }
 
 function findLastValidPoint<T extends LineChartPoint>(
@@ -175,6 +197,7 @@ export function LineChart<T extends LineChartPoint = LineChartPoint>({
   showAxes = true,
   showGrid = true,
   showTooltip = false,
+  tooltipLabelFormatter,
   series,
   markers,
   areaSeries,
@@ -262,7 +285,23 @@ export function LineChart<T extends LineChartPoint = LineChartPoint>({
             orientation={yAxisOrientation}
           />
         ) : null}
-        {showTooltip ? <Tooltip isAnimationActive={false} /> : null}
+        {showTooltip ? (
+          <Tooltip
+            contentStyle={{
+              backgroundColor: chartTheme.tooltipBackgroundColor,
+              border: `1px solid ${chartTheme.tooltipBorderColor}`,
+              borderRadius: 8,
+              color: chartTheme.tooltipTextColor,
+            }}
+            labelStyle={{
+              color: chartTheme.tooltipTextColor,
+              fontWeight: 600,
+            }}
+            itemStyle={{ color: chartTheme.tooltipTextColor }}
+            labelFormatter={tooltipLabelFormatter}
+            isAnimationActive={false}
+          />
+        ) : null}
         {areaSeries ? (
           <Area
             type="monotone"
@@ -315,6 +354,8 @@ export function LineChart<T extends LineChartPoint = LineChartPoint>({
             shape={renderLastValueShape(
               lastValidPoint.y,
               resolvedLastValueColor,
+              margin.top ?? 0,
+              height - (margin.bottom ?? 0),
             )}
           />
         ) : null}

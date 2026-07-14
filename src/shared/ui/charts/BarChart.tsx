@@ -86,6 +86,17 @@ export function BarChart<T extends BarChartPoint = BarChartPoint>({
         {showAxes ? <YAxis hide /> : null}
         {showTooltip ? (
           <Tooltip
+            contentStyle={{
+              backgroundColor: chartTheme.tooltipBackgroundColor,
+              border: `1px solid ${chartTheme.tooltipBorderColor}`,
+              borderRadius: 8,
+              color: chartTheme.tooltipTextColor,
+            }}
+            labelStyle={{
+              color: chartTheme.tooltipTextColor,
+              fontWeight: 600,
+            }}
+            itemStyle={{ color: chartTheme.tooltipTextColor }}
             formatter={tooltipFormatter}
             isAnimationActive={false}
             separator=" "
