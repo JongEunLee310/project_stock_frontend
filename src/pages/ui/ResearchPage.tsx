@@ -50,6 +50,7 @@ import {
   InfoTooltip,
   LineChart,
   Skeleton,
+  StockLogo,
   Table,
   type TableColumn,
 } from '@/shared/ui'
@@ -822,7 +823,6 @@ function HeaderCard({
   isFavoritePending: boolean
   onToggleFavorite: () => void
 }) {
-  const [isLogoLoadFailed, setIsLogoLoadFailed] = useState(false)
   const changeDirection = research.change ?? research.changePercent
   const changeClassName =
     changeDirection === null
@@ -864,24 +864,13 @@ function HeaderCard({
     <Card>
       <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-[minmax(12rem,1.1fr)_minmax(10rem,0.7fr)_minmax(10rem,0.5fr)_minmax(19rem,1.6fr)]">
         <div className="flex min-w-0 items-start gap-4">
-          {isLogoLoadFailed ? (
-            <div
-              className="grid h-14 w-14 shrink-0 place-items-center rounded-control border border-app-border bg-app-surface-muted text-xl font-bold text-app-accent"
-              aria-hidden="true"
-            >
-              {research.symbol[0]}
-            </div>
-          ) : (
-            <div className="h-14 w-14 shrink-0 overflow-hidden rounded-control border border-app-border bg-app-surface-muted">
-              <img
-                src={`https://assets.parqet.com/logos/symbol/${research.symbol}?format=png`}
-                alt=""
-                referrerPolicy="no-referrer"
-                className="h-full w-full object-contain p-1.5"
-                onError={() => setIsLogoLoadFailed(true)}
-              />
-            </div>
-          )}
+          <StockLogo
+            key={`${research.symbol}:${research.market ?? ''}`}
+            symbol={research.symbol}
+            market={research.market ?? undefined}
+            className="h-14 w-14 rounded-control border border-app-border bg-app-surface-muted text-xl font-bold text-app-accent"
+            imageClassName="p-1.5"
+          />
           <div className="min-w-0">
             <div className="flex flex-wrap items-end gap-3">
               <div className="flex items-center gap-1">
@@ -1089,13 +1078,7 @@ function CounterPointStrengthBadge({
   )
 }
 
-function CounterViewPanel({
-  points,
-  fallbackItems,
-}: {
-  points: CounterPointItem[]
-  fallbackItems: string[]
-}) {
+function CounterViewPanel({ points }: { points: CounterPointItem[] }) {
   return (
     <Card className="h-full">
       <h2 className="text-xl font-bold text-app-text">반대 관점</h2>
@@ -1141,12 +1124,6 @@ function CounterViewPanel({
                 />
               </span>
             </li>
-          ))}
-        </ul>
-      ) : fallbackItems.length > 0 ? (
-        <ul className="mt-4 list-disc space-y-2 pl-5 text-sm leading-6 text-app-text-muted">
-          {fallbackItems.map((item) => (
-            <li key={item}>{item}</li>
           ))}
         </ul>
       ) : (
@@ -1686,10 +1663,7 @@ export function ResearchPage() {
 
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
         <RiskPanel research={research} />
-        <CounterViewPanel
-          points={research.counterPoints}
-          fallbackItems={research.counterView}
-        />
+        <CounterViewPanel points={research.counterPoints} />
         <ResearchCoveragePanel assetId={research.assetId} />
       </div>
 

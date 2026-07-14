@@ -99,10 +99,6 @@ const researchBySymbol = {
         sourceLabel: null,
       },
     ],
-    counterView: [
-      'AI 인프라 투자가 예상보다 빠르게 둔화될 수 있습니다.',
-      '높은 밸류에이션이 추가 상승 여력을 제한할 수 있습니다.',
-    ],
     briefing: {
       headline: 'AI demand remains durable',
       body: 'Margins remain the key checkpoint.',
@@ -168,7 +164,6 @@ const researchBySymbol = {
     stanceComment: null,
     confidenceBasis: null,
     counterPoints: [],
-    counterView: [],
     briefing: {
       headline: 'Cloud growth checkpoint',
       body: 'Watch Azure.',
@@ -206,7 +201,6 @@ const researchBySymbol = {
     stanceComment: null,
     confidenceBasis: null,
     counterPoints: [],
-    counterView: ['구계약 반대 관점 불릿입니다.'],
     briefing: {
       headline: 'No price data',
       body: '기존 브리핑 문단만 표시합니다.',
@@ -219,6 +213,18 @@ const researchBySymbol = {
     buyChecklist: [],
     checklistMemo: null,
     latestThesis: null,
+  },
+}
+
+const researchFixturesBySymbol = {
+  ...researchBySymbol,
+  '005930': {
+    ...researchBySymbol.NVDA,
+    assetId: 4,
+    symbol: '005930',
+    name: '삼성전자',
+    market: 'KOSPI',
+    currency: 'KRW',
   },
 }
 
@@ -332,7 +338,10 @@ vi.mock('@/features/research/queries', async () => {
       }
     },
     useResearchView: (symbol: string) => {
-      const data = researchBySymbol[symbol as keyof typeof researchBySymbol]
+      const data =
+        researchFixturesBySymbol[
+          symbol as keyof typeof researchFixturesBySymbol
+        ]
 
       if (!data) {
         return {
@@ -736,9 +745,9 @@ describe('ResearchPage', () => {
     expect(
       screen.queryByRole('button', { name: '워치리스트' }),
     ).not.toBeInTheDocument()
-    expect(screen.getByRole('presentation')).toHaveAttribute(
+    expect(screen.getByRole('presentation', { hidden: true })).toHaveAttribute(
       'src',
-      'https://assets.parqet.com/logos/symbol/NVDA?format=png',
+      'https://assets.parqet.com/logos/symbol/NVDA',
     )
     expect(screen.getByLabelText('현재가')).toHaveTextContent('$142.62')
 
@@ -748,6 +757,16 @@ describe('ResearchPage', () => {
       'NVDA',
       'NASDAQ',
       '3M',
+    )
+  })
+
+  it('adds the KS suffix to a KOSPI stock header logo', async () => {
+    renderResearch('/research/005930')
+
+    await screen.findByRole('heading', { name: '005930 리서치' })
+    expect(screen.getByRole('presentation', { hidden: true })).toHaveAttribute(
+      'src',
+      'https://assets.parqet.com/logos/symbol/005930.KS',
     )
   })
 
@@ -1259,10 +1278,6 @@ describe('ResearchPage', () => {
     expect(panel.getByText('펀더멘털')).toBeVisible()
     expect(panel.getByText('매크로')).toBeVisible()
     expect(panel.getByText('심리')).toBeVisible()
-    expect(
-      panel.queryByText('AI 인프라 투자가 예상보다 빠르게 둔화될 수 있습니다.'),
-    ).not.toBeInTheDocument()
-
     const pointWithoutStrength = panel
       .getByText('투자 심리가 빠르게 반전될 수 있습니다.')
       .closest('li')
@@ -1279,14 +1294,6 @@ describe('ResearchPage', () => {
     const tooltip = screen.getByRole('tooltip')
     expect(tooltip).toHaveTextContent('선행 PER이 5년 중앙값을 크게 웃돕니다.')
     expect(tooltip).toHaveTextContent('출처 분기 실적 자료')
-  })
-
-  it('keeps the legacy counter-view bullet fallback when structured points are empty', async () => {
-    renderResearch('/research/NULLS')
-
-    const fallbackItem = await screen.findByText('구계약 반대 관점 불릿입니다.')
-    expect(fallbackItem).toBeVisible()
-    expect(fallbackItem.closest('ul')).toHaveClass('list-disc')
   })
 
   it('shows an empty counter-view state', async () => {
@@ -1315,6 +1322,30 @@ describe('ResearchPage', () => {
     ).toBeVisible()
     expect(coverage.getAllByText('미수집')).toHaveLength(3)
     expect(coverage.getAllByText('데이터 없음')).toHaveLength(3)
+  })
+
+  it('truncates a long research coverage axis label and exposes its full text', async () => {
+    const longAxisLabel = '대체 데이터 기반의 매우 긴 커버리지 축 라벨'
+    mockUseResearchCoverage.mockReturnValue({
+      data: [
+        {
+          axis: 'ALTERNATIVE_DATA',
+          axisLabel: longAxisLabel,
+          isCollected: false,
+          lastUpdatedAt: null,
+          itemCount: 0,
+        },
+      ],
+      error: null,
+      isError: false,
+      isLoading: false,
+      refetch: mockResearchCoverageRefetch,
+    })
+    renderResearch()
+
+    const axisLabel = await screen.findByTitle(longAxisLabel)
+    expect(axisLabel).toHaveClass('min-w-0', 'truncate')
+    expect(axisLabel).toHaveTextContent(longAxisLabel)
   })
 
   it('isolates a research coverage error and retries inside the card', async () => {
@@ -1987,13 +2018,14 @@ YYYY-MM-DD`
   it('falls back to the symbol initial when the stock logo fails to load', async () => {
     renderResearch()
 
-    const logo = await screen.findByRole('presentation')
-    expect(screen.queryByText('N')).not.toBeInTheDocument()
+    const logo = await screen.findByRole('presentation', { hidden: true })
 
     fireEvent.error(logo)
 
     expect(screen.getByText('N')).toBeVisible()
-    expect(screen.queryByRole('presentation')).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('presentation', { hidden: true }),
+    ).not.toBeInTheDocument()
   })
 
   it('shows an empty state for unsupported symbols', async () => {

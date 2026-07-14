@@ -378,7 +378,6 @@ describe('research adapters', () => {
         next_checks: null,
         confidence_basis: null,
         counter_points: null,
-        counter_view: null,
       },
       { items: null },
       null,
@@ -389,7 +388,6 @@ describe('research adapters', () => {
     expect(view.stanceComment).toBeNull()
     expect(view.confidenceBasis).toBeNull()
     expect(view.counterPoints).toEqual([])
-    expect(view.counterView).toEqual([])
     expect(view.briefing.positiveFactors).toEqual([])
     expect(view.briefing.cautionFactors).toEqual([])
     expect(view.briefing.nextChecks).toEqual([])
@@ -424,7 +422,6 @@ describe('research adapters', () => {
     expect(view.stanceComment).toBeNull()
     expect(view.confidenceBasis).toBeNull()
     expect(view.counterPoints).toEqual([])
-    expect(view.counterView).toEqual([])
     expect(view.briefing.positiveFactors).toEqual([])
     expect(view.briefing.cautionFactors).toEqual([])
     expect(view.briefing.nextChecks).toEqual([])
@@ -924,21 +921,6 @@ describe('research adapters', () => {
         itemCount: 0,
       },
     ])
-  })
-
-  it('maps counter views and falls back to an empty array when absent', () => {
-    expect(
-      adaptResearchDetail(
-        detail,
-        { ...summary, counter_view: ['수요 둔화 가능성'] },
-        checklist,
-        null,
-      ).counterView,
-    ).toEqual(['수요 둔화 가능성'])
-
-    expect(
-      adaptResearchDetail(detail, summary, checklist, null).counterView,
-    ).toEqual([])
   })
 
   it.each([

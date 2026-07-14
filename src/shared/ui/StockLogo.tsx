@@ -6,6 +6,7 @@ interface StockLogoProps {
   symbol: string
   market?: string
   className?: string
+  imageClassName?: string
 }
 
 const symbolMarks: Record<string, { label: string; className: string }> = {
@@ -25,7 +26,12 @@ function getLogoCandidates(symbol: string, market?: string) {
   return [symbol]
 }
 
-export function StockLogo({ symbol, market, className }: StockLogoProps) {
+export function StockLogo({
+  symbol,
+  market,
+  className,
+  imageClassName,
+}: StockLogoProps) {
   const [candidateIndex, setCandidateIndex] = useState(0)
   const candidate = getLogoCandidates(symbol, market)[candidateIndex]
   const mark = symbolMarks[symbol] ?? {
@@ -48,7 +54,10 @@ export function StockLogo({ symbol, market, className }: StockLogoProps) {
           src={`https://assets.parqet.com/logos/symbol/${candidate}`}
           alt=""
           loading="lazy"
-          className="absolute inset-0 h-full w-full bg-white object-contain"
+          className={classNames(
+            'absolute inset-0 h-full w-full bg-white object-contain',
+            imageClassName,
+          )}
           onError={() => setCandidateIndex((current) => current + 1)}
         />
       ) : null}
