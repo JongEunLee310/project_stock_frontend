@@ -1,9 +1,12 @@
 import {
   Bar,
   BarChart as RechartsBarChart,
+  Cell,
+  Tooltip,
   XAxis,
   YAxis,
   type Margin,
+  type TooltipProps,
 } from 'recharts'
 
 import { classNames } from '@/shared/ui/classNames'
@@ -16,6 +19,7 @@ import {
 
 export type BarChartPoint = Record<string, number | string | null>
 export type BarChartDataKey<T extends BarChartPoint> = Extract<keyof T, string>
+export type BarChartTooltipFormatter = TooltipProps['formatter']
 
 export interface BarChartProps<T extends BarChartPoint = BarChartPoint> {
   data: T[]
@@ -30,6 +34,9 @@ export interface BarChartProps<T extends BarChartPoint = BarChartPoint> {
   margin?: Margin
   radius?: [number, number, number, number]
   showAxes?: boolean
+  getBarColor?: (point: T, index: number) => string
+  showTooltip?: boolean
+  tooltipFormatter?: BarChartTooltipFormatter
 }
 
 export function BarChart<T extends BarChartPoint = BarChartPoint>({
@@ -45,6 +52,9 @@ export function BarChart<T extends BarChartPoint = BarChartPoint>({
   margin = { top: 6, right: 0, bottom: 0, left: 0 },
   radius = [2, 2, 0, 0],
   showAxes = false,
+  getBarColor,
+  showTooltip = false,
+  tooltipFormatter,
 }: BarChartProps<T>) {
   const { containerRef, chartWidth } = useMeasuredChartWidth(
     responsive ? width : (width ?? chartTheme.fallbackWidth),
@@ -74,12 +84,32 @@ export function BarChart<T extends BarChartPoint = BarChartPoint>({
           />
         ) : null}
         {showAxes ? <YAxis hide /> : null}
-        <Bar
-          dataKey={resolvedYDataKey}
-          fill={color}
-          isAnimationActive={false}
-          radius={radius}
-        />
+        {showTooltip ? (
+          <Tooltip
+            formatter={tooltipFormatter}
+            isAnimationActive={false}
+            separator=" "
+          />
+        ) : null}
+        {getBarColor ? (
+          <Bar
+            dataKey={resolvedYDataKey}
+            fill={color}
+            isAnimationActive={false}
+            radius={radius}
+          >
+            {data.map((point, index) => (
+              <Cell key={index} fill={getBarColor(point, index)} />
+            ))}
+          </Bar>
+        ) : (
+          <Bar
+            dataKey={resolvedYDataKey}
+            fill={color}
+            isAnimationActive={false}
+            radius={radius}
+          />
+        )}
       </RechartsBarChart>
     </div>
   )
