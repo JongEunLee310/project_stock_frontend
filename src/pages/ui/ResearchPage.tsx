@@ -873,7 +873,7 @@ function HeaderCard({
           <p className="text-xs font-medium text-app-text-muted">
             AI 투자 스탠스
           </p>
-          <Badge tone="accent" className="px-3 py-1 text-sm font-semibold">
+          <Badge tone="accent" className="px-4 py-1.5 text-lg font-bold">
             {research.stance}
           </Badge>
           <div className="flex flex-wrap items-center justify-center gap-2">
