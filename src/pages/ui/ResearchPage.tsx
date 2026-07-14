@@ -992,22 +992,43 @@ function HeaderCard({
                   <li>{`평균 ${formatCurrency(research.targetPrice, research.currency)} (${formatPercent(research.targetUpsidePercent)})`}</li>
                   {hasTargetPriceRange ? (
                     <>
-                      <li>{`최저 ${formatCurrency(research.targetPriceLow, research.currency)}`}</li>
-                      <li>{`최고 ${formatCurrency(research.targetPriceHigh, research.currency)}`}</li>
+                      <li>
+                        {`최저 ${formatCurrency(research.targetPriceLow, research.currency)}`}
+                        <TargetPriceSourceSuffix
+                          analystCount={research.targetAnalystCount}
+                        />
+                      </li>
+                      <li>
+                        {`최고 ${formatCurrency(research.targetPriceHigh, research.currency)}`}
+                        <TargetPriceSourceSuffix
+                          analystCount={research.targetAnalystCount}
+                        />
+                      </li>
                     </>
                   ) : null}
                 </ul>
-                {hasTargetPriceRange && research.targetAnalystCount !== null ? (
-                  <p className="mt-1 text-xs font-normal leading-4 text-app-text-muted">
-                    애널리스트 {research.targetAnalystCount}명 컨센서스
-                  </p>
-                ) : null}
               </dd>
             </div>
           </dl>
         </div>
       </div>
     </Card>
+  )
+}
+
+function TargetPriceSourceSuffix({
+  analystCount,
+}: {
+  analystCount: number | null
+}) {
+  if (analystCount === null) {
+    return null
+  }
+
+  return (
+    <span className="ml-1 text-xs font-normal text-app-text-muted">
+      · 애널리스트 {analystCount}명 컨센서스
+    </span>
   )
 }
 

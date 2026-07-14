@@ -1207,9 +1207,20 @@ describe('ResearchPage', () => {
     expect(screen.getByText('다음 실적 발표')).toBeVisible()
     expect(screen.getByText('목표주가')).toBeVisible()
     expect(screen.getByText('평균 $1,145.32 (11.8%)')).toBeVisible()
-    expect(screen.getByText('최저 $900.00')).toBeVisible()
-    expect(screen.getByText('최고 $1,300.00')).toBeVisible()
-    expect(screen.getByText('애널리스트 42명 컨센서스')).toBeVisible()
+    expect(
+      screen.getByText(
+        (_, element) =>
+          element?.tagName === 'LI' &&
+          element.textContent === '최저 $900.00· 애널리스트 42명 컨센서스',
+      ),
+    ).toBeVisible()
+    expect(
+      screen.getByText(
+        (_, element) =>
+          element?.tagName === 'LI' &&
+          element.textContent === '최고 $1,300.00· 애널리스트 42명 컨센서스',
+      ),
+    ).toBeVisible()
     expect(screen.queryByText('PER / PEG')).not.toBeInTheDocument()
     expect(
       screen.getByRole('heading', { name: '뉴스 및 공시 요약' }),
