@@ -92,9 +92,11 @@ async function fetchLatestThesis(assetId: number): Promise<ThesisDto | null> {
 }
 
 export function useAssetIdBySymbol(symbol: string): UseQueryResult<number> {
+  const normalizedSymbol = symbol.trim().toUpperCase()
+
   return useQuery<number>({
-    queryKey: ['assets', 'by-symbol', symbol.trim().toUpperCase()],
-    queryFn: () => fetchAssetIdBySymbol(symbol),
+    queryKey: ['asset-id', normalizedSymbol],
+    queryFn: () => fetchAssetIdBySymbol(normalizedSymbol),
   })
 }
 

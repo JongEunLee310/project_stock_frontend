@@ -143,6 +143,13 @@ vi.mock('@/features/market-indices/queries', () => ({
 
 vi.mock('@/features/research/queries', () => ({
   SymbolNotFoundError: class SymbolNotFoundError extends Error {},
+  useAssetIdBySymbol: () => ({
+    data: 1,
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: vi.fn(),
+  }),
   useResearchList: () => ({
     data: [
       {
@@ -332,10 +339,11 @@ describe('App', () => {
       await screen.findByRole('heading', { name: '리서치 목록' }),
     ).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/research')
-    expect(screen.getByRole('link', { name: /리서치/ })).toHaveAttribute(
-      'aria-current',
-      'page',
-    )
+    expect(
+      screen
+        .getAllByRole('link', { name: /리서치/ })
+        .find((link) => link.getAttribute('href') === '/research'),
+    ).toHaveAttribute('aria-current', 'page')
   })
 
   it('renders research symbol params', async () => {
@@ -351,6 +359,19 @@ describe('App', () => {
       'aria-current',
       'page',
     )
+  })
+
+  it('renders the research news route', async () => {
+    renderRoute('/research/AAPL/news')
+
+    expect(
+      await screen.findByRole('heading', { name: '뉴스 및 공시 — AAPL' }),
+    ).toBeInTheDocument()
+    expect(
+      screen
+        .getAllByRole('link', { name: /리서치/ })
+        .find((link) => link.getAttribute('href') === '/research'),
+    ).toHaveAttribute('aria-current', 'page')
   })
 
   it('renders not found inside the app shell', async () => {
