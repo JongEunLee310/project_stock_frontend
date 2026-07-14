@@ -1168,14 +1168,18 @@ describe('ResearchPage', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('renders counter views below the AI briefing', async () => {
+  it('renders lower cards in the risk, counter-view, coverage order', async () => {
     renderResearch()
 
     const briefingHeading = await screen.findByRole('heading', {
       name: 'AI demand remains durable',
     })
+    const riskHeading = screen.getByRole('heading', { name: '핵심 리스크' })
     const counterViewHeading = screen.getByRole('heading', {
       name: '반대 관점',
+    })
+    const coverageHeading = screen.getByRole('heading', {
+      name: '데이터 커버리지',
     })
 
     expect(
@@ -1187,7 +1191,15 @@ describe('ResearchPage', () => {
       ),
     ).toBeVisible()
     expect(
-      briefingHeading.compareDocumentPosition(counterViewHeading) &
+      briefingHeading.compareDocumentPosition(riskHeading) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+    expect(
+      riskHeading.compareDocumentPosition(counterViewHeading) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+    expect(
+      counterViewHeading.compareDocumentPosition(coverageHeading) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy()
   })
@@ -1448,17 +1460,28 @@ describe('ResearchPage', () => {
   it('renders catalyst events and only marks estimated dates', async () => {
     renderResearch()
 
-    expect(
-      await screen.findByRole('heading', { name: '촉매 타임라인' }),
-    ).toBeVisible()
+    const catalystCard = (
+      await screen.findByRole('heading', { name: '촉매 타임라인' })
+    ).closest('section')
+    expect(catalystCard).not.toBeNull()
+    const catalyst = within(catalystCard as HTMLElement)
     expect(mockUseCatalystTimeline).toHaveBeenCalledWith(1)
-    expect(screen.getByText('07.23')).toBeVisible()
-    expect(screen.getByText('08.09')).toBeVisible()
+    expect(catalyst.getByText('07.23')).toBeVisible()
+    expect(catalyst.getByText('08.09')).toBeVisible()
     expect(
-      screen.getByText('주요 계약의 갱신 조건과 매출 영향을 확인하세요.'),
+      catalyst.getByText('주요 계약의 갱신 조건과 매출 영향을 확인하세요.'),
     ).toBeVisible()
-    expect(screen.getByText('락업 해제')).toBeVisible()
-    expect(screen.getAllByText('예상')).toHaveLength(1)
+    expect(catalyst.getByText('계약')).toHaveClass(
+      'border-emerald-400/40',
+      'bg-emerald-400/10',
+      'text-emerald-300',
+    )
+    expect(catalyst.getByText('락업 해제')).toHaveClass(
+      'border-rose-400/40',
+      'bg-rose-400/10',
+      'text-rose-300',
+    )
+    expect(catalyst.getAllByText('예상')).toHaveLength(1)
   })
 
   it('isolates a catalyst error and retries inside the card', async () => {
@@ -1514,7 +1537,11 @@ describe('ResearchPage', () => {
     const disclosuresTab = screen.getByRole('tab', { name: '공시' })
     expect(newsTab).toHaveAttribute('aria-selected', 'true')
     expect(disclosuresTab).toHaveAttribute('aria-selected', 'false')
-    expect(screen.getByText('제품')).toBeVisible()
+    expect(screen.getByText('제품')).toHaveClass(
+      'border-sky-400/40',
+      'bg-sky-400/10',
+      'text-sky-300',
+    )
     expect(
       screen.getByText('Example News · 2026. 7. 10. 오전 9:00'),
     ).toBeVisible()
@@ -1542,9 +1569,46 @@ describe('ResearchPage', () => {
     expect(
       screen.getByRole('link', { name: 'Quarterly filing' }),
     ).toHaveAttribute('href', 'https://example.com/disclosures/quarterly')
+    expect(screen.getByText('기타')).toHaveClass(
+      'border-app-border',
+      'bg-app-surface-muted',
+      'text-app-text-muted',
+    )
     expect(
       screen.queryByText('New accelerator announced'),
     ).not.toBeInTheDocument()
+  })
+
+  it('falls back to the neutral tone for an unmapped category label', async () => {
+    mockUseNewsDisclosure.mockReturnValue({
+      data: {
+        news: [
+          {
+            id: 'news-unmapped',
+            title: 'Unmapped category news',
+            url: 'https://example.com/news/unmapped',
+            source: 'Example News',
+            publishedAt: null,
+            summary: null,
+            categoryLabel: '미분류 항목',
+            impactLabel: null,
+            sentiment: null,
+          },
+        ],
+        disclosures: [],
+      },
+      error: null,
+      isError: false,
+      isLoading: false,
+      refetch: mockNewsDisclosureRefetch,
+    })
+    renderResearch()
+
+    expect(await screen.findByText('미분류 항목')).toHaveClass(
+      'border-app-border',
+      'bg-app-surface-muted',
+      'text-app-text-muted',
+    )
   })
 
   it('shows three compact news items and expands and collapses the full list', async () => {
@@ -1684,14 +1748,28 @@ describe('ResearchPage', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('saves all checked item keys and the current memo when toggled', async () => {
+  it('keeps the checklist label toggle and moves descriptions to tooltips', async () => {
     renderResearch()
 
     const checkbox = await screen.findByRole('checkbox', {
       name: /Valuation is acceptable/,
     })
-    await act(async () => fireEvent.click(checkbox))
+    expect(screen.queryByText('Wait for setup.')).not.toBeInTheDocument()
 
+    const descriptionTrigger = screen.getByRole('button', {
+      name: 'Valuation is acceptable 설명',
+    })
+    fireEvent.focus(descriptionTrigger)
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Wait for setup.')
+    expect(checkbox).not.toBeChecked()
+
+    fireEvent.blur(descriptionTrigger)
+    mockSaveBuyChecklist.mockReturnValueOnce(new Promise(() => undefined))
+    await act(async () =>
+      fireEvent.click(screen.getByText('Valuation is acceptable')),
+    )
+
+    expect(checkbox).toBeChecked()
     expect(mockSaveBuyChecklist).toHaveBeenCalledWith({
       memo: 'Server memo',
       checked_item_keys: ['portfolio_concentration', 'valuation'],
