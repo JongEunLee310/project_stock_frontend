@@ -5,11 +5,12 @@ import {
   riskLevelLabels,
   toLabel,
 } from '@/shared/lib/format'
+import type { ApiMeta } from '@/shared/api/envelope'
+import type { BadgeTone } from '@/shared/ui'
 
 import type {
   AssetDetailDto,
   AssetEventHistoryDto,
-  AssetLookupDto,
   BenchmarkComparisonDto,
   BuyChecklistDto,
   CatalystTimelineDto,
@@ -18,10 +19,115 @@ import type {
   NewsDisclosureDto,
   PriceSeriesDto,
   ResearchCoverageDto,
+  ResearchQueueResponseDto,
   ResearchSummaryDto,
   ThesisDto,
   ValuationMetricsDto,
 } from './dto'
+
+export type ResearchStatusTone = Extract<
+  BadgeTone,
+  'neutral' | 'info' | 'warning' | 'danger' | 'success'
+>
+
+interface ResearchStatusPresentation {
+  label: string
+  tone: ResearchStatusTone
+}
+
+type KnownResearchStatus =
+  | 'NEEDS_ATTENTION'
+  | 'INSUFFICIENT'
+  | 'COLLECTING'
+  | 'PENDING_ANALYSIS'
+  | 'STALE'
+  | 'ANALYZED'
+
+const researchStatusPresentations: Record<
+  KnownResearchStatus,
+  ResearchStatusPresentation
+> = {
+  NEEDS_ATTENTION: { label: '추가 확인 필요', tone: 'danger' },
+  INSUFFICIENT: { label: '데이터 부족', tone: 'neutral' },
+  COLLECTING: { label: '수집 중', tone: 'info' },
+  PENDING_ANALYSIS: { label: '분석 대기', tone: 'neutral' },
+  STALE: { label: '오래됨', tone: 'warning' },
+  ANALYZED: { label: '분석 완료', tone: 'success' },
+}
+
+export interface ResearchQueueSummary {
+  totalResearchCount: number
+  needsAttentionCount: number
+  updatedTodayCount: number
+  insufficientCount: number
+}
+
+export interface ResearchQueueItem {
+  assetId: number
+  symbol: string
+  name: string
+  market: string | null
+  researchStatusLabel: string
+  researchStatusTone: ResearchStatusTone
+  completenessPct: number
+  stanceLabel: string | null
+  headline: string | null
+  keyIssue: string | null
+  lastUpdatedAt: string | null
+  signalType: string | null
+}
+
+export interface ResearchQueueView {
+  summary: ResearchQueueSummary
+  items: ResearchQueueItem[]
+  meta: ApiMeta
+}
+
+export function toResearchQueueView(
+  dto: ResearchQueueResponseDto,
+  meta: ApiMeta,
+): ResearchQueueView {
+  return {
+    summary: {
+      totalResearchCount: dto.summary.total_research_count,
+      needsAttentionCount: dto.summary.needs_attention_count,
+      updatedTodayCount: dto.summary.updated_today_count,
+      insufficientCount: dto.summary.insufficient_count,
+    },
+    items: dto.items.map((item) => {
+      const status = researchStatusPresentations[
+        item.research_status as KnownResearchStatus
+      ] ?? { label: '—', tone: 'neutral' as const }
+      const stance = item.stance?.trim()
+
+      return {
+        assetId: item.asset_id,
+        symbol: item.symbol,
+        name: item.name,
+        market: item.market,
+        researchStatusLabel: status.label,
+        researchStatusTone: status.tone,
+        completenessPct: Math.min(
+          100,
+          Math.max(
+            0,
+            Number.isFinite(item.completeness_pct) ? item.completeness_pct : 0,
+          ),
+        ),
+        stanceLabel: stance
+          ? toLabel(researchStanceLabels, stance, '판단 보류')
+          : null,
+        headline: item.headline,
+        keyIssue: item.key_issue,
+        lastUpdatedAt: item.last_updated_at
+          ? formatKstDateTime(item.last_updated_at)
+          : null,
+        signalType: item.signal_type,
+      }
+    }),
+    meta,
+  }
+}
 
 export interface ResearchRisk {
   id: string
@@ -127,35 +233,6 @@ export interface CoverageAxisItem {
   isCollected: boolean
   lastUpdatedAt: string | null
   itemCount: number
-}
-
-export interface ResearchListRow {
-  assetId: number
-  symbol: string
-  name: string
-  market: string | null
-  sector: string | null
-  stanceLabel: string | null
-  summaryUpdatedAt: string | null
-}
-
-export function adaptResearchListRow(
-  asset: AssetLookupDto,
-  summary: ResearchSummaryDto | null,
-): ResearchListRow {
-  const stance = summary?.stance?.trim()
-
-  return {
-    assetId: asset.id,
-    symbol: asset.symbol,
-    name: asset.name,
-    market: asset.market ?? null,
-    sector: asset.sector ?? null,
-    stanceLabel: stance
-      ? toLabel(researchStanceLabels, stance, '판단 보류')
-      : null,
-    summaryUpdatedAt: summary ? formatKstDateTime(summary.created_at) : null,
-  }
 }
 
 export interface PriceSeriesView {

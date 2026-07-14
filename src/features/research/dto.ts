@@ -6,6 +6,32 @@ export interface AssetLookupDto {
   sector?: string | null
 }
 
+export interface ResearchQueueSummaryDto {
+  total_research_count: number
+  needs_attention_count: number
+  updated_today_count: number
+  insufficient_count: number
+}
+
+export interface ResearchQueueItemDto {
+  asset_id: number
+  symbol: string
+  name: string
+  market: string | null
+  research_status: string
+  completeness_pct: number
+  stance: string | null
+  headline: string | null
+  key_issue: string | null
+  last_updated_at: string | null
+  signal_type: string | null
+}
+
+export interface ResearchQueueResponseDto {
+  summary: ResearchQueueSummaryDto
+  items: ResearchQueueItemDto[]
+}
+
 export interface AssetDetailDto extends AssetLookupDto {
   price?: string | null
   previous_close?: string | null

@@ -11,7 +11,7 @@ import {
   adaptPriceSeries,
   adaptResearchCoverage,
   adaptResearchDetail,
-  adaptResearchListRow,
+  toResearchQueueView,
   adaptThesis,
   adaptValuationMetrics,
   withMovingAverage,
@@ -25,6 +25,7 @@ import type {
   EarningsSummaryDto,
   NewsDisclosureDto,
   ResearchCoverageDto,
+  ResearchQueueResponseDto,
   ResearchSummaryDto,
   ThesisDto,
   ValuationMetricsDto,
@@ -284,28 +285,129 @@ describe('research adapters', () => {
     })
   })
 
-  it('combines an asset and research summary into a list row', () => {
-    expect(adaptResearchListRow(detail, summary)).toEqual({
-      assetId: 1,
-      symbol: 'NVDA',
-      name: 'NVIDIA Corp.',
-      market: 'NASDAQ',
-      sector: 'Technology',
-      stanceLabel: '매수 후보',
-      summaryUpdatedAt: formatKstDateTime(summary.created_at),
+  it('maps research queue summary, status, stance, and timestamps', () => {
+    const dto: ResearchQueueResponseDto = {
+      summary: {
+        total_research_count: 3,
+        needs_attention_count: 1,
+        updated_today_count: 2,
+        insufficient_count: 1,
+      },
+      items: [
+        {
+          asset_id: 1,
+          symbol: 'NVDA',
+          name: 'NVIDIA Corp.',
+          market: 'NASDAQ',
+          research_status: 'NEEDS_ATTENTION',
+          completeness_pct: 75,
+          stance: 'BUY_CANDIDATE',
+          headline: 'AI demand remains durable',
+          key_issue: '밸류에이션 부담을 확인해야 합니다.',
+          last_updated_at: '2026-07-13T01:20:00Z',
+          signal_type: 'RISK_ALERT',
+        },
+      ],
+    }
+
+    expect(toResearchQueueView(dto, { page: 1, size: 20, total: 1 })).toEqual({
+      summary: {
+        totalResearchCount: 3,
+        needsAttentionCount: 1,
+        updatedTodayCount: 2,
+        insufficientCount: 1,
+      },
+      items: [
+        {
+          assetId: 1,
+          symbol: 'NVDA',
+          name: 'NVIDIA Corp.',
+          market: 'NASDAQ',
+          researchStatusLabel: '추가 확인 필요',
+          researchStatusTone: 'danger',
+          completenessPct: 75,
+          stanceLabel: '매수 후보',
+          headline: 'AI demand remains durable',
+          keyIssue: '밸류에이션 부담을 확인해야 합니다.',
+          lastUpdatedAt: formatKstDateTime('2026-07-13T01:20:00Z'),
+          signalType: 'RISK_ALERT',
+        },
+      ],
+      meta: { page: 1, size: 20, total: 1 },
     })
   })
 
-  it('keeps list asset data when its research summary is unavailable', () => {
-    expect(adaptResearchListRow(detail, null)).toEqual({
-      assetId: 1,
-      symbol: 'NVDA',
-      name: 'NVIDIA Corp.',
-      market: 'NASDAQ',
-      sector: 'Technology',
+  it('falls back safely for an unknown research status and null update time', () => {
+    const dto: ResearchQueueResponseDto = {
+      summary: {
+        total_research_count: 1,
+        needs_attention_count: 0,
+        updated_today_count: 0,
+        insufficient_count: 0,
+      },
+      items: [
+        {
+          asset_id: 2,
+          symbol: 'TSLA',
+          name: 'Tesla, Inc.',
+          market: 'NASDAQ',
+          research_status: 'UNKNOWN_STATUS',
+          completeness_pct: 120,
+          stance: null,
+          headline: null,
+          key_issue: null,
+          last_updated_at: null,
+          signal_type: null,
+        },
+      ],
+    }
+
+    expect(
+      toResearchQueueView(dto, { page: 1, size: 20, total: 1 }).items[0],
+    ).toMatchObject({
+      researchStatusLabel: '—',
+      researchStatusTone: 'neutral',
+      completenessPct: 100,
       stanceLabel: null,
-      summaryUpdatedAt: null,
+      lastUpdatedAt: null,
     })
+  })
+
+  it.each([
+    ['NEEDS_ATTENTION', '추가 확인 필요', 'danger'],
+    ['INSUFFICIENT', '데이터 부족', 'neutral'],
+    ['COLLECTING', '수집 중', 'info'],
+    ['PENDING_ANALYSIS', '분석 대기', 'neutral'],
+    ['STALE', '오래됨', 'warning'],
+    ['ANALYZED', '분석 완료', 'success'],
+  ] as const)('maps research status %s to %s', (status, label, tone) => {
+    const dto: ResearchQueueResponseDto = {
+      summary: {
+        total_research_count: 1,
+        needs_attention_count: 0,
+        updated_today_count: 0,
+        insufficient_count: 0,
+      },
+      items: [
+        {
+          asset_id: 1,
+          symbol: 'NVDA',
+          name: 'NVIDIA Corp.',
+          market: 'NASDAQ',
+          research_status: status,
+          completeness_pct: 50,
+          stance: null,
+          headline: null,
+          key_issue: null,
+          last_updated_at: null,
+          signal_type: null,
+        },
+      ],
+    }
+
+    expect(
+      toResearchQueueView(dto, { page: 1, size: 20, total: 1 }).items[0],
+    ).toMatchObject({ researchStatusLabel: label, researchStatusTone: tone })
   })
 
   it('combines detail, summary, checklist, and thesis', () => {

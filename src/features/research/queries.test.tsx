@@ -9,7 +9,6 @@ import {
   unwrapEnvelope,
   type ApiEnvelope,
 } from '@/shared/api/envelope'
-import { formatKstDateTime } from '@/shared/lib/format'
 
 import {
   useCatalystTimeline,
@@ -19,7 +18,7 @@ import {
   useEarningsSummary,
   useNewsDisclosure,
   useResearchCoverage,
-  useResearchList,
+  useResearchQueue,
   useResearchPriceSeries,
   useResearchView,
   useSaveBuyChecklist,
@@ -208,53 +207,6 @@ const thesisServerErrorEnvelope = {
   meta: null,
 }
 
-const researchListAssetsEnvelope = {
-  data: [
-    {
-      id: 11,
-      symbol: 'NVDA',
-      name: 'NVIDIA Corp.',
-      market: 'NASDAQ',
-      sector: 'Technology',
-      is_active: true,
-      created_at: '2026-05-01T00:00:00.000Z',
-    },
-    {
-      id: 12,
-      symbol: 'TSLA',
-      name: 'Tesla, Inc.',
-      market: 'NASDAQ',
-      sector: 'Consumer Cyclical',
-      is_active: true,
-      created_at: '2026-05-02T00:00:00.000Z',
-    },
-  ],
-  error: null,
-  meta: { page: 1, size: 100, total: 2 },
-}
-
-const researchListSummaryEnvelope = {
-  data: {
-    stance: 'BUY_CANDIDATE',
-    stance_confidence: '0.82',
-    headline: 'AI demand remains durable',
-    body: 'Margins remain the key checkpoint.',
-    key_risks: [],
-    created_at: '2026-05-24T00:00:00.000Z',
-  },
-  error: null,
-  meta: null,
-}
-
-// BE 실계약: research-summary는 자산 미존재 시 ASSET_NOT_FOUND를 반환한다
-// (app/core/error_codes.py — RESEARCH_SUMMARY_NOT_FOUND 코드는 존재하지 않음).
-const researchSummaryNotFoundEnvelope = {
-  data: null,
-  message: '종목을 찾을 수 없습니다.',
-  error: { code: 'ASSET_NOT_FOUND' },
-  meta: null,
-}
-
 describe('research queries', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -268,54 +220,49 @@ describe('research queries', () => {
     })
   })
 
-  it('keeps every asset when one research summary request fails', async () => {
-    vi.mocked(apiGet).mockImplementation((async (path: string) => {
-      if (path === '/assets?page=1&size=100') {
-        return unwrapEnvelope(
-          researchListAssetsEnvelope as unknown as ApiEnvelope<
-            typeof researchListAssetsEnvelope.data
-          >,
-        )
-      }
-
-      if (path === '/assets/11/research-summary') {
-        return unwrapEnvelope(
-          researchListSummaryEnvelope as unknown as ApiEnvelope<
-            typeof researchListSummaryEnvelope.data
-          >,
-        )
-      }
-
-      if (path === '/assets/12/research-summary') {
-        return unwrapEnvelope(
-          researchSummaryNotFoundEnvelope as unknown as ApiEnvelope<null>,
-        )
-      }
-
-      throw new Error(`Unexpected path: ${path}`)
-    }) as typeof apiGet)
+  it('fetches the research queue once with filter and page parameters', async () => {
+    vi.mocked(apiGet).mockResolvedValue({
+      data: {
+        summary: {
+          total_research_count: 3,
+          needs_attention_count: 1,
+          updated_today_count: 2,
+          insufficient_count: 1,
+        },
+        items: [
+          {
+            asset_id: 11,
+            symbol: 'NVDA',
+            name: 'NVIDIA Corp.',
+            market: 'NASDAQ',
+            research_status: 'ANALYZED',
+            completeness_pct: 100,
+            stance: 'BUY_CANDIDATE',
+            headline: 'AI demand remains durable',
+            key_issue: 'Margins remain the key checkpoint.',
+            last_updated_at: '2026-07-13T01:20:00Z',
+            signal_type: 'RISK_ALERT',
+          },
+        ],
+      },
+      meta: { page: 2, size: 20, total: 21 },
+    })
     const queryClient = createTestQueryClient()
-    const { result } = renderHook(() => useResearchList(), {
+    const { result } = renderHook(() => useResearchQueue('needs_research', 2), {
       wrapper: wrapperFor(queryClient),
     })
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
-    expect(result.current.data).toHaveLength(2)
-    expect(result.current.data?.[0]).toMatchObject({
+    expect(result.current.data?.items[0]).toMatchObject({
       symbol: 'NVDA',
       stanceLabel: '매수 후보',
-      summaryUpdatedAt: formatKstDateTime(
-        researchListSummaryEnvelope.data.created_at,
-      ),
     })
-    expect(result.current.data?.[1]).toMatchObject({
-      symbol: 'TSLA',
-      stanceLabel: null,
-      summaryUpdatedAt: null,
-    })
-    expect(apiGet).toHaveBeenCalledWith('/assets/11/research-summary')
-    expect(apiGet).toHaveBeenCalledWith('/assets/12/research-summary')
+    expect(result.current.data?.meta).toEqual({ page: 2, size: 20, total: 21 })
+    expect(apiGet).toHaveBeenCalledTimes(1)
+    expect(apiGet).toHaveBeenCalledWith(
+      '/research-queue?page=2&size=20&filter=needs_research',
+    )
   })
 
   it('passes asset_id when requesting the latest thesis', async () => {

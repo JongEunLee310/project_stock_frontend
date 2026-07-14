@@ -265,7 +265,6 @@ vi.mock('@/features/research/queries', async () => {
 
   return {
     SymbolNotFoundError: actual.SymbolNotFoundError,
-    useResearchList: actual.useResearchList,
     useAssetIdBySymbol: () => ({
       data: 1,
       error: null,
