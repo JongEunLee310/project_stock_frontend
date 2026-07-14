@@ -235,6 +235,12 @@ const researchFixturesBySymbol = {
     market: 'KOSPI',
     currency: 'KRW',
   },
+  PLTR: {
+    ...researchBySymbol.NVDA,
+    assetId: 5,
+    symbol: 'PLTR',
+    targetPriceLow: null,
+  },
 }
 
 vi.mock('@/features/market-indices/queries', () => ({
@@ -1183,6 +1189,14 @@ describe('ResearchPage', () => {
     expect(
       screen.getByRole('heading', { name: '뉴스 및 공시 요약' }),
     ).toBeVisible()
+  })
+
+  it('omits the target price range when only one bound is available', async () => {
+    renderResearch('/research/PLTR')
+
+    await screen.findByRole('heading', { name: 'PLTR 리서치' })
+
+    expect(screen.getByText('$1,145.32 (11.8%)')).toBeVisible()
   })
 
   it('omits nullable stance details while keeping the confidence fallback', async () => {
