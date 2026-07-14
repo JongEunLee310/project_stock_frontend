@@ -23,6 +23,20 @@ export interface AssetDetailDto extends AssetLookupDto {
   updated_at?: string | null
 }
 
+export interface CounterPointDto {
+  id: string
+  claim: string
+  basis: string
+  basis_type:
+    | 'VALUATION'
+    | 'FUNDAMENTALS'
+    | 'COMPETITION'
+    | 'MACRO'
+    | 'SENTIMENT'
+  strength: 'WEAK' | 'MODERATE' | 'STRONG'
+  source_label: string | null
+}
+
 export interface ResearchSummaryDto {
   stance?: string | null
   stance_confidence?: string | null
@@ -34,6 +48,7 @@ export interface ResearchSummaryDto {
   next_checks?: string[] | null
   confidence_basis?: string | null
   counter_view?: string[] | null
+  counter_points?: CounterPointDto[] | null
   key_risks?: Array<{
     id?: string | number
     title: string

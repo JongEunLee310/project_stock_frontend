@@ -20,6 +20,8 @@ import {
 import type {
   BenchmarkSeriesItem,
   ChecklistItem,
+  CounterPointItem,
+  CounterPointStrength,
   CoverageAxisItem,
   EarningsQuarterItem,
   EarningsView,
@@ -104,6 +106,20 @@ const riskDotClassNames: Record<string, string> = {
   높음: 'bg-status-level-high-text',
   중간: 'bg-status-level-medium-text',
   낮음: 'bg-status-level-low-text',
+}
+
+const counterPointStrengthLabels: Record<CounterPointStrength, string> = {
+  STRONG: '강함',
+  MODERATE: '보통',
+  WEAK: '약함',
+}
+
+const counterPointStrengthRiskLevels: Record<
+  Exclude<CounterPointStrength, 'WEAK'>,
+  '높음' | '중간'
+> = {
+  STRONG: '높음',
+  MODERATE: '중간',
 }
 
 const sentimentClassNames: Record<NewsDisclosureSentiment, string> = {
@@ -1133,16 +1149,86 @@ function RiskPanel({ research }: { research: ResearchView }) {
   )
 }
 
-function CounterViewPanel({ items }: { items: string[] }) {
+function CounterPointStrengthBadge({
+  strength,
+}: {
+  strength: CounterPointStrength
+}) {
+  if (strength === 'WEAK') {
+    return (
+      <Badge tone="neutral" className="justify-self-start">
+        {counterPointStrengthLabels[strength]}
+      </Badge>
+    )
+  }
+
+  return (
+    <Badge
+      riskLevel={counterPointStrengthRiskLevels[strength]}
+      className="justify-self-start"
+    >
+      {counterPointStrengthLabels[strength]}
+    </Badge>
+  )
+}
+
+function CounterViewPanel({
+  points,
+  fallbackItems,
+}: {
+  points: CounterPointItem[]
+  fallbackItems: string[]
+}) {
   return (
     <Card className="h-full">
       <h2 className="text-xl font-bold text-app-text">반대 관점</h2>
       <p className="mt-2 text-sm leading-6 text-app-text-muted">
         현재 판단과 반대되는 근거를 함께 확인해 확증 편향을 줄이세요.
       </p>
-      {items.length > 0 ? (
+      {points.length > 0 ? (
+        <ul className="mt-4 divide-y divide-app-border">
+          {points.map((point) => (
+            <li
+              key={point.id}
+              className="grid grid-cols-[3.25rem_6rem_minmax(0,1fr)] items-center gap-x-2 py-2.5 first:pt-0 last:pb-0"
+            >
+              {point.strength ? (
+                <CounterPointStrengthBadge strength={point.strength} />
+              ) : null}
+              <Badge
+                tone="neutral"
+                className={`justify-self-start ${point.strength ? '' : 'col-start-2'}`}
+              >
+                {point.basisTypeLabel}
+              </Badge>
+              <span className="inline-flex min-w-0 items-center gap-1.5">
+                <span
+                  className="min-w-0 truncate text-sm text-app-text"
+                  title={point.claim}
+                >
+                  {point.claim}
+                </span>
+                <InfoTooltip
+                  label={`${point.claim} 근거`}
+                  className="shrink-0 [&_button]:text-app-text-muted [&_button:hover]:text-app-text"
+                  content={
+                    <div className="space-y-2">
+                      <p>{point.basis}</p>
+                      {point.sourceLabel ? (
+                        <p className="text-app-text-muted">
+                          출처 {point.sourceLabel}
+                        </p>
+                      ) : null}
+                    </div>
+                  }
+                />
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : fallbackItems.length > 0 ? (
         <ul className="mt-4 list-disc space-y-2 pl-5 text-sm leading-6 text-app-text-muted">
-          {items.map((item) => (
+          {fallbackItems.map((item) => (
             <li key={item}>{item}</li>
           ))}
         </ul>
@@ -1786,7 +1872,10 @@ export function ResearchPage() {
 
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
         <RiskPanel research={research} />
-        <CounterViewPanel items={research.counterView} />
+        <CounterViewPanel
+          points={research.counterPoints}
+          fallbackItems={research.counterView}
+        />
         <ResearchCoveragePanel assetId={research.assetId} />
       </div>
 
