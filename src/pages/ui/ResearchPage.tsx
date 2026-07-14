@@ -519,7 +519,11 @@ function ValuationTable({ valuation }: { valuation: ValuationView }) {
               />
             ) : null}
           </span>
-          {metric.isHighlighted ? <Badge tone="info">우선 지표</Badge> : null}
+          {metric.isHighlighted ? (
+            <Badge tone="info" className="justify-self-start">
+              우선 지표
+            </Badge>
+          ) : null}
         </div>
       ),
     },
