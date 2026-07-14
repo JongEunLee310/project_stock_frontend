@@ -216,6 +216,18 @@ const researchBySymbol = {
   },
 }
 
+const researchFixturesBySymbol = {
+  ...researchBySymbol,
+  '005930': {
+    ...researchBySymbol.NVDA,
+    assetId: 4,
+    symbol: '005930',
+    name: '삼성전자',
+    market: 'KOSPI',
+    currency: 'KRW',
+  },
+}
+
 vi.mock('@/features/market-indices/queries', () => ({
   useMarketIndices: () => ({
     data: { indices: [], referenceAt: null },
@@ -319,7 +331,10 @@ vi.mock('@/features/research/queries', async () => {
       }
     },
     useResearchView: (symbol: string) => {
-      const data = researchBySymbol[symbol as keyof typeof researchBySymbol]
+      const data =
+        researchFixturesBySymbol[
+          symbol as keyof typeof researchFixturesBySymbol
+        ]
 
       if (!data) {
         return {
@@ -723,9 +738,9 @@ describe('ResearchPage', () => {
     expect(
       screen.queryByRole('button', { name: '워치리스트' }),
     ).not.toBeInTheDocument()
-    expect(screen.getByRole('presentation')).toHaveAttribute(
+    expect(screen.getByRole('presentation', { hidden: true })).toHaveAttribute(
       'src',
-      'https://assets.parqet.com/logos/symbol/NVDA?format=png',
+      'https://assets.parqet.com/logos/symbol/NVDA',
     )
     expect(screen.getByLabelText('현재가')).toHaveTextContent('$142.62')
 
@@ -735,6 +750,16 @@ describe('ResearchPage', () => {
       'NVDA',
       'NASDAQ',
       '3M',
+    )
+  })
+
+  it('adds the KS suffix to a KOSPI stock header logo', async () => {
+    renderResearch('/research/005930')
+
+    await screen.findByRole('heading', { name: '005930 리서치' })
+    expect(screen.getByRole('presentation', { hidden: true })).toHaveAttribute(
+      'src',
+      'https://assets.parqet.com/logos/symbol/005930.KS',
     )
   })
 
@@ -1997,13 +2022,14 @@ YYYY-MM-DD`
   it('falls back to the symbol initial when the stock logo fails to load', async () => {
     renderResearch()
 
-    const logo = await screen.findByRole('presentation')
-    expect(screen.queryByText('N')).not.toBeInTheDocument()
+    const logo = await screen.findByRole('presentation', { hidden: true })
 
     fireEvent.error(logo)
 
     expect(screen.getByText('N')).toBeVisible()
-    expect(screen.queryByRole('presentation')).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('presentation', { hidden: true }),
+    ).not.toBeInTheDocument()
   })
 
   it('shows an empty state for unsupported symbols', async () => {
