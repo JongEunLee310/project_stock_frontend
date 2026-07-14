@@ -791,7 +791,7 @@ function HeaderCard({
 
   return (
     <Card>
-      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-[minmax(12rem,1.1fr)_minmax(10rem,0.7fr)_minmax(12rem,0.85fr)_minmax(19rem,1.6fr)]">
+      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-[minmax(12rem,1.1fr)_minmax(10rem,0.7fr)_minmax(10rem,0.5fr)_minmax(19rem,1.6fr)]">
         <div className="flex min-w-0 items-start gap-4">
           {isLogoLoadFailed ? (
             <div
@@ -869,7 +869,7 @@ function HeaderCard({
           </span>
         </div>
 
-        <div className="flex flex-col items-center justify-center gap-2 rounded-control border border-app-border bg-app-surface-muted p-4 text-center">
+        <div className="flex flex-col items-center justify-center gap-2 rounded-control border border-app-border p-4 text-center">
           <p className="text-xs font-medium text-app-text-muted">
             AI 투자 스탠스
           </p>
