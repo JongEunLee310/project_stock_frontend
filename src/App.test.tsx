@@ -249,6 +249,7 @@ vi.mock('@/features/research/queries', () => ({
       updatedAt: null,
       stance: 'Hold',
       stanceConfidence: null,
+      counterPoints: [],
       counterView: [],
       briefing: {
         headline: 'Research',

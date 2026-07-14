@@ -68,6 +68,16 @@ const summary: ResearchSummaryDto = {
   next_checks: ['다음 분기 마진 확인'],
   confidence_basis:
     '성장 지표는 긍정적이지만 밸류에이션 불확실성이 남아 있습니다.',
+  counter_points: [
+    {
+      id: 'counter-valuation',
+      claim: '높은 밸류에이션이 추가 상승 여력을 제한할 수 있습니다.',
+      basis: '선행 PER이 5년 중앙값을 웃돕니다.',
+      basis_type: 'VALUATION',
+      strength: 'STRONG',
+      source_label: '분기 실적 자료',
+    },
+  ],
   key_risks: [
     {
       id: 'risk-1',
@@ -333,6 +343,16 @@ describe('research adapters', () => {
       checklistMemo: 'Wait for the next earnings call.',
     })
     expect(view).not.toHaveProperty('priceSparkline')
+    expect(view.counterPoints).toEqual([
+      {
+        id: 'counter-valuation',
+        claim: '높은 밸류에이션이 추가 상승 여력을 제한할 수 있습니다.',
+        basis: '선행 PER이 5년 중앙값을 웃돕니다.',
+        basisTypeLabel: '밸류에이션',
+        strength: 'STRONG',
+        sourceLabel: '분기 실적 자료',
+      },
+    ])
     expect(view.keyRisks[0].level).toBe('중간')
     expect(view.keyRisks[0].evidence).toEqual(['최근 분기 매출총이익률 하락'])
     expect(view.buyChecklist[0]).toMatchObject({
@@ -357,6 +377,7 @@ describe('research adapters', () => {
         caution_factors: null,
         next_checks: null,
         confidence_basis: null,
+        counter_points: null,
         counter_view: null,
       },
       { items: null },
@@ -367,6 +388,7 @@ describe('research adapters', () => {
     expect(view.stanceConfidence).toBeNull()
     expect(view.stanceComment).toBeNull()
     expect(view.confidenceBasis).toBeNull()
+    expect(view.counterPoints).toEqual([])
     expect(view.counterView).toEqual([])
     expect(view.briefing.positiveFactors).toEqual([])
     expect(view.briefing.cautionFactors).toEqual([])
@@ -401,6 +423,7 @@ describe('research adapters', () => {
 
     expect(view.stanceComment).toBeNull()
     expect(view.confidenceBasis).toBeNull()
+    expect(view.counterPoints).toEqual([])
     expect(view.counterView).toEqual([])
     expect(view.briefing.positiveFactors).toEqual([])
     expect(view.briefing.cautionFactors).toEqual([])
@@ -916,5 +939,66 @@ describe('research adapters', () => {
     expect(
       adaptResearchDetail(detail, summary, checklist, null).counterView,
     ).toEqual([])
+  })
+
+  it.each([
+    ['VALUATION', '밸류에이션'],
+    ['FUNDAMENTALS', '펀더멘털'],
+    ['COMPETITION', '경쟁'],
+    ['MACRO', '매크로'],
+    ['SENTIMENT', '심리'],
+  ] as const)('maps counter point basis type %s to %s', (basisType, label) => {
+    const view = adaptResearchDetail(
+      detail,
+      {
+        ...summary,
+        counter_points: [
+          {
+            id: basisType,
+            claim: '반대 주장',
+            basis: '반대 근거',
+            basis_type: basisType,
+            strength: 'MODERATE',
+            source_label: null,
+          },
+        ],
+      },
+      checklist,
+      null,
+    )
+
+    expect(view.counterPoints[0]).toMatchObject({
+      basisTypeLabel: label,
+      strength: 'MODERATE',
+      sourceLabel: null,
+    })
+  })
+
+  it('preserves an unknown counter point basis type and drops an unknown strength', () => {
+    const summaryWithUnknownCounterPoint = {
+      ...summary,
+      counter_points: [
+        {
+          id: 'counter-unknown',
+          claim: '반대 주장',
+          basis: '반대 근거',
+          basis_type: 'REGULATION',
+          strength: 'VERY_STRONG',
+          source_label: null,
+        },
+      ],
+    } as unknown as ResearchSummaryDto
+
+    expect(
+      adaptResearchDetail(
+        detail,
+        summaryWithUnknownCounterPoint,
+        checklist,
+        null,
+      ).counterPoints[0],
+    ).toMatchObject({
+      basisTypeLabel: 'REGULATION',
+      strength: null,
+    })
   })
 })
