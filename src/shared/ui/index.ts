@@ -39,6 +39,7 @@ export type {
 export type {
   BarChartPoint,
   BarChartProps,
+  BarChartTooltipFormatter,
   DonutChartPoint,
   DonutChartProps,
   LineChartPoint,

@@ -13,6 +13,7 @@ import { vi } from 'vitest'
 import { appRouteObjects } from '@/app/router'
 import { createQueryClient } from '@/shared/api/queryClient'
 import { AuthProvider } from '@/shared/auth/AuthProvider'
+import { formatLocalDateTime } from '@/shared/lib/format'
 import {
   setupAuthenticatedUser,
   teardownAuthenticatedUser,
@@ -785,7 +786,9 @@ describe('ResearchPage', () => {
     expect(within(priceLegend).getByText('MA20')).toBeVisible()
     expect(volumeChart).toHaveClass('mt-0')
     expect(
-      screen.getByText('차트 데이터: polygon · 2026-07-10T00:00:00Z'),
+      screen.getByText(
+        `차트 데이터: polygon · ${formatLocalDateTime('2026-07-10T00:00:00Z')}`,
+      ),
     ).toBeVisible()
 
     fireEvent.click(screen.getByRole('button', { name: '1Y' }))
@@ -925,6 +928,58 @@ describe('ResearchPage', () => {
     expect(
       screen.queryByRole('img', { name: 'NVDA 거래량' }),
     ).not.toBeInTheDocument()
+  })
+
+  it('colors volume bars by the previous valid close', async () => {
+    const getBoundingClientRectSpy = vi
+      .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+      .mockReturnValue({
+        bottom: 80,
+        height: 80,
+        left: 0,
+        right: 400,
+        top: 0,
+        width: 400,
+        x: 0,
+        y: 0,
+        toJSON: () => ({}),
+      })
+    mockUseResearchPriceSeries.mockReturnValue({
+      data: {
+        closes: [100, 102, 101, 101],
+        points: [
+          { date: '2026-07-07', close: 100, volume: 1000, ma20: null },
+          { date: '2026-07-08', close: 102, volume: 1200, ma20: null },
+          { date: '2026-07-09', close: 101, volume: 1100, ma20: null },
+          { date: '2026-07-10', close: 101, volume: 900, ma20: null },
+        ],
+        currency: 'USD',
+        source: 'polygon',
+        lastUpdatedAt: '2026-07-10T00:00:00Z',
+      },
+      error: null,
+      isError: false,
+      isLoading: false,
+      refetch: vi.fn(),
+    })
+    try {
+      renderResearch()
+
+      const volumeChart = await screen.findByRole('img', {
+        name: 'NVDA 거래량',
+      })
+      expect(
+        Array.from(
+          volumeChart.querySelectorAll('.recharts-bar-rectangle path'),
+          (bar) => bar.getAttribute('fill'),
+        ),
+      ).toEqual(['#475569', '#34d399', '#f87171', '#475569'])
+      expect(
+        volumeChart.querySelector('.recharts-tooltip-wrapper'),
+      ).toBeInTheDocument()
+    } finally {
+      getBoundingClientRectSpy.mockRestore()
+    }
   })
 
   it('toggles benchmark comparison and disables it for 1D', async () => {
@@ -1282,8 +1337,59 @@ describe('ResearchPage', () => {
     expect(within(table).getByText('하위 50%')).toBeVisible()
     expect(within(table).getAllByText('우선 지표')).toHaveLength(2)
 
-    const nullRow = within(table).getByRole('row', { name: /^PER - - -$/ })
+    const nullRow = within(table).getByRole('row', {
+      name: /^PER .* - - -$/,
+    })
     expect(within(nullRow).getAllByText('-')).toHaveLength(3)
+  })
+
+  it('shows descriptions only for known valuation metrics', async () => {
+    mockUseValuationMetrics.mockReturnValue({
+      data: {
+        profileLabel: '혼합 지표',
+        metrics: [
+          {
+            metric: 'PER',
+            metricLabel: 'PER',
+            value: 20,
+            fiveYearMedian: 18,
+            percentile: 60,
+            isHighlighted: false,
+          },
+          {
+            metric: 'UNKNOWN',
+            metricLabel: '알 수 없는 지표',
+            value: 1,
+            fiveYearMedian: 1,
+            percentile: 50,
+            isHighlighted: false,
+          },
+        ],
+      },
+      error: null,
+      isError: false,
+      isLoading: false,
+      refetch: mockValuationMetricsRefetch,
+    })
+    renderResearch()
+    await screen.findByRole('heading', { name: 'NVDA 리서치' })
+
+    fireEvent.click(screen.getByRole('tab', { name: '밸류에이션' }))
+
+    const table = screen.getByRole('table', { name: '밸류에이션 지표' })
+    const unknownRow = within(table).getByRole('row', {
+      name: /알 수 없는 지표/,
+    })
+    expect(
+      within(unknownRow).queryByRole('button', { name: /지표 설명/ }),
+    ).not.toBeInTheDocument()
+
+    fireEvent.focus(
+      within(table).getByRole('button', { name: 'PER 지표 설명' }),
+    )
+    expect(screen.getByRole('tooltip')).toHaveTextContent(
+      '주가를 주당순이익으로 나눈 값입니다.',
+    )
   })
 
   it('renders ascending earnings, surprise status, guidance, and segments', async () => {
