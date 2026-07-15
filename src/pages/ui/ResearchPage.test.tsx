@@ -676,7 +676,7 @@ function renderResearch(path = '/research/NVDA') {
 }
 
 describe('formatResearchChartTooltipLabel', () => {
-  it('formats an intraday ISO datetime as KST', () => {
+  it('formats a 1W intraday ISO datetime as KST', () => {
     expect(formatResearchChartTooltipLabel('2026-07-14T15:30:00Z')).toBe(
       '2026-07-15 00:30',
     )
@@ -844,6 +844,14 @@ describe('ResearchPage', () => {
     })
     renderResearch()
 
+    await screen.findByRole('heading', { name: 'NVDA 리서치' })
+
+    expect(
+      within(screen.getByRole('group', { name: '가격 차트 기간' }))
+        .getAllByRole('button')
+        .map((button) => button.textContent),
+    ).toEqual(['1D', '1W', '1M', '3M', '6M', '1Y', '5Y'])
+
     const priceChart = await screen.findByRole('img', {
       name: 'NVDA 최근 가격 추이',
     })
@@ -866,16 +874,24 @@ describe('ResearchPage', () => {
       ),
     ).toBeVisible()
 
-    fireEvent.click(screen.getByRole('button', { name: '1Y' }))
+    fireEvent.click(screen.getByRole('button', { name: '1W' }))
 
     expect(mockUseResearchPriceSeries).toHaveBeenLastCalledWith(
       'NVDA',
       'NASDAQ',
-      '1Y',
+      '1W',
     )
-    expect(screen.getByRole('button', { name: '1Y' })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: '1W' })).toHaveAttribute(
       'aria-pressed',
       'true',
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: '5Y' }))
+
+    expect(mockUseResearchPriceSeries).toHaveBeenLastCalledWith(
+      'NVDA',
+      'NASDAQ',
+      '5Y',
     )
   })
 
@@ -1057,37 +1073,59 @@ describe('ResearchPage', () => {
     }
   })
 
-  it('toggles benchmark comparison and disables it for 1D', async () => {
-    renderResearch()
-    await screen.findByRole('heading', { name: 'NVDA 리서치' })
+  it.each(['1D', '1W', '5Y'] as const)(
+    'toggles benchmark comparison and disables it for %s',
+    async (unsupportedRange) => {
+      renderResearch()
+      await screen.findByRole('heading', { name: 'NVDA 리서치' })
 
-    const comparisonToggle = screen.getByRole('button', {
-      name: '벤치마크 비교',
-    })
-    expect(comparisonToggle).toHaveAttribute('aria-pressed', 'false')
-    expect(mockUseBenchmarkComparison).toHaveBeenLastCalledWith(1, '3M', false)
+      const comparisonToggle = screen.getByRole('button', {
+        name: '벤치마크 비교',
+      })
+      expect(comparisonToggle).toHaveAttribute('aria-pressed', 'false')
+      expect(mockUseBenchmarkComparison).toHaveBeenLastCalledWith(
+        1,
+        '3M',
+        false,
+      )
 
-    fireEvent.click(comparisonToggle)
+      fireEvent.click(comparisonToggle)
 
-    expect(comparisonToggle).toHaveAttribute('aria-pressed', 'true')
-    expect(mockUseBenchmarkComparison).toHaveBeenLastCalledWith(1, '3M', true)
-    const benchmarkChart = screen.getByRole('img', {
-      name: 'NVDA 벤치마크 수익률 비교',
-    })
-    expect(benchmarkChart).toBeVisible()
-    expect(screen.getByText('NASDAQ 100')).toBeVisible()
-    expect(screen.getByText('Technology Select Sector SPDR Fund')).toBeVisible()
-    expect(
-      screen.queryByRole('img', { name: 'NVDA 거래량' }),
-    ).not.toBeInTheDocument()
+      expect(comparisonToggle).toHaveAttribute('aria-pressed', 'true')
+      expect(mockUseBenchmarkComparison).toHaveBeenLastCalledWith(1, '3M', true)
+      const benchmarkChart = screen.getByRole('img', {
+        name: 'NVDA 벤치마크 수익률 비교',
+      })
+      expect(benchmarkChart).toBeVisible()
+      expect(screen.getByText('NASDAQ 100')).toBeVisible()
+      expect(
+        screen.getByText('Technology Select Sector SPDR Fund'),
+      ).toBeVisible()
+      expect(
+        screen.queryByRole('img', { name: 'NVDA 거래량' }),
+      ).not.toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: '1D' }))
+      fireEvent.click(screen.getByRole('button', { name: unsupportedRange }))
 
-    expect(comparisonToggle).toBeDisabled()
-    expect(comparisonToggle).toHaveAttribute('aria-pressed', 'false')
-    expect(screen.getByText('1D에서는 비교할 수 없습니다.')).toBeVisible()
-    expect(mockUseBenchmarkComparison).toHaveBeenLastCalledWith(1, '1M', false)
-  })
+      expect(comparisonToggle).toBeDisabled()
+      expect(comparisonToggle).toHaveAttribute('aria-pressed', 'false')
+      expect(
+        screen.getByText(`${unsupportedRange}에서는 비교할 수 없습니다.`),
+      ).toBeVisible()
+      expect(mockUseBenchmarkComparison).toHaveBeenLastCalledWith(
+        1,
+        '1M',
+        false,
+      )
+      // 이벤트 조회는 벤치마크 미지원 range에서 함께 비활성된다 — BE asset
+      // events 계약(1M/3M/6M/1Y)이 1W·5Y를 받지 않는다 (PR #216 리뷰 B1)
+      expect(mockUseAssetEvents).toHaveBeenLastCalledWith(
+        researchBySymbol.NVDA.assetId,
+        '1M',
+        false,
+      )
+    },
+  )
 
   it('isolates a benchmark error and returns to price mode', async () => {
     mockUseResearchPriceSeries.mockReturnValue({

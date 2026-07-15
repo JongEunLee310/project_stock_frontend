@@ -580,6 +580,27 @@ describe('research queries', () => {
     ).toBeDefined()
   })
 
+  it.each(['1W', '5Y'] as const)(
+    'requests the %s research price range',
+    async (range) => {
+      vi.mocked(apiGet).mockResolvedValue({
+        data: { bars: [] },
+        meta: undefined,
+      })
+      const queryClient = createTestQueryClient()
+      const { result } = renderHook(
+        () => useResearchPriceSeries('NVDA', 'NASDAQ', range),
+        { wrapper: wrapperFor(queryClient) },
+      )
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+      expect(apiGet).toHaveBeenCalledWith(
+        `/stocks/NVDA/prices?market=NASDAQ&range=${range}`,
+      )
+    },
+  )
+
   it('fetches benchmark comparison only while comparison mode is enabled', async () => {
     vi.mocked(apiGet).mockResolvedValue({
       data: {
