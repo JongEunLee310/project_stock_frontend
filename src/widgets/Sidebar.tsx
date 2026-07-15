@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react'
+import { FiBell } from 'react-icons/fi'
 import { Link, useLocation } from 'react-router-dom'
 
 import { useUnreadAlertSummary } from '@/features/alerts/queries'
@@ -7,13 +9,13 @@ import {
 } from '@/shared/config/navigation'
 import { classNames } from '@/shared/ui/classNames'
 
-const navIcons: Record<string, string> = {
+const navIcons: Record<string, ReactNode> = {
   dashboard: '▦',
   watchlist: '☆',
   signals: '⌁',
   research: '▤',
   portfolio: '◷',
-  alerts: '♧',
+  alerts: <FiBell aria-hidden="true" />,
   decisionLog: '▣',
   settings: '⚙',
 }

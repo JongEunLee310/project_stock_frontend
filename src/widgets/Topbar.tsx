@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { FiBell } from 'react-icons/fi'
 import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 
@@ -100,7 +101,7 @@ export function Topbar() {
           title="알림"
           onClick={() => navigate(appRoutePaths.alerts)}
         >
-          ♧
+          <FiBell aria-hidden="true" />
         </Button>
         <Button
           variant="ghost"
