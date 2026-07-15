@@ -55,8 +55,8 @@ export class SymbolNotFoundError extends Error {
   }
 }
 
-export type PriceRange = '1D' | '1M' | '3M' | '6M' | '1Y'
-export type BenchmarkRange = Exclude<PriceRange, '1D'>
+export type PriceRange = '1D' | '1W' | '1M' | '3M' | '6M' | '1Y' | '5Y'
+export type BenchmarkRange = Exclude<PriceRange, '1D' | '1W' | '5Y'>
 
 export interface SaveBuyChecklistBody {
   memo: string | null
