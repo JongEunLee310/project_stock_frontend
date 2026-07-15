@@ -676,24 +676,6 @@ describe('research queries', () => {
     ).toBeDefined()
   })
 
-  it.each(['1W', '5Y'] as const)(
-    'fetches asset events for the %s price range',
-    async (range) => {
-      vi.mocked(apiGet).mockResolvedValue({
-        data: { asset_id: 11, range, events: [] },
-        meta: undefined,
-      })
-      const queryClient = createTestQueryClient()
-      const { result } = renderHook(() => useAssetEvents(11, range, true), {
-        wrapper: wrapperFor(queryClient),
-      })
-
-      await waitFor(() => expect(result.current.isSuccess).toBe(true))
-
-      expect(apiGet).toHaveBeenCalledWith(`/assets/11/events?range=${range}`)
-    },
-  )
-
   it('does not fetch asset events without an asset id', () => {
     const queryClient = createTestQueryClient()
 

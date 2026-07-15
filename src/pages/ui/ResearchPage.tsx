@@ -253,8 +253,8 @@ function PriceSparkline({ research }: { research: ResearchView }) {
   )
   const assetEventsQuery = useAssetEvents(
     research.assetId,
-    range,
-    !isBenchmarkEnabled && range !== '1D',
+    benchmarkRange,
+    !isBenchmarkEnabled && isBenchmarkSupported,
   )
   const priceSeries = priceSeriesQuery.data
   const data = priceSeries?.points ?? []

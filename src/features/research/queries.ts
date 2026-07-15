@@ -189,7 +189,7 @@ export function useBenchmarkComparison(
 
 export function useAssetEvents(
   assetId: number | null,
-  range: PriceRange,
+  range: BenchmarkRange,
   enabled: boolean,
 ): UseQueryResult<AssetEventItem[]> {
   return useQuery<AssetEventItem[]>({

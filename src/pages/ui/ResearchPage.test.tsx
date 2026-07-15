@@ -1117,10 +1117,12 @@ describe('ResearchPage', () => {
         '1M',
         false,
       )
+      // 이벤트 조회는 벤치마크 미지원 range에서 함께 비활성된다 — BE asset
+      // events 계약(1M/3M/6M/1Y)이 1W·5Y를 받지 않는다 (PR #216 리뷰 B1)
       expect(mockUseAssetEvents).toHaveBeenLastCalledWith(
         researchBySymbol.NVDA.assetId,
-        unsupportedRange,
-        unsupportedRange !== '1D',
+        '1M',
+        false,
       )
     },
   )
