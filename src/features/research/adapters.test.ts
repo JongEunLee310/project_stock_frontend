@@ -233,7 +233,7 @@ const earningsSummary: EarningsSummaryDto = {
 }
 
 describe('research adapters', () => {
-  it('adapts analyst opinion decimal fields and attributes both target bounds', () => {
+  it('adapts analyst opinion decimal fields and derives the recent target range', () => {
     const opinions = adaptAnalystOpinions(analystOpinionsDto)
 
     expect(opinions[0]).toMatchObject({
@@ -241,13 +241,13 @@ describe('research adapters', () => {
       priceTarget: 900,
       priorPriceTarget: null,
     })
-    expect(deriveTargetPriceAttribution(opinions, 900, 1300)).toEqual({
-      lowFirm: 'KGI Securities',
-      highFirm: 'JPMorgan',
+    expect(deriveTargetPriceAttribution(opinions)).toEqual({
+      low: { price: 900, firm: 'KGI Securities' },
+      high: { price: 1300, firm: 'JPMorgan' },
     })
   })
 
-  it('uses the most recent opinion when multiple firms match a target', () => {
+  it('uses the most recent opinion when multiple firms tie at a bound', () => {
     // 배열 순서를 발표순과 어긋나게 두어(오래된 것이 먼저) 방어적 재정렬을 검증한다
     const opinions = adaptAnalystOpinions({
       ...analystOpinionsDto,
@@ -258,21 +258,32 @@ describe('research adapters', () => {
           published_at: '2026-07-01T00:00:00Z',
         },
         analystOpinionsDto.opinions[0],
+        analystOpinionsDto.opinions[1],
       ],
     })
 
-    expect(deriveTargetPriceAttribution(opinions, 900, null)).toEqual({
-      lowFirm: 'KGI Securities',
-      highFirm: null,
+    expect(deriveTargetPriceAttribution(opinions)).toEqual({
+      low: { price: 900, firm: 'KGI Securities' },
+      high: { price: 1300, firm: 'JPMorgan' },
     })
   })
 
-  it('does not attribute null or unmatched target prices', () => {
-    const opinions = adaptAnalystOpinions(analystOpinionsDto)
+  it('returns no range for empty opinions or opinions without target prices', () => {
+    const opinions = adaptAnalystOpinions({
+      ...analystOpinionsDto,
+      opinions: analystOpinionsDto.opinions.map((opinion) => ({
+        ...opinion,
+        price_target: null,
+      })),
+    })
 
-    expect(deriveTargetPriceAttribution(opinions, null, 999)).toEqual({
-      lowFirm: null,
-      highFirm: null,
+    expect(deriveTargetPriceAttribution([])).toEqual({
+      low: null,
+      high: null,
+    })
+    expect(deriveTargetPriceAttribution(opinions)).toEqual({
+      low: null,
+      high: null,
     })
   })
 

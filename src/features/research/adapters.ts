@@ -37,9 +37,14 @@ export interface AnalystOpinion {
   publishedAt: string
 }
 
+export interface AttributedTargetPrice {
+  price: number
+  firm: string
+}
+
 export interface TargetPriceAttribution {
-  lowFirm: string | null
-  highFirm: string | null
+  low: AttributedTargetPrice | null
+  high: AttributedTargetPrice | null
 }
 
 export function adaptAnalystOpinions(
@@ -57,35 +62,51 @@ export function adaptAnalystOpinions(
   }))
 }
 
-function findLatestMatchingFirm(
-  opinions: AnalystOpinion[],
-  targetPrice: number | null,
-) {
-  if (targetPrice === null) return null
-
-  return (
-    opinions.find(
-      (opinion) =>
-        opinion.priceTarget === targetPrice && opinion.firm.trim().length > 0,
-    )?.firm ?? null
-  )
-}
-
 export function deriveTargetPriceAttribution(
   opinions: AnalystOpinion[],
-  targetPriceLow: number | null,
-  targetPriceHigh: number | null,
 ): TargetPriceAttribution {
   // BE가 최근 발표순 정렬을 계약하지만, 정렬 기준이 바뀌어도 잘못된
   // 기관명이 표기되지 않도록 발표 시각(ISO) 기준으로 방어적으로 재정렬한다
   const latestFirst = [...opinions].sort((a, b) =>
     b.publishedAt.localeCompare(a.publishedAt),
   )
+  const pricedOpinions = latestFirst.filter(
+    (
+      opinion,
+    ): opinion is AnalystOpinion & { priceTarget: number; firm: string } =>
+      opinion.priceTarget !== null && opinion.firm.trim().length > 0,
+  )
 
-  return {
-    lowFirm: findLatestMatchingFirm(latestFirst, targetPriceLow),
-    highFirm: findLatestMatchingFirm(latestFirst, targetPriceHigh),
+  const latestPricedOpinion = pricedOpinions[0]
+  if (!latestPricedOpinion) {
+    return { low: null, high: null }
   }
+
+  const initialTargetPrice = {
+    price: latestPricedOpinion.priceTarget,
+    firm: latestPricedOpinion.firm.trim(),
+  }
+
+  return pricedOpinions.slice(1).reduce<TargetPriceAttribution>(
+    (range, opinion) => {
+      const targetPrice = {
+        price: opinion.priceTarget,
+        firm: opinion.firm.trim(),
+      }
+
+      return {
+        low:
+          range.low === null || targetPrice.price < range.low.price
+            ? targetPrice
+            : range.low,
+        high:
+          range.high === null || targetPrice.price > range.high.price
+            ? targetPrice
+            : range.high,
+      }
+    },
+    { low: initialTargetPrice, high: initialTargetPrice },
+  )
 }
 
 export type ResearchStatusTone = Extract<

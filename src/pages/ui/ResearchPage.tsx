@@ -873,13 +873,13 @@ function HeaderCard({
       value: research.nextEarningsDate ?? '-',
     },
   ]
+  const targetPriceAttribution = deriveTargetPriceAttribution(analystOpinions)
+  const displayedTargetPriceLow =
+    targetPriceAttribution.low?.price ?? research.targetPriceLow
+  const displayedTargetPriceHigh =
+    targetPriceAttribution.high?.price ?? research.targetPriceHigh
   const hasTargetPriceRange =
-    research.targetPriceLow !== null && research.targetPriceHigh !== null
-  const targetPriceAttribution = deriveTargetPriceAttribution(
-    analystOpinions,
-    research.targetPriceLow,
-    research.targetPriceHigh,
-  )
+    displayedTargetPriceLow !== null && displayedTargetPriceHigh !== null
 
   return (
     <Card>
@@ -1015,17 +1015,17 @@ function HeaderCard({
                   {hasTargetPriceRange ? (
                     <>
                       <li>
-                        {`최저 ${formatCurrency(research.targetPriceLow, research.currency)}`}
+                        {`최저 ${formatCurrency(displayedTargetPriceLow, research.currency)}`}
                         <TargetPriceSourceSuffix
                           analystCount={research.targetAnalystCount}
-                          firm={targetPriceAttribution.lowFirm}
+                          firm={targetPriceAttribution.low?.firm ?? null}
                         />
                       </li>
                       <li>
-                        {`최고 ${formatCurrency(research.targetPriceHigh, research.currency)}`}
+                        {`최고 ${formatCurrency(displayedTargetPriceHigh, research.currency)}`}
                         <TargetPriceSourceSuffix
                           analystCount={research.targetAnalystCount}
-                          firm={targetPriceAttribution.highFirm}
+                          firm={targetPriceAttribution.high?.firm ?? null}
                         />
                       </li>
                     </>
