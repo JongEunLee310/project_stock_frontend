@@ -6,7 +6,7 @@ import {
   type UseQueryResult,
 } from '@tanstack/react-query'
 
-import { apiGet, apiPut } from '@/shared/api/client'
+import { apiGet, apiPost, apiPut } from '@/shared/api/client'
 import { ApiError } from '@/shared/api/envelope'
 
 import {
@@ -88,6 +88,26 @@ async function fetchLatestThesis(assetId: number): Promise<ThesisDto | null> {
     return data
   } catch (error) {
     if (error instanceof ApiError && error.code === 'THESIS_NOT_FOUND') {
+      return null
+    }
+
+    throw error
+  }
+}
+
+export async function fetchResearchSummary(
+  assetId: number,
+): Promise<ResearchSummaryDto | null> {
+  try {
+    const { data } = await apiGet<ResearchSummaryDto>(
+      `/assets/${assetId}/research-summary`,
+    )
+    return data
+  } catch (error) {
+    if (
+      error instanceof ApiError &&
+      error.code === 'RESEARCH_SUMMARY_NOT_FOUND'
+    ) {
       return null
     }
 
@@ -352,6 +372,28 @@ export function useSaveBuyChecklist(
   })
 }
 
+export function useRefreshResearchSummary(
+  symbol: string,
+  assetId: number,
+): UseMutationResult<ResearchSummaryDto, Error, void> {
+  const queryClient = useQueryClient()
+  const normalizedSymbol = symbol.trim().toUpperCase()
+
+  return useMutation<ResearchSummaryDto, Error, void>({
+    mutationFn: async () => {
+      const { data } = await apiPost<ResearchSummaryDto>(
+        `/assets/${assetId}/research-summary/refresh`,
+      )
+
+      return data
+    },
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: ['research', normalizedSymbol],
+      }),
+  })
+}
+
 export function useResearchView(symbol: string): UseQueryResult<ResearchView> {
   const normalizedSymbol = symbol.trim().toUpperCase()
 
@@ -363,9 +405,7 @@ export function useResearchView(symbol: string): UseQueryResult<ResearchView> {
         apiGet<AssetDetailDto>(`/assets/${assetId}/detail`).then(
           (response) => response.data,
         ),
-        apiGet<ResearchSummaryDto>(`/assets/${assetId}/research-summary`).then(
-          (response) => response.data,
-        ),
+        fetchResearchSummary(assetId),
         apiGet<BuyChecklistDto>(`/assets/${assetId}/buy-checklist`).then(
           (response) => response.data,
         ),

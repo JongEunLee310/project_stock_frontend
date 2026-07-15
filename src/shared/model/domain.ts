@@ -232,7 +232,7 @@ export interface StockResearch {
   nextEarningsDate: string
   targetPrice: number
   targetUpsidePercent: number
-  briefing: AiBriefing
+  briefing: AiBriefing | null
   keyRisks: ResearchRisk[]
   news: NewsItem[]
   catalysts: CatalystItem[]

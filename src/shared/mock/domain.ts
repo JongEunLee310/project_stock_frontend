@@ -1025,10 +1025,7 @@ export const mockStockResearch = {
       { date: '2026-06-19', close: 445.8 },
       { date: '2026-06-22', close: 447.22 },
     ],
-    briefing: {
-      headline: 'MSFT stays defensive while cloud execution remains steady.',
-      body: 'Cloud growth, AI platform breadth, and balance sheet quality support a stable stance, with valuation discipline still required.',
-    },
+    briefing: null,
     keyRisks: [
       {
         id: 'msft-risk-cloud',

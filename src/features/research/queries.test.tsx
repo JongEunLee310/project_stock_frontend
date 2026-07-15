@@ -3,7 +3,7 @@ import { act, renderHook, waitFor } from '@testing-library/react'
 import { createElement, type ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { apiGet, apiPut } from '@/shared/api/client'
+import { apiGet, apiPost, apiPut } from '@/shared/api/client'
 import {
   ApiError,
   unwrapEnvelope,
@@ -21,6 +21,7 @@ import {
   useResearchCoverage,
   useResearchQueue,
   useResearchPriceSeries,
+  useRefreshResearchSummary,
   useResearchView,
   useSaveBuyChecklist,
   useValuationMetrics,
@@ -28,6 +29,7 @@ import {
 
 vi.mock('@/shared/api/client', () => ({
   apiGet: vi.fn(),
+  apiPost: vi.fn(),
   apiPut: vi.fn(),
 }))
 
@@ -233,6 +235,10 @@ describe('research queries', () => {
     })) as typeof apiGet)
     vi.mocked(apiPut).mockResolvedValue({
       data: { memo: null, checked_item_keys: [], items: [] },
+      meta: undefined,
+    })
+    vi.mocked(apiPost).mockResolvedValue({
+      data: responseFor('/assets/11/research-summary'),
       meta: undefined,
     })
   })
@@ -549,6 +555,66 @@ describe('research queries', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
     expect(result.current.data?.latestThesis).toBeNull()
+  })
+
+  it('keeps the research view available when no saved summary exists', async () => {
+    vi.mocked(apiGet).mockImplementation((async (path: string) => {
+      if (path === '/assets/11/research-summary') {
+        throw new ApiError(
+          'RESEARCH_SUMMARY_NOT_FOUND',
+          '저장된 리서치 요약이 없습니다.',
+        )
+      }
+
+      return { data: responseFor(path), meta: undefined }
+    }) as typeof apiGet)
+    const queryClient = createTestQueryClient()
+    const { result } = renderHook(() => useResearchView('nvda'), {
+      wrapper: wrapperFor(queryClient),
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(result.current.data?.briefing).toBeNull()
+    expect(result.current.data?.price).toBe(142.62)
+    expect(result.current.data?.buyChecklist).toEqual([])
+  })
+
+  it('does not absorb other research summary errors', async () => {
+    vi.mocked(apiGet).mockImplementation((async (path: string) => {
+      if (path === '/assets/11/research-summary') {
+        throw new ApiError('ASSET_NOT_FOUND', '자산을 찾을 수 없습니다.')
+      }
+
+      return { data: responseFor(path), meta: undefined }
+    }) as typeof apiGet)
+    const queryClient = createTestQueryClient()
+    const { result } = renderHook(() => useResearchView('nvda'), {
+      wrapper: wrapperFor(queryClient),
+    })
+
+    await waitFor(() => expect(result.current.isError).toBe(true))
+
+    expect(result.current.error).toBeInstanceOf(ApiError)
+    expect((result.current.error as ApiError).code).toBe('ASSET_NOT_FOUND')
+  })
+
+  it('refreshes the summary and invalidates the normalized research query', async () => {
+    const queryClient = createTestQueryClient()
+    const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries')
+    const { result } = renderHook(
+      () => useRefreshResearchSummary(' nvda ', 11),
+      { wrapper: wrapperFor(queryClient) },
+    )
+
+    await act(async () => {
+      await result.current.mutateAsync()
+    })
+
+    expect(apiPost).toHaveBeenCalledWith('/assets/11/research-summary/refresh')
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ['research', 'NVDA'],
+    })
   })
 
   it('fails the research query when the latest thesis returns another error', async () => {

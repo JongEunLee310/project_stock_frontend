@@ -459,6 +459,11 @@ vi.mock('@/features/research/queries', () => ({
     variables: undefined,
     isPending: false,
   }),
+  useRefreshResearchSummary: () => ({
+    mutate: vi.fn(),
+    isPending: false,
+    isError: false,
+  }),
   useResearchView: (symbol: string) => ({
     data: {
       assetId: 1,

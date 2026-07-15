@@ -160,6 +160,18 @@ describe('ResearchListPage', () => {
     expect(screen.queryByRole('link', { name: 'TSLA' })).not.toBeInTheDocument()
   })
 
+  it('renders a queue row with nullable stance and headline', () => {
+    renderResearchList()
+
+    const row = screen.getByRole('link', { name: 'TSLA' }).closest('tr')
+
+    expect(row).not.toBeNull()
+    expect(within(row as HTMLElement).getAllByText('—').length).toBeGreaterThan(
+      0,
+    )
+    expect(within(row as HTMLElement).getByText('데이터 부족')).toBeVisible()
+  })
+
   it('renders loading, error, and empty states', () => {
     researchQueueQueryState = {
       data: undefined,
