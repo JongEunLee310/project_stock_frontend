@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { formatKstDateTime } from '@/shared/lib/format'
 
 import {
+  adaptAnalystOpinions,
   adaptBenchmarkComparison,
   adaptAssetEvents,
   adaptCatalystTimeline,
@@ -14,10 +15,12 @@ import {
   toResearchQueueView,
   adaptThesis,
   adaptValuationMetrics,
+  deriveTargetPriceAttribution,
   withMovingAverage,
   snapEventsToChartPoints,
 } from './adapters'
 import type {
+  AnalystOpinionsDto,
   AssetDetailDto,
   AssetEventHistoryDto,
   BuyChecklistDto,
@@ -30,6 +33,32 @@ import type {
   ThesisDto,
   ValuationMetricsDto,
 } from './dto'
+
+const analystOpinionsDto: AnalystOpinionsDto = {
+  asset_id: 1,
+  opinions: [
+    {
+      firm: 'KGI Securities',
+      action: 'main',
+      to_grade: 'Buy',
+      from_grade: null,
+      price_target: '900.00',
+      prior_price_target: null,
+      price_target_action: 'Lowers',
+      published_at: '2026-07-15T00:00:00Z',
+    },
+    {
+      firm: 'JPMorgan',
+      action: 'main',
+      to_grade: 'Overweight',
+      from_grade: 'Neutral',
+      price_target: '1300.00',
+      prior_price_target: '1250.00',
+      price_target_action: 'Raises',
+      published_at: '2026-07-14T00:00:00Z',
+    },
+  ],
+}
 
 const detail: AssetDetailDto = {
   id: 1,
@@ -204,6 +233,60 @@ const earningsSummary: EarningsSummaryDto = {
 }
 
 describe('research adapters', () => {
+  it('adapts analyst opinion decimal fields and derives the recent target range', () => {
+    const opinions = adaptAnalystOpinions(analystOpinionsDto)
+
+    expect(opinions[0]).toMatchObject({
+      firm: 'KGI Securities',
+      priceTarget: 900,
+      priorPriceTarget: null,
+    })
+    expect(deriveTargetPriceAttribution(opinions)).toEqual({
+      low: { price: 900, firm: 'KGI Securities' },
+      high: { price: 1300, firm: 'JPMorgan' },
+    })
+  })
+
+  it('uses the most recent opinion when multiple firms tie at a bound', () => {
+    // 배열 순서를 발표순과 어긋나게 두어(오래된 것이 먼저) 방어적 재정렬을 검증한다
+    const opinions = adaptAnalystOpinions({
+      ...analystOpinionsDto,
+      opinions: [
+        {
+          ...analystOpinionsDto.opinions[0],
+          firm: 'Older Securities',
+          published_at: '2026-07-01T00:00:00Z',
+        },
+        analystOpinionsDto.opinions[0],
+        analystOpinionsDto.opinions[1],
+      ],
+    })
+
+    expect(deriveTargetPriceAttribution(opinions)).toEqual({
+      low: { price: 900, firm: 'KGI Securities' },
+      high: { price: 1300, firm: 'JPMorgan' },
+    })
+  })
+
+  it('returns no range for empty opinions or opinions without target prices', () => {
+    const opinions = adaptAnalystOpinions({
+      ...analystOpinionsDto,
+      opinions: analystOpinionsDto.opinions.map((opinion) => ({
+        ...opinion,
+        price_target: null,
+      })),
+    })
+
+    expect(deriveTargetPriceAttribution([])).toEqual({
+      low: null,
+      high: null,
+    })
+    expect(deriveTargetPriceAttribution(opinions)).toEqual({
+      low: null,
+      high: null,
+    })
+  })
+
   it('adapts valuation labels, nulls, highlights, and decimal strings', () => {
     const result = adaptValuationMetrics(valuationMetrics)
 

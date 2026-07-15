@@ -9,6 +9,7 @@ import type { ApiMeta } from '@/shared/api/envelope'
 import type { BadgeTone } from '@/shared/ui'
 
 import type {
+  AnalystOpinionsDto,
   AssetDetailDto,
   AssetEventHistoryDto,
   BenchmarkComparisonDto,
@@ -24,6 +25,89 @@ import type {
   ThesisDto,
   ValuationMetricsDto,
 } from './dto'
+
+export interface AnalystOpinion {
+  firm: string
+  action: string
+  toGrade: string | null
+  fromGrade: string | null
+  priceTarget: number | null
+  priorPriceTarget: number | null
+  priceTargetAction: string | null
+  publishedAt: string
+}
+
+export interface AttributedTargetPrice {
+  price: number
+  firm: string
+}
+
+export interface TargetPriceAttribution {
+  low: AttributedTargetPrice | null
+  high: AttributedTargetPrice | null
+}
+
+export function adaptAnalystOpinions(
+  dto: AnalystOpinionsDto,
+): AnalystOpinion[] {
+  return dto.opinions.map((opinion) => ({
+    firm: opinion.firm,
+    action: opinion.action,
+    toGrade: opinion.to_grade,
+    fromGrade: opinion.from_grade,
+    priceTarget: parseDecimal(opinion.price_target),
+    priorPriceTarget: parseDecimal(opinion.prior_price_target),
+    priceTargetAction: opinion.price_target_action,
+    publishedAt: opinion.published_at,
+  }))
+}
+
+export function deriveTargetPriceAttribution(
+  opinions: AnalystOpinion[],
+): TargetPriceAttribution {
+  // BE가 최근 발표순 정렬을 계약하지만, 정렬 기준이 바뀌어도 잘못된
+  // 기관명이 표기되지 않도록 발표 시각(ISO) 기준으로 방어적으로 재정렬한다
+  const latestFirst = [...opinions].sort((a, b) =>
+    b.publishedAt.localeCompare(a.publishedAt),
+  )
+  const pricedOpinions = latestFirst.filter(
+    (
+      opinion,
+    ): opinion is AnalystOpinion & { priceTarget: number; firm: string } =>
+      opinion.priceTarget !== null && opinion.firm.trim().length > 0,
+  )
+
+  const latestPricedOpinion = pricedOpinions[0]
+  if (!latestPricedOpinion) {
+    return { low: null, high: null }
+  }
+
+  const initialTargetPrice = {
+    price: latestPricedOpinion.priceTarget,
+    firm: latestPricedOpinion.firm.trim(),
+  }
+
+  return pricedOpinions.slice(1).reduce<TargetPriceAttribution>(
+    (range, opinion) => {
+      const targetPrice = {
+        price: opinion.priceTarget,
+        firm: opinion.firm.trim(),
+      }
+
+      return {
+        low:
+          range.low === null || targetPrice.price < range.low.price
+            ? targetPrice
+            : range.low,
+        high:
+          range.high === null || targetPrice.price > range.high.price
+            ? targetPrice
+            : range.high,
+      }
+    },
+    { low: initialTargetPrice, high: initialTargetPrice },
+  )
+}
 
 export type ResearchStatusTone = Extract<
   BadgeTone,

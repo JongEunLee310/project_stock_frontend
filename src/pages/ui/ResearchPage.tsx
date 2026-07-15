@@ -4,6 +4,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom'
 
 import {
   SymbolNotFoundError,
+  useAnalystOpinions,
   useBenchmarkComparison,
   useAssetEvents,
   useCatalystTimeline,
@@ -18,6 +19,7 @@ import {
   type PriceRange,
 } from '@/features/research/queries'
 import type {
+  AnalystOpinion,
   BenchmarkSeriesItem,
   ChecklistItem,
   CounterPointItem,
@@ -31,7 +33,10 @@ import type {
   ValuationMetricItem,
   ValuationView,
 } from '@/features/research/adapters'
-import { snapEventsToChartPoints } from '@/features/research/adapters'
+import {
+  deriveTargetPriceAttribution,
+  snapEventsToChartPoints,
+} from '@/features/research/adapters'
 import { getCategoryToneClassNames } from '@/features/research/categoryTone'
 import {
   useAddAssetToFirstWatchlist,
@@ -828,11 +833,13 @@ function EmptyResearchState({ symbol }: { symbol: string }) {
 
 function HeaderCard({
   research,
+  analystOpinions,
   isFavorite,
   isFavoritePending,
   onToggleFavorite,
 }: {
   research: ResearchView
+  analystOpinions: AnalystOpinion[]
   isFavorite: boolean
   isFavoritePending: boolean
   onToggleFavorite: () => void
@@ -866,8 +873,13 @@ function HeaderCard({
       value: research.nextEarningsDate ?? '-',
     },
   ]
+  const targetPriceAttribution = deriveTargetPriceAttribution(analystOpinions)
+  const displayedTargetPriceLow =
+    targetPriceAttribution.low?.price ?? research.targetPriceLow
+  const displayedTargetPriceHigh =
+    targetPriceAttribution.high?.price ?? research.targetPriceHigh
   const hasTargetPriceRange =
-    research.targetPriceLow !== null && research.targetPriceHigh !== null
+    displayedTargetPriceLow !== null && displayedTargetPriceHigh !== null
 
   return (
     <Card>
@@ -1003,15 +1015,17 @@ function HeaderCard({
                   {hasTargetPriceRange ? (
                     <>
                       <li>
-                        {`최저 ${formatCurrency(research.targetPriceLow, research.currency)}`}
+                        {`최저 ${formatCurrency(displayedTargetPriceLow, research.currency)}`}
                         <TargetPriceSourceSuffix
                           analystCount={research.targetAnalystCount}
+                          firm={targetPriceAttribution.low?.firm ?? null}
                         />
                       </li>
                       <li>
-                        {`최고 ${formatCurrency(research.targetPriceHigh, research.currency)}`}
+                        {`최고 ${formatCurrency(displayedTargetPriceHigh, research.currency)}`}
                         <TargetPriceSourceSuffix
                           analystCount={research.targetAnalystCount}
+                          firm={targetPriceAttribution.high?.firm ?? null}
                         />
                       </li>
                     </>
@@ -1028,16 +1042,18 @@ function HeaderCard({
 
 function TargetPriceSourceSuffix({
   analystCount,
+  firm,
 }: {
   analystCount: number | null
+  firm: string | null
 }) {
-  if (analystCount === null) {
+  if (firm === null && analystCount === null) {
     return null
   }
 
   return (
     <span className="ml-1 text-xs font-normal text-app-text-muted">
-      · 애널리스트 {analystCount}명 컨센서스
+      {firm ? `· ${firm}` : `· 애널리스트 ${analystCount}명 컨센서스`}
     </span>
   )
 }
@@ -1460,6 +1476,7 @@ export function ResearchPage() {
   const section = searchParams.get('section')
   const researchQuery = useResearchView(displaySymbol)
   const research = researchQuery.data
+  const analystOpinionsQuery = useAnalystOpinions(research?.assetId)
   const saveChecklistMutation = useSaveBuyChecklist(research?.assetId ?? 0)
   const watchlistAssetsQuery = useWatchlistAssets(1, 100)
   const addWatchlistAsset = useAddAssetToFirstWatchlist()
@@ -1658,6 +1675,7 @@ export function ResearchPage() {
       <HeaderCard
         key={research.symbol}
         research={research}
+        analystOpinions={analystOpinionsQuery.data ?? []}
         isFavorite={isFavorite}
         isFavoritePending={isFavoritePending}
         onToggleFavorite={toggleFavorite}

@@ -52,6 +52,22 @@ export interface AssetDetailDto extends AssetLookupDto {
   updated_at?: string | null
 }
 
+export interface AnalystOpinionDto {
+  firm: string
+  action: string
+  to_grade: string | null
+  from_grade: string | null
+  price_target: string | null
+  prior_price_target: string | null
+  price_target_action: string | null
+  published_at: string
+}
+
+export interface AnalystOpinionsDto {
+  asset_id: number
+  opinions: AnalystOpinionDto[]
+}
+
 export interface CounterPointDto {
   id: string
   claim: string

@@ -385,6 +385,13 @@ vi.mock('@/features/alerts/queries', () => ({
 
 vi.mock('@/features/research/queries', () => ({
   SymbolNotFoundError: class SymbolNotFoundError extends Error {},
+  useAnalystOpinions: () => ({
+    data: [],
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: vi.fn(),
+  }),
   useResearchPriceSeries: () => ({
     data: {
       closes: [],

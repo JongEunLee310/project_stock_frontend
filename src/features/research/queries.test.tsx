@@ -11,6 +11,7 @@ import {
 } from '@/shared/api/envelope'
 
 import {
+  useAnalystOpinions,
   useCatalystTimeline,
   useAssetIdBySymbol,
   useAssetEvents,
@@ -61,6 +62,22 @@ function responseFor(path: string) {
         change: '2.51',
         change_percent: '1.79',
         currency: 'USD',
+      }
+    case '/assets/11/analyst-opinions?limit=20':
+      return {
+        asset_id: 11,
+        opinions: [
+          {
+            firm: 'JPMorgan',
+            action: 'main',
+            to_grade: 'Overweight',
+            from_grade: 'Neutral',
+            price_target: '250.00',
+            prior_price_target: '240.00',
+            price_target_action: 'Raises',
+            published_at: '2026-07-15T00:00:00Z',
+          },
+        ],
       }
     case '/assets/11/research-summary':
       return {
@@ -329,6 +346,35 @@ describe('research queries', () => {
         queryKey: ['research', 'news-disclosure', 11],
       }),
     ).toBeDefined()
+  })
+
+  it('fetches and adapts the latest 20 analyst opinions', async () => {
+    const queryClient = createTestQueryClient()
+    const { result } = renderHook(() => useAnalystOpinions(11), {
+      wrapper: wrapperFor(queryClient),
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(apiGet).toHaveBeenCalledWith('/assets/11/analyst-opinions?limit=20')
+    expect(result.current.data).toEqual([
+      expect.objectContaining({ firm: 'JPMorgan', priceTarget: 250 }),
+    ])
+    expect(
+      queryClient.getQueryCache().find({
+        queryKey: ['research', 'analyst-opinions', 11],
+      }),
+    ).toBeDefined()
+  })
+
+  it('does not fetch analyst opinions without an asset id', () => {
+    const queryClient = createTestQueryClient()
+
+    renderHook(() => useAnalystOpinions(undefined), {
+      wrapper: wrapperFor(queryClient),
+    })
+
+    expect(apiGet).not.toHaveBeenCalled()
   })
 
   it('does not fetch news and disclosures without an asset id', () => {
