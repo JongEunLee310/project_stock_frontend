@@ -205,6 +205,9 @@ export interface ResearchView {
   fiftyTwoWeekLow: number | null
   fiftyTwoWeekHigh: number | null
   targetPrice: number | null
+  targetPriceHigh: number | null
+  targetPriceLow: number | null
+  targetAnalystCount: number | null
   targetUpsidePercent: number | null
   nextEarningsDate: string | null
   updatedAt: string | null
@@ -686,6 +689,9 @@ export function adaptResearchDetail(
     fiftyTwoWeekLow: parseDecimal(detail.fifty_two_week_low),
     fiftyTwoWeekHigh: parseDecimal(detail.fifty_two_week_high),
     targetPrice: parseDecimal(detail.target_price),
+    targetPriceHigh: parseDecimal(detail.target_price_high),
+    targetPriceLow: parseDecimal(detail.target_price_low),
+    targetAnalystCount: detail.target_analyst_count ?? null,
     targetUpsidePercent: parseDecimal(detail.target_upside_percent),
     nextEarningsDate: detail.next_earnings_date ?? null,
     updatedAt: detail.updated_at ? formatKstDateTime(detail.updated_at) : null,

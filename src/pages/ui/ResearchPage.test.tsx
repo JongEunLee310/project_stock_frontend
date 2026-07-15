@@ -58,6 +58,9 @@ const researchBySymbol = {
     fiftyTwoWeekLow: 88.12,
     fiftyTwoWeekHigh: null,
     targetPrice: 1145.32,
+    targetPriceHigh: 1300,
+    targetPriceLow: 900,
+    targetAnalystCount: 42,
     targetUpsidePercent: 11.8,
     nextEarningsDate: '2026-08-20',
     updatedAt: null,
@@ -157,8 +160,11 @@ const researchBySymbol = {
     peg: null,
     fiftyTwoWeekLow: null,
     fiftyTwoWeekHigh: null,
-    targetPrice: null,
-    targetUpsidePercent: null,
+    targetPrice: 500,
+    targetPriceHigh: null,
+    targetPriceLow: null,
+    targetAnalystCount: null,
+    targetUpsidePercent: 11.1,
     nextEarningsDate: null,
     updatedAt: null,
     stance: 'Hold',
@@ -195,6 +201,9 @@ const researchBySymbol = {
     fiftyTwoWeekLow: null,
     fiftyTwoWeekHigh: null,
     targetPrice: null,
+    targetPriceHigh: null,
+    targetPriceLow: null,
+    targetAnalystCount: null,
     targetUpsidePercent: null,
     nextEarningsDate: null,
     updatedAt: null,
@@ -227,6 +236,18 @@ const researchFixturesBySymbol = {
     name: '삼성전자',
     market: 'KOSPI',
     currency: 'KRW',
+  },
+  PLTR: {
+    ...researchBySymbol.NVDA,
+    assetId: 5,
+    symbol: 'PLTR',
+    targetPriceLow: null,
+  },
+  NOCOUNT: {
+    ...researchBySymbol.NVDA,
+    assetId: 6,
+    symbol: 'NOCOUNT',
+    targetAnalystCount: null,
   },
 }
 
@@ -753,7 +774,11 @@ describe('ResearchPage', () => {
     expect(
       await screen.findByRole('heading', { name: 'NVDA 리서치' }),
     ).toBeVisible()
-    expect(screen.getByRole('heading', { name: 'NVDA' })).toBeVisible()
+    const symbolHeading = screen.getByRole('heading', { name: 'NVDA' })
+    expect(symbolHeading).toBeVisible()
+    expect(symbolHeading.closest('div.flex.min-w-0')).toHaveClass(
+      'items-center',
+    )
     expect(screen.getByText('NVIDIA Corp.')).toBeVisible()
     expect(
       screen.queryByRole('button', { name: '워치리스트' }),
@@ -1218,11 +1243,58 @@ describe('ResearchPage', () => {
     expect(screen.getByText('섹터')).toBeVisible()
     expect(screen.getByText('52주 범위')).toBeVisible()
     expect(screen.getByText('다음 실적 발표')).toBeVisible()
-    expect(screen.getByText('평균 목표주가')).toBeVisible()
+    expect(screen.getByText('목표주가')).toBeVisible()
+    expect(screen.getByText('평균 $1,145.32 (11.8%)')).toBeVisible()
+    expect(
+      screen.getByText(
+        (_, element) =>
+          element?.tagName === 'LI' &&
+          element.textContent === '최저 $900.00· 애널리스트 42명 컨센서스',
+      ),
+    ).toBeVisible()
+    expect(
+      screen.getByText(
+        (_, element) =>
+          element?.tagName === 'LI' &&
+          element.textContent === '최고 $1,300.00· 애널리스트 42명 컨센서스',
+      ),
+    ).toBeVisible()
     expect(screen.queryByText('PER / PEG')).not.toBeInTheDocument()
     expect(
       screen.getByRole('heading', { name: '뉴스 및 공시 요약' }),
     ).toBeVisible()
+  })
+
+  it('omits the target price range when only one bound is available', async () => {
+    renderResearch('/research/PLTR')
+
+    await screen.findByRole('heading', { name: 'PLTR 리서치' })
+
+    expect(screen.getByText('평균 $1,145.32 (11.8%)')).toBeVisible()
+    expect(screen.queryByText(/^최저/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/^최고/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/컨센서스/)).not.toBeInTheDocument()
+  })
+
+  it('renders only the average fallback when all target prices are null', async () => {
+    renderResearch('/research/NULLS')
+
+    await screen.findByRole('heading', { name: 'NULLS 리서치' })
+
+    expect(screen.getByText('평균 - (-)')).toBeVisible()
+    expect(screen.queryByText(/^최저/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/^최고/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/컨센서스/)).not.toBeInTheDocument()
+  })
+
+  it('omits the consensus source when the analyst count is null', async () => {
+    renderResearch('/research/NOCOUNT')
+
+    await screen.findByRole('heading', { name: 'NOCOUNT 리서치' })
+
+    expect(screen.getByText('최저 $900.00')).toBeVisible()
+    expect(screen.getByText('최고 $1,300.00')).toBeVisible()
+    expect(screen.queryByText(/컨센서스/)).not.toBeInTheDocument()
   })
 
   it('omits nullable stance details while keeping the confidence fallback', async () => {
@@ -1244,6 +1316,7 @@ describe('ResearchPage', () => {
         '성장성과 현금흐름 개선을 확인하되 가격 부담을 함께 검토할 단계입니다.',
       ),
     ).not.toBeInTheDocument()
+    expect(screen.getByText('평균 $500.00 (11.1%)')).toBeVisible()
   })
 
   it('renders all structured briefing groups as bullet lists', async () => {

@@ -44,6 +44,9 @@ export interface AssetDetailDto extends AssetLookupDto {
   fifty_two_week_low?: string | null
   fifty_two_week_high?: string | null
   target_price?: string | null
+  target_price_high?: string | null
+  target_price_low?: string | null
+  target_analyst_count?: number | null
   target_upside_percent?: string | null
   next_earnings_date?: string | null
   updated_at?: string | null

@@ -865,19 +865,14 @@ function HeaderCard({
       label: '다음 실적 발표',
       value: research.nextEarningsDate ?? '-',
     },
-    {
-      label: '평균 목표주가',
-      value: `${formatCurrency(
-        research.targetPrice,
-        research.currency,
-      )} (${formatPercent(research.targetUpsidePercent)})`,
-    },
   ]
+  const hasTargetPriceRange =
+    research.targetPriceLow !== null && research.targetPriceHigh !== null
 
   return (
     <Card>
       <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-[minmax(12rem,1.1fr)_minmax(10rem,0.7fr)_minmax(10rem,0.5fr)_minmax(19rem,1.6fr)]">
-        <div className="flex min-w-0 items-start gap-4">
+        <div className="flex min-w-0 items-center gap-4">
           <StockLogo
             key={`${research.symbol}:${research.market ?? ''}`}
             symbol={research.symbol}
@@ -998,10 +993,52 @@ function HeaderCard({
                 </dd>
               </div>
             ))}
+            <div className="min-w-0">
+              <dt className="text-xs font-medium text-app-text-muted">
+                목표주가
+              </dt>
+              <dd className="mt-1 text-sm font-semibold leading-5 text-app-text">
+                <ul className="space-y-0.5" aria-label="목표주가 상세">
+                  <li>{`평균 ${formatCurrency(research.targetPrice, research.currency)} (${formatPercent(research.targetUpsidePercent)})`}</li>
+                  {hasTargetPriceRange ? (
+                    <>
+                      <li>
+                        {`최저 ${formatCurrency(research.targetPriceLow, research.currency)}`}
+                        <TargetPriceSourceSuffix
+                          analystCount={research.targetAnalystCount}
+                        />
+                      </li>
+                      <li>
+                        {`최고 ${formatCurrency(research.targetPriceHigh, research.currency)}`}
+                        <TargetPriceSourceSuffix
+                          analystCount={research.targetAnalystCount}
+                        />
+                      </li>
+                    </>
+                  ) : null}
+                </ul>
+              </dd>
+            </div>
           </dl>
         </div>
       </div>
     </Card>
+  )
+}
+
+function TargetPriceSourceSuffix({
+  analystCount,
+}: {
+  analystCount: number | null
+}) {
+  if (analystCount === null) {
+    return null
+  }
+
+  return (
+    <span className="ml-1 text-xs font-normal text-app-text-muted">
+      · 애널리스트 {analystCount}명 컨센서스
+    </span>
   )
 }
 
