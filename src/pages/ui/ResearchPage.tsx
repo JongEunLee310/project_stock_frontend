@@ -1494,6 +1494,7 @@ export function ResearchPage() {
   const [memoSaveStatus, setMemoSaveStatus] = useState<
     'idle' | 'saving' | 'saved' | 'error'
   >('idle')
+  const [isBriefingExpanded, setIsBriefingExpanded] = useState(false)
   const initializedAssetIdRef = useRef<number | null>(null)
   const checkedItemKeysRef = useRef<string[]>([])
   const focusedSymbolRef = useRef<string | null>(null)
@@ -1705,36 +1706,61 @@ export function ResearchPage() {
                 <h2 className="mt-3 text-2xl font-bold text-app-text">
                   {research.briefing.headline}
                 </h2>
-                <p className="mt-3 text-sm leading-6 text-app-text-muted">
-                  {research.briefing.body}
-                </p>
-                {[
-                  {
-                    title: '긍정 요인',
-                    items: research.briefing.positiveFactors ?? [],
-                  },
-                  {
-                    title: '주의 요인',
-                    items: research.briefing.cautionFactors ?? [],
-                  },
-                  {
-                    title: '다음 확인 사항',
-                    items: research.briefing.nextChecks ?? [],
-                  },
-                ].map((group) =>
-                  group.items.length > 0 ? (
-                    <div key={group.title} className="mt-4">
-                      <h3 className="text-sm font-semibold text-app-text">
-                        {group.title}
-                      </h3>
-                      <ul className="mt-1 list-disc space-y-1 pl-5 text-sm leading-6 text-app-text-muted">
-                        {group.items.map((item) => (
-                          <li key={item}>{item}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : null,
-                )}
+                <div id="research-briefing-content">
+                  <p
+                    className={`mt-3 text-sm leading-6 text-app-text-muted ${isBriefingExpanded ? '' : 'line-clamp-2'}`}
+                  >
+                    {research.briefing.body}
+                  </p>
+                  {isBriefingExpanded
+                    ? [
+                        {
+                          title: '긍정 요인',
+                          items: research.briefing.positiveFactors ?? [],
+                        },
+                        {
+                          title: '주의 요인',
+                          items: research.briefing.cautionFactors ?? [],
+                        },
+                        {
+                          title: '다음 확인 사항',
+                          items: research.briefing.nextChecks ?? [],
+                        },
+                      ].map((group) =>
+                        group.items.length > 0 ? (
+                          <div key={group.title} className="mt-4">
+                            <h3 className="text-sm font-semibold text-app-text">
+                              {group.title}
+                            </h3>
+                            <ul className="mt-1 list-disc space-y-1 pl-5 text-sm leading-6 text-app-text-muted">
+                              {group.items.map((item) => (
+                                <li key={item}>{item}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        ) : null,
+                      )
+                    : null}
+                </div>
+                <div className="mt-2 flex justify-end">
+                  <button
+                    type="button"
+                    aria-controls="research-briefing-content"
+                    aria-expanded={isBriefingExpanded}
+                    className="inline-flex min-h-8 items-center justify-center gap-1 rounded-control border border-transparent bg-transparent px-2 py-1 text-sm font-semibold text-app-text-muted transition-colors hover:bg-app-surface-muted/60 hover:text-app-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent"
+                    onClick={() =>
+                      setIsBriefingExpanded((isExpanded) => !isExpanded)
+                    }
+                  >
+                    {isBriefingExpanded ? (
+                      '접기'
+                    ) : (
+                      <>
+                        더 보기 <span aria-hidden="true">›</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </>
             ) : (
               <div className="mt-3">
