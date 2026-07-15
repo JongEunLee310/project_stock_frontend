@@ -22,6 +22,7 @@ import {
 import { formatResearchChartTooltipLabel } from './ResearchPage.lib'
 
 const mockUseResearchPriceSeries = vi.hoisted(() => vi.fn())
+const mockUseAnalystOpinions = vi.hoisted(() => vi.fn())
 const mockUseAssetEvents = vi.hoisted(() => vi.fn())
 const mockUseBenchmarkComparison = vi.hoisted(() => vi.fn())
 const mockBenchmarkComparisonRefetch = vi.hoisted(() => vi.fn())
@@ -296,6 +297,7 @@ vi.mock('@/features/research/queries', async () => {
       refetch: vi.fn(),
     }),
     useNewsDisclosure: mockUseNewsDisclosure,
+    useAnalystOpinions: mockUseAnalystOpinions,
     useCatalystTimeline: mockUseCatalystTimeline,
     useResearchCoverage: mockUseResearchCoverage,
     useResearchPriceSeries: mockUseResearchPriceSeries,
@@ -405,6 +407,37 @@ beforeEach(() => {
     isLoading: false,
     refetch: vi.fn(),
   })
+  mockUseAnalystOpinions.mockImplementation((assetId: number | undefined) => ({
+    data:
+      assetId === researchBySymbol.NVDA.assetId
+        ? [
+            {
+              firm: 'KGI Securities',
+              action: 'main',
+              toGrade: 'Buy',
+              fromGrade: null,
+              priceTarget: 900,
+              priorPriceTarget: null,
+              priceTargetAction: 'Lowers',
+              publishedAt: '2026-07-15T00:00:00Z',
+            },
+            {
+              firm: 'JPMorgan',
+              action: 'main',
+              toGrade: 'Overweight',
+              fromGrade: 'Neutral',
+              priceTarget: 1300,
+              priorPriceTarget: 1250,
+              priceTargetAction: 'Raises',
+              publishedAt: '2026-07-14T00:00:00Z',
+            },
+          ]
+        : [],
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: vi.fn(),
+  }))
   mockUseAssetEvents.mockReturnValue({
     data: [],
     error: null,
@@ -1249,20 +1282,58 @@ describe('ResearchPage', () => {
       screen.getByText(
         (_, element) =>
           element?.tagName === 'LI' &&
-          element.textContent === '최저 $900.00· 애널리스트 42명 컨센서스',
+          element.textContent === '최저 $900.00· KGI Securities',
       ),
     ).toBeVisible()
     expect(
       screen.getByText(
         (_, element) =>
           element?.tagName === 'LI' &&
-          element.textContent === '최고 $1,300.00· 애널리스트 42명 컨센서스',
+          element.textContent === '최고 $1,300.00· JPMorgan',
       ),
     ).toBeVisible()
     expect(screen.queryByText('PER / PEG')).not.toBeInTheDocument()
     expect(
       screen.getByRole('heading', { name: '뉴스 및 공시 요약' }),
     ).toBeVisible()
+  })
+
+  it('keeps the consensus fallback while analyst opinions are loading', async () => {
+    mockUseAnalystOpinions.mockReturnValue({
+      data: undefined,
+      error: null,
+      isError: false,
+      isLoading: true,
+      refetch: vi.fn(),
+    })
+
+    renderResearch()
+
+    await screen.findByRole('heading', { name: 'NVDA 리서치' })
+    expect(screen.getAllByText(/애널리스트 42명 컨센서스/)).toHaveLength(2)
+  })
+
+  it('keeps the consensus fallback when analyst opinions fail', async () => {
+    mockUseAnalystOpinions.mockReturnValue({
+      data: undefined,
+      error: new Error('의견 조회 실패'),
+      isError: true,
+      isLoading: false,
+      refetch: vi.fn(),
+    })
+
+    renderResearch()
+
+    await screen.findByRole('heading', { name: 'NVDA 리서치' })
+    expect(screen.getAllByText(/애널리스트 42명 컨센서스/)).toHaveLength(2)
+    expect(screen.queryByText('의견 조회 실패')).not.toBeInTheDocument()
+  })
+
+  it('uses the consensus fallback for a domestic stock with no opinions', async () => {
+    renderResearch('/research/005930')
+
+    await screen.findByRole('heading', { name: '005930 리서치' })
+    expect(screen.getAllByText(/애널리스트 42명 컨센서스/)).toHaveLength(2)
   })
 
   it('omits the target price range when only one bound is available', async () => {

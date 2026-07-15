@@ -10,6 +10,7 @@ import { apiGet, apiPut } from '@/shared/api/client'
 import { ApiError } from '@/shared/api/envelope'
 
 import {
+  adaptAnalystOpinions,
   adaptBenchmarkComparison,
   adaptAssetEvents,
   adaptCatalystTimeline,
@@ -20,6 +21,7 @@ import {
   adaptResearchDetail,
   toResearchQueueView,
   adaptValuationMetrics,
+  type AnalystOpinion,
   type BenchmarkSeriesItem,
   type AssetEventItem,
   type CatalystEventItem,
@@ -32,6 +34,7 @@ import {
   type ValuationView,
 } from './adapters'
 import type {
+  AnalystOpinionsDto,
   AssetDetailDto,
   AssetEventHistoryDto,
   AssetLookupDto,
@@ -265,6 +268,28 @@ export function useNewsDisclosure(
       )
 
       return adaptNewsDisclosure(data)
+    },
+  })
+}
+
+const analystOpinionsLimit = 20
+
+export function useAnalystOpinions(
+  assetId: number | undefined,
+): UseQueryResult<AnalystOpinion[]> {
+  return useQuery<AnalystOpinion[]>({
+    queryKey: ['research', 'analyst-opinions', assetId],
+    enabled: assetId != null,
+    queryFn: async () => {
+      if (assetId == null) {
+        return []
+      }
+
+      const { data } = await apiGet<AnalystOpinionsDto>(
+        `/assets/${assetId}/analyst-opinions?limit=${analystOpinionsLimit}`,
+      )
+
+      return adaptAnalystOpinions(data)
     },
   })
 }

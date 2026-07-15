@@ -9,6 +9,7 @@ import type { ApiMeta } from '@/shared/api/envelope'
 import type { BadgeTone } from '@/shared/ui'
 
 import type {
+  AnalystOpinionsDto,
   AssetDetailDto,
   AssetEventHistoryDto,
   BenchmarkComparisonDto,
@@ -24,6 +25,62 @@ import type {
   ThesisDto,
   ValuationMetricsDto,
 } from './dto'
+
+export interface AnalystOpinion {
+  firm: string
+  action: string
+  toGrade: string | null
+  fromGrade: string | null
+  priceTarget: number | null
+  priorPriceTarget: number | null
+  priceTargetAction: string | null
+  publishedAt: string
+}
+
+export interface TargetPriceAttribution {
+  lowFirm: string | null
+  highFirm: string | null
+}
+
+export function adaptAnalystOpinions(
+  dto: AnalystOpinionsDto,
+): AnalystOpinion[] {
+  return dto.opinions.map((opinion) => ({
+    firm: opinion.firm,
+    action: opinion.action,
+    toGrade: opinion.to_grade,
+    fromGrade: opinion.from_grade,
+    priceTarget: parseDecimal(opinion.price_target),
+    priorPriceTarget: parseDecimal(opinion.prior_price_target),
+    priceTargetAction: opinion.price_target_action,
+    publishedAt: opinion.published_at,
+  }))
+}
+
+function findLatestMatchingFirm(
+  opinions: AnalystOpinion[],
+  targetPrice: number | null,
+) {
+  if (targetPrice === null) return null
+
+  return (
+    opinions.find(
+      (opinion) =>
+        opinion.priceTarget === targetPrice && opinion.firm.trim().length > 0,
+    )?.firm ?? null
+  )
+}
+
+export function deriveTargetPriceAttribution(
+  opinions: AnalystOpinion[],
+  targetPriceLow: number | null,
+  targetPriceHigh: number | null,
+): TargetPriceAttribution {
+  return {
+    lowFirm: findLatestMatchingFirm(opinions, targetPriceLow),
+    highFirm: findLatestMatchingFirm(opinions, targetPriceHigh),
+  }
+}
 
 export type ResearchStatusTone = Extract<
   BadgeTone,

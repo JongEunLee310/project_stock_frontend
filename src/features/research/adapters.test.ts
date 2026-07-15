@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { formatKstDateTime } from '@/shared/lib/format'
 
 import {
+  adaptAnalystOpinions,
   adaptBenchmarkComparison,
   adaptAssetEvents,
   adaptCatalystTimeline,
@@ -14,10 +15,12 @@ import {
   toResearchQueueView,
   adaptThesis,
   adaptValuationMetrics,
+  deriveTargetPriceAttribution,
   withMovingAverage,
   snapEventsToChartPoints,
 } from './adapters'
 import type {
+  AnalystOpinionsDto,
   AssetDetailDto,
   AssetEventHistoryDto,
   BuyChecklistDto,
@@ -30,6 +33,32 @@ import type {
   ThesisDto,
   ValuationMetricsDto,
 } from './dto'
+
+const analystOpinionsDto: AnalystOpinionsDto = {
+  asset_id: 1,
+  opinions: [
+    {
+      firm: 'KGI Securities',
+      action: 'main',
+      to_grade: 'Buy',
+      from_grade: null,
+      price_target: '900.00',
+      prior_price_target: null,
+      price_target_action: 'Lowers',
+      published_at: '2026-07-15T00:00:00Z',
+    },
+    {
+      firm: 'JPMorgan',
+      action: 'main',
+      to_grade: 'Overweight',
+      from_grade: 'Neutral',
+      price_target: '1300.00',
+      prior_price_target: '1250.00',
+      price_target_action: 'Raises',
+      published_at: '2026-07-14T00:00:00Z',
+    },
+  ],
+}
 
 const detail: AssetDetailDto = {
   id: 1,
@@ -204,6 +233,48 @@ const earningsSummary: EarningsSummaryDto = {
 }
 
 describe('research adapters', () => {
+  it('adapts analyst opinion decimal fields and attributes both target bounds', () => {
+    const opinions = adaptAnalystOpinions(analystOpinionsDto)
+
+    expect(opinions[0]).toMatchObject({
+      firm: 'KGI Securities',
+      priceTarget: 900,
+      priorPriceTarget: null,
+    })
+    expect(deriveTargetPriceAttribution(opinions, 900, 1300)).toEqual({
+      lowFirm: 'KGI Securities',
+      highFirm: 'JPMorgan',
+    })
+  })
+
+  it('uses the first recent opinion when multiple firms match a target', () => {
+    const opinions = adaptAnalystOpinions({
+      ...analystOpinionsDto,
+      opinions: [
+        analystOpinionsDto.opinions[0],
+        {
+          ...analystOpinionsDto.opinions[0],
+          firm: 'Older Securities',
+          published_at: '2026-07-01T00:00:00Z',
+        },
+      ],
+    })
+
+    expect(deriveTargetPriceAttribution(opinions, 900, null)).toEqual({
+      lowFirm: 'KGI Securities',
+      highFirm: null,
+    })
+  })
+
+  it('does not attribute null or unmatched target prices', () => {
+    const opinions = adaptAnalystOpinions(analystOpinionsDto)
+
+    expect(deriveTargetPriceAttribution(opinions, null, 999)).toEqual({
+      lowFirm: null,
+      highFirm: null,
+    })
+  })
+
   it('adapts valuation labels, nulls, highlights, and decimal strings', () => {
     const result = adaptValuationMetrics(valuationMetrics)
 
