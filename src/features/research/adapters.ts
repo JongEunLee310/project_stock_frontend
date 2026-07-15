@@ -76,9 +76,15 @@ export function deriveTargetPriceAttribution(
   targetPriceLow: number | null,
   targetPriceHigh: number | null,
 ): TargetPriceAttribution {
+  // BE가 최근 발표순 정렬을 계약하지만, 정렬 기준이 바뀌어도 잘못된
+  // 기관명이 표기되지 않도록 발표 시각(ISO) 기준으로 방어적으로 재정렬한다
+  const latestFirst = [...opinions].sort((a, b) =>
+    b.publishedAt.localeCompare(a.publishedAt),
+  )
+
   return {
-    lowFirm: findLatestMatchingFirm(opinions, targetPriceLow),
-    highFirm: findLatestMatchingFirm(opinions, targetPriceHigh),
+    lowFirm: findLatestMatchingFirm(latestFirst, targetPriceLow),
+    highFirm: findLatestMatchingFirm(latestFirst, targetPriceHigh),
   }
 }
 

@@ -247,16 +247,17 @@ describe('research adapters', () => {
     })
   })
 
-  it('uses the first recent opinion when multiple firms match a target', () => {
+  it('uses the most recent opinion when multiple firms match a target', () => {
+    // 배열 순서를 발표순과 어긋나게 두어(오래된 것이 먼저) 방어적 재정렬을 검증한다
     const opinions = adaptAnalystOpinions({
       ...analystOpinionsDto,
       opinions: [
-        analystOpinionsDto.opinions[0],
         {
           ...analystOpinionsDto.opinions[0],
           firm: 'Older Securities',
           published_at: '2026-07-01T00:00:00Z',
         },
+        analystOpinionsDto.opinions[0],
       ],
     })
 
