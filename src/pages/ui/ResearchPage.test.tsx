@@ -1490,7 +1490,7 @@ describe('ResearchPage', () => {
     expect(screen.getByText('평균 $500.00 (11.1%)')).toBeVisible()
   })
 
-  it('renders all structured briefing groups as bullet lists', async () => {
+  it('clamps briefing details by default and toggles the full content', async () => {
     renderResearch()
 
     const briefingCard = (
@@ -1499,8 +1499,22 @@ describe('ResearchPage', () => {
 
     expect(briefingCard).not.toBeNull()
     const briefing = within(briefingCard as HTMLElement)
+    expect(
+      briefing.getByText('Margins remain the key checkpoint.'),
+    ).toHaveClass('line-clamp-2')
+    expect(briefing.queryByText('매출 성장 지속')).not.toBeInTheDocument()
+    expect(briefing.queryByText('밸류에이션 부담')).not.toBeInTheDocument()
+    expect(briefing.queryByText('다음 분기 마진 확인')).not.toBeInTheDocument()
+
+    const expandButton = briefing.getByRole('button', { name: '더 보기' })
+    expect(expandButton).toHaveAttribute('aria-expanded', 'false')
+    fireEvent.click(expandButton)
+
+    expect(
+      briefing.getByText('Margins remain the key checkpoint.'),
+    ).not.toHaveClass('line-clamp-2')
     expect(briefing.getByRole('heading', { name: '긍정 요인' })).toBeVisible()
-    expect(briefing.getByText('매출 성장 지속')).toBeVisible()
+    expect(await briefing.findByText('매출 성장 지속')).toBeVisible()
     expect(briefing.getByText('현금흐름 개선')).toBeVisible()
     expect(briefing.getByRole('heading', { name: '주의 요인' })).toBeVisible()
     expect(briefing.getByText('밸류에이션 부담')).toBeVisible()
@@ -1508,6 +1522,16 @@ describe('ResearchPage', () => {
       briefing.getByRole('heading', { name: '다음 확인 사항' }),
     ).toBeVisible()
     expect(briefing.getByText('다음 분기 마진 확인')).toBeVisible()
+
+    const collapseButton = briefing.getByRole('button', { name: '접기' })
+    expect(collapseButton).toHaveAttribute('aria-expanded', 'true')
+    fireEvent.click(collapseButton)
+
+    expect(briefing.queryByText('매출 성장 지속')).not.toBeInTheDocument()
+    expect(briefing.getByRole('button', { name: '더 보기' })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    )
   })
 
   it('renders the empty briefing state and starts summary generation', async () => {
@@ -1558,6 +1582,7 @@ describe('ResearchPage', () => {
     renderResearch('/research/MSFT')
 
     await screen.findByRole('heading', { name: 'Cloud growth checkpoint' })
+    fireEvent.click(screen.getByRole('button', { name: '더 보기' }))
 
     expect(screen.getByRole('heading', { name: '긍정 요인' })).toBeVisible()
     expect(screen.getByText('Azure 계약 잔고가 견조합니다.')).toBeVisible()
@@ -1719,9 +1744,12 @@ describe('ResearchPage', () => {
   it('keeps the briefing paragraph when every structured group is empty', async () => {
     renderResearch('/research/NULLS')
 
-    expect(
-      await screen.findByText('기존 브리핑 문단만 표시합니다.'),
-    ).toBeVisible()
+    const briefingParagraph =
+      await screen.findByText('기존 브리핑 문단만 표시합니다.')
+    expect(briefingParagraph).toBeVisible()
+    expect(briefingParagraph).toHaveClass('line-clamp-2')
+    fireEvent.click(screen.getByRole('button', { name: '더 보기' }))
+    expect(briefingParagraph).not.toHaveClass('line-clamp-2')
     expect(
       screen.queryByRole('heading', { name: '긍정 요인' }),
     ).not.toBeInTheDocument()
@@ -2104,8 +2132,9 @@ describe('ResearchPage', () => {
 
     const moreLink = screen.getByRole('link', { name: '더 보기' })
     expect(moreLink).toHaveAttribute('href', '/research/NVDA/news')
-    expect(screen.queryByRole('button', { name: '더 보기' })).toBeNull()
-    expect(screen.queryByRole('button', { name: '접기' })).toBeNull()
+    const newsCard = moreLink.closest('section')
+    expect(newsCard).not.toBeNull()
+    expect(within(newsCard as HTMLElement).queryByRole('button')).toBeNull()
 
     fireEvent.click(screen.getByRole('tab', { name: '공시' }))
 
