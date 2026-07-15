@@ -300,18 +300,20 @@ export interface ResearchView {
   stanceComment: string | null
   confidenceBasis: string | null
   counterPoints: CounterPointItem[]
-  briefing: {
-    headline: string
-    body: string
-    positiveFactors: string[]
-    cautionFactors: string[]
-    nextChecks: string[]
-    createdAt: string
-  }
+  briefing: ResearchBriefing | null
   keyRisks: ResearchRisk[]
   buyChecklist: ChecklistItem[]
   checklistMemo: string | null
   latestThesis: ThesisItem | null
+}
+
+export interface ResearchBriefing {
+  headline: string
+  body: string
+  positiveFactors: string[]
+  cautionFactors: string[]
+  nextChecks: string[]
+  createdAt: string
 }
 
 export interface CoverageAxisItem {
@@ -753,7 +755,7 @@ function normalizeCounterPointStrength(
 
 export function adaptResearchDetail(
   detail: AssetDetailDto,
-  summary: ResearchSummaryDto,
+  summary: ResearchSummaryDto | null,
   checklist: BuyChecklistDto,
   thesis: ThesisDto | null,
 ): ResearchView {
@@ -779,11 +781,11 @@ export function adaptResearchDetail(
     targetUpsidePercent: parseDecimal(detail.target_upside_percent),
     nextEarningsDate: detail.next_earnings_date ?? null,
     updatedAt: detail.updated_at ? formatKstDateTime(detail.updated_at) : null,
-    stance: toLabel(researchStanceLabels, summary.stance ?? '', '판단 보류'),
-    stanceConfidence: normalizeStanceConfidence(summary.stance_confidence),
-    stanceComment: summary.stance_comment ?? null,
-    confidenceBasis: summary.confidence_basis ?? null,
-    counterPoints: (summary.counter_points ?? []).map((point) => ({
+    stance: toLabel(researchStanceLabels, summary?.stance ?? '', '판단 보류'),
+    stanceConfidence: normalizeStanceConfidence(summary?.stance_confidence),
+    stanceComment: summary?.stance_comment ?? null,
+    confidenceBasis: summary?.confidence_basis ?? null,
+    counterPoints: (summary?.counter_points ?? []).map((point) => ({
       id: point.id,
       claim: point.claim,
       basis: point.basis,
@@ -792,15 +794,17 @@ export function adaptResearchDetail(
       strength: normalizeCounterPointStrength(point.strength),
       sourceLabel: point.source_label,
     })),
-    briefing: {
-      headline: summary.headline ?? '리서치 요약 없음',
-      body: summary.body ?? '',
-      positiveFactors: summary.positive_factors ?? [],
-      cautionFactors: summary.caution_factors ?? [],
-      nextChecks: summary.next_checks ?? [],
-      createdAt: formatKstDateTime(summary.created_at),
-    },
-    keyRisks: (summary.key_risks ?? []).map((risk, index) => ({
+    briefing: summary
+      ? {
+          headline: summary.headline ?? '리서치 요약 없음',
+          body: summary.body ?? '',
+          positiveFactors: summary.positive_factors ?? [],
+          cautionFactors: summary.caution_factors ?? [],
+          nextChecks: summary.next_checks ?? [],
+          createdAt: formatKstDateTime(summary.created_at),
+        }
+      : null,
+    keyRisks: (summary?.key_risks ?? []).map((risk, index) => ({
       id: String(risk.id ?? index),
       title: risk.title,
       level: toLabel(riskLevelLabels, risk.level),

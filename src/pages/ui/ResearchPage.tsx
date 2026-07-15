@@ -12,6 +12,7 @@ import {
   useNewsDisclosure,
   useResearchPriceSeries,
   useResearchCoverage,
+  useRefreshResearchSummary,
   useResearchView,
   useSaveBuyChecklist,
   useValuationMetrics,
@@ -1476,6 +1477,10 @@ export function ResearchPage() {
   const section = searchParams.get('section')
   const researchQuery = useResearchView(displaySymbol)
   const research = researchQuery.data
+  const refreshResearchSummary = useRefreshResearchSummary(
+    displaySymbol,
+    research?.assetId ?? 0,
+  )
   const analystOpinionsQuery = useAnalystOpinions(research?.assetId)
   const saveChecklistMutation = useSaveBuyChecklist(research?.assetId ?? 0)
   const watchlistAssetsQuery = useWatchlistAssets(1, 100)
@@ -1689,42 +1694,72 @@ export function ResearchPage() {
               <p className="text-sm font-semibold uppercase tracking-wide text-app-text-muted">
                 AI briefing
               </p>
-              <span className="text-xs text-app-text-muted">
-                갱신 {research.briefing.createdAt}
-              </span>
+              {research.briefing ? (
+                <span className="text-xs text-app-text-muted">
+                  갱신 {research.briefing.createdAt}
+                </span>
+              ) : null}
             </div>
-            <h2 className="mt-3 text-2xl font-bold text-app-text">
-              {research.briefing.headline}
-            </h2>
-            <p className="mt-3 text-sm leading-6 text-app-text-muted">
-              {research.briefing.body}
-            </p>
-            {[
-              {
-                title: '긍정 요인',
-                items: research.briefing.positiveFactors ?? [],
-              },
-              {
-                title: '주의 요인',
-                items: research.briefing.cautionFactors ?? [],
-              },
-              {
-                title: '다음 확인 사항',
-                items: research.briefing.nextChecks ?? [],
-              },
-            ].map((group) =>
-              group.items.length > 0 ? (
-                <div key={group.title} className="mt-4">
-                  <h3 className="text-sm font-semibold text-app-text">
-                    {group.title}
-                  </h3>
-                  <ul className="mt-1 list-disc space-y-1 pl-5 text-sm leading-6 text-app-text-muted">
-                    {group.items.map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ul>
+            {research.briefing ? (
+              <>
+                <h2 className="mt-3 text-2xl font-bold text-app-text">
+                  {research.briefing.headline}
+                </h2>
+                <p className="mt-3 text-sm leading-6 text-app-text-muted">
+                  {research.briefing.body}
+                </p>
+                {[
+                  {
+                    title: '긍정 요인',
+                    items: research.briefing.positiveFactors ?? [],
+                  },
+                  {
+                    title: '주의 요인',
+                    items: research.briefing.cautionFactors ?? [],
+                  },
+                  {
+                    title: '다음 확인 사항',
+                    items: research.briefing.nextChecks ?? [],
+                  },
+                ].map((group) =>
+                  group.items.length > 0 ? (
+                    <div key={group.title} className="mt-4">
+                      <h3 className="text-sm font-semibold text-app-text">
+                        {group.title}
+                      </h3>
+                      <ul className="mt-1 list-disc space-y-1 pl-5 text-sm leading-6 text-app-text-muted">
+                        {group.items.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null,
+                )}
+              </>
+            ) : (
+              <div className="mt-3">
+                <EmptyState
+                  title="아직 생성된 AI briefing이 없습니다."
+                  description="종목 데이터를 바탕으로 첫 briefing을 생성해 보세요."
+                  className="py-6"
+                />
+                <div className="flex flex-col items-center gap-3">
+                  <Button
+                    type="button"
+                    disabled={refreshResearchSummary.isPending}
+                    onClick={() => refreshResearchSummary.mutate()}
+                  >
+                    {refreshResearchSummary.isPending
+                      ? '생성 중...'
+                      : 'AI briefing 생성'}
+                  </Button>
+                  {refreshResearchSummary.isError ? (
+                    <p role="alert" className="text-sm text-rose-400">
+                      AI briefing을 생성하지 못했습니다. 다시 시도해 주세요.
+                    </p>
+                  ) : null}
                 </div>
-              ) : null,
+              </div>
             )}
           </Card>
         </aside>

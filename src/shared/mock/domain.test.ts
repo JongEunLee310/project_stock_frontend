@@ -124,6 +124,8 @@ describe('domain mock data', () => {
           ),
       ),
     ).toBe(true)
+    expect(mockStockResearch.NVDA.briefing).not.toBeNull()
+    expect(mockStockResearch.MSFT.briefing).toBeNull()
   })
 
   it('keeps decision logs ready for review workflows', () => {

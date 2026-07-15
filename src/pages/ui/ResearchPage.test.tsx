@@ -37,6 +37,7 @@ const mockCatalystTimelineRefetch = vi.hoisted(() => vi.fn())
 const mockUseResearchCoverage = vi.hoisted(() => vi.fn())
 const mockResearchCoverageRefetch = vi.hoisted(() => vi.fn())
 const mockSaveBuyChecklist = vi.hoisted(() => vi.fn())
+const mockRefreshResearchSummary = vi.hoisted(() => vi.fn())
 const mockUseWatchlistAssets = vi.hoisted(() => vi.fn())
 const mockAddWatchlistAsset = vi.hoisted(() => vi.fn())
 const mockRemoveWatchlistItem = vi.hoisted(() => vi.fn())
@@ -250,6 +251,19 @@ const researchFixturesBySymbol = {
     symbol: 'NOCOUNT',
     targetAnalystCount: null,
   },
+  NOBRIEF: {
+    ...researchBySymbol.NVDA,
+    assetId: 7,
+    symbol: 'NOBRIEF',
+    name: 'No Briefing Corp.',
+    briefing: null,
+    stance: '판단 보류',
+    stanceConfidence: null,
+    stanceComment: null,
+    confidenceBasis: null,
+    counterPoints: [],
+    keyRisks: [],
+  },
 }
 
 vi.mock('@/features/market-indices/queries', () => ({
@@ -361,6 +375,21 @@ vi.mock('@/features/research/queries', async () => {
         isPending: mutationState.isPending,
       }
     },
+    useRefreshResearchSummary: () => {
+      const [mutationState, setMutationState] = React.useState({
+        isPending: false,
+        isError: false,
+      })
+      const mutate = React.useCallback(() => {
+        setMutationState({ isPending: true, isError: false })
+        void Promise.resolve(mockRefreshResearchSummary()).then(
+          () => setMutationState({ isPending: false, isError: false }),
+          () => setMutationState({ isPending: false, isError: true }),
+        )
+      }, [])
+
+      return { ...mutationState, mutate }
+    },
     useResearchView: (symbol: string) => {
       const data =
         researchFixturesBySymbol[
@@ -407,6 +436,8 @@ beforeEach(() => {
     isLoading: false,
     refetch: vi.fn(),
   })
+  mockRefreshResearchSummary.mockReset()
+  mockRefreshResearchSummary.mockResolvedValue(undefined)
   mockUseAnalystOpinions.mockImplementation((assetId: number | undefined) => ({
     data:
       assetId === researchBySymbol.NVDA.assetId
@@ -1477,6 +1508,50 @@ describe('ResearchPage', () => {
       briefing.getByRole('heading', { name: '다음 확인 사항' }),
     ).toBeVisible()
     expect(briefing.getByText('다음 분기 마진 확인')).toBeVisible()
+  })
+
+  it('renders the empty briefing state and starts summary generation', async () => {
+    let resolveRefresh: (() => void) | undefined
+    mockRefreshResearchSummary.mockReturnValue(
+      new Promise<void>((resolve) => {
+        resolveRefresh = resolve
+      }),
+    )
+    renderResearch('/research/NOBRIEF')
+
+    const emptyBriefingTitle = await screen.findByText(
+      '아직 생성된 AI briefing이 없습니다.',
+    )
+    expect(emptyBriefingTitle).toBeVisible()
+    const briefingCard = emptyBriefingTitle.closest('section')
+    expect(briefingCard).not.toBeNull()
+    expect(
+      within(briefingCard as HTMLElement).queryByText(/^갱신 /),
+    ).not.toBeInTheDocument()
+
+    const generateButton = screen.getByRole('button', {
+      name: 'AI briefing 생성',
+    })
+    fireEvent.click(generateButton)
+
+    expect(mockRefreshResearchSummary).toHaveBeenCalledOnce()
+    expect(screen.getByRole('button', { name: '생성 중...' })).toBeDisabled()
+
+    await act(async () => resolveRefresh?.())
+  })
+
+  it('shows an inline error when summary generation fails', async () => {
+    mockRefreshResearchSummary.mockRejectedValue(new Error('refresh failed'))
+    renderResearch('/research/NOBRIEF')
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'AI briefing 생성' }),
+    )
+
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent(
+      'AI briefing을 생성하지 못했습니다. 다시 시도해 주세요.',
+    )
   })
 
   it('omits empty briefing groups and keeps populated groups', async () => {
