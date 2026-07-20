@@ -3,7 +3,7 @@ import { renderHook, waitFor } from '@testing-library/react'
 import { createElement, type ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { apiGet, apiPost } from '@/shared/api/client'
+import { apiDelete, apiGet, apiPatch, apiPost } from '@/shared/api/client'
 
 import { adaptAlert, adaptAlertCandidate, adaptAlertOverview } from './adapters'
 import {
@@ -16,7 +16,9 @@ import {
 } from './queries'
 
 vi.mock('@/shared/api/client', () => ({
+  apiDelete: vi.fn(),
   apiGet: vi.fn(),
+  apiPatch: vi.fn(),
   apiPost: vi.fn(),
 }))
 
@@ -37,7 +39,9 @@ function createTestQueryClient() {
 
 describe('alerts adapters', () => {
   beforeEach(() => {
+    vi.mocked(apiDelete).mockReset()
     vi.mocked(apiGet).mockReset()
+    vi.mocked(apiPatch).mockReset()
     vi.mocked(apiPost).mockReset()
     vi.mocked(apiPost).mockResolvedValue({ data: {}, meta: undefined })
   })

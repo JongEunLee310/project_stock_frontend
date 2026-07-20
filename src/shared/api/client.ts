@@ -114,6 +114,10 @@ export async function apiRequest<T>(
     res = await fetch(retryReq)
   }
 
+  if (res.status === 204) {
+    return { data: undefined as T }
+  }
+
   const json = (await res.json()) as {
     data: T
     error?: { code: string } | null
@@ -142,6 +146,14 @@ export async function apiPut<T>(
   options?: RequestOptions,
 ) {
   return apiRequest<T>(path, { ...options, method: 'PUT', body })
+}
+
+export async function apiPatch<T>(
+  path: string,
+  body?: unknown,
+  options?: RequestOptions,
+) {
+  return apiRequest<T>(path, { ...options, method: 'PATCH', body })
 }
 
 export async function apiDelete<T>(path: string, options?: RequestOptions) {

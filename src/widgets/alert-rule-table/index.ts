@@ -1,0 +1,1 @@
+export { AlertRuleTable } from './AlertRuleTable'
