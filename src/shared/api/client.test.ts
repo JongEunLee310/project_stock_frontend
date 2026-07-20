@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { setTokens, subscribeAuthExpired } from '@/shared/auth/tokenStore'
 import { ApiError } from './envelope'
-import { apiRequest } from './client'
+import { apiDelete, apiPatch, apiRequest } from './client'
 
 // fetch를 전역 stub으로 교체
 const fetchMock = vi.fn()
@@ -82,6 +82,26 @@ describe('apiRequest — 정상 흐름', () => {
     await apiRequest('/test-path', { auth: false })
     const req: Request = fetchMock.mock.calls[0][0]
     expect(req.url).toBe('https://api.test/test-path')
+  })
+
+  it('apiPatch가 PATCH 메서드와 JSON body를 전달한다', async () => {
+    fetchMock.mockResolvedValueOnce(okResponse({ id: 3 }))
+
+    await apiPatch('/items/3', { name: '수정' }, { auth: false })
+
+    const req: Request = fetchMock.mock.calls[0][0]
+    expect(req.method).toBe('PATCH')
+    expect(await req.json()).toEqual({ name: '수정' })
+  })
+
+  it('apiDelete가 204 No Content를 파싱 오류 없이 처리한다', async () => {
+    fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }))
+
+    await expect(apiDelete<void>('/items/3', { auth: false })).resolves.toEqual(
+      {
+        data: undefined,
+      },
+    )
   })
 })
 
