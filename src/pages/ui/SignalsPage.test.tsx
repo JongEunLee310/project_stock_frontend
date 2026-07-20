@@ -1,6 +1,10 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { QueryClientProvider } from '@tanstack/react-query'
-import { createMemoryRouter, RouterProvider } from 'react-router-dom'
+import {
+  createMemoryRouter,
+  RouterProvider,
+  type RouteObject,
+} from 'react-router-dom'
 import { vi } from 'vitest'
 
 import { appRouteObjects } from '@/app/router'
@@ -10,6 +14,8 @@ import {
   setupAuthenticatedUser,
   teardownAuthenticatedUser,
 } from '@/test-utils/authTestSetup'
+
+import { SignalsPage } from './SignalsPage'
 
 const signalRows = [
   {
@@ -276,8 +282,8 @@ afterEach(() => {
   teardownAuthenticatedUser()
 })
 
-function renderSignals() {
-  const router = createMemoryRouter(appRouteObjects, {
+function renderSignals(routes: RouteObject[] = appRouteObjects) {
+  const router = createMemoryRouter(routes, {
     initialEntries: ['/signals'],
   })
   const queryClient = createQueryClient()
@@ -473,8 +479,10 @@ describe('SignalsPage', () => {
       within(card).getByRole('button', { name: '판단 기록' }),
     ).toBeEnabled()
     expect(
-      within(card).getByRole('button', { name: '알림 설정 (준비 중)' }),
-    ).toBeDisabled()
+      within(card).getByRole('button', {
+        name: '이 시그널 변화 알림 받기',
+      }),
+    ).toBeEnabled()
   })
 
   it('opens the briefing section from the evidence action', async () => {
@@ -487,6 +495,25 @@ describe('SignalsPage', () => {
 
     expect(router.state.location.pathname).toBe('/research/NVDA')
     expect(router.state.location.search).toBe('?section=briefing')
+  })
+
+  it('opens the alert rule builder deep-link for the signal symbol', async () => {
+    const router = renderSignals([
+      { path: '/signals', element: <SignalsPage /> },
+      { path: '/alerts', element: <div>알림 관제</div> },
+    ])
+    const card = await screen.findByRole('article', {
+      name: 'NVDA BUY_CANDIDATE 시그널',
+    })
+
+    fireEvent.click(
+      within(card).getByRole('button', {
+        name: '이 시그널 변화 알림 받기',
+      }),
+    )
+
+    expect(router.state.location.pathname).toBe('/alerts')
+    expect(router.state.location.search).toBe('?builder=create&symbol=NVDA')
   })
 
   it('falls back to the reason when key points are empty', async () => {

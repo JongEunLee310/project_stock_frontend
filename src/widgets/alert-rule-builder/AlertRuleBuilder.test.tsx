@@ -143,6 +143,36 @@ describe('AlertRuleBuilder', () => {
     expect(screen.queryByText(/"metric"/)).not.toBeInTheDocument()
   })
 
+  it('prefills an active template and target identifier in create mode', async () => {
+    render(
+      <AlertRuleBuilder
+        isOpen
+        prefill={{ templateType: 'NEWS_RISK_HIGH', targetId: 'TSLA' }}
+        onClose={vi.fn()}
+      />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('알림 유형')).toHaveValue('NEWS_RISK_HIGH')
+      expect(screen.getByLabelText('대상 식별자')).toHaveValue('TSLA')
+    })
+  })
+
+  it('falls back to the first active template for an unknown prefill template', async () => {
+    render(
+      <AlertRuleBuilder
+        isOpen
+        prefill={{ templateType: 'UNKNOWN_TEMPLATE', targetId: 'AAPL' }}
+        onClose={vi.fn()}
+      />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('알림 유형')).toHaveValue('NEWS_RISK_HIGH')
+      expect(screen.getByLabelText('대상 식별자')).toHaveValue('AAPL')
+    })
+  })
+
   it('creates a rule from the adjusted form values', async () => {
     const onClose = vi.fn()
     const onSaved = vi.fn()
@@ -186,6 +216,7 @@ describe('AlertRuleBuilder', () => {
         isOpen
         mode="edit"
         rule={existingRule}
+        prefill={{ templateType: 'UNKNOWN_TEMPLATE', targetId: 'TSLA' }}
         onClose={vi.fn()}
       />,
     )
@@ -218,6 +249,7 @@ describe('AlertRuleBuilder', () => {
         isOpen
         mode="duplicate"
         rule={existingRule}
+        prefill={{ templateType: 'UNKNOWN_TEMPLATE', targetId: 'TSLA' }}
         onClose={vi.fn()}
       />,
     )
