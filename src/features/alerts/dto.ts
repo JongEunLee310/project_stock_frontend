@@ -108,6 +108,43 @@ export interface AlertRuleUpdateDto {
   delivery_policy?: AlertDeliveryPolicy
 }
 
+export interface AlertEventDto {
+  id: number
+  rule_id: number
+  user_id: number
+  target_type: AlertTargetType
+  target_id: string | null
+  asset_id: number | null
+  title: string
+  message: string
+  severity: AlertSeverity
+  read_at: string | null
+  triggered_at: string
+}
+
+export interface AlertEventDetailDto extends AlertEventDto {
+  triggered_value: Record<string, unknown>
+  evidence: Array<Record<string, unknown>>
+}
+
+export interface AlertEventReadDto {
+  alert_ids: number[]
+}
+
+export interface NotificationChannelDto {
+  id: number
+  user_id: number
+  channel_type: AlertChannel
+  configuration: Record<string, unknown>
+  enabled: boolean
+  verified_at: string | null
+}
+
+export interface NotificationChannelCreateDto {
+  channel_type: Extract<AlertChannel, 'APP' | 'EMAIL'>
+  configuration: Record<string, unknown>
+}
+
 export interface AlertCandidateDto {
   id: number
   asset_id?: number | null

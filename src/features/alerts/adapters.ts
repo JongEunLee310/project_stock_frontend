@@ -13,7 +13,10 @@ import type {
   AlertCondition,
   AlertDeliveryPolicy,
   AlertDto,
+  AlertEventDetailDto,
+  AlertEventDto,
   AlertOverviewDto,
+  NotificationChannelDto,
   AlertRuleDto,
   AlertRuleSource,
   AlertRuleStatus,
@@ -88,6 +91,37 @@ export interface AlertRuleTemplate {
   cooldownSeconds: number
   deliveryPolicy: AlertDeliveryPolicy
   isActive: boolean
+}
+
+export interface AlertEvent {
+  id: number
+  ruleId: number
+  userId: number
+  targetType: AlertTargetType
+  targetId: string | null
+  assetId: number | null
+  title: string
+  message: string
+  severity: AlertSeverity
+  readAt: string | null
+  readAtIso: string | null
+  triggeredAt: string
+  triggeredAtIso: string
+}
+
+export interface AlertEventDetail extends AlertEvent {
+  triggeredValue: Record<string, unknown>
+  evidence: Array<Record<string, unknown>>
+}
+
+export interface NotificationChannel {
+  id: number
+  userId: number
+  channelType: AlertChannel
+  configuration: Record<string, unknown>
+  enabled: boolean
+  verifiedAt: string | null
+  verifiedAtIso: string | null
 }
 
 export function adaptAlert(dto: AlertDto): Alert {
@@ -177,5 +211,47 @@ export function adaptAlertRuleTemplate(
     cooldownSeconds: dto.cooldown_seconds,
     deliveryPolicy: dto.delivery_policy,
     isActive: dto.is_active,
+  }
+}
+
+export function adaptAlertEvent(dto: AlertEventDto): AlertEvent {
+  return {
+    id: dto.id,
+    ruleId: dto.rule_id,
+    userId: dto.user_id,
+    targetType: dto.target_type,
+    targetId: dto.target_id,
+    assetId: dto.asset_id,
+    title: dto.title,
+    message: dto.message,
+    severity: dto.severity,
+    readAt: dto.read_at ? formatKstDateTime(dto.read_at) : null,
+    readAtIso: dto.read_at,
+    triggeredAt: formatKstDateTime(dto.triggered_at),
+    triggeredAtIso: dto.triggered_at,
+  }
+}
+
+export function adaptAlertEventDetail(
+  dto: AlertEventDetailDto,
+): AlertEventDetail {
+  return {
+    ...adaptAlertEvent(dto),
+    triggeredValue: dto.triggered_value,
+    evidence: dto.evidence,
+  }
+}
+
+export function adaptNotificationChannel(
+  dto: NotificationChannelDto,
+): NotificationChannel {
+  return {
+    id: dto.id,
+    userId: dto.user_id,
+    channelType: dto.channel_type,
+    configuration: dto.configuration,
+    enabled: dto.enabled,
+    verifiedAt: dto.verified_at ? formatKstDateTime(dto.verified_at) : null,
+    verifiedAtIso: dto.verified_at,
   }
 }

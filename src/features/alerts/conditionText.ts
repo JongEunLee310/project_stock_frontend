@@ -1,6 +1,27 @@
 import { riskLevelLabels } from '@/shared/lib/format'
 
-import type { AlertCondition, AlertOperator, AlertSingleCondition } from './dto'
+import type {
+  AlertCondition,
+  AlertMetric,
+  AlertOperator,
+  AlertSingleCondition,
+} from './dto'
+
+export const alertMetricLabels: Record<AlertMetric, string> = {
+  NEWS_RISK: '뉴스 위험도',
+  PRICE_CHANGE_1D: '1일 등락률',
+  SIGNAL_CHANGED: '시그널 변경',
+  AI_JUDGMENT_CHANGED: 'AI 판단 변경',
+  THEME_HEAT: '테마 열기',
+  POSITION_WEIGHT: '단일 종목 비중',
+  EARNINGS_DATE: '실적 발표일',
+  TOPIC_IMPACT_SCORE: '토픽 영향도',
+}
+
+export function alertMetricLabel(metric: unknown): string {
+  if (typeof metric !== 'string') return '알 수 없는 지표'
+  return alertMetricLabels[metric as AlertMetric] ?? metric
+}
 
 const themeHeatLabels: Record<string, string> = {
   COLD: '냉각',

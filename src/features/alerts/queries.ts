@@ -12,25 +12,36 @@ import type { ApiMeta } from '@/shared/api/envelope'
 import {
   adaptAlert,
   adaptAlertCandidate,
+  adaptAlertEvent,
+  adaptAlertEventDetail,
   adaptAlertOverview,
   adaptAlertRule,
   adaptAlertRuleTemplate,
+  adaptNotificationChannel,
   type Alert,
   type AlertCandidate,
+  type AlertEvent,
+  type AlertEventDetail,
   type AlertOverview,
   type AlertRule,
   type AlertRuleTemplate,
+  type NotificationChannel,
 } from './adapters'
 import type {
   AlertCandidateDto,
   AlertDto,
+  AlertEventDetailDto,
+  AlertEventDto,
   AlertOverviewDto,
   AlertRuleCreateDto,
   AlertRuleDto,
   AlertRuleStatus,
   AlertRuleTemplateDto,
   AlertRuleUpdateDto,
+  AlertSeverity,
   AlertTargetType,
+  NotificationChannelCreateDto,
+  NotificationChannelDto,
 } from './dto'
 
 export type AlertQueryFilters = Readonly<Record<string, unknown>>
@@ -44,7 +55,10 @@ export const alertKeys = {
       : ([...alertKeys.all, 'rules', filters] as const),
   ruleTemplates: () => [...alertKeys.all, 'rule-templates'] as const,
   events: (filters?: AlertQueryFilters) =>
-    [...alertKeys.all, 'events', filters] as const,
+    filters === undefined
+      ? ([...alertKeys.all, 'events'] as const)
+      : ([...alertKeys.all, 'events', filters] as const),
+  event: (id: number) => [...alertKeys.all, 'events', 'detail', id] as const,
   channels: () => [...alertKeys.all, 'channels'] as const,
 }
 
@@ -68,9 +82,34 @@ export interface UpdateAlertRuleVariables {
   body: AlertRuleUpdateDto
 }
 
+export type AlertEventSort =
+  | '-triggered_at'
+  | 'triggered_at'
+  | 'severity'
+  | '-severity'
+  | 'id'
+  | '-id'
+
+export interface AlertEventFilters extends AlertQueryFilters {
+  severity?: AlertSeverity
+  read?: boolean
+  targetType?: AlertTargetType
+  page?: number
+  size?: number
+  sort?: AlertEventSort
+}
+
+export interface AlertEventList {
+  items: AlertEvent[]
+  meta: ApiMeta
+}
+
 const defaultRulePage = 1
 const defaultRulePageSize = 20
 const defaultRuleSort: AlertRuleSort = '-created_at'
+const defaultEventPage = 1
+const defaultEventPageSize = 10
+const defaultEventSort: AlertEventSort = '-triggered_at'
 
 function alertRulePath(filters: AlertRuleFilters): string {
   const params = new URLSearchParams({
@@ -85,10 +124,31 @@ function alertRulePath(filters: AlertRuleFilters): string {
   return `/alert-rules?${params.toString()}`
 }
 
+function alertEventPath(filters: AlertEventFilters): string {
+  const params = new URLSearchParams({
+    page: String(filters.page ?? defaultEventPage),
+    size: String(filters.size ?? defaultEventPageSize),
+    sort: filters.sort ?? defaultEventSort,
+  })
+
+  if (filters.severity) params.set('severity', filters.severity)
+  if (filters.read !== undefined) params.set('read', String(filters.read))
+  if (filters.targetType) params.set('target_type', filters.targetType)
+
+  return `/alert-events?${params.toString()}`
+}
+
 function invalidateAlertRuleData(
   queryClient: ReturnType<typeof useQueryClient>,
 ) {
   void queryClient.invalidateQueries({ queryKey: alertKeys.rules() })
+  void queryClient.invalidateQueries({ queryKey: alertKeys.overview() })
+}
+
+function invalidateAlertEventData(
+  queryClient: ReturnType<typeof useQueryClient>,
+) {
+  void queryClient.invalidateQueries({ queryKey: alertKeys.events() })
   void queryClient.invalidateQueries({ queryKey: alertKeys.overview() })
 }
 
@@ -231,6 +291,112 @@ export function useDeleteAlertRule(): UseMutationResult<void, Error, number> {
       await apiDelete<void>(`/alert-rules/${id}`)
     },
     onSuccess: () => invalidateAlertRuleData(queryClient),
+  })
+}
+
+export function useAlertEvents(
+  filters: AlertEventFilters = {},
+): UseQueryResult<AlertEventList> {
+  return useQuery<AlertEventList>({
+    queryKey: alertKeys.events(filters),
+    queryFn: async () => {
+      const { data, meta } = await apiGet<AlertEventDto[]>(
+        alertEventPath(filters),
+      )
+
+      return {
+        items: data.map(adaptAlertEvent),
+        meta: meta ?? {
+          page: filters.page ?? defaultEventPage,
+          size: filters.size ?? defaultEventPageSize,
+          total: data.length,
+        },
+      }
+    },
+  })
+}
+
+export function useAlertEvent(
+  id: number | null,
+): UseQueryResult<AlertEventDetail> {
+  return useQuery<AlertEventDetail>({
+    queryKey: alertKeys.event(id ?? 0),
+    queryFn: async () => {
+      if (id === null) throw new Error('알림 이벤트 ID가 필요합니다.')
+
+      const { data } = await apiGet<AlertEventDetailDto>(`/alert-events/${id}`)
+      return adaptAlertEventDetail(data)
+    },
+    enabled: id !== null,
+  })
+}
+
+export function useMarkAlertEventRead(): UseMutationResult<
+  AlertEvent,
+  Error,
+  number
+> {
+  const queryClient = useQueryClient()
+
+  return useMutation<AlertEvent, Error, number>({
+    mutationFn: async (id) => {
+      const { data } = await apiPost<AlertEventDto>(`/alert-events/${id}/read`)
+      return adaptAlertEvent(data)
+    },
+    onSuccess: () => invalidateAlertEventData(queryClient),
+  })
+}
+
+export function useMarkAlertEventsRead(): UseMutationResult<
+  AlertEvent[],
+  Error,
+  number[]
+> {
+  const queryClient = useQueryClient()
+
+  return useMutation<AlertEvent[], Error, number[]>({
+    mutationFn: async (alertIds) => {
+      const { data } = await apiPost<AlertEventDto[]>('/alert-events/read', {
+        alert_ids: alertIds,
+      })
+      return data.map(adaptAlertEvent)
+    },
+    onSuccess: () => invalidateAlertEventData(queryClient),
+  })
+}
+
+export function useNotificationChannels(): UseQueryResult<
+  NotificationChannel[]
+> {
+  return useQuery<NotificationChannel[]>({
+    queryKey: alertKeys.channels(),
+    queryFn: async () => {
+      const { data } = await apiGet<NotificationChannelDto[]>(
+        '/notification-channels',
+      )
+      return data.map(adaptNotificationChannel)
+    },
+  })
+}
+
+export function useCreateNotificationChannel(): UseMutationResult<
+  NotificationChannel,
+  Error,
+  NotificationChannelCreateDto
+> {
+  const queryClient = useQueryClient()
+
+  return useMutation<NotificationChannel, Error, NotificationChannelCreateDto>({
+    mutationFn: async (body) => {
+      const { data } = await apiPost<NotificationChannelDto>(
+        '/notification-channels',
+        body,
+      )
+      return adaptNotificationChannel(data)
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: alertKeys.channels() })
+    },
   })
 }
 
