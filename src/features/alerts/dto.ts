@@ -9,6 +9,15 @@ export interface AlertDto {
   created_at: string
 }
 
+export interface AlertOverviewDto {
+  active_rule_count: number
+  triggered_today_count: number
+  high_severity_count: number
+  paused_rule_count: number
+  unread_count: number
+  as_of: string
+}
+
 export interface AlertCandidateDto {
   id: number
   asset_id?: number | null

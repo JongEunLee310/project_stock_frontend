@@ -5,10 +5,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { apiGet, apiPost } from '@/shared/api/client'
 
-import { adaptAlert, adaptAlertCandidate } from './adapters'
+import { adaptAlert, adaptAlertCandidate, adaptAlertOverview } from './adapters'
 import {
+  alertKeys,
   alertQueryKeys,
   useConfirmCandidate,
+  useAlertOverview,
   useReadAlert,
   useUnreadAlertSummary,
 } from './queries'
@@ -152,6 +154,78 @@ describe('alerts adapters', () => {
       riskLevel: '중간',
       status: '안읽음',
     })
+  })
+
+  it('maps every alert overview count and its reference time', () => {
+    expect(
+      adaptAlertOverview({
+        active_rule_count: 8,
+        triggered_today_count: 13,
+        high_severity_count: 3,
+        paused_rule_count: 2,
+        unread_count: 5,
+        as_of: '2026-07-20T04:30:00Z',
+      }),
+    ).toEqual({
+      activeRuleCount: 8,
+      triggeredTodayCount: 13,
+      highSeverityCount: 3,
+      pausedRuleCount: 2,
+      unreadCount: 5,
+      asOf: '2026-07-20T04:30:00Z',
+    })
+  })
+
+  it('loads and adapts the alert overview with its dedicated query key', async () => {
+    vi.mocked(apiGet).mockResolvedValue({
+      data: {
+        active_rule_count: 4,
+        triggered_today_count: 7,
+        high_severity_count: 1,
+        paused_rule_count: 2,
+        unread_count: 6,
+        as_of: '2026-07-20T05:00:00Z',
+      },
+      meta: undefined,
+    })
+    const queryClient = createTestQueryClient()
+    const { result } = renderHook(() => useAlertOverview(), {
+      wrapper: wrapperFor(queryClient),
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(result.current.data).toEqual({
+      activeRuleCount: 4,
+      triggeredTodayCount: 7,
+      highSeverityCount: 1,
+      pausedRuleCount: 2,
+      unreadCount: 6,
+      asOf: '2026-07-20T05:00:00Z',
+    })
+    expect(apiGet).toHaveBeenCalledWith('/alerts/overview')
+    expect(queryClient.getQueryData(alertKeys.overview())).toEqual(
+      result.current.data,
+    )
+  })
+
+  it('builds reusable overview, rules, events, and channels query keys', () => {
+    const ruleFilters = { status: 'ACTIVE', page: 1 }
+    const eventFilters = { severity: 'HIGH' }
+
+    expect(alertKeys.all).toEqual(['alerts'])
+    expect(alertKeys.overview()).toEqual(['alerts', 'overview'])
+    expect(alertKeys.rules(ruleFilters)).toEqual([
+      'alerts',
+      'rules',
+      ruleFilters,
+    ])
+    expect(alertKeys.events(eventFilters)).toEqual([
+      'alerts',
+      'events',
+      eventFilters,
+    ])
+    expect(alertKeys.channels()).toEqual(['alerts', 'channels'])
   })
 
   it('invalidates alerts after read mutation', async () => {

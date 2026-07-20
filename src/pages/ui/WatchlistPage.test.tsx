@@ -380,6 +380,12 @@ vi.mock('@/features/watchlist-recommendations/queries', () => ({
 }))
 
 vi.mock('@/features/alerts/queries', () => ({
+  useAlertOverview: () => ({
+    ...unreadAlertSummaryQueryState,
+    data: unreadAlertSummaryQueryState.data
+      ? { unreadCount: unreadAlertSummaryQueryState.data.unreadCount }
+      : undefined,
+  }),
   useUnreadAlertSummary: () => unreadAlertSummaryQueryState,
 }))
 

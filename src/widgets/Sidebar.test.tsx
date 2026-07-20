@@ -4,21 +4,19 @@ import { vi } from 'vitest'
 
 import { Sidebar } from './Sidebar'
 
-interface UnreadAlertSummaryQueryState {
-  data: { unreadCount: number; recent: unknown[] } | undefined
+interface AlertOverviewQueryState {
+  data: { unreadCount: number } | undefined
 }
 
-let unreadAlertSummaryQueryState: UnreadAlertSummaryQueryState
+let alertOverviewQueryState: AlertOverviewQueryState
 
 vi.mock('@/features/alerts/queries', () => ({
-  useUnreadAlertSummary: () => unreadAlertSummaryQueryState,
+  useAlertOverview: () => alertOverviewQueryState,
 }))
 
-function setUnreadAlertSummaryQueryState(
-  state: Partial<UnreadAlertSummaryQueryState>,
-) {
-  unreadAlertSummaryQueryState = {
-    data: { unreadCount: 0, recent: [] },
+function setAlertOverviewQueryState(state: Partial<AlertOverviewQueryState>) {
+  alertOverviewQueryState = {
+    data: { unreadCount: 0 },
     ...state,
   }
 }
@@ -33,14 +31,14 @@ function renderSidebar() {
 
 describe('Sidebar', () => {
   beforeEach(() => {
-    setUnreadAlertSummaryQueryState({
-      data: { unreadCount: 0, recent: [] },
+    setAlertOverviewQueryState({
+      data: { unreadCount: 0 },
     })
   })
 
   it('renders the unread alert count badge when unread alerts exist', () => {
-    setUnreadAlertSummaryQueryState({
-      data: { unreadCount: 12, recent: [] },
+    setAlertOverviewQueryState({
+      data: { unreadCount: 12 },
     })
 
     renderSidebar()
@@ -56,7 +54,7 @@ describe('Sidebar', () => {
   })
 
   it('hides the alert badge while the unread summary is unavailable', () => {
-    setUnreadAlertSummaryQueryState({ data: undefined })
+    setAlertOverviewQueryState({ data: undefined })
 
     renderSidebar()
 

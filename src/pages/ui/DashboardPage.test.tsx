@@ -340,6 +340,13 @@ vi.mock('@/features/briefing/queries', () => ({
 
 vi.mock('@/features/alerts/queries', () => ({
   useAlertCandidates: () => priorityQueueQueryState,
+  useAlertOverview: () => ({
+    data: { unreadCount: 0 },
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: vi.fn(),
+  }),
   useUnreadAlertSummary: () => ({
     data: { unreadCount: 0, recent: [] },
     error: null,

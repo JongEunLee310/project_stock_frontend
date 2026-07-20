@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { FiBell } from 'react-icons/fi'
 import { Link, useLocation } from 'react-router-dom'
 
-import { useUnreadAlertSummary } from '@/features/alerts/queries'
+import { useAlertOverview } from '@/features/alerts/queries'
 import {
   getActiveNavigationItem,
   navigationItems,
@@ -34,8 +34,8 @@ const navLabels: Record<string, string> = {
 export function Sidebar() {
   const { pathname } = useLocation()
   const activeItem = getActiveNavigationItem(pathname)
-  const { data: unreadAlertSummary } = useUnreadAlertSummary()
-  const unreadAlertCount = unreadAlertSummary?.unreadCount ?? 0
+  const { data: alertOverview } = useAlertOverview()
+  const unreadAlertCount = alertOverview?.unreadCount ?? 0
 
   return (
     <aside className="border-b border-cockpit-border bg-cockpit-surface/90 lg:border-b-0 lg:border-r">
