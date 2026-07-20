@@ -500,7 +500,7 @@ describe('SignalsPage', () => {
   it('opens the alert rule builder deep-link for the signal symbol', async () => {
     const router = renderSignals([
       { path: '/signals', element: <SignalsPage /> },
-      { path: '/alerts', element: <div>알림 관제</div> },
+      { path: '/settings', element: <div>설정</div> },
     ])
     const card = await screen.findByRole('article', {
       name: 'NVDA BUY_CANDIDATE 시그널',
@@ -512,7 +512,7 @@ describe('SignalsPage', () => {
       }),
     )
 
-    expect(router.state.location.pathname).toBe('/alerts')
+    expect(router.state.location.pathname).toBe('/settings')
     expect(router.state.location.search).toBe('?builder=create&symbol=NVDA')
   })
 

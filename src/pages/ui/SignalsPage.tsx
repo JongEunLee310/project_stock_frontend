@@ -491,7 +491,7 @@ function SignalCard({ signal }: { signal: Signal }) {
                 builder: 'create',
                 symbol: signal.symbol,
               })
-              navigate(`${appRoutePaths.alerts}?${searchParams.toString()}`)
+              navigate(`${appRoutePaths.settings}?${searchParams.toString()}`)
             }}
           >
             <FiBell aria-hidden="true" />
