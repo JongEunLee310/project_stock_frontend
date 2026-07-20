@@ -1,59 +1,39 @@
-import { useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useState } from 'react'
+import { Link } from 'react-router-dom'
 
-import type { AlertRule } from '@/features/alerts/adapters'
-import { Button, Card } from '@/shared/ui'
+import { useAlertOverview } from '@/features/alerts/queries'
+import { appRoutePaths } from '@/shared/config/navigation'
+import { Card, EmptyState } from '@/shared/ui'
 import { AlertSummaryCards } from '@/widgets/AlertSummaryCards'
 import { AlertDetail } from '@/widgets/alert-detail'
 import { AlertHistoryPanel } from '@/widgets/alert-history-panel'
-import {
-  AlertRuleBuilder,
-  type AlertRuleBuilderMode,
-  type AlertRuleBuilderPrefill,
-} from '@/widgets/alert-rule-builder'
-import { AlertRuleTable } from '@/widgets/alert-rule-table'
-import { NotificationChannelPanel } from '@/widgets/notification-channel-panel'
-
-interface BuilderState {
-  mode: AlertRuleBuilderMode
-  rule: AlertRule | null
-  prefill?: AlertRuleBuilderPrefill
-}
 
 export function AlertsPage() {
-  const [searchParams, setSearchParams] = useSearchParams()
-  const [builderState, setBuilderState] = useState<BuilderState | null>(null)
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null)
-
-  const builderParam = searchParams.get('builder')
-  const symbolParam = searchParams.get('symbol')
-
-  useEffect(() => {
-    if (builderParam !== 'create') return
-
-    setBuilderState({
-      mode: 'create',
-      rule: null,
-      prefill: {
-        templateType: 'NEWS_RISK_HIGH',
-        ...(symbolParam ? { targetId: symbolParam } : {}),
-      },
-    })
-    setSearchParams({}, { replace: true })
-  }, [builderParam, setSearchParams, symbolParam])
+  const alertOverviewQuery = useAlertOverview()
+  const overview = alertOverviewQuery.data
+  const hasNoRules =
+    overview !== undefined &&
+    overview.activeRuleCount + overview.pausedRuleCount === 0
 
   return (
     <section className="flex flex-col gap-6">
-      <header className="flex min-h-16 items-center justify-between gap-4">
+      <header className="flex min-h-16 flex-wrap items-center justify-between gap-4">
         <div>
           <p className="text-sm font-semibold uppercase tracking-wide text-app-text-muted">
             Alerts
           </p>
           <h1 className="mt-1 text-3xl font-bold text-app-text">알림 관제</h1>
           <p className="mt-2 text-sm text-app-text-muted">
-            감시 규칙을 설정하고 발생 결과와 전달 채널을 한곳에서 관리합니다.
+            감시 규칙의 상태와 발생 내역을 확인하고 상세 근거를 검토합니다.
           </p>
         </div>
+        <Link
+          to={appRoutePaths.settings}
+          className="inline-flex min-h-10 items-center justify-center rounded-control border border-app-accent-strong bg-app-accent-strong px-4 py-2 text-sm font-semibold text-app-accent-text transition-colors hover:bg-app-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent"
+        >
+          알림 규칙 설정
+        </Link>
       </header>
 
       <section aria-labelledby="alert-overview-title">
@@ -69,41 +49,25 @@ export function AlertsPage() {
           </h2>
         </div>
         <AlertSummaryCards />
+        {hasNoRules ? (
+          <Card className="mt-4">
+            <EmptyState
+              title="설정된 알림 규칙이 없습니다"
+              description="알림을 관제하려면 설정에서 먼저 감시 규칙을 만들어 주세요."
+              action={
+                <Link
+                  to={appRoutePaths.settings}
+                  className="inline-flex min-h-10 items-center justify-center rounded-control border border-app-border bg-app-surface-muted px-4 py-2 text-sm font-semibold text-app-text transition-colors hover:border-app-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent"
+                >
+                  설정에서 규칙 만들기
+                </Link>
+              }
+            />
+          </Card>
+        ) : null}
       </section>
 
-      <Card aria-labelledby="alert-rules-section-title">
-        <div className="mb-5 flex flex-wrap items-start justify-between gap-3 border-b border-app-border pb-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-app-accent">
-              Settings
-            </p>
-            <h2
-              id="alert-rules-section-title"
-              className="mt-1 text-xl font-semibold text-app-text"
-            >
-              규칙·설정
-            </h2>
-            <p className="mt-1 text-sm text-app-text-muted">
-              무엇을 어떤 조건에서 감시할지 정의합니다.
-            </p>
-          </div>
-          <Button
-            type="button"
-            onClick={() => setBuilderState({ mode: 'create', rule: null })}
-          >
-            새 규칙 만들기
-          </Button>
-        </div>
-        <AlertRuleTable
-          onEdit={(rule) => setBuilderState({ mode: 'edit', rule })}
-          onDuplicate={(rule) => setBuilderState({ mode: 'duplicate', rule })}
-        />
-      </Card>
-
-      <section
-        aria-labelledby="alert-results-section-title"
-        className="border-t-2 border-app-accent/30 pt-6"
-      >
+      <section aria-labelledby="alert-results-section-title">
         <div className="mb-3">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-app-accent">
             Results
@@ -123,31 +87,6 @@ export function AlertsPage() {
         </Card>
       </section>
 
-      <Card aria-labelledby="alert-channels-section-title">
-        <div className="mb-5 border-b border-app-border pb-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-app-accent">
-            Delivery
-          </p>
-          <h2
-            id="alert-channels-section-title"
-            className="mt-1 text-xl font-semibold text-app-text"
-          >
-            채널 설정
-          </h2>
-          <p className="mt-1 text-sm text-app-text-muted">
-            알림을 어디에서 받을지 관리합니다.
-          </p>
-        </div>
-        <NotificationChannelPanel />
-      </Card>
-
-      <AlertRuleBuilder
-        isOpen={builderState !== null}
-        mode={builderState?.mode}
-        rule={builderState?.rule}
-        prefill={builderState?.prefill}
-        onClose={() => setBuilderState(null)}
-      />
       <AlertDetail
         eventId={selectedEventId}
         onClose={() => setSelectedEventId(null)}
