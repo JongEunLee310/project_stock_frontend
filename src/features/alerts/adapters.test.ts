@@ -5,7 +5,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { apiDelete, apiGet, apiPatch, apiPost } from '@/shared/api/client'
 
-import { adaptAlert, adaptAlertCandidate, adaptAlertOverview } from './adapters'
+import {
+  adaptAlert,
+  adaptAlertCandidate,
+  adaptAlertEvent,
+  adaptAlertEventDetail,
+  adaptAlertOverview,
+  adaptNotificationChannel,
+} from './adapters'
 import {
   alertKeys,
   alertQueryKeys,
@@ -177,6 +184,102 @@ describe('alerts adapters', () => {
       pausedRuleCount: 2,
       unreadCount: 5,
       asOf: '2026-07-20T04:30:00Z',
+    })
+  })
+
+  it('adapts an alert event and preserves nullable read state', () => {
+    expect(
+      adaptAlertEvent({
+        id: 71,
+        rule_id: 11,
+        user_id: 7,
+        target_type: 'SYMBOL',
+        target_id: 'NVDA',
+        asset_id: 3,
+        title: '가격 급등',
+        message: '1일 등락률이 기준을 넘었습니다.',
+        severity: 'HIGH',
+        read_at: null,
+        triggered_at: '2026-07-20T03:30:00Z',
+      }),
+    ).toMatchObject({
+      id: 71,
+      ruleId: 11,
+      userId: 7,
+      targetType: 'SYMBOL',
+      targetId: 'NVDA',
+      assetId: 3,
+      severity: 'HIGH',
+      readAt: null,
+      readAtIso: null,
+      triggeredAtIso: '2026-07-20T03:30:00Z',
+    })
+  })
+
+  it('adapts alert detail triggered values and open evidence records', () => {
+    const detail = adaptAlertEventDetail({
+      id: 72,
+      rule_id: 12,
+      user_id: 7,
+      target_type: 'PORTFOLIO',
+      target_id: '4',
+      asset_id: 8,
+      title: '비중 초과',
+      message: '단일 종목 비중이 기준을 넘었습니다.',
+      severity: 'MEDIUM',
+      read_at: '2026-07-20T04:00:00Z',
+      triggered_at: '2026-07-20T03:45:00Z',
+      triggered_value: {
+        metric: 'POSITION_WEIGHT',
+        current: 0.18,
+        previous: 0.14,
+        threshold: 0.15,
+      },
+      evidence: [
+        {
+          kind: 'PORTFOLIO_POSITION',
+          portfolio_id: 4,
+          custom_field: 'kept',
+        },
+      ],
+    })
+
+    expect(detail).toMatchObject({
+      id: 72,
+      readAtIso: '2026-07-20T04:00:00Z',
+      triggeredValue: {
+        metric: 'POSITION_WEIGHT',
+        current: 0.18,
+        previous: 0.14,
+        threshold: 0.15,
+      },
+      evidence: [
+        {
+          kind: 'PORTFOLIO_POSITION',
+          portfolio_id: 4,
+          custom_field: 'kept',
+        },
+      ],
+    })
+  })
+
+  it('adapts notification channel configuration and verification time', () => {
+    expect(
+      adaptNotificationChannel({
+        id: 5,
+        user_id: 7,
+        channel_type: 'EMAIL',
+        configuration: { email: 'user@example.com' },
+        enabled: true,
+        verified_at: '2026-07-20T05:00:00Z',
+      }),
+    ).toMatchObject({
+      id: 5,
+      userId: 7,
+      channelType: 'EMAIL',
+      configuration: { email: 'user@example.com' },
+      enabled: true,
+      verifiedAtIso: '2026-07-20T05:00:00Z',
     })
   })
 

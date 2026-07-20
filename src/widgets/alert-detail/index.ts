@@ -1,0 +1,1 @@
+export { AlertDetail } from './AlertDetail'
