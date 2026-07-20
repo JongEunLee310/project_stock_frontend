@@ -11,10 +11,24 @@ import { apiGet, apiPost } from '@/shared/api/client'
 import {
   adaptAlert,
   adaptAlertCandidate,
+  adaptAlertOverview,
   type Alert,
   type AlertCandidate,
+  type AlertOverview,
 } from './adapters'
-import type { AlertCandidateDto, AlertDto } from './dto'
+import type { AlertCandidateDto, AlertDto, AlertOverviewDto } from './dto'
+
+export type AlertQueryFilters = Readonly<Record<string, unknown>>
+
+export const alertKeys = {
+  all: ['alerts'] as const,
+  overview: () => [...alertKeys.all, 'overview'] as const,
+  rules: (filters?: AlertQueryFilters) =>
+    [...alertKeys.all, 'rules', filters] as const,
+  events: (filters?: AlertQueryFilters) =>
+    [...alertKeys.all, 'events', filters] as const,
+  channels: () => [...alertKeys.all, 'channels'] as const,
+}
 
 export const alertQueryKeys = {
   alerts: ['alerts'] as const,
@@ -32,6 +46,17 @@ export interface UnreadAlertSummary {
 export const emptyUnreadAlertSummary: UnreadAlertSummary = {
   unreadCount: 0,
   recent: [],
+}
+
+export function useAlertOverview(): UseQueryResult<AlertOverview> {
+  return useQuery<AlertOverview>({
+    queryKey: alertKeys.overview(),
+    queryFn: async () => {
+      const { data } = await apiGet<AlertOverviewDto>('/alerts/overview')
+
+      return adaptAlertOverview(data)
+    },
+  })
 }
 
 export function useAlerts(): UseQueryResult<Alert[]> {

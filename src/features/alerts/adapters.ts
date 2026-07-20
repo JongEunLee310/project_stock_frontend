@@ -7,7 +7,7 @@ import {
 } from '@/shared/lib/format'
 import type { RiskLevel } from '@/shared/model'
 
-import type { AlertCandidateDto, AlertDto } from './dto'
+import type { AlertCandidateDto, AlertDto, AlertOverviewDto } from './dto'
 
 export interface Alert {
   id: string
@@ -31,6 +31,15 @@ export interface AlertCandidate {
   riskLevel: RiskLevel
   status: string
   createdAt: string
+}
+
+export interface AlertOverview {
+  activeRuleCount: number
+  triggeredTodayCount: number
+  highSeverityCount: number
+  pausedRuleCount: number
+  unreadCount: number
+  asOf: string
 }
 
 export function adaptAlert(dto: AlertDto): Alert {
@@ -66,5 +75,16 @@ export function adaptAlertCandidate(dto: AlertCandidateDto): AlertCandidate {
       dto.status,
     ),
     createdAt: formatKstDateTime(dto.created_at),
+  }
+}
+
+export function adaptAlertOverview(dto: AlertOverviewDto): AlertOverview {
+  return {
+    activeRuleCount: dto.active_rule_count,
+    triggeredTodayCount: dto.triggered_today_count,
+    highSeverityCount: dto.high_severity_count,
+    pausedRuleCount: dto.paused_rule_count,
+    unreadCount: dto.unread_count,
+    asOf: dto.as_of,
   }
 }
