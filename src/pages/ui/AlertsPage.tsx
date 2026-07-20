@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 
 import type { AlertRule } from '@/features/alerts/adapters'
 import { Button, Card } from '@/shared/ui'
@@ -8,6 +9,7 @@ import { AlertHistoryPanel } from '@/widgets/alert-history-panel'
 import {
   AlertRuleBuilder,
   type AlertRuleBuilderMode,
+  type AlertRuleBuilderPrefill,
 } from '@/widgets/alert-rule-builder'
 import { AlertRuleTable } from '@/widgets/alert-rule-table'
 import { NotificationChannelPanel } from '@/widgets/notification-channel-panel'
@@ -15,11 +17,30 @@ import { NotificationChannelPanel } from '@/widgets/notification-channel-panel'
 interface BuilderState {
   mode: AlertRuleBuilderMode
   rule: AlertRule | null
+  prefill?: AlertRuleBuilderPrefill
 }
 
 export function AlertsPage() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [builderState, setBuilderState] = useState<BuilderState | null>(null)
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null)
+
+  const builderParam = searchParams.get('builder')
+  const symbolParam = searchParams.get('symbol')
+
+  useEffect(() => {
+    if (builderParam !== 'create') return
+
+    setBuilderState({
+      mode: 'create',
+      rule: null,
+      prefill: {
+        templateType: 'NEWS_RISK_HIGH',
+        ...(symbolParam ? { targetId: symbolParam } : {}),
+      },
+    })
+    setSearchParams({}, { replace: true })
+  }, [builderParam, setSearchParams, symbolParam])
 
   return (
     <section className="flex flex-col gap-6">
@@ -124,6 +145,7 @@ export function AlertsPage() {
         isOpen={builderState !== null}
         mode={builderState?.mode}
         rule={builderState?.rule}
+        prefill={builderState?.prefill}
         onClose={() => setBuilderState(null)}
       />
       <AlertDetail

@@ -484,12 +484,18 @@ function SignalCard({ signal }: { signal: Signal }) {
           </Button>
           <Button
             variant="ghost"
-            disabled
-            aria-label="알림 설정 (준비 중)"
+            aria-label="이 시그널 변화 알림 받기"
             className="min-h-10 gap-1 rounded-none border-0 border-l border-cockpit-border px-2"
+            onClick={() => {
+              const searchParams = new URLSearchParams({
+                builder: 'create',
+                symbol: signal.symbol,
+              })
+              navigate(`${appRoutePaths.alerts}?${searchParams.toString()}`)
+            }}
           >
             <FiBell aria-hidden="true" />
-            알림 설정
+            변화 알림
           </Button>
         </div>
       </article>

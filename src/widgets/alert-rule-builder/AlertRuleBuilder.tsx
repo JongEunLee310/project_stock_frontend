@@ -30,10 +30,16 @@ import { Button, ErrorState, Input, Skeleton } from '@/shared/ui'
 
 export type AlertRuleBuilderMode = 'create' | 'edit' | 'duplicate'
 
+export interface AlertRuleBuilderPrefill {
+  templateType?: string
+  targetId?: string
+}
+
 interface AlertRuleBuilderProps {
   isOpen: boolean
   mode?: AlertRuleBuilderMode
   rule?: AlertRule | null
+  prefill?: AlertRuleBuilderPrefill
   onClose: () => void
   onSaved?: (rule: AlertRule) => void
 }
@@ -141,6 +147,7 @@ export function AlertRuleBuilder({
   isOpen,
   mode = 'create',
   rule,
+  prefill,
   onClose,
   onSaved,
 }: AlertRuleBuilderProps) {
@@ -207,9 +214,16 @@ export function AlertRuleBuilder({
       return
     }
 
-    const firstActiveTemplate = templates.find((template) => template.isActive)
-    if (firstActiveTemplate) applyTemplate(firstActiveTemplate)
-  }, [applyTemplate, isOpen, mode, rule, templates])
+    const prefillTemplate = templates.find(
+      (template) =>
+        template.isActive && template.templateType === prefill?.templateType,
+    )
+    const initialTemplate =
+      prefillTemplate ?? templates.find((template) => template.isActive)
+
+    if (initialTemplate) applyTemplate(initialTemplate)
+    if (prefill?.targetId !== undefined) setTargetId(prefill.targetId)
+  }, [applyTemplate, isOpen, mode, prefill, rule, templates])
 
   useEffect(() => {
     if (!isOpen) return
