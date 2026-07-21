@@ -5,7 +5,7 @@ import { vi } from 'vitest'
 
 import { appRouteObjects } from '@/app/router'
 import type { AlertCandidate } from '@/features/alerts/adapters'
-import type { DecisionLog } from '@/features/decision-log/adapters'
+import type { DecisionLogListItem } from '@/features/decision-log/adapters'
 import type { Signal } from '@/features/signals/adapters'
 import type { WatchlistAssetRow } from '@/features/watchlist/adapters'
 import { createQueryClient } from '@/shared/api/queryClient'
@@ -142,38 +142,50 @@ const signalRows: Signal[] = [
   },
 ]
 
-const decisionLogRows: DecisionLog[] = [
+const decisionLogRows: DecisionLogListItem[] = [
   {
     id: '1',
-    symbol: 'NVDA',
-    decisionType: '보유 유지',
-    decisionStatus: '열림',
-    rationale: '실적 발표 전 보유 판단을 유지한다.',
-    cognitiveRisks: ['밸류에이션'],
-    createdBy: '사용자',
-    reviewDate: null,
+    target: { type: 'SYMBOL', typeLabel: '종목', id: 'NVDA', label: 'NVDA' },
+    decisionType: 'HOLD',
+    decisionTypeLabel: '관망 유지',
+    summary: '실적 발표 전 보유 판단을 유지한다.',
+    riskTypes: ['VALUATION'],
+    riskLabels: ['밸류에이션'],
+    confidenceLevel: 'MEDIUM',
+    confidenceLevelLabel: '중간',
+    status: 'ACTIVE',
+    statusLabel: '진행 중',
+    reviewAt: null,
     createdAt: '2026. 05. 24. 09:00',
   },
   {
     id: '2',
-    symbol: 'TSLA',
-    decisionType: '매도 검토',
-    decisionStatus: '검토됨',
-    rationale: '마진 둔화 가능성을 확인한다.',
-    cognitiveRisks: ['마진 압박'],
-    createdBy: 'AI',
-    reviewDate: null,
+    target: { type: 'SYMBOL', typeLabel: '종목', id: 'TSLA', label: 'TSLA' },
+    decisionType: 'SELL_REVIEW',
+    decisionTypeLabel: '매도 검토',
+    summary: '마진 둔화 가능성을 확인한다.',
+    riskTypes: ['MARGIN_PRESSURE'],
+    riskLabels: ['마진 압박'],
+    confidenceLevel: 'LOW',
+    confidenceLevelLabel: '낮음',
+    status: 'REVIEWED',
+    statusLabel: '복기됨',
+    reviewAt: null,
     createdAt: '2026. 05. 23. 09:00',
   },
   {
     id: '3',
-    symbol: 'AAPL',
-    decisionType: '관망',
-    decisionStatus: '종료됨',
-    rationale: '신제품 이벤트 전까지 관망한다.',
-    cognitiveRisks: [],
-    createdBy: '시스템',
-    reviewDate: null,
+    target: { type: 'SYMBOL', typeLabel: '종목', id: 'AAPL', label: 'AAPL' },
+    decisionType: 'WATCH',
+    decisionTypeLabel: '관찰 지속',
+    summary: '신제품 이벤트 전까지 관찰한다.',
+    riskTypes: [],
+    riskLabels: [],
+    confidenceLevel: 'HIGH',
+    confidenceLevelLabel: '높음',
+    status: 'CLOSED',
+    statusLabel: '종료',
+    reviewAt: null,
     createdAt: '2026. 05. 22. 09:00',
   },
 ]
@@ -311,8 +323,8 @@ let priorityQueueQueryState: QueryState<AlertCandidate[]> = {
   isLoading: false,
   refetch: refetchPriorityQueue,
 }
-let decisionLogsQueryState: QueryState<DecisionLog[]> = {
-  data: decisionLogRows,
+let decisionLogsQueryState: QueryState<{ items: DecisionLogListItem[] }> = {
+  data: { items: decisionLogRows },
   error: null,
   isError: false,
   isLoading: false,
@@ -432,7 +444,7 @@ beforeEach(() => {
     refetch: refetchPriorityQueue,
   }
   decisionLogsQueryState = {
-    data: decisionLogRows,
+    data: { items: decisionLogRows },
     error: null,
     isError: false,
     isLoading: false,
@@ -877,7 +889,7 @@ describe('DashboardPage', () => {
 
     expect(within(table).getByRole('link', { name: 'NVDA' })).toBeVisible()
     expect(within(table).getByRole('link', { name: 'TSLA' })).toBeVisible()
-    expect(within(table).getAllByText('보유 유지').length).toBeGreaterThan(0)
+    expect(within(table).getAllByText('관망 유지').length).toBeGreaterThan(0)
     expect(within(table).getByText('매도 검토')).toBeVisible()
     expect(
       within(table).getByText('실적 발표 전 보유 판단을 유지한다.'),
@@ -923,7 +935,7 @@ describe('DashboardPage', () => {
     unmountError()
     decisionLogsQueryState = {
       ...decisionLogsQueryState,
-      data: [],
+      data: { items: [] },
       error: null,
       isError: false,
       isLoading: false,

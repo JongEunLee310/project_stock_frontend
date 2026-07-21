@@ -552,7 +552,7 @@ export const mockDecisionLogs = [
     id: 'decision-nvda-001',
     symbol: 'NVDA',
     decision: '기존 비중을 유지하고 눌림 구간만 재검토',
-    decisionType: '보유 유지',
+    decisionType: '관망 유지',
     rationale:
       '데이터센터 수요는 견조하지만 밸류에이션이 이미 높은 수준이라 추가 진입은 가격 조정 이후로 미룬다.',
     cognitiveRisks: ['밸류에이션', '공급망'],
@@ -576,7 +576,7 @@ export const mockDecisionLogs = [
     id: 'decision-aapl-001',
     symbol: 'AAPL',
     decision: '서비스 성장률 확인 전까지 관망',
-    decisionType: '관망',
+    decisionType: '관찰 지속',
     rationale:
       '하드웨어 교체 수요가 약한 가운데 서비스 매출 방어력이 현재 멀티플을 정당화하는지 추가 확인이 필요하다.',
     cognitiveRisks: ['밸류에이션', '수요 둔화'],
@@ -612,7 +612,7 @@ export const mockDecisionLogs = [
     id: 'decision-meta-001',
     symbol: 'META',
     decision: '광고 성장 둔화 여부 확인 전 보류',
-    decisionType: '보류',
+    decisionType: '추가 리서치 필요',
     rationale:
       'AI 추천 효율은 강하지만 광고 수요 둔화와 규제 비용이 동시에 커지는지 확인해야 한다.',
     cognitiveRisks: ['규제', '수요 둔화'],
@@ -624,7 +624,7 @@ export const mockDecisionLogs = [
     id: 'decision-googl-001',
     symbol: 'GOOGL',
     decision: '검색 점유율 변화 추적',
-    decisionType: '관망',
+    decisionType: '관찰 지속',
     rationale:
       '클라우드와 광고 기반은 견조하지만 생성형 검색 전환이 핵심 사업의 방어력을 시험하고 있다.',
     cognitiveRisks: ['경쟁 심화', '규제'],
@@ -648,7 +648,7 @@ export const mockDecisionLogs = [
     id: 'decision-crm-001',
     symbol: 'CRM',
     decision: '성장률 회복 전 비중 확대 보류',
-    decisionType: '보유 유지',
+    decisionType: '관망 유지',
     rationale:
       '마진 방어는 긍정적이지만 신규 매출 성장률이 둔화되어 재가속 신호 전까지 기존 비중을 유지한다.',
     cognitiveRisks: ['수요 둔화', '경쟁 심화'],
@@ -696,10 +696,10 @@ export const mockDecisionLogs = [
     id: 'decision-intc-001',
     symbol: 'INTC',
     decision: '턴어라운드 근거가 쌓일 때까지 관망',
-    decisionType: '관망',
+    decisionType: '관찰 지속',
     rationale:
       '파운드리 투자 회수와 제품 경쟁력 회복이 아직 숫자로 확인되지 않아 단기 반등만으로 판단하지 않는다.',
-    cognitiveRisks: ['기타', '공급망'],
+    cognitiveRisks: ['회계', '공급망'],
     reviewDate: '2026-07-11',
     outcome: '대기',
     createdAt: '2026-06-12T08:30:00.000Z',

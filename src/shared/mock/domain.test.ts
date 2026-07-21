@@ -1,10 +1,10 @@
 import {
   catalystCategories,
-  cognitiveRisks,
   decisionOutcomes,
   decisionTypes,
   newsCategories,
   riskLevels,
+  riskTypes,
   stockStatuses,
 } from '@/shared/model'
 
@@ -136,7 +136,7 @@ describe('domain mock data', () => {
           decisionTypes.includes(decisionLog.decisionType) &&
           decisionLog.cognitiveRisks.length > 0 &&
           decisionLog.cognitiveRisks.every((risk) =>
-            cognitiveRisks.includes(risk),
+            riskTypes.includes(risk),
           ) &&
           decisionOutcomes.includes(decisionLog.outcome) &&
           decisionLog.reviewDate.length > 0,

@@ -6,79 +6,219 @@ import {
   type UseQueryResult,
 } from '@tanstack/react-query'
 
-import { apiGet, apiPost } from '@/shared/api/client'
+import { apiGet, apiPatch, apiPost } from '@/shared/api/client'
+import type { ApiMeta } from '@/shared/api/envelope'
 
 import {
-  adaptDecisionLog,
-  adaptDecisionTypeCounts,
-  adaptReviewedDecision,
-  type DecisionLog,
-  type DecisionTypeCount,
-  type ReviewedDecision,
+  adaptDecisionLogDetail,
+  adaptDecisionLogListItem,
+  adaptDecisionOverview,
+  type DecisionLogDetail,
+  type DecisionLogListItem,
+  type DecisionOverview,
 } from './adapters'
 import type {
-  CreateDecisionLogBody,
-  DecisionLogDto,
-  DecisionLogStatsDto,
+  ActivateDecisionBodyDto,
+  CreateDecisionLogBodyDto,
+  DecisionLogDetailDto,
+  DecisionLogListItemDto,
+  DecisionOverviewDto,
+  DecisionStatusDto,
+  DecisionTypeDto,
+  TargetTypeDto,
+  UpdateDecisionDraftBodyDto,
 } from './dto'
 
-export const decisionLogQueryKey = ['decision-logs'] as const
-export const decisionLogStatsQueryKey = ['decision-logs', 'stats'] as const
-
-type DecisionLogListData = DecisionLogDto[] | { items: DecisionLogDto[] }
-
-export interface DecisionLogStats {
-  patterns: DecisionTypeCount[]
-  recentReviewed: ReviewedDecision[]
+export interface DecisionLogFilters {
+  page?: number
+  size?: number
+  sort?: string
+  targetType?: TargetTypeDto
+  symbol?: string
+  decisionType?: DecisionTypeDto
+  status?: DecisionStatusDto
+  riskType?: string
+  reviewDueBefore?: string
 }
 
-function extractDecisionLogItems(data: DecisionLogListData): DecisionLogDto[] {
+export interface DecisionLogList {
+  items: DecisionLogListItem[]
+  meta?: ApiMeta
+}
+
+type DecisionLogListData =
+  | DecisionLogListItemDto[]
+  | { items: DecisionLogListItemDto[] }
+
+export const decisionLogKeys = {
+  all: ['decision-logs'] as const,
+  overview: () => [...decisionLogKeys.all, 'overview'] as const,
+  lists: () => [...decisionLogKeys.all, 'list'] as const,
+  list: (filters: DecisionLogFilters) =>
+    [...decisionLogKeys.lists(), filters] as const,
+  details: () => [...decisionLogKeys.all, 'detail'] as const,
+  detail: (id: string) => [...decisionLogKeys.details(), id] as const,
+  reviewQueue: () => [...decisionLogKeys.all, 'review-queue'] as const,
+}
+
+export const decisionLogQueryKey = decisionLogKeys.all
+
+export function extractDecisionLogItems(
+  data: DecisionLogListData,
+): DecisionLogListItemDto[] {
   return Array.isArray(data) ? data : data.items
 }
 
-export function useDecisionLogs(): UseQueryResult<DecisionLog[]> {
-  return useQuery<DecisionLog[]>({
-    queryKey: decisionLogQueryKey,
-    queryFn: async () => {
-      const { data } = await apiGet<DecisionLogListData>('/decision-logs')
+function buildDecisionLogListPath(filters: DecisionLogFilters): string {
+  const params = new URLSearchParams()
+  const entries: Array<[string, string | number | undefined]> = [
+    ['page', filters.page],
+    ['size', filters.size],
+    ['sort', filters.sort],
+    ['target_type', filters.targetType],
+    ['symbol', filters.symbol],
+    ['decision_type', filters.decisionType],
+    ['status', filters.status],
+    ['risk_type', filters.riskType],
+    ['review_due_before', filters.reviewDueBefore],
+  ]
 
-      return extractDecisionLogItems(data).map(adaptDecisionLog)
+  entries.forEach(([key, value]) => {
+    if (value !== undefined && value !== '') params.set(key, String(value))
+  })
+
+  const query = params.toString()
+  return query ? `/decision-logs?${query}` : '/decision-logs'
+}
+
+function invalidateDecisionLogs(
+  queryClient: ReturnType<typeof useQueryClient>,
+) {
+  void queryClient.invalidateQueries({ queryKey: decisionLogKeys.all })
+}
+
+export function useDecisionOverview(): UseQueryResult<DecisionOverview> {
+  return useQuery<DecisionOverview>({
+    queryKey: decisionLogKeys.overview(),
+    queryFn: async () => {
+      const { data } = await apiGet<DecisionOverviewDto>(
+        '/decision-logs/overview',
+      )
+      return adaptDecisionOverview(data)
     },
   })
 }
 
-export function useDecisionLogStats(): UseQueryResult<DecisionLogStats> {
-  return useQuery<DecisionLogStats>({
-    queryKey: decisionLogStatsQueryKey,
+export function useDecisionLogs(
+  filters: DecisionLogFilters = {},
+): UseQueryResult<DecisionLogList> {
+  return useQuery<DecisionLogList>({
+    queryKey: decisionLogKeys.list(filters),
     queryFn: async () => {
-      const { data } = await apiGet<DecisionLogStatsDto>('/decision-logs/stats')
+      const { data, meta } = await apiGet<DecisionLogListData>(
+        buildDecisionLogListPath(filters),
+      )
 
       return {
-        patterns: adaptDecisionTypeCounts(
-          data.decision_type_counts,
-          data.total,
-        ),
-        recentReviewed: data.recent_reviewed.map(adaptReviewedDecision),
+        items: extractDecisionLogItems(data).map(adaptDecisionLogListItem),
+        meta,
       }
     },
   })
 }
 
+export function useDecisionLog(
+  id: string | undefined,
+): UseQueryResult<DecisionLogDetail> {
+  const normalizedId = id ?? ''
+
+  return useQuery<DecisionLogDetail>({
+    queryKey: decisionLogKeys.detail(normalizedId),
+    queryFn: async () => {
+      const { data } = await apiGet<DecisionLogDetailDto>(
+        `/decision-logs/${encodeURIComponent(normalizedId)}`,
+      )
+      return adaptDecisionLogDetail(data)
+    },
+    enabled: normalizedId.length > 0,
+  })
+}
+
 export function useCreateDecisionLog(): UseMutationResult<
-  DecisionLog,
+  DecisionLogDetail,
   Error,
-  CreateDecisionLogBody
+  CreateDecisionLogBodyDto
 > {
   const queryClient = useQueryClient()
 
-  return useMutation<DecisionLog, Error, CreateDecisionLogBody>({
+  return useMutation<DecisionLogDetail, Error, CreateDecisionLogBodyDto>({
     mutationFn: async (body) => {
-      const { data } = await apiPost<DecisionLogDto>('/decision-logs', body)
-
-      return adaptDecisionLog(data)
+      const { data } = await apiPost<DecisionLogDetailDto>(
+        '/decision-logs',
+        body,
+      )
+      return adaptDecisionLogDetail(data)
     },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: decisionLogQueryKey })
+    onSuccess: () => invalidateDecisionLogs(queryClient),
+  })
+}
+
+export interface UpdateDecisionDraftVariables {
+  id: string
+  body: UpdateDecisionDraftBodyDto
+}
+
+export function useUpdateDecisionDraft(): UseMutationResult<
+  DecisionLogDetail,
+  Error,
+  UpdateDecisionDraftVariables
+> {
+  const queryClient = useQueryClient()
+
+  return useMutation<DecisionLogDetail, Error, UpdateDecisionDraftVariables>({
+    mutationFn: async ({ id, body }) => {
+      const { data } = await apiPatch<DecisionLogDetailDto>(
+        `/decision-logs/${encodeURIComponent(id)}`,
+        body,
+      )
+      return adaptDecisionLogDetail(data)
+    },
+    onSuccess: () => invalidateDecisionLogs(queryClient),
+  })
+}
+
+export interface ActivateDecisionVariables {
+  id: string
+  body?: ActivateDecisionBodyDto
+}
+
+export function useActivateDecision(): UseMutationResult<
+  DecisionLogDetail,
+  Error,
+  ActivateDecisionVariables
+> {
+  const queryClient = useQueryClient()
+
+  return useMutation<DecisionLogDetail, Error, ActivateDecisionVariables>({
+    mutationFn: async ({ id, body = {} }) => {
+      const { data } = await apiPost<DecisionLogDetailDto>(
+        `/decision-logs/${encodeURIComponent(id)}/activate`,
+        body,
+      )
+      return adaptDecisionLogDetail(data)
+    },
+    onSuccess: () => invalidateDecisionLogs(queryClient),
+  })
+}
+
+export function useReviewQueue(): UseQueryResult<DecisionLogListItem[]> {
+  return useQuery<DecisionLogListItem[]>({
+    queryKey: decisionLogKeys.reviewQueue(),
+    queryFn: async () => {
+      const { data } = await apiGet<DecisionLogListData>(
+        '/decision-logs/review-queue',
+      )
+      return extractDecisionLogItems(data).map(adaptDecisionLogListItem)
     },
   })
 }
