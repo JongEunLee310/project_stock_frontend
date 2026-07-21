@@ -100,6 +100,8 @@ vi.mock('@/features/decision-log/queries', () => ({
   useDecisionOverview: () => overviewState,
   useDecisionLogs: () => decisionLogsState,
   useDecisionLog: () => decisionLogState,
+  useCreateDecisionLog: () => ({ isPending: false, mutateAsync: vi.fn() }),
+  useActivateDecision: () => ({ isPending: false, mutateAsync: vi.fn() }),
 }))
 
 beforeEach(() => {
@@ -162,6 +164,12 @@ describe('DecisionLogPage shell', () => {
     expect(screen.getByRole('table', { name: '판단 기록' })).toBeVisible()
     expect(screen.getByText('NVIDIA')).toBeVisible()
     expect(screen.getByRole('heading', { name: '판단 작성' })).toBeVisible()
+  })
+
+  it('prefills a symbol from the decision-log query parameter', async () => {
+    renderRoute('/decision-log?symbol=nvda')
+
+    expect(await screen.findByLabelText(/종목 티커/)).toHaveValue('NVDA')
   })
 
   it('renders loading state while either shell query is loading', async () => {

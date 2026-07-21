@@ -1,8 +1,13 @@
-import { Card } from '@/shared/ui'
+import { useSearchParams } from 'react-router-dom'
+
+import { DecisionFormPanel } from '@/widgets/decision-form-panel'
 import { DecisionLogTable } from '@/widgets/decision-log-table'
 import { DecisionSummaryCards } from '@/widgets/decision-summary-cards'
 
 export function DecisionLogPage() {
+  const [searchParams] = useSearchParams()
+  const initialSymbol = searchParams.get('symbol')?.trim().toUpperCase() ?? ''
+
   return (
     <div className="flex flex-col gap-4">
       <header className="flex min-h-16 flex-col justify-center gap-1">
@@ -19,14 +24,7 @@ export function DecisionLogPage() {
           <DecisionLogTable />
         </div>
         <aside>
-          <Card className="min-h-64 border-cockpit-border bg-cockpit-surface/70">
-            <h2 className="text-lg font-semibold text-cockpit-text">
-              판단 작성
-            </h2>
-            <p className="mt-2 text-sm text-cockpit-text-muted">
-              작성 패널 영역
-            </p>
-          </Card>
+          <DecisionFormPanel initialTargetId={initialSymbol} />
         </aside>
       </div>
     </div>

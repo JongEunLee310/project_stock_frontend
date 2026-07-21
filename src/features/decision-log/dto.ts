@@ -151,7 +151,7 @@ export interface CreateDecisionEvidenceDto {
 
 export interface CreateDecisionReviewTriggerDto {
   type: ReviewTriggerTypeDto
-  condition: string
+  condition: Record<string, unknown>
   scheduled_at?: string
 }
 

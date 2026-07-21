@@ -9,6 +9,10 @@ export const errorCodeMessages: Record<string, string> = {
   RATE_LIMIT_EXCEEDED: '잠시 후 다시 시도해 주세요 (약 60초)',
   ASSET_NOT_IN_MARKET: '시장 데이터에서 확인되지 않은 종목입니다',
   ASSET_DUPLICATE: '이미 등록된 종목입니다',
+  DECISION_LOG_NOT_FOUND: '판단 기록을 찾을 수 없습니다',
+  DECISION_LOG_FORBIDDEN: '이 판단 기록에 접근할 권한이 없습니다',
+  DECISION_LOG_INVALID_STATE:
+    '현재 상태에서는 판단 기록을 수정하거나 확정할 수 없습니다',
 }
 
 export function messageForErrorCode(code: string, fallback?: string): string {
