@@ -11,12 +11,14 @@ import {
   adaptDecisionLogDetail,
   adaptDecisionLogListItem,
   adaptDecisionOverview,
+  adaptDecisionReview,
 } from './adapters'
 import type {
   DecisionAssistResponseDto,
   DecisionLogDetailDto,
   DecisionLogListItemDto,
   DecisionOverviewDto,
+  DecisionReviewResponseDto,
   DecisionStatusDto,
   DecisionTypeDto,
   TargetTypeDto,
@@ -29,6 +31,8 @@ import {
   useDecisionLog,
   useDecisionLogs,
   useDecisionOverview,
+  useDecisionReviews,
+  useCreateDecisionReview,
   useReviewQueue,
   useUpdateDecisionDraft,
 } from './queries'
@@ -134,6 +138,31 @@ const assistDto: DecisionAssistResponseDto = {
   vague_flags: [
     { quote: ' 마진이 좋다 ', suggestion: '비교 기간과 수치를 명시한다.' },
   ],
+}
+
+const reviewDto: DecisionReviewResponseDto = {
+  id: 21,
+  decision_id: 8,
+  outcome_status: 'THESIS_PARTIALLY_CONFIRMED',
+  thesis_result: 'PARTIALLY_CONFIRMED',
+  process_quality: {
+    evidence_quality: 4,
+    counter_argument_review: 3,
+    risk_awareness: 5,
+    review_condition_clarity: 4,
+    discipline: 5,
+  },
+  result_metrics: {
+    return_rate: '0.12',
+    benchmark_return_rate: '0.08',
+    max_drawdown: '-0.05',
+  },
+  what_went_well: ' 반대 근거를 기록했다. ',
+  what_was_missed: '환율 영향을 놓쳤다.',
+  what_to_change: null,
+  reviewed_at: '2026-08-21T12:30:00.000Z',
+  created_at: '2026-08-21T12:30:00.000Z',
+  updated_at: '2026-08-21T12:30:00.000Z',
 }
 
 function wrapperFor(queryClient: QueryClient) {
@@ -270,6 +299,20 @@ describe('decision-log adapters', () => {
       ],
     })
   })
+
+  it('adapts a review with Korean outcome and thesis labels', () => {
+    expect(adaptDecisionReview(reviewDto)).toMatchObject({
+      id: '21',
+      decisionId: '8',
+      outcomeStatusLabel: '가설 일부 확인',
+      thesisResultLabel: '일부 확인',
+      processQuality: { evidence_quality: 4, discipline: 5 },
+      resultMetrics: { return_rate: '0.12', max_drawdown: '-0.05' },
+      whatWentWell: '반대 근거를 기록했다.',
+      whatToChange: '',
+      reviewedAt: formatKstDateTime('2026-08-21T12:30:00.000Z'),
+    })
+  })
 })
 
 describe('decision-log queries', () => {
@@ -400,5 +443,33 @@ describe('decision-log queries', () => {
     expect(assist.result.current.data?.riskCandidates[0]).toMatchObject({
       typeLabel: '밸류에이션',
     })
+  })
+
+  it('fetches reviews and creates a review with separated quality and result fields', async () => {
+    vi.mocked(apiGet).mockResolvedValue({ data: [reviewDto] })
+    vi.mocked(apiPost).mockResolvedValue({ data: reviewDto })
+    const queryClient = createTestQueryClient()
+    const invalidate = vi.spyOn(queryClient, 'invalidateQueries')
+    const wrapper = wrapperFor(queryClient)
+    const reviews = renderHook(() => useDecisionReviews('8'), { wrapper })
+
+    await waitFor(() => expect(reviews.result.current.isSuccess).toBe(true))
+    expect(apiGet).toHaveBeenCalledWith('/decision-logs/8/reviews')
+    expect(reviews.result.current.data?.[0].outcomeStatusLabel).toBe(
+      '가설 일부 확인',
+    )
+
+    const create = renderHook(() => useCreateDecisionReview('8'), { wrapper })
+    const body = {
+      outcome_status: 'THESIS_PARTIALLY_CONFIRMED' as const,
+      thesis_result: 'PARTIALLY_CONFIRMED' as const,
+      process_quality: { evidence_quality: 4 },
+      result_metrics: { return_rate: '0.12' },
+    }
+    create.result.current.mutate(body)
+
+    await waitFor(() => expect(create.result.current.isSuccess).toBe(true))
+    expect(apiPost).toHaveBeenCalledWith('/decision-logs/8/reviews', body)
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: decisionLogKeys.all })
   })
 })

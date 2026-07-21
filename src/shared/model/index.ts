@@ -12,6 +12,12 @@ export type { DecisionStatus, DecisionStatusCode } from './decisionStatus'
 export { decisionOutcomes } from './decisionOutcome'
 export type { DecisionOutcome } from './decisionOutcome'
 export {
+  outcomeStatusLabels,
+  outcomeStatuses,
+  toOutcomeStatusLabel,
+} from './outcomeStatus'
+export type { OutcomeStatus, OutcomeStatusCode } from './outcomeStatus'
+export {
   decisionTypeCodeByLabel,
   decisionTypeLabels,
   decisionTypes,
@@ -56,6 +62,12 @@ export { targetTypeLabels, toTargetTypeLabel } from './targetType'
 export type { TargetType, TargetTypeCode } from './targetType'
 export { snapshotTypeLabels, toSnapshotTypeLabel } from './snapshotType'
 export type { SnapshotType, SnapshotTypeCode } from './snapshotType'
+export {
+  thesisResultLabels,
+  thesisResults,
+  toThesisResultLabel,
+} from './thesisResult'
+export type { ThesisResult, ThesisResultCode } from './thesisResult'
 export { valuationLevels } from './valuationLevel'
 export type { ValuationLevel } from './valuationLevel'
 export type {

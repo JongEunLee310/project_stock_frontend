@@ -5,6 +5,7 @@ import {
   DashboardPage,
   DecisionDetailPage,
   DecisionLogPage,
+  DecisionReviewPage,
   LoginPage,
   NotFoundPage,
   PortfolioPage,
@@ -53,6 +54,10 @@ export const appRouteObjects: RouteObject[] = [
       {
         path: appRoutePaths.decisionDetail.slice(1),
         element: <DecisionDetailPage />,
+      },
+      {
+        path: appRoutePaths.decisionReview.slice(1),
+        element: <DecisionReviewPage />,
       },
       { path: appRoutePaths.settings.slice(1), element: <SettingsPage /> },
       { path: '*', element: <NotFoundPage /> },
