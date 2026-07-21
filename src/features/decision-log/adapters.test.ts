@@ -37,6 +37,7 @@ import {
   useDecisionReviews,
   useCreateDecisionReview,
   useReviewQueue,
+  useSimilarDecisions,
   useUpdateDecisionDraft,
 } from './queries'
 
@@ -457,6 +458,22 @@ describe('decision-log queries', () => {
     await waitFor(() => expect(queue.result.current.isSuccess).toBe(true))
     expect(apiGet).toHaveBeenCalledWith('/decision-logs/review-queue')
     expect(queue.result.current.data).toHaveLength(1)
+  })
+
+  it('fetches and adapts similar decisions with the list-item adapter', async () => {
+    vi.mocked(apiGet).mockResolvedValue({ data: [listItemDto] })
+    const wrapper = wrapperFor(createTestQueryClient())
+    const similar = renderHook(() => useSimilarDecisions('8'), { wrapper })
+
+    await waitFor(() => expect(similar.result.current.isSuccess).toBe(true))
+    expect(apiGet).toHaveBeenCalledWith('/decision-logs/8/similar')
+    expect(similar.result.current.data).toMatchObject([
+      {
+        id: '8',
+        target: { label: 'Apple', typeLabel: '종목' },
+        decisionTypeLabel: '매수 검토',
+      },
+    ])
   })
 
   it('posts create and activate, patches drafts, and invalidates queries', async () => {

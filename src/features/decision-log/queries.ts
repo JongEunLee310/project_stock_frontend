@@ -36,6 +36,7 @@ import type {
   DecisionReviewResponseDto,
   DecisionStatusDto,
   DecisionTypeDto,
+  SimilarDecisionsResponseDto,
   TargetTypeDto,
   UpdateDecisionDraftBodyDto,
 } from './dto'
@@ -71,6 +72,7 @@ export const decisionLogKeys = {
   details: () => [...decisionLogKeys.all, 'detail'] as const,
   detail: (id: string) => [...decisionLogKeys.details(), id] as const,
   reviews: (id: string) => [...decisionLogKeys.detail(id), 'reviews'] as const,
+  similar: (id: string) => [...decisionLogKeys.detail(id), 'similar'] as const,
   reviewQueue: () => [...decisionLogKeys.all, 'review-queue'] as const,
 }
 
@@ -276,6 +278,23 @@ export function useDecisionReviews(
         `/decision-logs/${encodeURIComponent(normalizedId)}/reviews`,
       )
       return data.map(adaptDecisionReview)
+    },
+    enabled: normalizedId.length > 0,
+  })
+}
+
+export function useSimilarDecisions(
+  id: string | undefined,
+): UseQueryResult<DecisionLogListItem[]> {
+  const normalizedId = id ?? ''
+
+  return useQuery<DecisionLogListItem[]>({
+    queryKey: decisionLogKeys.similar(normalizedId),
+    queryFn: async () => {
+      const { data } = await apiGet<SimilarDecisionsResponseDto>(
+        `/decision-logs/${encodeURIComponent(normalizedId)}/similar`,
+      )
+      return data.map(adaptDecisionLogListItem)
     },
     enabled: normalizedId.length > 0,
   })
