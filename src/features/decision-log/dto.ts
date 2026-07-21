@@ -24,6 +24,18 @@ export type DecisionStatusDto =
   | 'CLOSED'
   | 'CANCELLED'
 
+export type OutcomeStatusDto =
+  | 'THESIS_CONFIRMED'
+  | 'THESIS_PARTIALLY_CONFIRMED'
+  | 'THESIS_INVALIDATED'
+  | 'INSUFFICIENT_TIME'
+  | 'CLOSED'
+
+export type ThesisResultDto =
+  | 'CONFIRMED'
+  | 'PARTIALLY_CONFIRMED'
+  | 'INVALIDATED'
+
 export type ConfidenceLevelDto = 'LOW' | 'MEDIUM' | 'HIGH'
 
 export type EvidenceRelationshipDto =
@@ -204,4 +216,29 @@ export interface ActivateDecisionSnapshotDto {
 
 export interface ActivateDecisionBodyDto {
   snapshots?: ActivateDecisionSnapshotDto[]
+}
+
+export interface DecisionReviewCreateDto {
+  outcome_status: OutcomeStatusDto
+  thesis_result: ThesisResultDto
+  process_quality?: Record<string, unknown>
+  result_metrics?: Record<string, unknown>
+  what_went_well?: string
+  what_was_missed?: string
+  what_to_change?: string
+}
+
+export interface DecisionReviewResponseDto {
+  id: number | string
+  decision_id: number | string
+  outcome_status: OutcomeStatusDto
+  thesis_result: ThesisResultDto
+  process_quality: Record<string, unknown> | null
+  result_metrics: Record<string, unknown> | null
+  what_went_well?: string | null
+  what_was_missed?: string | null
+  what_to_change?: string | null
+  reviewed_at: string
+  created_at: string
+  updated_at: string
 }

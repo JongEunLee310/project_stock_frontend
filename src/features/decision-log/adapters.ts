@@ -5,10 +5,12 @@ import {
   toDecisionStatusLabel,
   toDecisionTypeLabel,
   toEvidenceRelationshipLabel,
+  toOutcomeStatusLabel,
   toReviewTriggerTypeLabel,
   toRiskSeverityLabel,
   toRiskTypeLabel,
   toTargetTypeLabel,
+  toThesisResultLabel,
 } from '@/shared/model'
 
 import type {
@@ -17,11 +19,27 @@ import type {
   DecisionLogDetailDto,
   DecisionLogListItemDto,
   DecisionOverviewDto,
+  DecisionReviewResponseDto,
   DecisionReviewTriggerDto,
   DecisionRiskDto,
   DecisionSnapshotDto,
   DecisionTargetDto,
 } from './dto'
+
+export interface DecisionReview {
+  id: string
+  decisionId: string
+  outcomeStatus: string
+  outcomeStatusLabel: string
+  thesisResult: string
+  thesisResultLabel: string
+  processQuality: Record<string, unknown>
+  resultMetrics: Record<string, unknown>
+  whatWentWell: string
+  whatWasMissed: string
+  whatToChange: string
+  reviewedAt: string
+}
 
 export interface DecisionAssistCandidate {
   type: string
@@ -322,5 +340,24 @@ export function adaptDecisionLogDetail(
     risks: dto.risks.map(adaptDecisionRisk),
     reviewTriggers: dto.review_triggers.map(adaptDecisionReviewTrigger),
     snapshots: dto.snapshots.map(adaptDecisionSnapshot),
+  }
+}
+
+export function adaptDecisionReview(
+  dto: DecisionReviewResponseDto,
+): DecisionReview {
+  return {
+    id: String(dto.id),
+    decisionId: String(dto.decision_id),
+    outcomeStatus: dto.outcome_status,
+    outcomeStatusLabel: toOutcomeStatusLabel(dto.outcome_status),
+    thesisResult: dto.thesis_result,
+    thesisResultLabel: toThesisResultLabel(dto.thesis_result),
+    processQuality: dto.process_quality ?? {},
+    resultMetrics: dto.result_metrics ?? {},
+    whatWentWell: dto.what_went_well?.trim() ?? '',
+    whatWasMissed: dto.what_was_missed?.trim() ?? '',
+    whatToChange: dto.what_to_change?.trim() ?? '',
+    reviewedAt: formatKstDateTime(dto.reviewed_at),
   }
 }

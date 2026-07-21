@@ -9,10 +9,14 @@ export const appRoutePaths = {
   alerts: '/alerts',
   decisionLog: '/decision-log',
   decisionDetail: '/decision-log/:id',
+  decisionReview: '/decision-log/:id/review',
   settings: '/settings',
 } as const
 
-export type AppRouteId = Exclude<keyof typeof appRoutePaths, 'decisionDetail'>
+export type AppRouteId = Exclude<
+  keyof typeof appRoutePaths,
+  'decisionDetail' | 'decisionReview'
+>
 
 export interface NavigationItem {
   id: AppRouteId
