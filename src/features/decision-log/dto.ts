@@ -75,6 +75,41 @@ export interface DecisionOverviewDto {
   as_of: string
 }
 
+export interface ConfidenceDistributionDto {
+  level: ConfidenceLevelDto
+  count: number
+  share: number
+}
+
+export interface OutcomeByConfidenceDto {
+  level: ConfidenceLevelDto
+  thesis_result: ThesisResultDto
+  count: number
+}
+
+export interface RiskTagFrequencyDto {
+  type: string
+  count: number
+}
+
+export interface ReviewAdherenceDto {
+  reviewed_count: number
+  overdue_count: number
+  adherence_rate: number
+}
+
+export interface DecisionAnalyticsDto {
+  total_count: number
+  decision_type_distribution: DecisionTypeDistributionDto[]
+  counter_argument_rate: number
+  confidence_distribution: ConfidenceDistributionDto[]
+  outcome_by_confidence: OutcomeByConfidenceDto[]
+  risk_tag_frequency: RiskTagFrequencyDto[]
+  review_adherence: ReviewAdherenceDto
+  process_quality_averages: Record<string, number>
+  as_of: string
+}
+
 export interface DecisionLogListItemDto {
   id: number | string
   target: DecisionTargetDto

@@ -6,6 +6,7 @@ import {
   toDecisionTypeLabel,
   toEvidenceRelationshipLabel,
   toOutcomeStatusLabel,
+  toProcessQualityLabel,
   toReviewTriggerTypeLabel,
   toRiskSeverityLabel,
   toRiskTypeLabel,
@@ -15,6 +16,7 @@ import {
 
 import type {
   DecisionAssistResponseDto,
+  DecisionAnalyticsDto,
   DecisionEvidenceDto,
   DecisionLogDetailDto,
   DecisionLogListItemDto,
@@ -97,6 +99,49 @@ export interface DecisionOverview {
   reviewDueCount: number
   activeCount: number
   decisionTypeDistribution: DecisionTypeDistribution[]
+  asOf: string
+}
+
+export interface AnalyticsDistributionItem {
+  code: string
+  label: string
+  count: number
+  share: number
+}
+
+export interface OutcomeByConfidence {
+  confidenceLevel: string
+  confidenceLevelLabel: string
+  thesisResult: string
+  thesisResultLabel: string
+  count: number
+}
+
+export interface RiskTagFrequency {
+  type: string
+  label: string
+  count: number
+}
+
+export interface ProcessQualityAverage {
+  key: string
+  label: string
+  average: number
+}
+
+export interface DecisionAnalytics {
+  totalCount: number
+  decisionTypeDistribution: AnalyticsDistributionItem[]
+  counterArgumentRate: number
+  confidenceDistribution: AnalyticsDistributionItem[]
+  outcomeByConfidence: OutcomeByConfidence[]
+  riskTagFrequency: RiskTagFrequency[]
+  reviewAdherence: {
+    reviewedCount: number
+    overdueCount: number
+    adherenceRate: number
+  }
+  processQualityAverages: ProcessQualityAverage[]
   asOf: string
 }
 
@@ -253,6 +298,52 @@ export function adaptDecisionOverview(
       count: item.count,
       share: item.share,
     })),
+    asOf: formatKstDateTime(dto.as_of),
+  }
+}
+
+export function adaptDecisionAnalytics(
+  dto: DecisionAnalyticsDto,
+): DecisionAnalytics {
+  return {
+    totalCount: dto.total_count,
+    decisionTypeDistribution: dto.decision_type_distribution.map((item) => ({
+      code: item.type,
+      label: toDecisionTypeLabel(item.type),
+      count: item.count,
+      share: item.share,
+    })),
+    counterArgumentRate: dto.counter_argument_rate,
+    confidenceDistribution: dto.confidence_distribution.map((item) => ({
+      code: item.level,
+      label: toConfidenceLevelLabel(item.level),
+      count: item.count,
+      share: item.share,
+    })),
+    outcomeByConfidence: dto.outcome_by_confidence.map((item) => ({
+      confidenceLevel: item.level,
+      confidenceLevelLabel: toConfidenceLevelLabel(item.level),
+      thesisResult: item.thesis_result,
+      thesisResultLabel: toThesisResultLabel(item.thesis_result),
+      count: item.count,
+    })),
+    riskTagFrequency: dto.risk_tag_frequency.map((item) => ({
+      type: item.type,
+      label: toRiskTypeLabel(item.type),
+      count: item.count,
+    })),
+    reviewAdherence: {
+      reviewedCount: dto.review_adherence.reviewed_count,
+      overdueCount: dto.review_adherence.overdue_count,
+      adherenceRate: dto.review_adherence.adherence_rate,
+    },
+    processQualityAverages: Object.entries(dto.process_quality_averages).map(
+      ([key, average]) => ({
+        key,
+        label: toProcessQualityLabel(key),
+        average,
+      }),
+    ),
     asOf: formatKstDateTime(dto.as_of),
   }
 }

@@ -11,11 +11,13 @@ import type { ApiMeta } from '@/shared/api/envelope'
 
 import {
   adaptDecisionAssist,
+  adaptDecisionAnalytics,
   adaptDecisionLogDetail,
   adaptDecisionLogListItem,
   adaptDecisionOverview,
   adaptDecisionReview,
   type DecisionAssist,
+  type DecisionAnalytics,
   type DecisionLogDetail,
   type DecisionLogListItem,
   type DecisionOverview,
@@ -26,6 +28,7 @@ import type {
   CreateDecisionLogBodyDto,
   DecisionAssistRequestDto,
   DecisionAssistResponseDto,
+  DecisionAnalyticsDto,
   DecisionLogDetailDto,
   DecisionLogListItemDto,
   DecisionOverviewDto,
@@ -61,6 +64,7 @@ type DecisionLogListData =
 export const decisionLogKeys = {
   all: ['decision-logs'] as const,
   overview: () => [...decisionLogKeys.all, 'overview'] as const,
+  analytics: () => [...decisionLogKeys.all, 'analytics'] as const,
   lists: () => [...decisionLogKeys.all, 'list'] as const,
   list: (filters: DecisionLogFilters) =>
     [...decisionLogKeys.lists(), filters] as const,
@@ -114,6 +118,18 @@ export function useDecisionOverview(): UseQueryResult<DecisionOverview> {
         '/decision-logs/overview',
       )
       return adaptDecisionOverview(data)
+    },
+  })
+}
+
+export function useDecisionAnalytics(): UseQueryResult<DecisionAnalytics> {
+  return useQuery<DecisionAnalytics>({
+    queryKey: decisionLogKeys.analytics(),
+    queryFn: async () => {
+      const { data } = await apiGet<DecisionAnalyticsDto>(
+        '/decision-logs/analytics',
+      )
+      return adaptDecisionAnalytics(data)
     },
   })
 }
