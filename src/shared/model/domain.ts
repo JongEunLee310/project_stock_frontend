@@ -1,9 +1,9 @@
 import type { CatalystCategory } from './catalystCategory'
-import type { CognitiveRisk } from './cognitiveRisk'
 import type { DecisionOutcome } from './decisionOutcome'
 import type { DecisionType } from './decisionType'
 import type { NewsCategory } from './newsCategory'
 import type { RiskLevel } from './riskLevel'
+import type { RiskType } from './riskType'
 import type { StockStatus } from './stockStatus'
 import type { ValuationLevel } from './valuationLevel'
 
@@ -177,7 +177,7 @@ export interface DecisionLog {
   decision: string
   decisionType: DecisionType
   rationale: string
-  cognitiveRisks: CognitiveRisk[]
+  cognitiveRisks: RiskType[]
   reviewDate: string
   outcome: DecisionOutcome
   createdAt: string

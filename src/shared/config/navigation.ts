@@ -8,10 +8,11 @@ export const appRoutePaths = {
   portfolio: '/portfolio',
   alerts: '/alerts',
   decisionLog: '/decision-log',
+  decisionDetail: '/decision-log/:id',
   settings: '/settings',
 } as const
 
-export type AppRouteId = keyof typeof appRoutePaths
+export type AppRouteId = Exclude<keyof typeof appRoutePaths, 'decisionDetail'>
 
 export interface NavigationItem {
   id: AppRouteId
@@ -64,6 +65,7 @@ export const navigationItems: NavigationItem[] = [
     label: 'Decision Log',
     href: appRoutePaths.decisionLog,
     path: appRoutePaths.decisionLog,
+    matchPrefix: appRoutePaths.decisionLog,
   },
   {
     id: 'settings',

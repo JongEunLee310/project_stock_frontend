@@ -7,7 +7,7 @@ import {
   useDashboardSummary,
   useDashboardTrends,
 } from '@/features/dashboard/queries'
-import type { DecisionLog } from '@/features/decision-log/adapters'
+import type { DecisionLogListItem } from '@/features/decision-log/adapters'
 import { useDecisionLogs } from '@/features/decision-log/queries'
 import type { Signal } from '@/features/signals/adapters'
 import { useSignals } from '@/features/signals/queries'
@@ -307,7 +307,7 @@ const stockColumns: Array<TableColumn<WatchlistAssetRow>> = [
   },
 ]
 
-const decisionColumns: Array<TableColumn<DecisionLog>> = [
+const decisionColumns: Array<TableColumn<DecisionLogListItem>> = [
   {
     key: 'createdAt',
     header: '시간',
@@ -318,32 +318,37 @@ const decisionColumns: Array<TableColumn<DecisionLog>> = [
     ),
   },
   {
-    key: 'symbol',
-    header: '종목',
-    cell: (log) => (
-      <Link
-        to={getResearchPath(log.symbol)}
-        className="font-semibold text-cockpit-text hover:text-cockpit-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cockpit-accent"
-      >
-        {log.symbol}
-      </Link>
-    ),
+    key: 'target',
+    header: '대상',
+    cell: (log) =>
+      log.target.type === 'SYMBOL' ? (
+        <Link
+          to={getResearchPath(log.target.id)}
+          className="font-semibold text-cockpit-text hover:text-cockpit-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cockpit-accent"
+        >
+          {log.target.label}
+        </Link>
+      ) : (
+        <span className="font-semibold text-cockpit-text">
+          {log.target.label}
+        </span>
+      ),
   },
   {
     key: 'decisionType',
     header: '판단',
     cell: (log) => (
-      <Badge decisionType={log.decisionType as DecisionType}>
-        {log.decisionType}
+      <Badge decisionType={log.decisionTypeLabel as DecisionType}>
+        {log.decisionTypeLabel}
       </Badge>
     ),
   },
   {
-    key: 'rationale',
+    key: 'summary',
     header: '요약',
     cell: (log) => (
       <span className="line-clamp-2 text-cockpit-text-muted">
-        {log.rationale}
+        {log.summary}
       </span>
     ),
   },
@@ -417,7 +422,7 @@ export function DashboardPage() {
   const topSignals = [...(signalsQuery.data ?? [])]
     .sort((first, second) => second.score - first.score)
     .slice(0, 3)
-  const recentDecisionLogs = [...(decisionLogsQuery.data ?? [])]
+  const recentDecisionLogs = [...(decisionLogsQuery.data?.items ?? [])]
     .sort((first, second) => second.createdAt.localeCompare(first.createdAt))
     .slice(0, 3)
   const priorityQueue = [...(priorityQueueQuery.data ?? [])]

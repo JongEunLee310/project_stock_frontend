@@ -1,11 +1,15 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
 import { QueryClientProvider } from '@tanstack/react-query'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { vi } from 'vitest'
 
 import { appRouteObjects } from '@/app/router'
-import type { DecisionLog } from '@/features/decision-log/adapters'
-import type { DecisionLogStats } from '@/features/decision-log/queries'
+import type {
+  DecisionLogDetail,
+  DecisionLogListItem,
+  DecisionOverview,
+} from '@/features/decision-log/adapters'
+import { ApiError } from '@/shared/api'
 import { createQueryClient } from '@/shared/api/queryClient'
 import { AuthProvider } from '@/shared/auth/AuthProvider'
 import {
@@ -13,44 +17,179 @@ import {
   teardownAuthenticatedUser,
 } from '@/test-utils/authTestSetup'
 
-const createDecisionLogMutate = vi.fn()
-const decisionLogsFixture: DecisionLog[] = [
-  {
-    id: '1',
-    symbol: 'NVDA',
-    decisionType: '매수 검토',
-    decisionStatus: '열림',
-    rationale: '실적 발표 전 매수 후보로만 추적한다.',
-    cognitiveRisks: ['밸류에이션'],
-    createdBy: '사용자',
-    reviewDate: null,
-    createdAt: '2026. 05. 24. 09:00',
-  },
-  {
-    id: '2',
-    symbol: 'TSLA',
-    decisionType: '매도 검토',
-    decisionStatus: '검토됨',
-    rationale: '마진 둔화 가능성을 확인한다.',
-    cognitiveRisks: ['마진 압박'],
-    createdBy: 'AI',
-    reviewDate: '2026-07-01T00:00:00.000Z',
-    createdAt: '2026. 05. 23. 09:00',
-  },
-]
+interface QueryState<T> {
+  data: T | undefined
+  error: Error | null
+  isError: boolean
+  isLoading: boolean
+  refetch: ReturnType<typeof vi.fn>
+}
 
-let decisionLogsState: {
-  data: DecisionLog[]
-  error: Error | null
-  isError: boolean
-  isLoading: boolean
+const refetchOverview = vi.fn()
+const refetchDecisionLogs = vi.fn()
+const refetchDecisionLog = vi.fn()
+
+const listItem: DecisionLogListItem = {
+  id: '42',
+  target: { type: 'SYMBOL', typeLabel: '종목', id: 'NVDA', label: 'NVIDIA' },
+  decisionType: 'HOLD',
+  decisionTypeLabel: '관망 유지',
+  summary: '실적 발표까지 기존 판단을 유지한다.',
+  riskTypes: ['VALUATION'],
+  riskLabels: ['밸류에이션'],
+  confidenceLevel: 'MEDIUM',
+  confidenceLevelLabel: '중간',
+  status: 'ACTIVE',
+  statusLabel: '진행 중',
+  reviewAt: null,
+  createdAt: '2026. 07. 21. 09:00',
 }
-let decisionLogStatsState: {
-  data: DecisionLogStats
-  error: Error | null
-  isError: boolean
-  isLoading: boolean
+
+const overview: DecisionOverview = {
+  totalCount: 1,
+  createdThisWeek: 1,
+  reviewDueCount: 0,
+  activeCount: 1,
+  decisionTypeDistribution: [
+    { type: 'HOLD', label: '관망 유지', count: 1, share: 1 },
+  ],
+  asOf: '2026. 07. 21. 09:00',
 }
+
+const detail: DecisionLogDetail = {
+  id: '42',
+  target: listItem.target,
+  decisionType: listItem.decisionType,
+  decisionTypeLabel: listItem.decisionTypeLabel,
+  thesis: '데이터센터 수요가 성장을 지지한다.',
+  rationale: '실적 발표까지 관찰한다.',
+  confidenceLevel: 'MEDIUM',
+  confidenceLevelLabel: '중간',
+  supportingReasons: [],
+  counterArguments: [],
+  status: 'ACTIVE',
+  statusLabel: '진행 중',
+  reviewAt: null,
+  activatedAt: null,
+  closedAt: null,
+  createdAt: '2026. 07. 21. 09:00',
+  updatedAt: '2026. 07. 21. 09:00',
+  evidence: [
+    {
+      id: 'e-1',
+      type: 'RESEARCH',
+      evidenceId: 'research-1',
+      version: 2,
+      title: '데이터센터 매출 성장',
+      summary: '최근 실적이 예상치를 상회했다.',
+      snapshot: null,
+      relationship: 'SUPPORTING',
+      relationshipLabel: '긍정 근거',
+      createdAt: '2026. 07. 21. 08:00',
+    },
+    {
+      id: 'e-2',
+      type: 'NEWS',
+      evidenceId: 'news-1',
+      version: null,
+      title: '대중 수출 규제 강화',
+      summary: '단기 공급 계획의 불확실성이 커졌다.',
+      snapshot: null,
+      relationship: 'CONTRADICTING',
+      relationshipLabel: '반대 근거',
+      createdAt: '2026. 07. 21. 08:10',
+    },
+    {
+      id: 'e-3',
+      type: 'CHART',
+      evidenceId: null,
+      version: null,
+      title: '단기 과매수 구간',
+      summary: '변동성 확대 가능성이 있다.',
+      snapshot: null,
+      relationship: 'RISK',
+      relationshipLabel: '위험',
+      createdAt: '2026. 07. 21. 08:20',
+    },
+    {
+      id: 'e-4',
+      type: 'USER_MEMO',
+      evidenceId: null,
+      version: null,
+      title: '실적 발표 전 관망 원칙',
+      summary: '기존 투자 원칙을 참고했다.',
+      snapshot: null,
+      relationship: 'BACKGROUND',
+      relationshipLabel: '배경',
+      createdAt: '2026. 07. 21. 08:30',
+    },
+  ],
+  risks: [
+    {
+      id: 'risk-1',
+      type: 'VALUATION',
+      typeLabel: '밸류에이션',
+      description: '선행 배수가 역사적 상단에 가깝다.',
+      severity: 'HIGH',
+      severityLabel: '높음',
+      createdAt: '2026. 07. 21. 08:40',
+    },
+  ],
+  reviewTriggers: [
+    {
+      id: 'trigger-later',
+      type: 'DATE',
+      typeLabel: '날짜',
+      condition: '실적 발표 후 가설을 재검토한다.',
+      scheduledAt: '2026. 08. 20. 09:00',
+      status: 'PENDING',
+      triggeredAt: null,
+      createdAt: '2026. 07. 21. 09:00',
+    },
+    {
+      id: 'trigger-earlier',
+      type: 'DATE',
+      typeLabel: '날짜',
+      condition: '다음 실적 일정을 확인한다.',
+      scheduledAt: '2026. 08. 10. 09:00',
+      status: 'PENDING',
+      triggeredAt: null,
+      createdAt: '2026. 07. 21. 09:00',
+    },
+  ],
+  snapshots: [
+    {
+      id: 'snapshot-price-1',
+      snapshotType: 'PRICE',
+      data: {
+        price: 172.4,
+        session: { market: 'NASDAQ', delayed: false },
+        levels: [168, 175],
+        note: null,
+      },
+      capturedAt: '2026. 07. 21. 09:00',
+    },
+    {
+      id: 'snapshot-price-2',
+      snapshotType: 'PRICE',
+      data: { price: 173.1 },
+      capturedAt: '2026. 07. 21. 09:01',
+    },
+    {
+      id: 'snapshot-valuation',
+      snapshotType: 'VALUATION',
+      data: { forward_per: 32.8 },
+      capturedAt: '2026. 07. 21. 09:00',
+    },
+  ],
+}
+
+let overviewState: QueryState<DecisionOverview>
+let decisionLogsState: QueryState<{
+  items: DecisionLogListItem[]
+  meta?: { page: number; size: number; total: number }
+}>
+let decisionLogState: QueryState<DecisionLogDetail>
 
 vi.mock('@/features/market-indices/queries', () => ({
   useMarketIndices: () => ({
@@ -63,54 +202,38 @@ vi.mock('@/features/market-indices/queries', () => ({
 }))
 
 vi.mock('@/features/decision-log/queries', () => ({
+  useDecisionOverview: () => overviewState,
   useDecisionLogs: () => decisionLogsState,
-  useDecisionLogStats: () => decisionLogStatsState,
-  useCreateDecisionLog: () => ({
-    error: null,
-    isError: false,
-    isPending: false,
-    mutate: createDecisionLogMutate,
-  }),
+  useDecisionLog: () => decisionLogState,
+  useCreateDecisionLog: () => ({ isPending: false, mutateAsync: vi.fn() }),
+  useActivateDecision: () => ({ isPending: false, mutateAsync: vi.fn() }),
 }))
 
 beforeEach(() => {
   setupAuthenticatedUser()
-  createDecisionLogMutate.mockReset()
-  decisionLogsState = {
-    data: decisionLogsFixture,
+  refetchOverview.mockReset()
+  refetchDecisionLogs.mockReset()
+  refetchDecisionLog.mockReset()
+  overviewState = {
+    data: overview,
     error: null,
     isError: false,
     isLoading: false,
+    refetch: refetchOverview,
   }
-  decisionLogStatsState = {
-    data: {
-      patterns: [
-        {
-          type: 'BUY_CONSIDER',
-          label: '매수 검토',
-          count: 3,
-          percent: 75,
-        },
-        {
-          type: 'WATCH',
-          label: '관망',
-          count: 1,
-          percent: 25,
-        },
-      ],
-      recentReviewed: [
-        {
-          id: '10',
-          symbol: 'NVDA',
-          decisionTypeLabel: '매수 검토',
-          note: '실적 발표 후 판단을 검토했다.',
-          reviewedAt: '2026. 05. 25. 09:00',
-        },
-      ],
-    },
+  decisionLogsState = {
+    data: { items: [listItem], meta: { page: 1, size: 20, total: 1 } },
     error: null,
     isError: false,
     isLoading: false,
+    refetch: refetchDecisionLogs,
+  }
+  decisionLogState = {
+    data: detail,
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: refetchDecisionLog,
   }
 })
 
@@ -118,224 +241,206 @@ afterEach(() => {
   teardownAuthenticatedUser()
 })
 
-function renderDecisionLog(path = '/decision-log') {
+function renderRoute(path = '/decision-log') {
   const router = createMemoryRouter(appRouteObjects, {
     initialEntries: [path],
   })
-  const queryClient = createQueryClient()
 
-  const renderResult = render(
-    <QueryClientProvider client={queryClient}>
+  return render(
+    <QueryClientProvider client={createQueryClient()}>
       <AuthProvider>
         <RouterProvider router={router} />
       </AuthProvider>
     </QueryClientProvider>,
   )
-
-  return { router, ...renderResult }
 }
 
-describe('DecisionLogPage', () => {
-  it('prefills the symbol from the query and allows user edits', async () => {
-    renderDecisionLog('/decision-log?symbol=NVDA')
-
-    const symbolInput = await screen.findByLabelText('종목')
-    expect(symbolInput).toHaveValue('NVDA')
-
-    fireEvent.change(symbolInput, { target: { value: 'msft' } })
-
-    expect(symbolInput).toHaveValue('msft')
-  })
-
-  it('keeps the symbol empty when the query is absent', async () => {
-    renderDecisionLog()
-
-    expect(await screen.findByLabelText('종목')).toHaveValue('')
-  })
-
-  it('renders the page heading and KPI cards', async () => {
-    renderDecisionLog()
+describe('DecisionLogPage shell', () => {
+  it('renders the shell with summary cards and the decision table', async () => {
+    renderRoute()
 
     expect(
       await screen.findByRole('heading', { name: '판단 기록' }),
     ).toBeVisible()
-    expect(screen.getByText('총 기록 수')).toBeVisible()
-    expect(screen.getByText('이번 주 기록')).toBeVisible()
-    expect(screen.getAllByText('관망').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('매도 검토').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('2건').length).toBeGreaterThan(0)
-  })
-
-  it('renders server decision rows with symbol, decision type, and status badges', async () => {
-    renderDecisionLog()
-
-    const table = await screen.findByRole('table', { name: '판단 기록 로그' })
-
-    expect(within(table).getByRole('link', { name: 'NVDA' })).toHaveAttribute(
-      'href',
-      '/research/NVDA',
-    )
-    expect(within(table).getByRole('link', { name: 'TSLA' })).toBeVisible()
-    expect(within(table).getByText('매수 검토')).toBeVisible()
-    expect(within(table).getAllByText('열림').length).toBeGreaterThan(0)
-  })
-
-  it('calls create mutation with the backend create body', async () => {
-    renderDecisionLog()
-
-    await screen.findByRole('heading', { name: '판단 기록' })
-
-    fireEvent.change(screen.getByLabelText('종목'), {
-      target: { value: 'ibm' },
-    })
-    fireEvent.change(screen.getByLabelText('판단유형'), {
-      target: { value: '매수 검토' },
-    })
-    fireEvent.change(screen.getByLabelText('판단 이유'), {
-      target: { value: '실적 발표 전 매수 후보로만 추적한다.' },
-    })
-    fireEvent.click(screen.getByLabelText('밸류에이션'))
-    fireEvent.click(screen.getByRole('button', { name: '저장' }))
-
-    expect(createDecisionLogMutate).toHaveBeenCalledWith(
-      {
-        ticker: 'IBM',
-        decision_type: 'BUY_CONSIDER',
-        reason: '실적 발표 전 매수 후보로만 추적한다.',
-        cognitive_risks: ['밸류에이션'],
-      },
-      expect.objectContaining({
-        onSuccess: expect.any(Function),
-        onError: expect.any(Function),
-      }),
-    )
-    expect(createDecisionLogMutate.mock.calls[0][0]).not.toHaveProperty(
-      'reviewDate',
-    )
-    expect(createDecisionLogMutate.mock.calls[0][0]).not.toHaveProperty(
-      'reviewed_at',
-    )
-  })
-
-  it('resets form inputs without saving', async () => {
-    renderDecisionLog()
-
-    await screen.findByRole('heading', { name: '판단 기록' })
-
-    fireEvent.change(screen.getByLabelText('종목'), {
-      target: { value: 'orcl' },
-    })
-    fireEvent.change(screen.getByLabelText('판단 이유'), {
-      target: { value: '클라우드 성장률 확인' },
-    })
-    fireEvent.click(screen.getByLabelText('경쟁 심화'))
-    fireEvent.click(screen.getByRole('button', { name: '초기화' }))
-
-    expect(screen.getByLabelText('종목')).toHaveValue('')
-    expect(screen.getByLabelText('판단 이유')).toHaveValue('')
-    expect(screen.getByLabelText('경쟁 심화')).not.toBeChecked()
-  })
-
-  it('renders empty state when the server returns no decision logs', async () => {
-    decisionLogsState = {
-      data: [],
-      error: null,
-      isError: false,
-      isLoading: false,
-    }
-
-    renderDecisionLog()
-
-    expect(await screen.findByText('기록된 판단이 없습니다.')).toBeVisible()
-    expect(screen.queryByRole('link', { name: 'NVDA' })).not.toBeInTheDocument()
-  })
-
-  it('renders frequent decision patterns from stats data', async () => {
-    renderDecisionLog()
-
-    await screen.findByRole('heading', { name: '판단 기록' })
-
-    const panel = screen
-      .getByRole('heading', { name: '자주 나온 판단 패턴' })
-      .closest('section')
-
-    expect(panel).not.toBeNull()
-    expect(within(panel as HTMLElement).getByText('매수 검토')).toBeVisible()
-    expect(within(panel as HTMLElement).getByText('75% (3건)')).toBeVisible()
+    expect(screen.getByLabelText('전체 기록 요약')).toHaveTextContent('1')
     expect(
-      within(panel as HTMLElement).getByRole('meter', {
-        name: '매수 검토 75%',
-      }),
-    ).toHaveAttribute('aria-valuenow', '75')
-  })
-
-  it('renders recent reviewed decisions from stats data', async () => {
-    renderDecisionLog()
-
-    await screen.findByRole('heading', { name: '판단 기록' })
-
-    const panel = screen
-      .getByRole('heading', { name: '최근 검토한 판단' })
-      .closest('section')
-
-    expect(panel).not.toBeNull()
-    expect(within(panel as HTMLElement).getByText('NVDA')).toBeVisible()
-    expect(within(panel as HTMLElement).getByText('매수 검토')).toBeVisible()
-    expect(
-      within(panel as HTMLElement).getByText('실적 발표 후 판단을 검토했다.'),
+      screen.getByRole('heading', { name: '판단 기록 목록' }),
     ).toBeVisible()
-    expect(
-      within(panel as HTMLElement).getByText('2026. 05. 25. 09:00'),
-    ).toBeVisible()
-    expect(
-      within(panel as HTMLElement).getAllByRole('listitem').length,
-    ).toBeGreaterThan(0)
+    expect(screen.getByRole('table', { name: '판단 기록' })).toBeVisible()
+    expect(screen.getByText('NVIDIA')).toBeVisible()
+    expect(screen.getByRole('heading', { name: '판단 작성' })).toBeVisible()
   })
 
-  it('renders loading state for stats cards only', async () => {
-    decisionLogStatsState = {
-      data: {
-        patterns: [],
-        recentReviewed: [],
-      },
-      error: null,
-      isError: false,
-      isLoading: true,
-    }
+  it('prefills a symbol from the decision-log query parameter', async () => {
+    renderRoute('/decision-log?symbol=nvda')
 
-    const { container } = renderDecisionLog()
+    expect(await screen.findByLabelText(/종목 티커/)).toHaveValue('NVDA')
+  })
 
-    await screen.findByRole('heading', { name: '판단 기록' })
+  it('renders loading state while either shell query is loading', async () => {
+    overviewState = { ...overviewState, data: undefined, isLoading: true }
+    const { container } = renderRoute()
 
-    expect(screen.getByRole('table', { name: '판단 기록 로그' })).toBeVisible()
+    expect(
+      await screen.findByRole('heading', { name: '판단 기록' }),
+    ).toBeVisible()
     expect(container.querySelectorAll('.animate-pulse').length).toBeGreaterThan(
       0,
     )
+    expect(screen.getByLabelText('판단 기록 요약')).toHaveAttribute(
+      'aria-busy',
+      'true',
+    )
+    expect(screen.getByRole('table', { name: '판단 기록' })).toBeVisible()
+  })
+
+  it('renders an isolated overview error and retries its query', async () => {
+    overviewState = {
+      ...overviewState,
+      data: undefined,
+      error: new Error('network failed'),
+      isError: true,
+    }
+    renderRoute()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '판단 기록 요약을 불러오지 못했습니다',
+    )
+    expect(screen.getByRole('table', { name: '판단 기록' })).toBeVisible()
+    fireEvent.click(screen.getByRole('button', { name: '재시도' }))
+    expect(refetchOverview).toHaveBeenCalledOnce()
+    expect(refetchDecisionLogs).not.toHaveBeenCalled()
+  })
+
+  it('renders empty state when the list has no records', async () => {
+    decisionLogsState = {
+      ...decisionLogsState,
+      data: { items: [], meta: { page: 1, size: 20, total: 0 } },
+    }
+    renderRoute()
+
+    expect(await screen.findByText('기록된 판단이 없습니다.')).toBeVisible()
     expect(
-      screen.queryByText('집계된 판단이 없습니다.'),
-    ).not.toBeInTheDocument()
+      screen.getByRole('heading', { name: '판단 기록 목록' }),
+    ).toBeVisible()
+    expect(screen.getByLabelText('전체 기록 요약')).toBeVisible()
+  })
+})
+
+describe('DecisionDetailPage route', () => {
+  it('판단→근거→스냅샷→재검토 순서로 상세를 렌더한다', async () => {
+    renderRoute('/decision-log/42')
+
     expect(
-      screen.queryByText('검토한 판단이 없습니다.'),
+      await screen.findByRole('heading', { name: '판단 기록 상세' }),
+    ).toBeVisible()
+    expect(screen.getByRole('heading', { name: 'NVIDIA' })).toBeVisible()
+    expect(screen.getByText('종목')).toBeVisible()
+    expect(screen.getAllByText('관망 유지').length).toBeGreaterThan(0)
+    expect(screen.getByText('다음 확인').parentElement).toHaveTextContent(
+      '2026. 08. 10. 09:00',
+    )
+
+    const sectionHeadings = within(screen.getByRole('main'))
+      .getAllByRole('heading', { level: 2 })
+      .map((heading) => heading.textContent)
+    expect(sectionHeadings).toEqual([
+      'NVIDIA',
+      '당시 판단',
+      '연결된 근거',
+      '당시 데이터 스냅샷',
+      '재검토 조건',
+      '2차 기능',
+    ])
+    expect(screen.getByText('데이터센터 수요가 성장을 지지한다.')).toBeVisible()
+    expect(screen.getByText('실적 발표까지 관찰한다.')).toBeVisible()
+  })
+
+  it('근거 관계를 나누고 영문 enum을 표시하지 않는다', async () => {
+    renderRoute('/decision-log/42')
+
+    for (const label of ['긍정 근거', '반대 근거', '위험', '배경']) {
+      expect(await screen.findByRole('heading', { name: label })).toBeVisible()
+    }
+    expect(screen.getByText('데이터센터 매출 성장')).toBeVisible()
+    expect(screen.getByText('대중 수출 규제 강화')).toBeVisible()
+    expect(screen.getByText('단기 과매수 구간')).toBeVisible()
+    expect(screen.getByText('실적 발표 전 관망 원칙')).toBeVisible()
+    expect(screen.queryByText('SUPPORTING')).not.toBeInTheDocument()
+    expect(screen.queryByText('CONTRADICTING')).not.toBeInTheDocument()
+    expect(screen.queryByText('PENDING')).not.toBeInTheDocument()
+  })
+
+  it('snapshot_type별로 자유 JSON을 key-value로 렌더한다', async () => {
+    renderRoute('/decision-log/42')
+
+    expect(
+      await screen.findByRole('heading', { name: '가격', level: 3 }),
+    ).toBeVisible()
+    expect(
+      screen.getByRole('heading', { name: '밸류에이션', level: 3 }),
+    ).toBeVisible()
+    expect(
+      screen.getAllByRole('heading', { name: '가격', level: 3 }),
+    ).toHaveLength(1)
+    expect(screen.getByText('172.4')).toBeVisible()
+    expect(screen.getByText('NASDAQ')).toBeVisible()
+    expect(screen.getByText('아니오')).toBeVisible()
+    expect(screen.getByText('168')).toBeVisible()
+    expect(screen.getByText('값 없음')).toBeVisible()
+    expect(screen.queryByText('PRICE')).not.toBeInTheDocument()
+    expect(screen.queryByText('VALUATION')).not.toBeInTheDocument()
+  })
+
+  it('상세 로딩 상태를 알린다', async () => {
+    decisionLogState = {
+      ...decisionLogState,
+      data: undefined,
+      isLoading: true,
+    }
+    renderRoute('/decision-log/42')
+
+    expect(
+      await screen.findByRole('status', {
+        name: '판단 기록 상세 불러오는 중',
+      }),
+    ).toBeVisible()
+  })
+
+  it.each([
+    ['DECISION_LOG_NOT_FOUND', '판단 기록을 찾을 수 없습니다'],
+    ['DECISION_LOG_FORBIDDEN', '이 판단 기록에 접근할 수 없습니다'],
+  ])('%s 오류에서 목록 복귀 안내를 렌더한다', async (code, title) => {
+    decisionLogState = {
+      ...decisionLogState,
+      data: undefined,
+      error: new ApiError(code, title),
+      isError: true,
+    }
+    renderRoute('/decision-log/inaccessible')
+
+    expect(await screen.findByRole('heading', { name: title })).toBeVisible()
+    expect(
+      screen.getByRole('link', { name: '판단 기록 목록으로' }),
+    ).toHaveAttribute('href', '/decision-log')
+    expect(
+      screen.queryByRole('button', { name: '재시도' }),
     ).not.toBeInTheDocument()
   })
 
-  it('renders empty states when stats data is empty', async () => {
-    decisionLogStatsState = {
-      data: {
-        patterns: [],
-        recentReviewed: [],
-      },
-      error: null,
-      isError: false,
-      isLoading: false,
+  it('renders the detail error state and retries', async () => {
+    decisionLogState = {
+      ...decisionLogState,
+      data: undefined,
+      error: new Error('not found'),
+      isError: true,
     }
+    renderRoute('/decision-log/missing')
 
-    renderDecisionLog()
-
-    await screen.findByRole('heading', { name: '판단 기록' })
-
-    expect(screen.getByText('집계된 판단이 없습니다.')).toBeVisible()
-    expect(screen.getByText('검토한 판단이 없습니다.')).toBeVisible()
-    expect(screen.getByRole('table', { name: '판단 기록 로그' })).toBeVisible()
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      '판단 기록 상세를 불러오지 못했습니다',
+    )
+    fireEvent.click(screen.getByRole('button', { name: '재시도' }))
+    expect(refetchDecisionLog).toHaveBeenCalledOnce()
   })
 })

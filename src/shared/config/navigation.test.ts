@@ -26,4 +26,10 @@ describe('getActiveNavigationItem', () => {
     expect(getActiveNavigationItem('/research/NVDA')?.id).toBe('research')
     expect(getActiveNavigationItem('/research/NVDA/news')?.id).toBe('research')
   })
+
+  it('matches the decision log menu for list and detail routes', () => {
+    expect(appRoutePaths.decisionDetail).toBe('/decision-log/:id')
+    expect(getActiveNavigationItem('/decision-log')?.id).toBe('decisionLog')
+    expect(getActiveNavigationItem('/decision-log/42')?.id).toBe('decisionLog')
+  })
 })

@@ -3,6 +3,7 @@ import { createBrowserRouter, type RouteObject } from 'react-router-dom'
 import {
   AlertsPage,
   DashboardPage,
+  DecisionDetailPage,
   DecisionLogPage,
   LoginPage,
   NotFoundPage,
@@ -48,6 +49,10 @@ export const appRouteObjects: RouteObject[] = [
       {
         path: appRoutePaths.decisionLog.slice(1),
         element: <DecisionLogPage />,
+      },
+      {
+        path: appRoutePaths.decisionDetail.slice(1),
+        element: <DecisionDetailPage />,
       },
       { path: appRoutePaths.settings.slice(1), element: <SettingsPage /> },
       { path: '*', element: <NotFoundPage /> },

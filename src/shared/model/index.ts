@@ -1,7 +1,12 @@
 export { catalystCategories } from './catalystCategory'
 export type { CatalystCategory } from './catalystCategory'
-export { cognitiveRisks } from './cognitiveRisk'
-export type { CognitiveRisk } from './cognitiveRisk'
+export {
+  confidenceLevelLabels,
+  toConfidenceLevelLabel,
+} from './confidenceLevel'
+export type { ConfidenceLevel, ConfidenceLevelCode } from './confidenceLevel'
+export { decisionStatusLabels, toDecisionStatusLabel } from './decisionStatus'
+export type { DecisionStatus, DecisionStatusCode } from './decisionStatus'
 export { decisionOutcomes } from './decisionOutcome'
 export type { DecisionOutcome } from './decisionOutcome'
 export {
@@ -11,12 +16,44 @@ export {
   toDecisionTypeLabel,
 } from './decisionType'
 export type { DecisionType, DecisionTypeCode } from './decisionType'
+export {
+  evidenceRelationshipLabels,
+  toEvidenceRelationshipLabel,
+} from './evidenceRelationship'
+export type {
+  EvidenceRelationship,
+  EvidenceRelationshipCode,
+} from './evidenceRelationship'
 export { newsCategories } from './newsCategory'
 export type { NewsCategory } from './newsCategory'
 export { riskLevels } from './riskLevel'
 export type { RiskLevel } from './riskLevel'
+export {
+  reviewTriggerTypeLabels,
+  toReviewTriggerTypeLabel,
+} from './reviewTriggerType'
+export type {
+  ReviewTriggerType,
+  ReviewTriggerTypeCode,
+} from './reviewTriggerType'
+export {
+  reviewTriggerStatusLabels,
+  toReviewTriggerStatusLabel,
+} from './reviewTriggerStatus'
+export type {
+  ReviewTriggerStatus,
+  ReviewTriggerStatusCode,
+} from './reviewTriggerStatus'
+export { riskSeverityLabels, toRiskSeverityLabel } from './riskSeverity'
+export type { RiskSeverity, RiskSeverityCode } from './riskSeverity'
+export { riskTypeLabels, riskTypes, toRiskTypeLabel } from './riskType'
+export type { RiskType, RiskTypeCode } from './riskType'
 export { stockStatuses } from './stockStatus'
 export type { StockStatus } from './stockStatus'
+export { targetTypeLabels, toTargetTypeLabel } from './targetType'
+export type { TargetType, TargetTypeCode } from './targetType'
+export { snapshotTypeLabels, toSnapshotTypeLabel } from './snapshotType'
+export type { SnapshotType, SnapshotTypeCode } from './snapshotType'
 export { valuationLevels } from './valuationLevel'
 export type { ValuationLevel } from './valuationLevel'
 export type {

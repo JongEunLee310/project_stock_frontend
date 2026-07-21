@@ -14,6 +14,9 @@ describe('errorCodeMessages', () => {
       '시장 데이터에서 확인되지 않은 종목입니다',
     )
     expect(errorCodeMessages['ASSET_DUPLICATE']).toBe('이미 등록된 종목입니다')
+    expect(errorCodeMessages['DECISION_LOG_INVALID_STATE']).toBe(
+      '현재 상태에서는 판단 기록을 수정하거나 확정할 수 없습니다',
+    )
   })
 })
 
