@@ -3,6 +3,7 @@ import { createBrowserRouter, type RouteObject } from 'react-router-dom'
 import {
   AlertsPage,
   DashboardPage,
+  DecisionAnalyticsPage,
   DecisionDetailPage,
   DecisionLogPage,
   DecisionReviewPage,
@@ -50,6 +51,10 @@ export const appRouteObjects: RouteObject[] = [
       {
         path: appRoutePaths.decisionLog.slice(1),
         element: <DecisionLogPage />,
+      },
+      {
+        path: appRoutePaths.decisionAnalytics.slice(1),
+        element: <DecisionAnalyticsPage />,
       },
       {
         path: appRoutePaths.decisionDetail.slice(1),

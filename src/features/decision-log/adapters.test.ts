@@ -8,6 +8,7 @@ import { formatKstDateTime } from '@/shared/lib/format'
 
 import {
   adaptDecisionAssist,
+  adaptDecisionAnalytics,
   adaptDecisionLogDetail,
   adaptDecisionLogListItem,
   adaptDecisionOverview,
@@ -15,6 +16,7 @@ import {
 } from './adapters'
 import type {
   DecisionAssistResponseDto,
+  DecisionAnalyticsDto,
   DecisionLogDetailDto,
   DecisionLogListItemDto,
   DecisionOverviewDto,
@@ -28,6 +30,7 @@ import {
   useActivateDecision,
   useCreateDecisionLog,
   useDecisionAssist,
+  useDecisionAnalytics,
   useDecisionLog,
   useDecisionLogs,
   useDecisionOverview,
@@ -64,6 +67,27 @@ const overviewDto: DecisionOverviewDto = {
     { type: 'WATCH', count: 7, share: 0.5833 },
     { type: 'BUY_REVIEW', count: 5, share: 0.4167 },
   ],
+  as_of: '2026-07-21T00:00:00.000Z',
+}
+
+const analyticsDto: DecisionAnalyticsDto = {
+  total_count: 12,
+  decision_type_distribution: [{ type: 'WATCH', count: 7, share: 0.5833 }],
+  counter_argument_rate: 0.75,
+  confidence_distribution: [{ level: 'HIGH', count: 8, share: 0.6667 }],
+  outcome_by_confidence: [
+    { level: 'HIGH', thesis_result: 'CONFIRMED', count: 5 },
+  ],
+  risk_tag_frequency: [{ type: 'VALUATION', count: 4 }],
+  review_adherence: {
+    reviewed_count: 9,
+    overdue_count: 3,
+    adherence_rate: 0.75,
+  },
+  process_quality_averages: {
+    evidence_quality: 4.2,
+    discipline: 3.8,
+  },
   as_of: '2026-07-21T00:00:00.000Z',
 }
 
@@ -264,6 +288,39 @@ describe('decision-log adapters', () => {
     })
   })
 
+  it('adapts analytics metrics and labels every enum-like value', () => {
+    expect(adaptDecisionAnalytics(analyticsDto)).toEqual({
+      totalCount: 12,
+      decisionTypeDistribution: [
+        { code: 'WATCH', label: '관찰 지속', count: 7, share: 0.5833 },
+      ],
+      counterArgumentRate: 0.75,
+      confidenceDistribution: [
+        { code: 'HIGH', label: '높음', count: 8, share: 0.6667 },
+      ],
+      outcomeByConfidence: [
+        {
+          confidenceLevel: 'HIGH',
+          confidenceLevelLabel: '높음',
+          thesisResult: 'CONFIRMED',
+          thesisResultLabel: '확인',
+          count: 5,
+        },
+      ],
+      riskTagFrequency: [{ type: 'VALUATION', label: '밸류에이션', count: 4 }],
+      reviewAdherence: {
+        reviewedCount: 9,
+        overdueCount: 3,
+        adherenceRate: 0.75,
+      },
+      processQualityAverages: [
+        { key: 'evidence_quality', label: '근거 충분성', average: 4.2 },
+        { key: 'discipline', label: '규칙 준수', average: 3.8 },
+      ],
+      asOf: formatKstDateTime('2026-07-21T00:00:00.000Z'),
+    })
+  })
+
   it('adapts detail fields and all nested resources', () => {
     expect(adaptDecisionLogDetail(detailDto)).toMatchObject({
       id: '8',
@@ -335,6 +392,17 @@ describe('decision-log queries', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
     expect(apiGet).toHaveBeenCalledWith('/decision-logs/overview')
     expect(result.current.data?.totalCount).toBe(12)
+  })
+
+  it('fetches and adapts the analytics contract', async () => {
+    vi.mocked(apiGet).mockResolvedValue({ data: analyticsDto })
+    const { result } = renderHook(() => useDecisionAnalytics(), {
+      wrapper: wrapperFor(createTestQueryClient()),
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(apiGet).toHaveBeenCalledWith('/decision-logs/analytics')
+    expect(result.current.data?.confidenceDistribution[0].label).toBe('높음')
   })
 
   it('fetches filtered list data and preserves page meta', async () => {

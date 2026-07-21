@@ -8,6 +8,7 @@ export const appRoutePaths = {
   portfolio: '/portfolio',
   alerts: '/alerts',
   decisionLog: '/decision-log',
+  decisionAnalytics: '/decision-log/analytics',
   decisionDetail: '/decision-log/:id',
   decisionReview: '/decision-log/:id/review',
   settings: '/settings',
@@ -15,7 +16,7 @@ export const appRoutePaths = {
 
 export type AppRouteId = Exclude<
   keyof typeof appRoutePaths,
-  'decisionDetail' | 'decisionReview'
+  'decisionAnalytics' | 'decisionDetail' | 'decisionReview'
 >
 
 export interface NavigationItem {
