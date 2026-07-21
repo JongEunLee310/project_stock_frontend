@@ -1,5 +1,5 @@
 import { QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { vi } from 'vitest'
 
@@ -9,6 +9,7 @@ import type {
   DecisionLogListItem,
   DecisionOverview,
 } from '@/features/decision-log/adapters'
+import { ApiError } from '@/shared/api'
 import { createQueryClient } from '@/shared/api/queryClient'
 import { AuthProvider } from '@/shared/auth/AuthProvider'
 import {
@@ -73,10 +74,114 @@ const detail: DecisionLogDetail = {
   closedAt: null,
   createdAt: '2026. 07. 21. 09:00',
   updatedAt: '2026. 07. 21. 09:00',
-  evidence: [],
-  risks: [],
-  reviewTriggers: [],
-  snapshots: [],
+  evidence: [
+    {
+      id: 'e-1',
+      type: 'RESEARCH',
+      evidenceId: 'research-1',
+      version: 2,
+      title: '데이터센터 매출 성장',
+      summary: '최근 실적이 예상치를 상회했다.',
+      snapshot: null,
+      relationship: 'SUPPORTING',
+      relationshipLabel: '긍정 근거',
+      createdAt: '2026. 07. 21. 08:00',
+    },
+    {
+      id: 'e-2',
+      type: 'NEWS',
+      evidenceId: 'news-1',
+      version: null,
+      title: '대중 수출 규제 강화',
+      summary: '단기 공급 계획의 불확실성이 커졌다.',
+      snapshot: null,
+      relationship: 'CONTRADICTING',
+      relationshipLabel: '반대 근거',
+      createdAt: '2026. 07. 21. 08:10',
+    },
+    {
+      id: 'e-3',
+      type: 'CHART',
+      evidenceId: null,
+      version: null,
+      title: '단기 과매수 구간',
+      summary: '변동성 확대 가능성이 있다.',
+      snapshot: null,
+      relationship: 'RISK',
+      relationshipLabel: '위험',
+      createdAt: '2026. 07. 21. 08:20',
+    },
+    {
+      id: 'e-4',
+      type: 'USER_MEMO',
+      evidenceId: null,
+      version: null,
+      title: '실적 발표 전 관망 원칙',
+      summary: '기존 투자 원칙을 참고했다.',
+      snapshot: null,
+      relationship: 'BACKGROUND',
+      relationshipLabel: '배경',
+      createdAt: '2026. 07. 21. 08:30',
+    },
+  ],
+  risks: [
+    {
+      id: 'risk-1',
+      type: 'VALUATION',
+      typeLabel: '밸류에이션',
+      description: '선행 배수가 역사적 상단에 가깝다.',
+      severity: 'HIGH',
+      severityLabel: '높음',
+      createdAt: '2026. 07. 21. 08:40',
+    },
+  ],
+  reviewTriggers: [
+    {
+      id: 'trigger-later',
+      type: 'DATE',
+      typeLabel: '날짜',
+      condition: '실적 발표 후 가설을 재검토한다.',
+      scheduledAt: '2026. 08. 20. 09:00',
+      status: 'PENDING',
+      triggeredAt: null,
+      createdAt: '2026. 07. 21. 09:00',
+    },
+    {
+      id: 'trigger-earlier',
+      type: 'DATE',
+      typeLabel: '날짜',
+      condition: '다음 실적 일정을 확인한다.',
+      scheduledAt: '2026. 08. 10. 09:00',
+      status: 'PENDING',
+      triggeredAt: null,
+      createdAt: '2026. 07. 21. 09:00',
+    },
+  ],
+  snapshots: [
+    {
+      id: 'snapshot-price-1',
+      snapshotType: 'PRICE',
+      data: {
+        price: 172.4,
+        session: { market: 'NASDAQ', delayed: false },
+        levels: [168, 175],
+        note: null,
+      },
+      capturedAt: '2026. 07. 21. 09:00',
+    },
+    {
+      id: 'snapshot-price-2',
+      snapshotType: 'PRICE',
+      data: { price: 173.1 },
+      capturedAt: '2026. 07. 21. 09:01',
+    },
+    {
+      id: 'snapshot-valuation',
+      snapshotType: 'VALUATION',
+      data: { forward_per: 32.8 },
+      capturedAt: '2026. 07. 21. 09:00',
+    },
+  ],
 }
 
 let overviewState: QueryState<DecisionOverview>
@@ -223,14 +328,104 @@ describe('DecisionLogPage shell', () => {
 })
 
 describe('DecisionDetailPage route', () => {
-  it('matches /decision-log/:id and renders the detail shell', async () => {
+  it('판단→근거→스냅샷→재검토 순서로 상세를 렌더한다', async () => {
     renderRoute('/decision-log/42')
 
     expect(
       await screen.findByRole('heading', { name: '판단 기록 상세' }),
     ).toBeVisible()
     expect(screen.getByRole('heading', { name: 'NVIDIA' })).toBeVisible()
-    expect(screen.getByText(/관망 유지 · 상세 콘텐츠 영역/)).toBeVisible()
+    expect(screen.getByText('종목')).toBeVisible()
+    expect(screen.getAllByText('관망 유지').length).toBeGreaterThan(0)
+    expect(screen.getByText('다음 확인').parentElement).toHaveTextContent(
+      '2026. 08. 10. 09:00',
+    )
+
+    const sectionHeadings = within(screen.getByRole('main'))
+      .getAllByRole('heading', { level: 2 })
+      .map((heading) => heading.textContent)
+    expect(sectionHeadings).toEqual([
+      'NVIDIA',
+      '당시 판단',
+      '연결된 근거',
+      '당시 데이터 스냅샷',
+      '재검토 조건',
+      '2차 기능',
+    ])
+    expect(screen.getByText('데이터센터 수요가 성장을 지지한다.')).toBeVisible()
+    expect(screen.getByText('실적 발표까지 관찰한다.')).toBeVisible()
+  })
+
+  it('근거 관계를 나누고 영문 enum을 표시하지 않는다', async () => {
+    renderRoute('/decision-log/42')
+
+    for (const label of ['긍정 근거', '반대 근거', '위험', '배경']) {
+      expect(await screen.findByRole('heading', { name: label })).toBeVisible()
+    }
+    expect(screen.getByText('데이터센터 매출 성장')).toBeVisible()
+    expect(screen.getByText('대중 수출 규제 강화')).toBeVisible()
+    expect(screen.getByText('단기 과매수 구간')).toBeVisible()
+    expect(screen.getByText('실적 발표 전 관망 원칙')).toBeVisible()
+    expect(screen.queryByText('SUPPORTING')).not.toBeInTheDocument()
+    expect(screen.queryByText('CONTRADICTING')).not.toBeInTheDocument()
+    expect(screen.queryByText('PENDING')).not.toBeInTheDocument()
+  })
+
+  it('snapshot_type별로 자유 JSON을 key-value로 렌더한다', async () => {
+    renderRoute('/decision-log/42')
+
+    expect(
+      await screen.findByRole('heading', { name: '가격', level: 3 }),
+    ).toBeVisible()
+    expect(
+      screen.getByRole('heading', { name: '밸류에이션', level: 3 }),
+    ).toBeVisible()
+    expect(
+      screen.getAllByRole('heading', { name: '가격', level: 3 }),
+    ).toHaveLength(1)
+    expect(screen.getByText('172.4')).toBeVisible()
+    expect(screen.getByText('NASDAQ')).toBeVisible()
+    expect(screen.getByText('아니오')).toBeVisible()
+    expect(screen.getByText('168')).toBeVisible()
+    expect(screen.getByText('값 없음')).toBeVisible()
+    expect(screen.queryByText('PRICE')).not.toBeInTheDocument()
+    expect(screen.queryByText('VALUATION')).not.toBeInTheDocument()
+  })
+
+  it('상세 로딩 상태를 알린다', async () => {
+    decisionLogState = {
+      ...decisionLogState,
+      data: undefined,
+      isLoading: true,
+    }
+    renderRoute('/decision-log/42')
+
+    expect(
+      await screen.findByRole('status', {
+        name: '판단 기록 상세 불러오는 중',
+      }),
+    ).toBeVisible()
+  })
+
+  it.each([
+    ['DECISION_LOG_NOT_FOUND', '판단 기록을 찾을 수 없습니다'],
+    ['DECISION_LOG_FORBIDDEN', '이 판단 기록에 접근할 수 없습니다'],
+  ])('%s 오류에서 목록 복귀 안내를 렌더한다', async (code, title) => {
+    decisionLogState = {
+      ...decisionLogState,
+      data: undefined,
+      error: new ApiError(code, title),
+      isError: true,
+    }
+    renderRoute('/decision-log/inaccessible')
+
+    expect(await screen.findByRole('heading', { name: title })).toBeVisible()
+    expect(
+      screen.getByRole('link', { name: '판단 기록 목록으로' }),
+    ).toHaveAttribute('href', '/decision-log')
+    expect(
+      screen.queryByRole('button', { name: '재시도' }),
+    ).not.toBeInTheDocument()
   })
 
   it('renders the detail error state and retries', async () => {
