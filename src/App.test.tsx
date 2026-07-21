@@ -400,6 +400,21 @@ describe('App', () => {
     ).toHaveAttribute('aria-current', 'page')
   })
 
+  it('renders the news insights overview route', async () => {
+    renderRoute('/news')
+
+    expect(
+      await screen.findByRole('heading', { name: '뉴스·공시 인사이트' }),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /뉴스·공시/ })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
+    expect(
+      screen.getByRole('heading', { name: '실시간 이벤트 피드' }),
+    ).toBeInTheDocument()
+  })
+
   it('renders not found inside the app shell', async () => {
     renderRoute('/missing-route')
 

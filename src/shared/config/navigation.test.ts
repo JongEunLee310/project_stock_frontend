@@ -27,6 +27,26 @@ describe('getActiveNavigationItem', () => {
     expect(getActiveNavigationItem('/research/NVDA/news')?.id).toBe('research')
   })
 
+  it('places the news menu after research and matches nested news routes', () => {
+    const researchIndex = navigationItems.findIndex(
+      (item) => item.id === 'research',
+    )
+    const newsIndex = navigationItems.findIndex((item) => item.id === 'news')
+
+    expect(appRoutePaths.news).toBe('/news')
+    expect(newsIndex).toBe(researchIndex + 1)
+    expect(navigationItems[newsIndex]).toMatchObject({
+      label: 'News & Disclosures',
+      href: '/news',
+      path: '/news',
+      matchPrefix: '/news',
+    })
+    expect(getActiveNavigationItem('/news')?.id).toBe('news')
+    expect(getActiveNavigationItem('/news/topics/ai-semiconductors')?.id).toBe(
+      'news',
+    )
+  })
+
   it('matches the decision log menu for list and detail routes', () => {
     expect(appRoutePaths.decisionAnalytics).toBe('/decision-log/analytics')
     expect(appRoutePaths.decisionDetail).toBe('/decision-log/:id')
