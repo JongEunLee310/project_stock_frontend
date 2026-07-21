@@ -6,6 +6,7 @@ import type {
   DecisionTypeDto,
   TargetTypeDto,
 } from '@/features/decision-log/dto'
+import type { DecisionEvidencePrefill } from '@/features/decision-log/prefill'
 import {
   useActivateDecision,
   useCreateDecisionLog,
@@ -14,11 +15,13 @@ import {
 import {
   confidenceLevelLabels,
   decisionTypeLabels,
+  evidenceRelationshipLabels,
   riskTypeLabels,
   targetTypeLabels,
   toRiskTypeLabel,
   type ConfidenceLevelCode,
   type DecisionTypeCode,
+  type EvidenceRelationshipCode,
   type RiskTypeCode,
   type TargetTypeCode,
 } from '@/shared/model'
@@ -27,13 +30,18 @@ import { Button, Card, Input } from '@/shared/ui'
 import { DecisionAssistPanel } from './DecisionAssistPanel'
 
 interface DecisionFormPanelProps {
+  initialTargetType?: TargetTypeDto
   initialTargetId?: string
+  initialEvidence?: DecisionEvidencePrefill[]
 }
 
 interface ValidationErrors {
   targetId?: string
   decisionType?: string
+  evidenceTitleKeys?: string[]
 }
+
+type EditableEvidence = DecisionEvidencePrefill & { formKey: string }
 
 const selectClassName =
   'min-h-10 w-full rounded-control border border-cockpit-border bg-cockpit-surface-muted px-3 py-2 text-sm text-cockpit-text outline-none transition-colors focus:border-cockpit-accent focus:ring-2 focus:ring-cockpit-accent/30 disabled:cursor-not-allowed disabled:opacity-50'
@@ -54,6 +62,9 @@ const riskTypeEntries = Object.entries(riskTypeLabels) as Array<
 const confidenceLevelEntries = Object.entries(confidenceLevelLabels) as Array<
   [ConfidenceLevelCode, string]
 >
+const evidenceRelationshipEntries = Object.entries(
+  evidenceRelationshipLabels,
+) as Array<[EvidenceRelationshipCode, string]>
 
 const targetIdentifierLabels: Record<TargetTypeCode, string> = {
   SYMBOL: '종목 티커',
@@ -104,14 +115,23 @@ function messageFromError(error: unknown): string {
 }
 
 export function DecisionFormPanel({
+  initialTargetType = 'SYMBOL',
   initialTargetId = '',
+  initialEvidence = [],
 }: DecisionFormPanelProps) {
   const createDecision = useCreateDecisionLog()
   const activateDecision = useActivateDecision()
   const decisionAssist = useDecisionAssist()
 
-  const [targetType, setTargetType] = useState<TargetTypeDto>('SYMBOL')
+  const [targetType, setTargetType] = useState<TargetTypeDto>(initialTargetType)
   const [targetId, setTargetId] = useState(initialTargetId)
+  const [evidence, setEvidence] = useState<EditableEvidence[]>(() =>
+    initialEvidence.map((item, index) => ({
+      ...item,
+      snapshot: item.snapshot ? { ...item.snapshot } : undefined,
+      formKey: `${item.type}:${String(item.id ?? '')}:${index}`,
+    })),
+  )
   const [decisionType, setDecisionType] = useState<DecisionTypeDto | ''>('')
   const [rationale, setRationale] = useState('')
   const [supportingReasons, setSupportingReasons] = useState('')
@@ -136,6 +156,7 @@ export function DecisionFormPanel({
   const resetForm = () => {
     setTargetType('SYMBOL')
     setTargetId('')
+    setEvidence([])
     setDecisionType('')
     setRationale('')
     setSupportingReasons('')
@@ -204,6 +225,23 @@ export function DecisionFormPanel({
     )
   }
 
+  const updateEvidence = (
+    formKey: string,
+    update: Partial<DecisionEvidencePrefill>,
+  ) => {
+    setEvidence((current) =>
+      current.map((item) =>
+        item.formKey === formKey ? { ...item, ...update } : item,
+      ),
+    )
+    setValidationErrors((current) => ({
+      ...current,
+      evidenceTitleKeys: current.evidenceTitleKeys?.filter(
+        (key) => key !== formKey,
+      ),
+    }))
+  }
+
   const submitForm = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setSubmitMessage(null)
@@ -215,6 +253,12 @@ export function DecisionFormPanel({
     }
     if (!decisionType) {
       nextErrors.decisionType = '판단 유형을 선택해 주세요.'
+    }
+    const evidenceTitleKeys = evidence
+      .filter((item) => !item.title.trim())
+      .map((item) => item.formKey)
+    if (evidenceTitleKeys.length > 0) {
+      nextErrors.evidenceTitleKeys = evidenceTitleKeys
     }
     setValidationErrors(nextErrors)
 
@@ -246,6 +290,16 @@ export function DecisionFormPanel({
         risks: selectedRisks.map((risk) => ({
           type: risk,
           severity: 'MEDIUM' as const,
+        })),
+      }),
+      ...(evidence.length > 0 && {
+        evidence: evidence.map((item) => ({
+          type: item.type,
+          ...(item.id !== undefined && { evidence_id: item.id }),
+          title: item.title.trim(),
+          ...(item.summary?.trim() && { summary: item.summary.trim() }),
+          ...(item.snapshot && { snapshot: item.snapshot }),
+          relationship: item.relationship,
         })),
       }),
       ...(reviewDate && {
@@ -426,6 +480,112 @@ export function DecisionFormPanel({
             반대 근거가 비어 있습니다. 저장은 계속할 수 있습니다.
           </p>
         )}
+
+        {evidence.length > 0 ? (
+          <fieldset className="grid gap-3" disabled={isSubmitting}>
+            <legend className="text-sm font-medium text-cockpit-text">
+              연결 근거
+            </legend>
+            {evidence.map((item) => {
+              const titleErrorId = `evidence-title-error-${item.formKey.replaceAll(':', '-')}`
+              const hasTitleError =
+                validationErrors.evidenceTitleKeys?.includes(item.formKey) ??
+                false
+
+              return (
+                <article
+                  key={item.formKey}
+                  className="grid gap-3 rounded-control border border-cockpit-border bg-cockpit-surface-muted/50 p-3"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-cockpit-text-muted">
+                    <span>
+                      근거 유형 {item.type}
+                      {item.id !== undefined ? ` · ID ${String(item.id)}` : ''}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="min-h-8 px-2 py-1 text-xs"
+                      onClick={() =>
+                        setEvidence((current) =>
+                          current.filter(
+                            (evidenceItem) =>
+                              evidenceItem.formKey !== item.formKey,
+                          ),
+                        )
+                      }
+                    >
+                      근거 제거
+                    </Button>
+                  </div>
+                  <label className={fieldClassName}>
+                    근거 관계
+                    <select
+                      className={selectClassName}
+                      value={item.relationship}
+                      onChange={(event) =>
+                        updateEvidence(item.formKey, {
+                          relationship: event.target
+                            .value as EvidenceRelationshipCode,
+                        })
+                      }
+                    >
+                      {evidenceRelationshipEntries.map(([code, label]) => (
+                        <option key={code} value={code}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className={fieldClassName}>
+                    근거 제목 <span className="text-rose-300">필수</span>
+                    <Input
+                      className="w-full border-cockpit-border bg-cockpit-surface-muted text-cockpit-text"
+                      value={item.title}
+                      aria-invalid={hasTitleError}
+                      aria-describedby={
+                        hasTitleError ? titleErrorId : undefined
+                      }
+                      onChange={(event) =>
+                        updateEvidence(item.formKey, {
+                          title: event.target.value,
+                        })
+                      }
+                    />
+                  </label>
+                  {hasTitleError ? (
+                    <p id={titleErrorId} className="text-xs text-rose-300">
+                      근거 제목을 입력해 주세요.
+                    </p>
+                  ) : null}
+                  <label className={fieldClassName}>
+                    근거 요약
+                    <textarea
+                      className={textareaClassName}
+                      rows={2}
+                      value={item.summary ?? ''}
+                      onChange={(event) =>
+                        updateEvidence(item.formKey, {
+                          summary: event.target.value,
+                        })
+                      }
+                    />
+                  </label>
+                  {item.snapshot ? (
+                    <details className="text-xs text-cockpit-text-muted">
+                      <summary className="cursor-pointer font-medium text-cockpit-text">
+                        당시 스냅샷
+                      </summary>
+                      <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap rounded-control bg-cockpit-bg/60 p-2">
+                        {JSON.stringify(item.snapshot, null, 2)}
+                      </pre>
+                    </details>
+                  ) : null}
+                </article>
+              )
+            })}
+          </fieldset>
+        ) : null}
 
         <DecisionAssistPanel
           result={assistResult}

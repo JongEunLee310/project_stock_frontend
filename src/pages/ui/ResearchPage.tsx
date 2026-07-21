@@ -45,6 +45,7 @@ import {
   useWatchlistAssets,
 } from '@/features/watchlist/queries'
 import { appRoutePaths } from '@/shared/config/navigation'
+import { createDecisionLogLocationState } from '@/features/decision-log/prefill'
 import { formatLocalDateTime } from '@/shared/lib/format'
 import {
   Badge,
@@ -105,6 +106,46 @@ const researchSectionIds = {
 } as const
 
 type ResearchSection = keyof typeof researchSectionIds
+
+function getResearchDecisionState(research: ResearchView) {
+  return createDecisionLogLocationState({
+    target: { type: 'SYMBOL', id: research.symbol },
+    evidence: [
+      {
+        type: 'RESEARCH',
+        id: research.assetId,
+        title: research.briefing?.headline ?? `${research.symbol} 종목 리서치`,
+        summary:
+          research.stanceComment ?? research.briefing?.body ?? research.stance,
+        snapshot: {
+          symbol: research.symbol,
+          name: research.name,
+          market: research.market,
+          sector: research.sector,
+          price: research.price,
+          change: research.change,
+          changePercent: research.changePercent,
+          currency: research.currency,
+          marketCap: research.marketCap,
+          per: research.per,
+          peg: research.peg,
+          targetPrice: research.targetPrice,
+          targetPriceLow: research.targetPriceLow,
+          targetPriceHigh: research.targetPriceHigh,
+          targetUpsidePercent: research.targetUpsidePercent,
+          nextEarningsDate: research.nextEarningsDate,
+          updatedAt: research.updatedAt,
+          stance: research.stance,
+          stanceConfidence: research.stanceConfidence,
+          stanceComment: research.stanceComment,
+          confidenceBasis: research.confidenceBasis,
+          briefing: research.briefing,
+        },
+        relationship: 'SUPPORTING',
+      },
+    ],
+  })
+}
 
 const riskRank: Record<string, number> = {
   높음: 3,
@@ -917,8 +958,9 @@ function HeaderCard({
                   />
                 </button>
                 <Link
-                  to={`${appRoutePaths.decisionLog}?symbol=${encodeURIComponent(research.symbol)}`}
-                  aria-label="판단 기록 보기"
+                  to={appRoutePaths.decisionLog}
+                  state={getResearchDecisionState(research)}
+                  aria-label="판단 기록 작성"
                   className="inline-flex h-9 w-9 items-center justify-center rounded-control text-app-text-muted transition-colors hover:bg-app-surface-muted hover:text-app-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent"
                 >
                   <LuClipboardList className="h-5 w-5" aria-hidden="true" />

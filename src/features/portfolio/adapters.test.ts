@@ -63,6 +63,7 @@ describe('adaptPortfolioSummary', () => {
   it('maps summary, positions, assets, and sector weights', () => {
     const view = adaptPortfolioSummary(summaryDto, new Map([[1, assetDto]]))
 
+    expect(view.id).toBe('1')
     expect(view.totalValue).toBe(2056.4)
     expect(view.cash).toBe(100)
     expect(view.dayChangeValue).toBe(12.34)

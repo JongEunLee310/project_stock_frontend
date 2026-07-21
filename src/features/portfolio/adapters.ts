@@ -21,6 +21,7 @@ export interface PortfolioSectorExposure {
 }
 
 export interface PortfolioView {
+  id: string
   totalValue: number
   cash: number
   dayChangeValue: number
@@ -43,6 +44,7 @@ export function adaptPortfolioSummary(
   assetsById: ReadonlyMap<number, AssetDto>,
 ): PortfolioView {
   return {
+    id: String(dto.portfolio_id),
     totalValue: parseDecimal(dto.total_value) ?? 0,
     cash: parseDecimal(dto.cash_balance) ?? 0,
     dayChangeValue: parseDecimal(dto.day_change_value) ?? 0,

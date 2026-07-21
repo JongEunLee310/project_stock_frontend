@@ -1,5 +1,9 @@
-import { render, screen, within } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { fireEvent, render, screen, within } from '@testing-library/react'
+import {
+  createMemoryRouter,
+  MemoryRouter,
+  RouterProvider,
+} from 'react-router-dom'
 import { vi } from 'vitest'
 
 import type { PortfolioView } from '@/features/portfolio/adapters'
@@ -16,6 +20,7 @@ interface QueryState<T> {
 }
 
 const portfolioView: PortfolioView = {
+  id: '7',
   totalValue: 128_734_000,
   cash: 29_234_000,
   dayChangeValue: 1_292_000,
@@ -293,6 +298,104 @@ describe('PortfolioPage', () => {
     expect(
       within(table).queryByRole('columnheader', { name: '일간 변화' }),
     ).not.toBeInTheDocument()
+  })
+
+  it('deep-links a holding weight to decision authoring with a portfolio snapshot', () => {
+    const router = createMemoryRouter(
+      [
+        {
+          path: '/portfolio',
+          element: (
+            <PortfolioPageView
+              portfolio={portfolioView}
+              briefingQuery={portfolioBriefingQueryState}
+            />
+          ),
+        },
+        { path: '/decision-log', element: <div>판단 기록</div> },
+      ],
+      { initialEntries: ['/portfolio'] },
+    )
+    render(<RouterProvider router={router} />)
+
+    const table = screen.getByRole('table', { name: '보유 종목' })
+    const nvdaRow = within(table)
+      .getByRole('link', { name: 'NVDA' })
+      .closest('tr')
+    expect(nvdaRow).not.toBeNull()
+    fireEvent.click(
+      within(nvdaRow as HTMLElement).getByRole('link', {
+        name: '판단 기록 작성',
+      }),
+    )
+
+    expect(router.state.location.pathname).toBe('/decision-log')
+    expect(router.state.location.state).toMatchObject({
+      decisionPrefill: {
+        target: { type: 'SYMBOL', id: 'NVDA' },
+        evidence: [
+          {
+            type: 'PORTFOLIO',
+            id: 2,
+            title: 'NVDA 포트폴리오 비중',
+            relationship: 'BACKGROUND',
+            snapshot: {
+              portfolioId: '7',
+              totalValue: 128_734_000,
+              holding: { symbol: 'NVDA', weight: 15.2 },
+            },
+          },
+        ],
+      },
+    })
+  })
+
+  it('deep-links a portfolio risk with the current allocation snapshot', () => {
+    const router = createMemoryRouter(
+      [
+        {
+          path: '/portfolio',
+          element: (
+            <PortfolioPageView
+              portfolio={portfolioView}
+              briefingQuery={portfolioBriefingQueryState}
+            />
+          ),
+        },
+        { path: '/decision-log', element: <div>판단 기록</div> },
+      ],
+      { initialEntries: ['/portfolio'] },
+    )
+    render(<RouterProvider router={router} />)
+
+    const riskCard = screen.getByText('반도체 쏠림 위험').closest('article')
+    expect(riskCard).not.toBeNull()
+    fireEvent.click(
+      within(riskCard as HTMLElement).getByRole('link', {
+        name: '판단 기록 작성',
+      }),
+    )
+
+    expect(router.state.location.state).toMatchObject({
+      decisionPrefill: {
+        target: { type: 'PORTFOLIO', id: '7' },
+        evidence: [
+          {
+            type: 'PORTFOLIO',
+            id: 'sector-semiconductor',
+            title: '반도체 쏠림 위험',
+            relationship: 'BACKGROUND',
+            snapshot: {
+              portfolioId: '7',
+              risk: { level: '높음' },
+              holdings: expect.arrayContaining([
+                expect.objectContaining({ symbol: 'QQQ', weight: 35.1 }),
+              ]),
+            },
+          },
+        ],
+      },
+    })
   })
 
   it('renders an empty state when there are no holdings', () => {

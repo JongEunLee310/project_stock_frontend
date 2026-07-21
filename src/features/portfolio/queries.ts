@@ -36,6 +36,7 @@ export function usePortfolioSummary() {
 
       if (!firstPortfolio) {
         return {
+          id: '',
           totalValue: 0,
           cash: 0,
           dayChangeValue: 0,

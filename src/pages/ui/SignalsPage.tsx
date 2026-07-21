@@ -28,6 +28,7 @@ import {
   useSignalSummary,
   useSignals,
 } from '@/features/signals/queries'
+import { createDecisionLogLocationState } from '@/features/decision-log/prefill'
 import { appRoutePaths } from '@/shared/config/navigation'
 import {
   Badge,
@@ -63,6 +64,39 @@ const selectClassName =
 function getResearchPath(symbol: string, section?: string) {
   const path = appRoutePaths.researchDetail.replace(':symbol', symbol)
   return section ? `${path}?section=${section}` : path
+}
+
+function getSignalDecisionState(signal: Signal) {
+  const title = signal.keyPoints?.[0] ?? signal.reason
+
+  return createDecisionLogLocationState({
+    target: { type: 'SYMBOL', id: signal.symbol },
+    evidence: [
+      {
+        type: 'SIGNAL',
+        id: signal.id,
+        title,
+        summary: signal.evidence ?? signal.reason,
+        snapshot: {
+          symbol: signal.symbol,
+          market: signal.market,
+          companyName: signal.companyName,
+          signalType: signal.signalType,
+          signalTypeLabel: signal.signalTypeLabel,
+          score: signal.score,
+          riskLevel: signal.riskLevel,
+          reason: signal.reason,
+          keyPoints: signal.keyPoints ?? [],
+          change: signal.change ?? null,
+          evidence: signal.evidence,
+          createdAt: signal.createdAt,
+          expiresAt: signal.expiresAt,
+        },
+        relationship:
+          categoryOf(signal.signalType) === 'RISK' ? 'RISK' : 'SUPPORTING',
+      },
+    ],
+  })
 }
 
 function normalizeScore(score: number) {
@@ -477,7 +511,11 @@ function SignalCard({ signal }: { signal: Signal }) {
             variant="ghost"
             aria-label="판단 기록"
             className="min-h-10 gap-1 rounded-none border-0 border-l border-cockpit-border px-2"
-            onClick={() => navigate(appRoutePaths.decisionLog)}
+            onClick={() =>
+              navigate(appRoutePaths.decisionLog, {
+                state: getSignalDecisionState(signal),
+              })
+            }
           >
             <FiBookOpen aria-hidden="true" />
             판단 기록

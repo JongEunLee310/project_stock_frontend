@@ -773,18 +773,38 @@ describe('formatResearchChartTooltipLabel', () => {
 })
 
 describe('ResearchPage', () => {
-  it('navigates to the decision log with the research symbol', async () => {
+  it('navigates to decision authoring with the research snapshot', async () => {
     const router = renderResearch()
 
     const decisionLogLink = await screen.findByRole('link', {
-      name: '판단 기록 보기',
+      name: '판단 기록 작성',
     })
-    expect(decisionLogLink).toHaveAttribute('href', '/decision-log?symbol=NVDA')
+    expect(decisionLogLink).toHaveAttribute('href', '/decision-log')
     fireEvent.click(decisionLogLink)
 
     await waitFor(() => {
       expect(router.state.location.pathname).toBe('/decision-log')
-      expect(router.state.location.search).toBe('?symbol=NVDA')
+      expect(router.state.location.search).toBe('')
+    })
+    expect(router.state.location.state).toMatchObject({
+      decisionPrefill: {
+        target: { type: 'SYMBOL', id: 'NVDA' },
+        evidence: [
+          {
+            type: 'RESEARCH',
+            id: 1,
+            title: 'AI demand remains durable',
+            summary:
+              '성장성과 현금흐름 개선을 확인하되 가격 부담을 함께 검토할 단계입니다.',
+            relationship: 'SUPPORTING',
+            snapshot: {
+              symbol: 'NVDA',
+              price: 142.62,
+              stance: 'Constructive, wait for disciplined add-on entry',
+            },
+          },
+        ],
+      },
     })
   })
 

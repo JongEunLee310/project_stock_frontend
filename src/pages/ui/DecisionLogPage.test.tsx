@@ -263,7 +263,9 @@ afterEach(() => {
   teardownAuthenticatedUser()
 })
 
-function renderRoute(path = '/decision-log') {
+type RouteEntry = string | { pathname: string; state?: unknown }
+
+function renderRoute(path: RouteEntry = '/decision-log') {
   const router = createMemoryRouter(appRouteObjects, {
     initialEntries: [path],
   })
@@ -293,12 +295,53 @@ describe('DecisionLogPage shell', () => {
     expect(screen.getByRole('heading', { name: '판단 작성' })).toBeVisible()
   })
 
-  it('prefills a symbol from the decision-log query parameter', async () => {
+  it('uses a legacy symbol query only for filtering and keeps the form empty', async () => {
     renderRoute('/decision-log?symbol=nvda')
 
-    expect(await screen.findByLabelText(/종목 티커/)).toHaveValue('NVDA')
+    expect(await screen.findByLabelText(/종목 티커/)).toHaveValue('')
     expect(screen.getByLabelText('종목 심볼')).toHaveValue('NVDA')
     expect(latestDecisionLogFilters).toEqual({ symbol: 'NVDA' })
+  })
+
+  it('prefills target and evidence from router state without saving automatically', async () => {
+    renderRoute({
+      pathname: '/decision-log',
+      state: {
+        decisionPrefill: {
+          target: { type: 'PORTFOLIO', id: 'portfolio-7' },
+          evidence: [
+            {
+              type: 'PORTFOLIO',
+              id: 'risk-1',
+              title: '반도체 쏠림 위험',
+              summary: '반도체 관련 종목 비중이 높습니다.',
+              snapshot: { cashRatio: 22.7, topHolding: 'QQQ' },
+              relationship: 'BACKGROUND',
+            },
+          ],
+        },
+      },
+    })
+
+    expect(await screen.findByLabelText(/포트폴리오 식별자/)).toHaveValue(
+      'portfolio-7',
+    )
+    expect(screen.getByLabelText(/근거 제목/)).toHaveValue('반도체 쏠림 위험')
+    expect(screen.getByLabelText('근거 요약')).toHaveValue(
+      '반도체 관련 종목 비중이 높습니다.',
+    )
+    expect(screen.getByLabelText('근거 관계')).toHaveValue('BACKGROUND')
+    expect(screen.getByText('당시 스냅샷')).toBeVisible()
+  })
+
+  it('keeps a direct entry without valid prefill state empty', async () => {
+    renderRoute({
+      pathname: '/decision-log',
+      state: { decisionPrefill: { target: { type: 'UNKNOWN', id: 'NVDA' } } },
+    })
+
+    expect(await screen.findByLabelText(/종목 티커/)).toHaveValue('')
+    expect(screen.queryByText('연결 근거')).not.toBeInTheDocument()
   })
 
   it('passes combined filters to the decision log query and resets them', async () => {

@@ -110,6 +110,67 @@ describe('DecisionFormPanel', () => {
     expect(screen.queryByLabelText(/종목 티커/)).not.toBeInTheDocument()
   })
 
+  it('initializes editable evidence and includes the confirmed snapshot only on save', async () => {
+    render(
+      <DecisionFormPanel
+        initialTargetType="PORTFOLIO"
+        initialTargetId="portfolio-7"
+        initialEvidence={[
+          {
+            type: 'PORTFOLIO',
+            id: 'risk-1',
+            title: '반도체 쏠림 위험',
+            summary: '반도체 비중이 높습니다.',
+            snapshot: { cashRatio: 22.7, topHolding: 'QQQ' },
+            relationship: 'BACKGROUND',
+          },
+        ]}
+      />,
+    )
+
+    expect(screen.getByLabelText(/대상 유형/)).toHaveValue('PORTFOLIO')
+    expect(screen.getByLabelText(/포트폴리오 식별자/)).toHaveValue(
+      'portfolio-7',
+    )
+    expect(screen.getByLabelText('근거 관계')).toHaveTextContent('배경')
+    expect(screen.getByLabelText('근거 관계')).not.toHaveTextContent(
+      'BACKGROUND',
+    )
+    expect(createDecision).not.toHaveBeenCalled()
+
+    fireEvent.change(screen.getByLabelText(/근거 제목/), {
+      target: { value: '반도체 집중도 재점검' },
+    })
+    fireEvent.change(screen.getByLabelText('근거 요약'), {
+      target: { value: '  목표 비중과 비교한다.  ' },
+    })
+    fireEvent.change(screen.getByLabelText('근거 관계'), {
+      target: { value: 'RISK' },
+    })
+    fireEvent.change(screen.getByLabelText(/판단 유형/), {
+      target: { value: 'REBALANCE_REVIEW' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '판단 저장 및 확정' }))
+
+    await waitFor(() =>
+      expect(createDecision).toHaveBeenCalledWith({
+        target: { type: 'PORTFOLIO', id: 'portfolio-7' },
+        decision_type: 'REBALANCE_REVIEW',
+        evidence: [
+          {
+            type: 'PORTFOLIO',
+            evidence_id: 'risk-1',
+            title: '반도체 집중도 재점검',
+            summary: '목표 비중과 비교한다.',
+            snapshot: { cashRatio: 22.7, topHolding: 'QQQ' },
+            relationship: 'RISK',
+          },
+        ],
+      }),
+    )
+    expect(activateDecision).toHaveBeenCalledWith({ id: '42' })
+  })
+
   it('blocks submission and explains both missing required values', () => {
     render(<DecisionFormPanel />)
 
