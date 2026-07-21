@@ -1,12 +1,19 @@
+import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
+import type { DecisionLogFilters } from '@/features/decision-log/queries'
+import { DecisionFilterBar } from '@/widgets/decision-filter-bar'
 import { DecisionFormPanel } from '@/widgets/decision-form-panel'
 import { DecisionLogTable } from '@/widgets/decision-log-table'
 import { DecisionSummaryCards } from '@/widgets/decision-summary-cards'
+import { ReviewQueuePanel } from '@/widgets/review-queue-panel'
 
 export function DecisionLogPage() {
   const [searchParams] = useSearchParams()
   const initialSymbol = searchParams.get('symbol')?.trim().toUpperCase() ?? ''
+  const [filters, setFilters] = useState<DecisionLogFilters>(() => ({
+    symbol: initialSymbol || undefined,
+  }))
 
   return (
     <div className="flex flex-col gap-4">
@@ -19,11 +26,14 @@ export function DecisionLogPage() {
 
       <DecisionSummaryCards />
 
+      <DecisionFilterBar filters={filters} onChange={setFilters} />
+
       <div className="grid min-w-0 gap-4 2xl:grid-cols-[minmax(0,1fr)_24rem]">
         <div className="min-w-0">
-          <DecisionLogTable />
+          <DecisionLogTable filters={filters} />
         </div>
-        <aside>
+        <aside className="flex flex-col gap-4">
+          <ReviewQueuePanel />
           <DecisionFormPanel initialTargetId={initialSymbol} />
         </aside>
       </div>
