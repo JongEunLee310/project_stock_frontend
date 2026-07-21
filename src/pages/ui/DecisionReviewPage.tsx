@@ -14,7 +14,11 @@ import {
 } from '@/features/decision-log/queries'
 import { ApiError } from '@/shared/api'
 import { formatPercent } from '@/shared/lib/format'
-import { outcomeStatuses, thesisResults } from '@/shared/model'
+import {
+  outcomeStatuses,
+  processQualityFields,
+  thesisResults,
+} from '@/shared/model'
 import {
   Badge,
   Button,
@@ -23,14 +27,6 @@ import {
   ErrorState,
   Skeleton,
 } from '@/shared/ui'
-
-const qualityFields = [
-  { key: 'evidence_quality', label: '근거 충분성' },
-  { key: 'counter_argument_review', label: '반대 근거 검토' },
-  { key: 'risk_awareness', label: '위험 인식' },
-  { key: 'review_condition_clarity', label: '재검토 명확성' },
-  { key: 'discipline', label: '규칙 준수' },
-] as const
 
 const metricFields = [
   { key: 'return_rate', label: '수익률' },
@@ -90,7 +86,10 @@ function ReviewForm({ id, isDraft }: { id: string; isDraft: boolean }) {
 
     const formData = new FormData(event.currentTarget)
     const processQuality = Object.fromEntries(
-      qualityFields.map(({ key }) => [key, Number(textValue(formData, key))]),
+      processQualityFields.map(({ key }) => [
+        key,
+        Number(textValue(formData, key)),
+      ]),
     )
     const resultMetrics = Object.fromEntries(
       metricFields
@@ -182,7 +181,7 @@ function ReviewForm({ id, isDraft }: { id: string; isDraft: boolean }) {
           평가합니다.
         </p>
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          {qualityFields.map((field) => (
+          {processQualityFields.map((field) => (
             <label key={field.key} className="grid gap-2 text-sm font-medium">
               {field.label}
               <select
@@ -310,7 +309,7 @@ function ReviewList({ reviews }: { reviews: DecisionReview[] }) {
               <section aria-label="판단 품질" className="mt-4">
                 <h3 className="font-semibold">판단 품질</h3>
                 <dl className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
-                  {qualityFields.map((field) => (
+                  {processQualityFields.map((field) => (
                     <div key={field.key}>
                       <dt className="text-xs text-cockpit-text-muted">
                         {field.label}

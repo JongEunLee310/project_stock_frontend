@@ -18,6 +18,12 @@ export {
 } from './outcomeStatus'
 export type { OutcomeStatus, OutcomeStatusCode } from './outcomeStatus'
 export {
+  processQualityFields,
+  processQualityLabels,
+  toProcessQualityLabel,
+} from './processQuality'
+export type { ProcessQualityCode } from './processQuality'
+export {
   decisionTypeCodeByLabel,
   decisionTypeLabels,
   decisionTypes,

@@ -5,6 +5,7 @@ import { vi } from 'vitest'
 
 import { appRouteObjects } from '@/app/router'
 import type {
+  DecisionAnalytics,
   DecisionLogDetail,
   DecisionLogListItem,
   DecisionOverview,
@@ -28,6 +29,7 @@ interface QueryState<T> {
 }
 
 const refetchOverview = vi.fn()
+const refetchAnalytics = vi.fn()
 const refetchDecisionLogs = vi.fn()
 const refetchDecisionLog = vi.fn()
 const refetchReviewQueue = vi.fn()
@@ -195,6 +197,7 @@ const detail: DecisionLogDetail = {
 }
 
 let overviewState: QueryState<DecisionOverview>
+let analyticsState: QueryState<DecisionAnalytics>
 let decisionLogsState: QueryState<{
   items: DecisionLogListItem[]
   meta?: { page: number; size: number; total: number }
@@ -218,6 +221,7 @@ vi.mock('@/features/market-indices/queries', () => ({
 
 vi.mock('@/features/decision-log/queries', () => ({
   useDecisionOverview: () => overviewState,
+  useDecisionAnalytics: () => analyticsState,
   useDecisionLogs: (filters: DecisionLogFilters) => {
     latestDecisionLogFilters = filters
     return decisionLogsState
@@ -248,6 +252,7 @@ vi.mock('@/features/research/queries', () => ({
 beforeEach(() => {
   setupAuthenticatedUser()
   refetchOverview.mockReset()
+  refetchAnalytics.mockReset()
   refetchDecisionLogs.mockReset()
   refetchDecisionLog.mockReset()
   refetchReviewQueue.mockReset()
@@ -260,6 +265,31 @@ beforeEach(() => {
     isError: false,
     isLoading: false,
     refetch: refetchOverview,
+  }
+  analyticsState = {
+    data: {
+      totalCount: 1,
+      decisionTypeDistribution: [
+        { code: 'HOLD', label: '관망 유지', count: 1, share: 1 },
+      ],
+      counterArgumentRate: 1,
+      confidenceDistribution: [
+        { code: 'MEDIUM', label: '중간', count: 1, share: 1 },
+      ],
+      outcomeByConfidence: [],
+      riskTagFrequency: [],
+      reviewAdherence: {
+        reviewedCount: 1,
+        overdueCount: 0,
+        adherenceRate: 1,
+      },
+      processQualityAverages: [],
+      asOf: '2026. 07. 21. 09:00',
+    },
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: refetchAnalytics,
   }
   decisionLogsState = {
     data: { items: [listItem], meta: { page: 1, size: 20, total: 1 } },
@@ -343,6 +373,23 @@ describe('DecisionLogPage shell', () => {
     expect(screen.getByRole('table', { name: '판단 기록' })).toBeVisible()
     expect(screen.getByRole('link', { name: 'NVIDIA' })).toBeVisible()
     expect(screen.getByRole('heading', { name: '판단 작성' })).toBeVisible()
+  })
+
+  it('navigates from the decision log entry point to the analytics route', async () => {
+    renderRoute()
+
+    fireEvent.click(await screen.findByRole('link', { name: '판단 분석 보기' }))
+
+    expect(
+      await screen.findByRole('heading', { name: '판단 분석' }),
+    ).toBeVisible()
+    expect(
+      screen.getByRole('heading', { name: '판단 유형 분포' }),
+    ).toBeVisible()
+    expect(screen.getByRole('link', { name: '판단 기록으로' })).toHaveAttribute(
+      'href',
+      '/decision-log',
+    )
   })
 
   it('uses a legacy symbol query only for filtering and keeps the form empty', async () => {

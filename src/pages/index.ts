@@ -1,6 +1,7 @@
 export { AlertsPage } from './ui/AlertsPage'
 export { DashboardPage } from './ui/DashboardPage'
 export { DecisionLogPage } from './ui/DecisionLogPage'
+export { DecisionAnalyticsPage } from './ui/DecisionAnalyticsPage'
 export { DecisionDetailPage } from './ui/DecisionDetailPage'
 export { DecisionReviewPage } from './ui/DecisionReviewPage'
 export { LoginPage } from './ui/LoginPage'
