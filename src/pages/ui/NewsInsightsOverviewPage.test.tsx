@@ -19,6 +19,10 @@ vi.mock('@/features/news-insights', async (importOriginal) => {
   }
 })
 
+vi.mock('@/widgets/TopicMap', () => ({
+  TopicMap: () => <section aria-label="토픽 맵 시각화">토픽 맵</section>,
+}))
+
 const overview: NewsOverviewView = {
   asOf: '2026. 7. 21. 오후 3:00',
   metrics: [
@@ -101,8 +105,8 @@ describe('NewsInsightsOverviewPage', () => {
     ).toBeVisible()
     expect(screen.getByText('API 이벤트 제목')).toBeVisible()
     expect(screen.getByText('시장 브리핑입니다.')).toBeVisible()
+    expect(screen.getByLabelText('토픽 맵 시각화')).toBeVisible()
     ;[
-      '토픽 맵',
       '투자자 동향',
       '예상 자금 흐름',
       '이벤트 타임라인',
@@ -110,6 +114,7 @@ describe('NewsInsightsOverviewPage', () => {
     ].forEach((title) => {
       expect(screen.getByLabelText(`${title} 준비 중`)).toBeVisible()
     })
+    expect(screen.queryByLabelText('토픽 맵 준비 중')).not.toBeInTheDocument()
   })
 
   it('keeps the event panel visible when the overview request fails', () => {

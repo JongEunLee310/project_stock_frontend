@@ -5,6 +5,9 @@ import type {
   NewsInsightEventDto,
   NewsInsightOverviewDto,
   NewsInsightSummaryMetricDto,
+  NewsTopicCategoryDto,
+  NewsTopicMapDto,
+  NewsTopicMapNodeTypeDto,
 } from './dto'
 
 export interface InsightSummaryMetric {
@@ -54,6 +57,28 @@ export interface NewsEventView {
   publishedAt: string
   evidenceCount: number
   topicIds: number[]
+}
+
+export interface NewsTopicMapNode {
+  id: string
+  label: string
+  type: NewsTopicMapNodeTypeDto
+  mentionCount: number
+  momentumScore: number
+  sentimentScore: number
+  category: NewsTopicCategoryDto | null
+}
+
+export interface NewsTopicMapEdge {
+  source: string
+  target: string
+  strength: number
+  cooccurrenceCount: number
+}
+
+export interface NewsTopicMap {
+  nodes: NewsTopicMapNode[]
+  edges: NewsTopicMapEdge[]
 }
 
 const summaryMetricDefinitions = [
@@ -218,5 +243,25 @@ export function adaptNewsEvent(dto: NewsInsightEventDto): NewsEventView {
     publishedAt: formatDateTime(dto.published_at),
     evidenceCount: toNonNegativeInteger(dto.evidence_count),
     topicIds: [...dto.topic_ids],
+  }
+}
+
+export function adaptNewsTopicMap(dto: NewsTopicMapDto): NewsTopicMap {
+  return {
+    nodes: dto.nodes.map((node) => ({
+      id: node.id,
+      label: node.label,
+      type: node.type,
+      mentionCount: node.mention_count,
+      momentumScore: node.momentum_score,
+      sentimentScore: node.sentiment_score,
+      category: node.category,
+    })),
+    edges: dto.edges.map((edge) => ({
+      source: edge.source,
+      target: edge.target,
+      strength: edge.strength,
+      cooccurrenceCount: edge.cooccurrence_count,
+    })),
   }
 }

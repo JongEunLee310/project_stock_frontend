@@ -11,12 +11,19 @@ import {
 import {
   adaptNewsEvent,
   adaptNewsOverview,
+  adaptNewsTopicMap,
   type NewsEventView,
   type NewsOverviewView,
+  type NewsTopicMap,
 } from './adapters'
-import type { NewsInsightEventDto, NewsInsightOverviewDto } from './dto'
+import type {
+  NewsInsightEventDto,
+  NewsInsightOverviewDto,
+  NewsTopicMapDto,
+} from './dto'
 
 const newsEventsPageSize = 20
+const topicMapStaleTimeMs = 5 * 60 * 1000
 
 export interface NewsEventsPage {
   items: NewsEventView[]
@@ -64,5 +71,18 @@ export function useNewsEventsQuery() {
         ? (lastPage.pageInfo.nextCursor ?? undefined)
         : undefined,
     select: (data) => data.pages,
+  })
+}
+
+export function useNewsTopicMapQuery() {
+  return useQuery<NewsTopicMap>({
+    queryKey: ['news-insights', 'topics', 'map'],
+    queryFn: async () => {
+      const { data } = await apiGet<NewsTopicMapDto>(
+        '/news-insights/topics/map',
+      )
+      return adaptNewsTopicMap(data)
+    },
+    staleTime: topicMapStaleTimeMs,
   })
 }

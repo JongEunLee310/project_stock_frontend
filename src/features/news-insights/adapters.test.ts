@@ -1,5 +1,13 @@
-import { adaptNewsEvent, adaptNewsOverview } from './adapters'
-import type { NewsInsightEventDto, NewsInsightOverviewDto } from './dto'
+import {
+  adaptNewsEvent,
+  adaptNewsOverview,
+  adaptNewsTopicMap,
+} from './adapters'
+import type {
+  NewsInsightEventDto,
+  NewsInsightOverviewDto,
+  NewsTopicMapDto,
+} from './dto'
 
 const overviewDto: NewsInsightOverviewDto = {
   as_of: '2026-07-21T06:00:00Z',
@@ -36,6 +44,37 @@ const eventDto: NewsInsightEventDto = {
   published_at: '2026-07-21T00:42:00Z',
   evidence_count: 4,
   topic_ids: [7],
+}
+
+const topicMapDto: NewsTopicMapDto = {
+  nodes: [
+    {
+      id: 'topic:7',
+      label: '반도체 장기 수요 회복',
+      type: 'TOPIC',
+      mention_count: 12,
+      momentum_score: 0.81,
+      sentiment_score: 0.76,
+      category: 'DEMAND',
+    },
+    {
+      id: 'keyword:3',
+      label: 'AI 반도체',
+      type: 'KEYWORD',
+      mention_count: 6,
+      momentum_score: 0.84,
+      sentiment_score: 0.74,
+      category: 'GROWTH',
+    },
+  ],
+  edges: [
+    {
+      source: 'keyword:2',
+      target: 'keyword:3',
+      strength: 0.86,
+      cooccurrence_count: 5,
+    },
+  ],
 }
 
 describe('news insights adapters', () => {
@@ -118,5 +157,38 @@ describe('news insights adapters', () => {
       tone: 'neutral',
       scorePercent: 0,
     })
+  })
+
+  it('maps every backend topic-map node and edge without recomputing relations', () => {
+    const result = adaptNewsTopicMap(topicMapDto)
+
+    expect(result.nodes).toEqual([
+      {
+        id: 'topic:7',
+        label: '반도체 장기 수요 회복',
+        type: 'TOPIC',
+        mentionCount: 12,
+        momentumScore: 0.81,
+        sentimentScore: 0.76,
+        category: 'DEMAND',
+      },
+      {
+        id: 'keyword:3',
+        label: 'AI 반도체',
+        type: 'KEYWORD',
+        mentionCount: 6,
+        momentumScore: 0.84,
+        sentimentScore: 0.74,
+        category: 'GROWTH',
+      },
+    ])
+    expect(result.edges).toEqual([
+      {
+        source: 'keyword:2',
+        target: 'keyword:3',
+        strength: 0.86,
+        cooccurrenceCount: 5,
+      },
+    ])
   })
 })

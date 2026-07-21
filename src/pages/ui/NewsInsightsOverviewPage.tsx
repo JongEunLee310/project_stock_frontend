@@ -6,6 +6,7 @@ import {
 import { AgentBriefing } from '@/widgets/AgentBriefing'
 import { InsightSummaryCards } from '@/widgets/InsightSummaryCards'
 import { RealtimeEventFeed } from '@/widgets/RealtimeEventFeed'
+import { TopicMap } from '@/widgets/TopicMap'
 
 interface PlannedPanel {
   id: string
@@ -16,13 +17,6 @@ interface PlannedPanel {
 }
 
 const plannedPanels: PlannedPanel[] = [
-  {
-    id: 'topic-map',
-    title: '토픽 맵',
-    description: '연관 토픽과 이벤트의 군집 관계를 시각화합니다.',
-    phase: '1차 후속',
-    issue: '#202',
-  },
   {
     id: 'investor-flow',
     title: '투자자 동향',
@@ -76,7 +70,6 @@ function PlannedPanelCard({ panel }: { panel: PlannedPanel }) {
 }
 
 export function NewsInsightsOverviewPage() {
-  const [topicMapPanel, ...laterPanels] = plannedPanels
   const overviewQuery = useNewsOverviewQuery()
   const eventsQuery = useNewsEventsQuery()
   const events = eventsQuery.data?.flatMap((page) => page.items) ?? []
@@ -117,7 +110,7 @@ export function NewsInsightsOverviewPage() {
           onLoadMore={() => void eventsQuery.fetchNextPage()}
           onRetry={() => void eventsQuery.refetch()}
         />
-        <PlannedPanelCard panel={topicMapPanel} />
+        <TopicMap />
       </div>
 
       <AgentBriefing
@@ -140,7 +133,7 @@ export function NewsInsightsOverviewPage() {
           </h2>
         </div>
         <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
-          {laterPanels.map((panel) => (
+          {plannedPanels.map((panel) => (
             <PlannedPanelCard key={panel.id} panel={panel} />
           ))}
         </div>
