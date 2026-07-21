@@ -29,6 +29,7 @@ describe('getActiveNavigationItem', () => {
 
   it('matches the decision log menu for list and detail routes', () => {
     expect(appRoutePaths.decisionDetail).toBe('/decision-log/:id')
+    expect(appRoutePaths.decisionReview).toBe('/decision-log/:id/review')
     expect(getActiveNavigationItem('/decision-log')?.id).toBe('decisionLog')
     expect(getActiveNavigationItem('/decision-log/42')?.id).toBe('decisionLog')
   })

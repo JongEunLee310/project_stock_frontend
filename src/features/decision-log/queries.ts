@@ -14,10 +14,12 @@ import {
   adaptDecisionLogDetail,
   adaptDecisionLogListItem,
   adaptDecisionOverview,
+  adaptDecisionReview,
   type DecisionAssist,
   type DecisionLogDetail,
   type DecisionLogListItem,
   type DecisionOverview,
+  type DecisionReview,
 } from './adapters'
 import type {
   ActivateDecisionBodyDto,
@@ -27,6 +29,8 @@ import type {
   DecisionLogDetailDto,
   DecisionLogListItemDto,
   DecisionOverviewDto,
+  DecisionReviewCreateDto,
+  DecisionReviewResponseDto,
   DecisionStatusDto,
   DecisionTypeDto,
   TargetTypeDto,
@@ -62,6 +66,7 @@ export const decisionLogKeys = {
     [...decisionLogKeys.lists(), filters] as const,
   details: () => [...decisionLogKeys.all, 'detail'] as const,
   detail: (id: string) => [...decisionLogKeys.details(), id] as const,
+  reviews: (id: string) => [...decisionLogKeys.detail(id), 'reviews'] as const,
   reviewQueue: () => [...decisionLogKeys.all, 'review-queue'] as const,
 }
 
@@ -240,5 +245,39 @@ export function useReviewQueue(): UseQueryResult<DecisionLogListItem[]> {
       )
       return extractDecisionLogItems(data).map(adaptDecisionLogListItem)
     },
+  })
+}
+
+export function useDecisionReviews(
+  id: string | undefined,
+): UseQueryResult<DecisionReview[]> {
+  const normalizedId = id ?? ''
+
+  return useQuery<DecisionReview[]>({
+    queryKey: decisionLogKeys.reviews(normalizedId),
+    queryFn: async () => {
+      const { data } = await apiGet<DecisionReviewResponseDto[]>(
+        `/decision-logs/${encodeURIComponent(normalizedId)}/reviews`,
+      )
+      return data.map(adaptDecisionReview)
+    },
+    enabled: normalizedId.length > 0,
+  })
+}
+
+export function useCreateDecisionReview(
+  id: string,
+): UseMutationResult<DecisionReview, Error, DecisionReviewCreateDto> {
+  const queryClient = useQueryClient()
+
+  return useMutation<DecisionReview, Error, DecisionReviewCreateDto>({
+    mutationFn: async (body) => {
+      const { data } = await apiPost<DecisionReviewResponseDto>(
+        `/decision-logs/${encodeURIComponent(id)}/reviews`,
+        body,
+      )
+      return adaptDecisionReview(data)
+    },
+    onSuccess: () => invalidateDecisionLogs(queryClient),
   })
 }

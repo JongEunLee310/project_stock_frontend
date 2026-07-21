@@ -359,6 +359,9 @@ describe('DecisionDetailPage route', () => {
     ])
     expect(screen.getByText('데이터센터 수요가 성장을 지지한다.')).toBeVisible()
     expect(screen.getByText('실적 발표까지 관찰한다.')).toBeVisible()
+    expect(
+      screen.getByRole('link', { name: '복기 작성·보기' }),
+    ).toHaveAttribute('href', '/decision-log/42/review')
   })
 
   it('근거 관계를 나누고 영문 enum을 표시하지 않는다', async () => {

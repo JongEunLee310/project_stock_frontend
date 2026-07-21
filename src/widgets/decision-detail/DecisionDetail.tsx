@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 
 import type {
   DecisionEvidence,
@@ -245,16 +246,30 @@ export function DecisionDetail({ detail }: { detail: DecisionLogDetail }) {
         aria-labelledby="decision-header-heading"
         className="border-cockpit-border bg-cockpit-surface/70"
       >
-        <div>
-          <p className="text-sm font-medium text-cockpit-accent">
-            {detail.target.typeLabel}
-          </p>
-          <h2
-            id="decision-header-heading"
-            className="mt-1 text-2xl font-bold text-cockpit-text"
-          >
-            {detail.target.label}
-          </h2>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium text-cockpit-accent">
+              {detail.target.typeLabel}
+            </p>
+            <h2
+              id="decision-header-heading"
+              className="mt-1 text-2xl font-bold text-cockpit-text"
+            >
+              {detail.target.label}
+            </h2>
+          </div>
+          {detail.status === 'DRAFT' ? (
+            <span className="text-sm text-cockpit-text-muted">
+              판단 확정 후 복기 가능
+            </span>
+          ) : (
+            <Link
+              to={`/decision-log/${encodeURIComponent(detail.id)}/review`}
+              className="inline-flex min-h-10 items-center rounded-control border border-cockpit-accent bg-cockpit-accent/10 px-4 py-2 text-sm font-semibold text-cockpit-accent hover:bg-cockpit-accent/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cockpit-accent"
+            >
+              복기 작성·보기
+            </Link>
+          )}
         </div>
         <dl className="mt-5 grid gap-4 border-t border-cockpit-border pt-4 sm:grid-cols-2 lg:grid-cols-5">
           <HeaderField label="판단 유형">
@@ -423,9 +438,6 @@ export function DecisionDetail({ detail }: { detail: DecisionLogDetail }) {
         <ul className="mt-3 grid gap-3 text-sm text-cockpit-text-muted sm:grid-cols-3">
           <li className="rounded-card border border-cockpit-border p-3">
             이후 변화 타임라인
-          </li>
-          <li className="rounded-card border border-cockpit-border p-3">
-            복기
           </li>
           <li className="rounded-card border border-cockpit-border p-3">
             변경 이력
