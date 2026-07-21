@@ -8,6 +8,7 @@ import type {
   DecisionLogDetail,
   DecisionLogListItem,
   DecisionOverview,
+  DecisionReview,
 } from '@/features/decision-log/adapters'
 import type { DecisionLogFilters } from '@/features/decision-log/queries'
 import { ApiError } from '@/shared/api'
@@ -30,7 +31,11 @@ const refetchOverview = vi.fn()
 const refetchDecisionLogs = vi.fn()
 const refetchDecisionLog = vi.fn()
 const refetchReviewQueue = vi.fn()
+const refetchReviews = vi.fn()
 let latestDecisionLogFilters: DecisionLogFilters | undefined
+let latestPriceQuery:
+  | [symbol: string | null, market: string | null, range: string]
+  | undefined
 
 const listItem: DecisionLogListItem = {
   id: '42',
@@ -73,8 +78,10 @@ const detail: DecisionLogDetail = {
   status: 'ACTIVE',
   statusLabel: '진행 중',
   reviewAt: null,
-  activatedAt: null,
+  activatedAt: '2026. 07. 21. 10:00',
+  reviewedAt: '2026. 07. 24. 09:00',
   closedAt: null,
+  supersededById: '84',
   createdAt: '2026. 07. 21. 09:00',
   updatedAt: '2026. 07. 21. 09:00',
   evidence: [
@@ -145,8 +152,8 @@ const detail: DecisionLogDetail = {
       typeLabel: '날짜',
       condition: '실적 발표 후 가설을 재검토한다.',
       scheduledAt: '2026. 08. 20. 09:00',
-      status: 'PENDING',
-      triggeredAt: null,
+      status: 'TRIGGERED',
+      triggeredAt: '2026. 07. 23. 09:00',
       createdAt: '2026. 07. 21. 09:00',
     },
     {
@@ -194,6 +201,10 @@ let decisionLogsState: QueryState<{
 }>
 let decisionLogState: QueryState<DecisionLogDetail>
 let reviewQueueState: QueryState<DecisionLogListItem[]>
+let reviewsState: QueryState<DecisionReview[]>
+let priceSeriesState: {
+  data: { closes: number[]; currency: string | null } | undefined
+}
 
 vi.mock('@/features/market-indices/queries', () => ({
   useMarketIndices: () => ({
@@ -213,6 +224,7 @@ vi.mock('@/features/decision-log/queries', () => ({
   },
   useReviewQueue: () => reviewQueueState,
   useDecisionLog: () => decisionLogState,
+  useDecisionReviews: () => reviewsState,
   useCreateDecisionLog: () => ({ isPending: false, mutateAsync: vi.fn() }),
   useActivateDecision: () => ({ isPending: false, mutateAsync: vi.fn() }),
   useDecisionAssist: () => ({
@@ -222,13 +234,26 @@ vi.mock('@/features/decision-log/queries', () => ({
   }),
 }))
 
+vi.mock('@/features/research/queries', () => ({
+  useResearchPriceSeries: (
+    symbol: string | null,
+    market: string | null,
+    range: string,
+  ) => {
+    latestPriceQuery = [symbol, market, range]
+    return priceSeriesState
+  },
+}))
+
 beforeEach(() => {
   setupAuthenticatedUser()
   refetchOverview.mockReset()
   refetchDecisionLogs.mockReset()
   refetchDecisionLog.mockReset()
   refetchReviewQueue.mockReset()
+  refetchReviews.mockReset()
   latestDecisionLogFilters = undefined
+  latestPriceQuery = undefined
   overviewState = {
     data: overview,
     error: null,
@@ -256,6 +281,31 @@ beforeEach(() => {
     isError: false,
     isLoading: false,
     refetch: refetchReviewQueue,
+  }
+  reviewsState = {
+    data: [
+      {
+        id: 'review-1',
+        decisionId: '42',
+        outcomeStatus: 'THESIS_CONFIRMED',
+        outcomeStatusLabel: '가설 확인',
+        thesisResult: 'CONFIRMED',
+        thesisResultLabel: '확인',
+        processQuality: {},
+        resultMetrics: {},
+        whatWentWell: '',
+        whatWasMissed: '',
+        whatToChange: '',
+        reviewedAt: '2026. 07. 22. 09:00',
+      },
+    ],
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: refetchReviews,
+  }
+  priceSeriesState = {
+    data: { closes: [179.4, 181.25], currency: 'USD' },
   }
 })
 
@@ -384,7 +434,7 @@ describe('DecisionLogPage shell', () => {
 })
 
 describe('DecisionDetailPage route', () => {
-  it('판단→근거→스냅샷→재검토 순서로 상세를 렌더한다', async () => {
+  it('판단→근거→비교→재검토→타임라인→버전 순서로 상세를 렌더한다', async () => {
     renderRoute('/decision-log/42')
 
     expect(
@@ -404,9 +454,10 @@ describe('DecisionDetailPage route', () => {
       'NVIDIA',
       '당시 판단',
       '연결된 근거',
-      '당시 데이터 스냅샷',
+      '당시/현재 비교',
       '재검토 조건',
-      '2차 기능',
+      '변화 타임라인',
+      '버전 이력',
     ])
     expect(screen.getByText('데이터센터 수요가 성장을 지지한다.')).toBeVisible()
     expect(screen.getByText('실적 발표까지 관찰한다.')).toBeVisible()
@@ -430,25 +481,84 @@ describe('DecisionDetailPage route', () => {
     expect(screen.queryByText('PENDING')).not.toBeInTheDocument()
   })
 
-  it('snapshot_type별로 자유 JSON을 key-value로 렌더한다', async () => {
+  it('스냅샷 원본과 종목 현재가를 비교 표에 함께 렌더한다', async () => {
+    renderRoute('/decision-log/42')
+
+    const comparisonTable = await screen.findByRole('table', {
+      name: '판단 당시와 현재 데이터 비교',
+    })
+    expect(within(comparisonTable).getByText('172.4')).toBeVisible()
+    expect(within(comparisonTable).getAllByText('181.25 USD')).toHaveLength(2)
+    expect(latestPriceQuery).toEqual(['NVDA', 'NASDAQ', '1D'])
+    expect(within(comparisonTable).getByText('NASDAQ')).toBeVisible()
+    expect(within(comparisonTable).getByText('아니오')).toBeVisible()
+    expect(within(comparisonTable).getByText('168')).toBeVisible()
+    expect(within(comparisonTable).getByText('값 없음')).toBeVisible()
+    expect(screen.queryByText('PRICE')).not.toBeInTheDocument()
+    expect(screen.queryByText('VALUATION')).not.toBeInTheDocument()
+    expect(screen.queryByText('2차 기능')).not.toBeInTheDocument()
+  })
+
+  it('현재값 소스가 비어 있으면 스냅샷 당시 값만 표시한다', async () => {
+    priceSeriesState = { data: { closes: [], currency: 'USD' } }
+    renderRoute('/decision-log/42')
+
+    const snapshotValue = await screen.findByText('172.4')
+    const comparisonRow = snapshotValue.closest('tr')
+    expect(comparisonRow).not.toBeNull()
+    expect(within(comparisonRow!).getByText('—')).toBeVisible()
+  })
+
+  it('라이프사이클·복기·트리거를 시간 오름차순으로 렌더한다', async () => {
+    renderRoute('/decision-log/42')
+
+    const timeline = await screen.findByRole('list', {
+      name: '판단 변화 타임라인',
+    })
+    const labels = within(timeline)
+      .getAllByRole('listitem')
+      .map(
+        (item) =>
+          within(item).getByText(
+            /판단 작성|판단 확정|복기 ·|재검토 조건 발동|판단 복기 완료/,
+          ).textContent,
+      )
+
+    expect(labels).toEqual([
+      '판단 작성',
+      '판단 확정',
+      '복기 · 가설 확인',
+      '재검토 조건 발동 · 날짜',
+      '판단 복기 완료',
+    ])
+    expect(screen.queryByText('THESIS_CONFIRMED')).not.toBeInTheDocument()
+    expect(screen.queryByText('CONFIRMED')).not.toBeInTheDocument()
+    expect(screen.queryByText('TRIGGERED')).not.toBeInTheDocument()
+  })
+
+  it('대체 판단이 있으면 버전 이력 링크를 제공한다', async () => {
     renderRoute('/decision-log/42')
 
     expect(
-      await screen.findByRole('heading', { name: '가격', level: 3 }),
+      await screen.findByRole('link', {
+        name: '이 판단을 대체한 판단 보기',
+      }),
+    ).toHaveAttribute('href', '/decision-log/84')
+  })
+
+  it('대체 판단이 없으면 버전 이력 링크를 노출하지 않는다', async () => {
+    decisionLogState = {
+      ...decisionLogState,
+      data: { ...detail, supersededById: null },
+    }
+    renderRoute('/decision-log/42')
+
+    expect(
+      await screen.findByText('이 판단을 대체한 후속 판단이 없습니다.'),
     ).toBeVisible()
     expect(
-      screen.getByRole('heading', { name: '밸류에이션', level: 3 }),
-    ).toBeVisible()
-    expect(
-      screen.getAllByRole('heading', { name: '가격', level: 3 }),
-    ).toHaveLength(1)
-    expect(screen.getByText('172.4')).toBeVisible()
-    expect(screen.getByText('NASDAQ')).toBeVisible()
-    expect(screen.getByText('아니오')).toBeVisible()
-    expect(screen.getByText('168')).toBeVisible()
-    expect(screen.getByText('값 없음')).toBeVisible()
-    expect(screen.queryByText('PRICE')).not.toBeInTheDocument()
-    expect(screen.queryByText('VALUATION')).not.toBeInTheDocument()
+      screen.queryByRole('link', { name: '이 판단을 대체한 판단 보기' }),
+    ).not.toBeInTheDocument()
   })
 
   it('상세 로딩 상태를 알린다', async () => {

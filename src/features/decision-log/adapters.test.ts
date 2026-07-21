@@ -79,7 +79,9 @@ const detailDto: DecisionLogDetailDto = {
   status: 'DRAFT',
   review_at: '2026-08-01T00:00:00.000Z',
   activated_at: null,
+  reviewed_at: '2026-08-22T00:00:00.000Z',
   closed_at: null,
+  superseded_by_id: 9,
   created_at: '2026-07-20T00:00:00.000Z',
   updated_at: '2026-07-21T00:00:00.000Z',
   evidence: [
@@ -269,6 +271,8 @@ describe('decision-log adapters', () => {
       decisionTypeLabel: '매수 검토',
       confidenceLevelLabel: '높음',
       statusLabel: '초안',
+      reviewedAt: formatKstDateTime('2026-08-22T00:00:00.000Z'),
+      supersededById: '9',
       supportingReasons: ['서비스 매출 성장'],
       counterArguments: ['밸류에이션 부담'],
       evidence: [

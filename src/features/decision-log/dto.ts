@@ -136,7 +136,9 @@ export interface DecisionLogDetailDto {
   status: DecisionStatusDto
   review_at?: string | null
   activated_at?: string | null
+  reviewed_at?: string | null
   closed_at?: string | null
+  superseded_by_id?: number | string | null
   created_at: string
   updated_at: string
   evidence: DecisionEvidenceDto[]
