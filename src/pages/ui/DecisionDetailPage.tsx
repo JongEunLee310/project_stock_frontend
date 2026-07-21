@@ -1,6 +1,9 @@
 import { Link, useParams } from 'react-router-dom'
 
-import { useDecisionLog } from '@/features/decision-log/queries'
+import {
+  useDecisionLog,
+  useDecisionReviews,
+} from '@/features/decision-log/queries'
 import { ApiError } from '@/shared/api'
 import { EmptyState, ErrorState, Skeleton } from '@/shared/ui'
 import { DecisionDetail } from '@/widgets/decision-detail'
@@ -19,6 +22,7 @@ function BackToDecisionLogLink() {
 export function DecisionDetailPage() {
   const { id } = useParams<{ id: string }>()
   const decisionLogQuery = useDecisionLog(id)
+  const reviewsQuery = useDecisionReviews(id)
   const inaccessibleError =
     decisionLogQuery.error instanceof ApiError &&
     [
@@ -78,7 +82,10 @@ export function DecisionDetailPage() {
           className="rounded-card border border-cockpit-border bg-cockpit-surface/70"
         />
       ) : decisionLogQuery.data ? (
-        <DecisionDetail detail={decisionLogQuery.data} />
+        <DecisionDetail
+          detail={decisionLogQuery.data}
+          reviews={reviewsQuery.data ?? []}
+        />
       ) : (
         <EmptyState
           title="판단 기록을 찾을 수 없습니다"
