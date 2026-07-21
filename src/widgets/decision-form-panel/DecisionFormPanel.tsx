@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type FormEvent, type SetStateAction } from 'react'
 
 import type {
   ConfidenceLevelDto,
@@ -9,18 +9,22 @@ import type {
 import {
   useActivateDecision,
   useCreateDecisionLog,
+  useDecisionAssist,
 } from '@/features/decision-log/queries'
 import {
   confidenceLevelLabels,
   decisionTypeLabels,
   riskTypeLabels,
   targetTypeLabels,
+  toRiskTypeLabel,
   type ConfidenceLevelCode,
   type DecisionTypeCode,
   type RiskTypeCode,
   type TargetTypeCode,
 } from '@/shared/model'
 import { Button, Card, Input } from '@/shared/ui'
+
+import { DecisionAssistPanel } from './DecisionAssistPanel'
 
 interface DecisionFormPanelProps {
   initialTargetId?: string
@@ -78,6 +82,21 @@ function reviewDateToUtc(date: string): string {
   return new Date(`${date}T00:00:00+09:00`).toISOString()
 }
 
+function buildAssistMemo(
+  supportingReasons: string,
+  counterArguments: string,
+): string {
+  const sections = [
+    ['긍정 근거', splitReasons(supportingReasons)],
+    ['반대 근거', splitReasons(counterArguments)],
+  ] as const
+
+  return sections
+    .filter(([, reasons]) => reasons.length > 0)
+    .map(([label, reasons]) => `${label}:\n${reasons.join('\n')}`)
+    .join('\n\n')
+}
+
 function messageFromError(error: unknown): string {
   return error instanceof Error
     ? error.message
@@ -89,6 +108,7 @@ export function DecisionFormPanel({
 }: DecisionFormPanelProps) {
   const createDecision = useCreateDecisionLog()
   const activateDecision = useActivateDecision()
+  const decisionAssist = useDecisionAssist()
 
   const [targetType, setTargetType] = useState<TargetTypeDto>('SYMBOL')
   const [targetId, setTargetId] = useState(initialTargetId)
@@ -96,7 +116,7 @@ export function DecisionFormPanel({
   const [rationale, setRationale] = useState('')
   const [supportingReasons, setSupportingReasons] = useState('')
   const [counterArguments, setCounterArguments] = useState('')
-  const [selectedRisks, setSelectedRisks] = useState<RiskTypeCode[]>([])
+  const [selectedRisks, setSelectedRisks] = useState<string[]>([])
   const [confidenceLevel, setConfidenceLevel] = useState<
     ConfidenceLevelDto | ''
   >('')
@@ -105,6 +125,9 @@ export function DecisionFormPanel({
   const [showCounterWarning, setShowCounterWarning] = useState(false)
   const [submitMessage, setSubmitMessage] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [assistResult, setAssistResult] = useState(decisionAssist.data ?? null)
+  const [assistResultVersion, setAssistResultVersion] = useState(0)
+  const [assistMessage, setAssistMessage] = useState<string | null>(null)
 
   const isSubmitting = createDecision.isPending || activateDecision.isPending
   const targetIdentifierLabel =
@@ -122,9 +145,58 @@ export function DecisionFormPanel({
     setReviewDate('')
     setValidationErrors({})
     setShowCounterWarning(false)
+    setAssistResult(null)
+    setAssistMessage(null)
   }
 
-  const toggleRisk = (risk: RiskTypeCode) => {
+  const appendLine = (
+    setter: (value: SetStateAction<string>) => void,
+    value: string,
+  ) => {
+    setter((current) => {
+      const normalized = value.trim()
+      const currentLines = splitReasons(current)
+      return currentLines.includes(normalized)
+        ? current
+        : [...currentLines, normalized].join('\n')
+    })
+  }
+
+  const requestDecisionAssist = async () => {
+    setAssistMessage(null)
+    setAssistResult(null)
+
+    if (!targetId.trim()) {
+      setAssistMessage(`${targetIdentifierLabel}를 입력해 주세요.`)
+      return
+    }
+
+    try {
+      const memo = buildAssistMemo(supportingReasons, counterArguments)
+      const result = await decisionAssist.mutateAsync({
+        target: {
+          type: targetType,
+          id:
+            targetType === 'SYMBOL'
+              ? targetId.trim().toUpperCase()
+              : targetId.trim(),
+        },
+        ...(decisionType && { decision_type: decisionType }),
+        ...(rationale.trim() && { rationale: rationale.trim() }),
+        ...(memo && { memo }),
+      })
+      setAssistResult(result)
+      setAssistResultVersion((current) => current + 1)
+    } catch (error) {
+      setAssistMessage(
+        error instanceof Error
+          ? error.message
+          : 'AI 보조 제안을 불러오지 못했습니다. 다시 시도해 주세요.',
+      )
+    }
+  }
+
+  const toggleRisk = (risk: string) => {
     setSelectedRisks((current) =>
       current.includes(risk)
         ? current.filter((item) => item !== risk)
@@ -355,6 +427,25 @@ export function DecisionFormPanel({
           </p>
         )}
 
+        <DecisionAssistPanel
+          result={assistResult}
+          resultVersion={assistResultVersion}
+          isLoading={decisionAssist.isPending}
+          errorMessage={assistMessage}
+          disabled={isSubmitting}
+          onRequest={requestDecisionAssist}
+          onApplyRationale={(value) => appendLine(setRationale, value)}
+          onApplyCounterArgument={(value) => {
+            appendLine(setCounterArguments, value)
+            setShowCounterWarning(false)
+          }}
+          onApplyRisk={(type) =>
+            setSelectedRisks((current) =>
+              current.includes(type) ? current : [...current, type],
+            )
+          }
+        />
+
         <fieldset disabled={isSubmitting}>
           <legend className="text-sm font-medium text-cockpit-text">
             인지 위험 태그{' '}
@@ -377,6 +468,25 @@ export function DecisionFormPanel({
               </label>
             ))}
           </div>
+          {selectedRisks.some((risk) => !(risk in riskTypeLabels)) && (
+            <div
+              className="mt-2 flex flex-wrap gap-2"
+              aria-label="AI 적용 위험 태그"
+            >
+              {selectedRisks
+                .filter((risk) => !(risk in riskTypeLabels))
+                .map((risk) => (
+                  <button
+                    key={risk}
+                    type="button"
+                    className="rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-1 text-xs text-amber-200"
+                    onClick={() => toggleRisk(risk)}
+                  >
+                    {toRiskTypeLabel(risk)} 제거
+                  </button>
+                ))}
+            </div>
+          )}
         </fieldset>
 
         <fieldset disabled={isSubmitting}>
@@ -429,7 +539,10 @@ export function DecisionFormPanel({
           </p>
         )}
 
-        <Button type="submit" disabled={isSubmitting}>
+        <Button
+          type="submit"
+          disabled={isSubmitting || decisionAssist.isPending}
+        >
           {isSubmitting ? '저장 및 확정 중...' : '판단 저장 및 확정'}
         </Button>
       </form>

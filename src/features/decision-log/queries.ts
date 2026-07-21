@@ -10,9 +10,11 @@ import { apiGet, apiPatch, apiPost } from '@/shared/api/client'
 import type { ApiMeta } from '@/shared/api/envelope'
 
 import {
+  adaptDecisionAssist,
   adaptDecisionLogDetail,
   adaptDecisionLogListItem,
   adaptDecisionOverview,
+  type DecisionAssist,
   type DecisionLogDetail,
   type DecisionLogListItem,
   type DecisionOverview,
@@ -20,6 +22,8 @@ import {
 import type {
   ActivateDecisionBodyDto,
   CreateDecisionLogBodyDto,
+  DecisionAssistRequestDto,
+  DecisionAssistResponseDto,
   DecisionLogDetailDto,
   DecisionLogListItemDto,
   DecisionOverviewDto,
@@ -160,6 +164,22 @@ export function useCreateDecisionLog(): UseMutationResult<
       return adaptDecisionLogDetail(data)
     },
     onSuccess: () => invalidateDecisionLogs(queryClient),
+  })
+}
+
+export function useDecisionAssist(): UseMutationResult<
+  DecisionAssist,
+  Error,
+  DecisionAssistRequestDto
+> {
+  return useMutation<DecisionAssist, Error, DecisionAssistRequestDto>({
+    mutationFn: async (body) => {
+      const { data } = await apiPost<DecisionAssistResponseDto>(
+        '/decision-logs/assist',
+        body,
+      )
+      return adaptDecisionAssist(data)
+    },
   })
 }
 

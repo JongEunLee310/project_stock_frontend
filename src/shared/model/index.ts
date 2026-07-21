@@ -1,5 +1,7 @@
 export { catalystCategories } from './catalystCategory'
 export type { CatalystCategory } from './catalystCategory'
+export { behavioralBiasLabels, toBehavioralBiasLabel } from './behavioralBias'
+export type { BehavioralBias, BehavioralBiasCode } from './behavioralBias'
 export {
   confidenceLevelLabels,
   toConfidenceLevelLabel,
