@@ -5,7 +5,12 @@ import {
   getTokens,
   setTokens,
 } from '@/shared/auth/tokenStore'
-import { ApiError, unwrapEnvelope, type ApiMeta } from './envelope'
+import {
+  ApiError,
+  unwrapEnvelope,
+  type ApiMeta,
+  type ApiResponseMeta,
+} from './envelope'
 import { messageForErrorCode } from './errorCodes'
 
 export interface RequestOptions extends Omit<RequestInit, 'body'> {
@@ -88,10 +93,10 @@ function buildRequest(
   })
 }
 
-export async function apiRequest<T>(
+export async function apiRequest<T, TMeta extends ApiResponseMeta = ApiMeta>(
   path: string,
   options: RequestOptions = {},
-): Promise<{ data: T; meta?: ApiMeta }> {
+): Promise<{ data: T; meta?: TMeta }> {
   const { auth = true } = options
 
   const accessToken = auth ? getAccess() : null
@@ -121,15 +126,18 @@ export async function apiRequest<T>(
   const json = (await res.json()) as {
     data: T
     error?: { code: string } | null
-    meta?: ApiMeta
+    meta?: TMeta
   }
 
   // envelope 형태가 아닌 경우(예: refresh 응답을 직접 호출 등)도 unwrapEnvelope 통과
   return unwrapEnvelope({ data: json.data, error: json.error, meta: json.meta })
 }
 
-export async function apiGet<T>(path: string, options?: RequestOptions) {
-  return apiRequest<T>(path, { ...options, method: 'GET' })
+export async function apiGet<T, TMeta extends ApiResponseMeta = ApiMeta>(
+  path: string,
+  options?: RequestOptions,
+) {
+  return apiRequest<T, TMeta>(path, { ...options, method: 'GET' })
 }
 
 export async function apiPost<T>(
