@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useLocation, useSearchParams } from 'react-router-dom'
 
+import { readDecisionLogPrefill } from '@/features/decision-log/prefill'
 import type { DecisionLogFilters } from '@/features/decision-log/queries'
 import { DecisionFilterBar } from '@/widgets/decision-filter-bar'
 import { DecisionFormPanel } from '@/widgets/decision-form-panel'
@@ -9,8 +10,13 @@ import { DecisionSummaryCards } from '@/widgets/decision-summary-cards'
 import { ReviewQueuePanel } from '@/widgets/review-queue-panel'
 
 export function DecisionLogPage() {
+  const location = useLocation()
   const [searchParams] = useSearchParams()
-  const initialSymbol = searchParams.get('symbol')?.trim().toUpperCase() ?? ''
+  const initialPrefill = readDecisionLogPrefill(location.state)
+  const initialSymbol =
+    initialPrefill?.target.type === 'SYMBOL'
+      ? initialPrefill.target.id.trim().toUpperCase()
+      : (searchParams.get('symbol')?.trim().toUpperCase() ?? '')
   const [filters, setFilters] = useState<DecisionLogFilters>(() => ({
     symbol: initialSymbol || undefined,
   }))
@@ -34,7 +40,11 @@ export function DecisionLogPage() {
         </div>
         <aside className="flex flex-col gap-4">
           <ReviewQueuePanel />
-          <DecisionFormPanel initialTargetId={initialSymbol} />
+          <DecisionFormPanel
+            initialTargetType={initialPrefill?.target.type}
+            initialTargetId={initialPrefill?.target.id}
+            initialEvidence={initialPrefill?.evidence}
+          />
         </aside>
       </div>
     </div>

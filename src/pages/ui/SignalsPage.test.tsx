@@ -497,6 +497,53 @@ describe('SignalsPage', () => {
     expect(router.state.location.search).toBe('?section=briefing')
   })
 
+  it('opens decision authoring with the signal target and captured evidence', async () => {
+    const router = renderSignals()
+    const card = await screen.findByRole('article', {
+      name: 'NVDA BUY_CANDIDATE 시그널',
+    })
+
+    fireEvent.click(within(card).getByRole('button', { name: '판단 기록' }))
+
+    expect(router.state.location.pathname).toBe('/decision-log')
+    expect(router.state.location.state).toMatchObject({
+      decisionPrefill: {
+        target: { type: 'SYMBOL', id: 'NVDA' },
+        evidence: [
+          {
+            type: 'SIGNAL',
+            id: '1',
+            title: 'AI accelerator demand remains strong.',
+            summary: 'Guidance raised.',
+            relationship: 'SUPPORTING',
+            snapshot: {
+              symbol: 'NVDA',
+              score: 86,
+              signalType: 'BUY_CANDIDATE',
+              evidence: 'Guidance raised.',
+            },
+          },
+        ],
+      },
+    })
+  })
+
+  it('marks risk signal evidence as risk', async () => {
+    const router = renderSignals()
+    const card = await screen.findByRole('article', {
+      name: 'TSLA RISK_ALERT 시그널',
+    })
+
+    fireEvent.click(within(card).getByRole('button', { name: '판단 기록' }))
+
+    expect(router.state.location.state).toMatchObject({
+      decisionPrefill: {
+        target: { type: 'SYMBOL', id: 'TSLA' },
+        evidence: [{ type: 'SIGNAL', id: '2', relationship: 'RISK' }],
+      },
+    })
+  })
+
   it('opens the alert rule builder deep-link for the signal symbol', async () => {
     const router = renderSignals([
       { path: '/signals', element: <SignalsPage /> },

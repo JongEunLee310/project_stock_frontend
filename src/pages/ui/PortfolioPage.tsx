@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 
 import { usePortfolioBriefing } from '@/features/briefing/queries'
+import { createDecisionLogLocationState } from '@/features/decision-log/prefill'
 import type {
   PortfolioHoldingView,
   PortfolioView,
@@ -188,7 +189,10 @@ function PortfolioHoldingLink({ holding }: { holding: PortfolioHoldingView }) {
   )
 }
 
-function buildHoldingColumns(): Array<TableColumn<HoldingWeight>> {
+function buildHoldingColumns(
+  portfolio: PortfolioView,
+  cashRatio: number,
+): Array<TableColumn<HoldingWeight>> {
   return [
     {
       key: 'symbol',
@@ -223,6 +227,47 @@ function buildHoldingColumns(): Array<TableColumn<HoldingWeight>> {
       header: '비중',
       align: 'right',
       cell: (holding) => formatPercent(holding.weight),
+    },
+    {
+      key: 'decision',
+      header: '판단',
+      cell: (holding) => (
+        <Link
+          to={appRoutePaths.decisionLog}
+          state={createDecisionLogLocationState({
+            target: { type: 'SYMBOL', id: holding.symbol },
+            evidence: [
+              {
+                type: 'PORTFOLIO',
+                id: holding.assetId,
+                title: `${holding.symbol} 포트폴리오 비중`,
+                summary: `${holding.name}의 현재 포트폴리오 비중은 ${formatPercent(holding.weight)}입니다.`,
+                snapshot: {
+                  portfolioId: portfolio.id,
+                  totalValue: portfolio.totalValue,
+                  cash: portfolio.cash,
+                  cashRatio,
+                  holding: {
+                    assetId: holding.assetId,
+                    symbol: holding.symbol,
+                    name: holding.name,
+                    sector: holding.sector,
+                    quantity: holding.quantity,
+                    avgPrice: holding.avgPrice,
+                    currentValue: holding.currentValue,
+                    weight: holding.weight,
+                    assetWeight: holding.assetWeight,
+                  },
+                },
+                relationship: 'BACKGROUND',
+              },
+            ],
+          })}
+          className="inline-flex min-h-9 items-center rounded-control border border-cockpit-border px-2 py-1 text-xs font-semibold text-cockpit-text hover:border-cockpit-accent hover:text-cockpit-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cockpit-accent"
+        >
+          판단 기록 작성
+        </Link>
+      ),
     },
   ]
 }
@@ -322,7 +367,7 @@ export function PortfolioPageView({
     .slice(0, 5)
     .reduce((sum, holding) => sum + holding.weight, 0)
   const maxHolding = holdings[0]
-  const holdingColumns = buildHoldingColumns()
+  const holdingColumns = buildHoldingColumns(portfolio, cashRatio)
   const allocationData = [
     ...holdings.map((holding) => ({
       name: holding.symbol,
@@ -544,6 +589,44 @@ export function PortfolioPageView({
                     <p className="mt-3 text-sm leading-6 text-cockpit-text-muted">
                       {risk.description}
                     </p>
+                    <Link
+                      to={appRoutePaths.decisionLog}
+                      state={createDecisionLogLocationState({
+                        target: { type: 'PORTFOLIO', id: portfolio.id },
+                        evidence: [
+                          {
+                            type: 'PORTFOLIO',
+                            id: risk.id,
+                            title: risk.label,
+                            summary: risk.description,
+                            snapshot: {
+                              portfolioId: portfolio.id,
+                              totalValue: portfolio.totalValue,
+                              cash: portfolio.cash,
+                              cashRatio,
+                              dayChangeValue: portfolio.dayChangeValue,
+                              dayChangePercent: portfolio.dayChangePercent,
+                              risk: {
+                                id: risk.id,
+                                label: risk.label,
+                                level: risk.level,
+                                description: risk.description,
+                              },
+                              holdings: holdings.map((holding) => ({
+                                symbol: holding.symbol,
+                                currentValue: holding.currentValue,
+                                weight: holding.weight,
+                              })),
+                              sectorExposure: portfolio.sectorExposure,
+                            },
+                            relationship: 'BACKGROUND',
+                          },
+                        ],
+                      })}
+                      className="mt-3 inline-flex min-h-9 items-center rounded-control border border-cockpit-border px-2 py-1 text-xs font-semibold text-cockpit-text hover:border-cockpit-accent hover:text-cockpit-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cockpit-accent"
+                    >
+                      판단 기록 작성
+                    </Link>
                   </article>
                 ))}
               </div>
