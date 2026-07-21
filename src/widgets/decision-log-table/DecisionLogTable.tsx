@@ -2,7 +2,10 @@ import type { KeyboardEvent, MouseEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import type { DecisionLogListItem } from '@/features/decision-log/adapters'
-import { useDecisionLogs } from '@/features/decision-log/queries'
+import {
+  useDecisionLogs,
+  type DecisionLogFilters,
+} from '@/features/decision-log/queries'
 import type { DecisionStatusCode, DecisionType } from '@/shared/model'
 import {
   Badge,
@@ -121,9 +124,13 @@ const decisionLogColumns: Array<TableColumn<DecisionLogListItem>> = [
   },
 ]
 
-export function DecisionLogTable() {
+interface DecisionLogTableProps {
+  filters?: DecisionLogFilters
+}
+
+export function DecisionLogTable({ filters = {} }: DecisionLogTableProps) {
   const navigate = useNavigate()
-  const decisionLogsQuery = useDecisionLogs()
+  const decisionLogsQuery = useDecisionLogs(filters)
 
   if (decisionLogsQuery.isLoading) {
     return (

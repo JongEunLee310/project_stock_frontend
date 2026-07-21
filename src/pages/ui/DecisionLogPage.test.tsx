@@ -9,6 +9,7 @@ import type {
   DecisionLogListItem,
   DecisionOverview,
 } from '@/features/decision-log/adapters'
+import type { DecisionLogFilters } from '@/features/decision-log/queries'
 import { ApiError } from '@/shared/api'
 import { createQueryClient } from '@/shared/api/queryClient'
 import { AuthProvider } from '@/shared/auth/AuthProvider'
@@ -28,6 +29,8 @@ interface QueryState<T> {
 const refetchOverview = vi.fn()
 const refetchDecisionLogs = vi.fn()
 const refetchDecisionLog = vi.fn()
+const refetchReviewQueue = vi.fn()
+let latestDecisionLogFilters: DecisionLogFilters | undefined
 
 const listItem: DecisionLogListItem = {
   id: '42',
@@ -190,6 +193,7 @@ let decisionLogsState: QueryState<{
   meta?: { page: number; size: number; total: number }
 }>
 let decisionLogState: QueryState<DecisionLogDetail>
+let reviewQueueState: QueryState<DecisionLogListItem[]>
 
 vi.mock('@/features/market-indices/queries', () => ({
   useMarketIndices: () => ({
@@ -203,7 +207,11 @@ vi.mock('@/features/market-indices/queries', () => ({
 
 vi.mock('@/features/decision-log/queries', () => ({
   useDecisionOverview: () => overviewState,
-  useDecisionLogs: () => decisionLogsState,
+  useDecisionLogs: (filters: DecisionLogFilters) => {
+    latestDecisionLogFilters = filters
+    return decisionLogsState
+  },
+  useReviewQueue: () => reviewQueueState,
   useDecisionLog: () => decisionLogState,
   useCreateDecisionLog: () => ({ isPending: false, mutateAsync: vi.fn() }),
   useActivateDecision: () => ({ isPending: false, mutateAsync: vi.fn() }),
@@ -219,6 +227,8 @@ beforeEach(() => {
   refetchOverview.mockReset()
   refetchDecisionLogs.mockReset()
   refetchDecisionLog.mockReset()
+  refetchReviewQueue.mockReset()
+  latestDecisionLogFilters = undefined
   overviewState = {
     data: overview,
     error: null,
@@ -239,6 +249,13 @@ beforeEach(() => {
     isError: false,
     isLoading: false,
     refetch: refetchDecisionLog,
+  }
+  reviewQueueState = {
+    data: [listItem],
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: refetchReviewQueue,
   }
 })
 
@@ -272,7 +289,7 @@ describe('DecisionLogPage shell', () => {
       screen.getByRole('heading', { name: '판단 기록 목록' }),
     ).toBeVisible()
     expect(screen.getByRole('table', { name: '판단 기록' })).toBeVisible()
-    expect(screen.getByText('NVIDIA')).toBeVisible()
+    expect(screen.getByRole('link', { name: 'NVIDIA' })).toBeVisible()
     expect(screen.getByRole('heading', { name: '판단 작성' })).toBeVisible()
   })
 
@@ -280,6 +297,40 @@ describe('DecisionLogPage shell', () => {
     renderRoute('/decision-log?symbol=nvda')
 
     expect(await screen.findByLabelText(/종목 티커/)).toHaveValue('NVDA')
+    expect(screen.getByLabelText('종목 심볼')).toHaveValue('NVDA')
+    expect(latestDecisionLogFilters).toEqual({ symbol: 'NVDA' })
+  })
+
+  it('passes combined filters to the decision log query and resets them', async () => {
+    renderRoute()
+
+    fireEvent.change(await screen.findByLabelText('대상 유형'), {
+      target: { value: 'SYMBOL' },
+    })
+    fireEvent.change(screen.getByLabelText('판단 유형'), {
+      target: { value: 'BUY_REVIEW' },
+    })
+    fireEvent.change(screen.getByLabelText('상태'), {
+      target: { value: 'REVIEW_DUE' },
+    })
+    fireEvent.change(screen.getByLabelText('위험 유형'), {
+      target: { value: 'VALUATION' },
+    })
+    fireEvent.change(screen.getByLabelText('재검토 예정일'), {
+      target: { value: '2026-08-01' },
+    })
+
+    expect(latestDecisionLogFilters).toEqual({
+      targetType: 'SYMBOL',
+      decisionType: 'BUY_REVIEW',
+      status: 'REVIEW_DUE',
+      riskType: 'VALUATION',
+      reviewDueBefore: '2026-08-01',
+      page: undefined,
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: '필터 초기화' }))
+    expect(latestDecisionLogFilters).toEqual({})
   })
 
   it('renders loading state while either shell query is loading', async () => {
