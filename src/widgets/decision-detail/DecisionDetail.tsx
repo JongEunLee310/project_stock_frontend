@@ -4,17 +4,19 @@ import { Link } from 'react-router-dom'
 import type {
   DecisionEvidence,
   DecisionLogDetail,
+  DecisionLogListItem,
   DecisionReview,
   DecisionSnapshot,
 } from '@/features/decision-log/adapters'
 import { useResearchPriceSeries } from '@/features/research/queries'
 import {
   evidenceRelationshipLabels,
+  processQualityFields,
   toReviewTriggerStatusLabel,
   toSnapshotTypeLabel,
   type EvidenceRelationshipCode,
 } from '@/shared/model'
-import { Badge, Card, EmptyState } from '@/shared/ui'
+import { Badge, Card, EmptyState, ErrorState, Skeleton } from '@/shared/ui'
 
 const relationshipOrder: EvidenceRelationshipCode[] = [
   'SUPPORTING',
@@ -370,12 +372,217 @@ function buildTimelineEvents(
   )
 }
 
+function getLatestReview(reviews: DecisionReview[]): DecisionReview | null {
+  return reviews.reduce<DecisionReview | null>((latestReview, review) => {
+    if (!latestReview) return review
+    return toSortableDateTime(review.reviewedAt) >
+      toSortableDateTime(latestReview.reviewedAt)
+      ? review
+      : latestReview
+  }, null)
+}
+
+function parseProcessQualityScore(value: unknown): number | null {
+  if (typeof value !== 'number' && typeof value !== 'string') return null
+
+  const score = Number(value)
+  return Number.isFinite(score) && score >= 1 && score <= 5 ? score : null
+}
+
+function toProcessQualityMark(score: number): '✓' | '△' | '✕' {
+  if (score >= 4) return '✓'
+  if (score >= 3) return '△'
+  return '✕'
+}
+
+function ProcessQualitySection({
+  reviews,
+  isLoading,
+  error,
+  onRetry,
+}: {
+  reviews: DecisionReview[]
+  isLoading: boolean
+  error: Error | null
+  onRetry: () => void
+}) {
+  const latestReview = getLatestReview(reviews)
+
+  return (
+    <Card
+      aria-labelledby="decision-quality-heading"
+      className="border-cockpit-border bg-cockpit-surface/70"
+    >
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2
+          id="decision-quality-heading"
+          className="text-xl font-semibold text-cockpit-text"
+        >
+          판단 과정 품질
+        </h2>
+        <p className="text-xs text-cockpit-text-muted">
+          복기에 직접 기록한 점수이며 자동 진단이 아닙니다.
+        </p>
+      </div>
+
+      {isLoading ? (
+        <div
+          role="status"
+          aria-label="판단 과정 품질 불러오는 중"
+          className="mt-4"
+        >
+          <Skeleton lines={3} />
+        </div>
+      ) : error ? (
+        <ErrorState
+          title="판단 과정 품질을 불러오지 못했습니다"
+          description={error.message}
+          onRetry={onRetry}
+          className="mt-2"
+        />
+      ) : latestReview ? (
+        <div className="mt-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-cockpit-text-muted">
+            <span>최근 복기 {latestReview.reviewedAt}</span>
+            <span>✓ 4–5점 · △ 3점 · ✕ 1–2점</span>
+          </div>
+          <dl className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            {processQualityFields.map((field) => {
+              const score = parseProcessQualityScore(
+                latestReview.processQuality[field.key],
+              )
+
+              return (
+                <div
+                  key={field.key}
+                  className="rounded-card border border-cockpit-border bg-cockpit-surface-muted/35 p-4"
+                >
+                  <dt className="text-xs font-medium text-cockpit-text-muted">
+                    {field.label}
+                  </dt>
+                  <dd className="mt-2 flex items-center gap-2 text-sm font-semibold text-cockpit-text">
+                    {score === null ? (
+                      '미입력'
+                    ) : (
+                      <>
+                        <span
+                          aria-hidden="true"
+                          className="grid h-7 w-7 place-items-center rounded-full border border-cockpit-border bg-cockpit-surface"
+                        >
+                          {toProcessQualityMark(score)}
+                        </span>
+                        <span>{score}점</span>
+                      </>
+                    )}
+                  </dd>
+                </div>
+              )
+            })}
+          </dl>
+        </div>
+      ) : (
+        <EmptyState
+          title="복기 후 표시됩니다."
+          description="복기를 작성하면 판단 과정의 항목별 점수를 확인할 수 있습니다."
+        />
+      )}
+    </Card>
+  )
+}
+
+function SimilarDecisionsSection({
+  decisions,
+  isLoading,
+  error,
+  onRetry,
+}: {
+  decisions: DecisionLogListItem[]
+  isLoading: boolean
+  error: Error | null
+  onRetry: () => void
+}) {
+  return (
+    <Card
+      aria-labelledby="similar-decisions-heading"
+      className="border-cockpit-border bg-cockpit-surface/70"
+    >
+      <h2
+        id="similar-decisions-heading"
+        className="text-xl font-semibold text-cockpit-text"
+      >
+        유사 과거 판단
+      </h2>
+      <p className="mt-2 text-sm text-cockpit-text-muted">
+        대상과 판단 맥락이 비슷한 과거 기록을 참고용으로 보여줍니다.
+      </p>
+
+      {isLoading ? (
+        <div
+          role="status"
+          aria-label="유사 과거 판단 불러오는 중"
+          className="mt-4"
+        >
+          <Skeleton lines={4} />
+        </div>
+      ) : error ? (
+        <ErrorState
+          title="유사 과거 판단을 불러오지 못했습니다"
+          description={error.message}
+          onRetry={onRetry}
+          className="mt-2"
+        />
+      ) : decisions.length > 0 ? (
+        <ul aria-label="유사 과거 판단 목록" className="mt-4 grid gap-3">
+          {decisions.map((decision) => (
+            <li key={decision.id}>
+              <Link
+                to={`/decision-log/${encodeURIComponent(decision.id)}`}
+                className="block rounded-card border border-cockpit-border bg-cockpit-surface-muted/35 p-4 transition-colors hover:border-cockpit-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cockpit-accent"
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-semibold text-cockpit-text">
+                    {decision.target.label}
+                  </span>
+                  <Badge tone="neutral">{decision.target.typeLabel}</Badge>
+                  <Badge tone="accent">{decision.decisionTypeLabel}</Badge>
+                </div>
+                <p className="mt-2 line-clamp-2 text-sm leading-6 text-cockpit-text-muted">
+                  {decision.summary || '요약이 없습니다.'}
+                </p>
+                <p className="mt-2 text-xs text-cockpit-text-muted">
+                  {decision.createdAt}
+                </p>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <EmptyState title="유사한 과거 판단이 없습니다." />
+      )}
+    </Card>
+  )
+}
+
 export function DecisionDetail({
   detail,
   reviews = [],
+  areReviewsLoading = false,
+  reviewsError = null,
+  onRetryReviews = () => undefined,
+  similarDecisions = [],
+  areSimilarDecisionsLoading = false,
+  similarDecisionsError = null,
+  onRetrySimilarDecisions = () => undefined,
 }: {
   detail: DecisionLogDetail
   reviews?: DecisionReview[]
+  areReviewsLoading?: boolean
+  reviewsError?: Error | null
+  onRetryReviews?: () => void
+  similarDecisions?: DecisionLogListItem[]
+  areSimilarDecisionsLoading?: boolean
+  similarDecisionsError?: Error | null
+  onRetrySimilarDecisions?: () => void
 }) {
   const groupedSnapshots = groupSnapshots(detail.snapshots)
   const market = getSnapshotMarket(detail.snapshots)
@@ -436,6 +643,13 @@ export function DecisionDetail({
         </dl>
       </Card>
 
+      <ProcessQualitySection
+        reviews={reviews}
+        isLoading={areReviewsLoading}
+        error={reviewsError}
+        onRetry={onRetryReviews}
+      />
+
       <Card
         aria-labelledby="decision-content-heading"
         className="border-cockpit-border bg-cockpit-surface/70"
@@ -465,6 +679,13 @@ export function DecisionDetail({
           </div>
         </div>
       </Card>
+
+      <SimilarDecisionsSection
+        decisions={similarDecisions}
+        isLoading={areSimilarDecisionsLoading}
+        error={similarDecisionsError}
+        onRetry={onRetrySimilarDecisions}
+      />
 
       <Card
         aria-labelledby="decision-evidence-heading"

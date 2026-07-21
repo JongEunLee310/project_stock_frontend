@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import {
   useDecisionLog,
   useDecisionReviews,
+  useSimilarDecisions,
 } from '@/features/decision-log/queries'
 import { ApiError } from '@/shared/api'
 import { EmptyState, ErrorState, Skeleton } from '@/shared/ui'
@@ -23,6 +24,7 @@ export function DecisionDetailPage() {
   const { id } = useParams<{ id: string }>()
   const decisionLogQuery = useDecisionLog(id)
   const reviewsQuery = useDecisionReviews(id)
+  const similarDecisionsQuery = useSimilarDecisions(id)
   const inaccessibleError =
     decisionLogQuery.error instanceof ApiError &&
     [
@@ -85,6 +87,17 @@ export function DecisionDetailPage() {
         <DecisionDetail
           detail={decisionLogQuery.data}
           reviews={reviewsQuery.data ?? []}
+          areReviewsLoading={reviewsQuery.isLoading}
+          reviewsError={reviewsQuery.error}
+          onRetryReviews={() => {
+            void reviewsQuery.refetch()
+          }}
+          similarDecisions={similarDecisionsQuery.data ?? []}
+          areSimilarDecisionsLoading={similarDecisionsQuery.isLoading}
+          similarDecisionsError={similarDecisionsQuery.error}
+          onRetrySimilarDecisions={() => {
+            void similarDecisionsQuery.refetch()
+          }}
         />
       ) : (
         <EmptyState

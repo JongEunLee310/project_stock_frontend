@@ -122,6 +122,8 @@ export interface DecisionLogListItemDto {
   created_at: string
 }
 
+export type SimilarDecisionsResponseDto = DecisionLogListItemDto[]
+
 export interface DecisionEvidenceDto {
   id: number | string
   type: string

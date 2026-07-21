@@ -1,5 +1,11 @@
 import { QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { vi } from 'vitest'
 
@@ -34,7 +40,9 @@ const refetchDecisionLogs = vi.fn()
 const refetchDecisionLog = vi.fn()
 const refetchReviewQueue = vi.fn()
 const refetchReviews = vi.fn()
+const refetchSimilarDecisions = vi.fn()
 let latestDecisionLogFilters: DecisionLogFilters | undefined
+let latestSimilarDecisionId: string | undefined
 let latestPriceQuery:
   | [symbol: string | null, market: string | null, range: string]
   | undefined
@@ -53,6 +61,16 @@ const listItem: DecisionLogListItem = {
   statusLabel: '진행 중',
   reviewAt: null,
   createdAt: '2026. 07. 21. 09:00',
+}
+
+const similarDecision: DecisionLogListItem = {
+  ...listItem,
+  id: '84',
+  target: { type: 'SYMBOL', typeLabel: '종목', id: 'AMD', label: 'AMD' },
+  decisionType: 'BUY_REVIEW',
+  decisionTypeLabel: '매수 검토',
+  summary: '실적 성장과 밸류에이션을 함께 검토한다.',
+  createdAt: '2026. 06. 30. 11:00',
 }
 
 const overview: DecisionOverview = {
@@ -205,6 +223,7 @@ let decisionLogsState: QueryState<{
 let decisionLogState: QueryState<DecisionLogDetail>
 let reviewQueueState: QueryState<DecisionLogListItem[]>
 let reviewsState: QueryState<DecisionReview[]>
+let similarDecisionsState: QueryState<DecisionLogListItem[]>
 let priceSeriesState: {
   data: { closes: number[]; currency: string | null } | undefined
 }
@@ -229,6 +248,10 @@ vi.mock('@/features/decision-log/queries', () => ({
   useReviewQueue: () => reviewQueueState,
   useDecisionLog: () => decisionLogState,
   useDecisionReviews: () => reviewsState,
+  useSimilarDecisions: (id: string | undefined) => {
+    latestSimilarDecisionId = id
+    return similarDecisionsState
+  },
   useCreateDecisionLog: () => ({ isPending: false, mutateAsync: vi.fn() }),
   useActivateDecision: () => ({ isPending: false, mutateAsync: vi.fn() }),
   useDecisionAssist: () => ({
@@ -257,7 +280,9 @@ beforeEach(() => {
   refetchDecisionLog.mockReset()
   refetchReviewQueue.mockReset()
   refetchReviews.mockReset()
+  refetchSimilarDecisions.mockReset()
   latestDecisionLogFilters = undefined
+  latestSimilarDecisionId = undefined
   latestPriceQuery = undefined
   overviewState = {
     data: overview,
@@ -333,6 +358,13 @@ beforeEach(() => {
     isError: false,
     isLoading: false,
     refetch: refetchReviews,
+  }
+  similarDecisionsState = {
+    data: [similarDecision],
+    error: null,
+    isError: false,
+    isLoading: false,
+    refetch: refetchSimilarDecisions,
   }
   priceSeriesState = {
     data: { closes: [179.4, 181.25], currency: 'USD' },
@@ -524,14 +556,14 @@ describe('DecisionLogPage shell', () => {
 })
 
 describe('DecisionDetailPage route', () => {
-  it('판단→근거→비교→재검토→타임라인→버전 순서로 상세를 렌더한다', async () => {
+  it('판단→품질→유사 판단→근거→비교→재검토→타임라인→버전 순서로 상세를 렌더한다', async () => {
     renderRoute('/decision-log/42')
 
     expect(
       await screen.findByRole('heading', { name: '판단 기록 상세' }),
     ).toBeVisible()
     expect(screen.getByRole('heading', { name: 'NVIDIA' })).toBeVisible()
-    expect(screen.getByText('종목')).toBeVisible()
+    expect(screen.getAllByText('종목').length).toBeGreaterThan(0)
     expect(screen.getAllByText('관망 유지').length).toBeGreaterThan(0)
     expect(screen.getByText('다음 확인').parentElement).toHaveTextContent(
       '2026. 08. 10. 09:00',
@@ -542,7 +574,9 @@ describe('DecisionDetailPage route', () => {
       .map((heading) => heading.textContent)
     expect(sectionHeadings).toEqual([
       'NVIDIA',
+      '판단 과정 품질',
       '당시 판단',
+      '유사 과거 판단',
       '연결된 근거',
       '당시/현재 비교',
       '재검토 조건',
@@ -554,6 +588,103 @@ describe('DecisionDetailPage route', () => {
     expect(
       screen.getByRole('link', { name: '복기 작성·보기' }),
     ).toHaveAttribute('href', '/decision-log/42/review')
+  })
+
+  it('복기의 process_quality를 공용 라벨과 중립 체크·점수로 표시한다', async () => {
+    reviewsState = {
+      ...reviewsState,
+      data: [
+        {
+          ...reviewsState.data![0],
+          processQuality: {
+            evidence_quality: 5,
+            counter_argument_review: 4,
+            risk_awareness: 3,
+            review_condition_clarity: 2,
+            discipline: 1,
+          },
+        },
+      ],
+    }
+    renderRoute('/decision-log/42')
+
+    const qualityHeading = await screen.findByRole('heading', {
+      name: '판단 과정 품질',
+    })
+    const qualitySection = qualityHeading.closest('section')
+    expect(qualitySection).not.toBeNull()
+    const quality = within(qualitySection!)
+
+    for (const label of [
+      '근거 충분성',
+      '반대 근거 검토',
+      '위험 인식',
+      '재검토 명확성',
+      '규칙 준수',
+    ]) {
+      expect(quality.getByText(label)).toBeVisible()
+    }
+    for (const score of ['5점', '4점', '3점', '2점', '1점']) {
+      expect(quality.getByText(score)).toBeVisible()
+    }
+    expect(quality.getByText('✓ 4–5점 · △ 3점 · ✕ 1–2점')).toBeVisible()
+    expect(quality.getByText(/자동 진단이 아닙니다/)).toBeVisible()
+    expect(screen.queryByText('evidence_quality')).not.toBeInTheDocument()
+  })
+
+  it('복기가 없으면 판단 과정 품질 빈 상태를 표시한다', async () => {
+    reviewsState = { ...reviewsState, data: [] }
+    renderRoute('/decision-log/42')
+
+    expect(await screen.findByText('복기 후 표시됩니다.')).toBeVisible()
+  })
+
+  it('유사 판단을 경량 목록으로 표시하고 항목 클릭 시 상세로 이동한다', async () => {
+    renderRoute('/decision-log/42')
+
+    const similarList = await screen.findByRole('list', {
+      name: '유사 과거 판단 목록',
+    })
+    const similarLink = within(similarList).getByRole('link', { name: /AMD/ })
+    expect(similarLink).toHaveAttribute('href', '/decision-log/84')
+    expect(within(similarLink).getByText('종목')).toBeVisible()
+    expect(within(similarLink).getByText('매수 검토')).toBeVisible()
+    expect(
+      within(similarLink).getByText('실적 성장과 밸류에이션을 함께 검토한다.'),
+    ).toBeVisible()
+    expect(
+      within(similarLink).queryByText('BUY_REVIEW'),
+    ).not.toBeInTheDocument()
+
+    fireEvent.click(similarLink)
+    await waitFor(() => expect(latestSimilarDecisionId).toBe('84'))
+  })
+
+  it('유사 판단의 로딩과 빈 상태를 각각 표시한다', async () => {
+    similarDecisionsState = {
+      ...similarDecisionsState,
+      data: undefined,
+      isLoading: true,
+    }
+    const loadingView = renderRoute('/decision-log/42')
+
+    expect(
+      await screen.findByRole('status', {
+        name: '유사 과거 판단 불러오는 중',
+      }),
+    ).toBeVisible()
+
+    loadingView.unmount()
+    similarDecisionsState = {
+      ...similarDecisionsState,
+      data: [],
+      isLoading: false,
+    }
+    renderRoute('/decision-log/42')
+
+    expect(
+      await screen.findByText('유사한 과거 판단이 없습니다.'),
+    ).toBeVisible()
   })
 
   it('근거 관계를 나누고 영문 enum을 표시하지 않는다', async () => {
