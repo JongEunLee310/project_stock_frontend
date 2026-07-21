@@ -1,5 +1,6 @@
 import { formatKstDateTime } from '@/shared/lib/format'
 import {
+  toBehavioralBiasLabel,
   toConfidenceLevelLabel,
   toDecisionStatusLabel,
   toDecisionTypeLabel,
@@ -11,6 +12,7 @@ import {
 } from '@/shared/model'
 
 import type {
+  DecisionAssistResponseDto,
   DecisionEvidenceDto,
   DecisionLogDetailDto,
   DecisionLogListItemDto,
@@ -20,6 +22,26 @@ import type {
   DecisionSnapshotDto,
   DecisionTargetDto,
 } from './dto'
+
+export interface DecisionAssistCandidate {
+  type: string
+  typeLabel: string
+  reason: string
+}
+
+export interface DecisionAssistVagueFlag {
+  quote: string
+  suggestion: string
+}
+
+export interface DecisionAssist {
+  structuredThesis: string | null
+  structuredRationale: string | null
+  counterArguments: string[]
+  riskCandidates: DecisionAssistCandidate[]
+  biasCandidates: DecisionAssistCandidate[]
+  vagueFlags: DecisionAssistVagueFlag[]
+}
 
 export interface DecisionTarget {
   type: string
@@ -137,6 +159,43 @@ export function adaptDecisionTarget(dto: DecisionTargetDto): DecisionTarget {
     typeLabel: toTargetTypeLabel(dto.type),
     id: dto.id,
     label: dto.label?.trim() || dto.id,
+  }
+}
+
+function normalizedText(value: string | null | undefined): string | null {
+  const normalized = value?.trim()
+  return normalized ? normalized : null
+}
+
+export function adaptDecisionAssist(
+  dto: DecisionAssistResponseDto,
+): DecisionAssist {
+  return {
+    structuredThesis: normalizedText(dto.structured_thesis),
+    structuredRationale: normalizedText(dto.structured_rationale),
+    counterArguments: dto.counter_arguments
+      .map((argument) => argument.trim())
+      .filter(Boolean),
+    riskCandidates: dto.risk_candidates
+      .map((candidate) => ({
+        type: candidate.type.trim(),
+        typeLabel: toRiskTypeLabel(candidate.type.trim()),
+        reason: candidate.reason.trim(),
+      }))
+      .filter((candidate) => candidate.type && candidate.reason),
+    biasCandidates: dto.bias_candidates
+      .map((candidate) => ({
+        type: candidate.type.trim(),
+        typeLabel: toBehavioralBiasLabel(candidate.type.trim()),
+        reason: candidate.reason.trim(),
+      }))
+      .filter((candidate) => candidate.type && candidate.reason),
+    vagueFlags: dto.vague_flags
+      .map((flag) => ({
+        quote: flag.quote.trim(),
+        suggestion: flag.suggestion.trim(),
+      }))
+      .filter((flag) => flag.quote && flag.suggestion),
   }
 }
 

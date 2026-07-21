@@ -1,12 +1,44 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { DecisionFormPanel } from './DecisionFormPanel'
 
 const createDecision = vi.fn()
 const activateDecision = vi.fn()
+const decisionAssist = vi.fn()
 let isCreatePending = false
 let isActivatePending = false
+let isAssistPending = false
+
+const assistResult = {
+  structuredThesis: '서비스 매출 성장 지속 여부를 확인한다.',
+  structuredRationale: '마진 개선을 성장 근거로 검토한다.',
+  counterArguments: ['서비스 성장률이 둔화될 수 있다.'],
+  riskCandidates: [
+    {
+      type: 'VALUATION',
+      typeLabel: '밸류에이션',
+      reason: '높은 밸류에이션을 점검해야 한다.',
+    },
+  ],
+  biasCandidates: [
+    {
+      type: 'FOMO',
+      typeLabel: '기회 상실 불안',
+      reason: '즉시 매수해야 한다는 표현을 점검해야 한다.',
+    },
+  ],
+  vagueFlags: [
+    { quote: '마진이 좋다', suggestion: '비교 기간과 수치를 명시한다.' },
+  ],
+}
 
 vi.mock('@/features/decision-log/queries', () => ({
   useCreateDecisionLog: () => ({
@@ -16,6 +48,10 @@ vi.mock('@/features/decision-log/queries', () => ({
   useActivateDecision: () => ({
     isPending: isActivatePending,
     mutateAsync: activateDecision,
+  }),
+  useDecisionAssist: () => ({
+    isPending: isAssistPending,
+    mutateAsync: decisionAssist,
   }),
 }))
 
@@ -32,10 +68,13 @@ describe('DecisionFormPanel', () => {
   beforeEach(() => {
     createDecision.mockReset()
     activateDecision.mockReset()
+    decisionAssist.mockReset()
     isCreatePending = false
     isActivatePending = false
+    isAssistPending = false
     createDecision.mockResolvedValue({ id: '42' })
     activateDecision.mockResolvedValue({ id: '42' })
+    decisionAssist.mockResolvedValue(assistResult)
   })
 
   it('shows Korean labels for every target and decision type', () => {
@@ -114,6 +153,143 @@ describe('DecisionFormPanel', () => {
 
     expect(screen.getByLabelText('밸류에이션')).toBeChecked()
     expect(screen.getByLabelText('규제')).toBeChecked()
+  })
+
+  it('requests assist with the current draft and applies suggestions only after confirmation', async () => {
+    render(<DecisionFormPanel />)
+    fillRequiredFields()
+    fireEvent.change(screen.getByLabelText('핵심 판단 이유'), {
+      target: { value: '마진이 좋다.' },
+    })
+    fireEvent.change(screen.getByLabelText('긍정 근거'), {
+      target: { value: '서비스 매출 성장' },
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'AI 보조' }))
+
+    await waitFor(() =>
+      expect(decisionAssist).toHaveBeenCalledWith({
+        target: { type: 'SYMBOL', id: 'NVDA' },
+        decision_type: 'BUY_REVIEW',
+        rationale: '마진이 좋다.',
+        memo: '긍정 근거:\n서비스 매출 성장',
+      }),
+    )
+    expect(
+      await screen.findByText('마진 개선을 성장 근거로 검토한다.'),
+    ).toBeVisible()
+    expect(screen.getByText('반대 근거 후보')).toBeVisible()
+    expect(screen.getByText('인지 위험·편향 점검 후보')).toBeVisible()
+    expect(screen.getByText('모호 표현 감지')).toBeVisible()
+    expect(screen.getByText('기회 상실 불안')).toBeVisible()
+
+    expect(screen.getByLabelText('핵심 판단 이유')).toHaveValue('마진이 좋다.')
+    expect(screen.getByLabelText('반대 근거')).toHaveValue('')
+    expect(screen.getByLabelText('밸류에이션')).not.toBeChecked()
+    expect(createDecision).not.toHaveBeenCalled()
+    expect(activateDecision).not.toHaveBeenCalled()
+
+    const rationaleCard = screen
+      .getByText('마진 개선을 성장 근거로 검토한다.')
+      .closest('article')
+    expect(rationaleCard).not.toBeNull()
+    fireEvent.click(
+      within(rationaleCard as HTMLElement).getByRole('button', {
+        name: '적용',
+      }),
+    )
+    expect(screen.getByLabelText('핵심 판단 이유')).toHaveValue(
+      '마진이 좋다.\n마진 개선을 성장 근거로 검토한다.',
+    )
+
+    const riskCard = screen
+      .getByText('높은 밸류에이션을 점검해야 한다.')
+      .closest('article')
+    fireEvent.click(
+      within(riskCard as HTMLElement).getByRole('button', { name: '적용' }),
+    )
+    expect(screen.getByLabelText('밸류에이션')).toBeChecked()
+  })
+
+  it('lets the user edit or ignore a suggestion before it changes the form', async () => {
+    render(<DecisionFormPanel initialTargetId="AAPL" />)
+    fireEvent.click(screen.getByRole('button', { name: 'AI 보조' }))
+
+    const counterText =
+      await screen.findByText('서비스 성장률이 둔화될 수 있다.')
+    const counterCard = counterText.closest('article')
+    expect(counterCard).not.toBeNull()
+    fireEvent.click(
+      within(counterCard as HTMLElement).getByRole('button', { name: '수정' }),
+    )
+    fireEvent.change(
+      within(counterCard as HTMLElement).getByLabelText('제안 수정'),
+      { target: { value: '성장률과 마진이 함께 둔화될 수 있다.' } },
+    )
+    expect(screen.getByLabelText('반대 근거')).toHaveValue('')
+    fireEvent.click(
+      within(counterCard as HTMLElement).getByRole('button', { name: '적용' }),
+    )
+    expect(screen.getByLabelText('반대 근거')).toHaveValue(
+      '성장률과 마진이 함께 둔화될 수 있다.',
+    )
+
+    const thesisCard = screen
+      .getByText('서비스 매출 성장 지속 여부를 확인한다.')
+      .closest('article')
+    fireEvent.click(
+      within(thesisCard as HTMLElement).getByRole('button', { name: '무시' }),
+    )
+    expect(
+      within(thesisCard as HTMLElement).getByText('무시한 제안입니다.'),
+    ).toBeVisible()
+    expect(screen.getByLabelText('핵심 판단 이유')).toHaveValue('')
+  })
+
+  it('shows empty and error assist states without blocking manual authoring', async () => {
+    decisionAssist.mockResolvedValueOnce({
+      structuredThesis: null,
+      structuredRationale: null,
+      counterArguments: [],
+      riskCandidates: [],
+      biasCandidates: [],
+      vagueFlags: [],
+    })
+    const { unmount } = render(<DecisionFormPanel initialTargetId="AAPL" />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'AI 보조' }))
+    expect(
+      await screen.findByText('현재 초안에서 제안할 내용이 없습니다.'),
+    ).toBeVisible()
+    expect(
+      screen.getByRole('button', { name: '판단 저장 및 확정' }),
+    ).toBeEnabled()
+
+    unmount()
+    decisionAssist.mockRejectedValueOnce(
+      new Error('AI 보조 서비스를 사용할 수 없습니다.'),
+    )
+    render(<DecisionFormPanel initialTargetId="AAPL" />)
+    fireEvent.click(screen.getByRole('button', { name: 'AI 보조' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'AI 보조 서비스를 사용할 수 없습니다.',
+    )
+    expect(
+      screen.getByRole('button', { name: '판단 저장 및 확정' }),
+    ).toBeEnabled()
+  })
+
+  it('announces the assist loading state and prevents duplicate requests', () => {
+    isAssistPending = true
+    render(<DecisionFormPanel initialTargetId="AAPL" />)
+
+    expect(
+      screen.getByRole('button', { name: '제안 생성 중...' }),
+    ).toBeDisabled()
+    expect(screen.getByRole('status')).toHaveTextContent(
+      '현재 초안을 검토하고 있습니다.',
+    )
   })
 
   it('creates a draft, activates it in order, maps structured values, and resets', async () => {

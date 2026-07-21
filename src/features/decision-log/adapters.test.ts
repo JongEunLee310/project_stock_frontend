@@ -7,11 +7,13 @@ import { apiGet, apiPatch, apiPost } from '@/shared/api/client'
 import { formatKstDateTime } from '@/shared/lib/format'
 
 import {
+  adaptDecisionAssist,
   adaptDecisionLogDetail,
   adaptDecisionLogListItem,
   adaptDecisionOverview,
 } from './adapters'
 import type {
+  DecisionAssistResponseDto,
   DecisionLogDetailDto,
   DecisionLogListItemDto,
   DecisionOverviewDto,
@@ -23,6 +25,7 @@ import {
   decisionLogKeys,
   useActivateDecision,
   useCreateDecisionLog,
+  useDecisionAssist,
   useDecisionLog,
   useDecisionLogs,
   useDecisionOverview,
@@ -118,6 +121,21 @@ const detailDto: DecisionLogDetailDto = {
   ],
 }
 
+const assistDto: DecisionAssistResponseDto = {
+  structured_thesis: ' 서비스 매출 성장 지속 여부를 확인한다. ',
+  structured_rationale: '마진 개선을 성장 근거로 검토한다.',
+  counter_arguments: [' 성장률이 둔화될 수 있다. ', '  '],
+  risk_candidates: [
+    { type: 'VALUATION', reason: ' 밸류에이션 부담을 점검한다. ' },
+  ],
+  bias_candidates: [
+    { type: 'FOMO', reason: '즉시 매수해야 한다는 표현을 점검한다.' },
+  ],
+  vague_flags: [
+    { quote: ' 마진이 좋다 ', suggestion: '비교 기간과 수치를 명시한다.' },
+  ],
+}
+
 function wrapperFor(queryClient: QueryClient) {
   return function Wrapper({ children }: { children: ReactNode }) {
     return createElement(QueryClientProvider, { client: queryClient }, children)
@@ -134,6 +152,34 @@ function createTestQueryClient() {
 }
 
 describe('decision-log adapters', () => {
+  it('adapts assist suggestions, labels enum-like values, and removes empty text', () => {
+    expect(adaptDecisionAssist(assistDto)).toEqual({
+      structuredThesis: '서비스 매출 성장 지속 여부를 확인한다.',
+      structuredRationale: '마진 개선을 성장 근거로 검토한다.',
+      counterArguments: ['성장률이 둔화될 수 있다.'],
+      riskCandidates: [
+        {
+          type: 'VALUATION',
+          typeLabel: '밸류에이션',
+          reason: '밸류에이션 부담을 점검한다.',
+        },
+      ],
+      biasCandidates: [
+        {
+          type: 'FOMO',
+          typeLabel: '기회 상실 불안',
+          reason: '즉시 매수해야 한다는 표현을 점검한다.',
+        },
+      ],
+      vagueFlags: [
+        {
+          quote: '마진이 좋다',
+          suggestion: '비교 기간과 수치를 명시한다.',
+        },
+      ],
+    })
+  })
+
   it('adapts a list item and keeps unknown enum-like values safe', () => {
     expect(adaptDecisionLogListItem(listItemDto)).toEqual({
       id: '8',
@@ -334,5 +380,25 @@ describe('decision-log queries', () => {
       }),
     )
     expect(invalidate).toHaveBeenCalledWith({ queryKey: decisionLogKeys.all })
+  })
+
+  it('posts the current draft to assist and adapts the non-persistent response', async () => {
+    vi.mocked(apiPost).mockResolvedValue({ data: assistDto })
+    const assist = renderHook(() => useDecisionAssist(), {
+      wrapper: wrapperFor(createTestQueryClient()),
+    })
+    const body = {
+      target: { type: 'SYMBOL' as const, id: 'AAPL' },
+      decision_type: 'BUY_REVIEW' as const,
+      rationale: '마진이 좋다.',
+    }
+
+    assist.result.current.mutate(body)
+
+    await waitFor(() => expect(assist.result.current.isSuccess).toBe(true))
+    expect(apiPost).toHaveBeenCalledWith('/decision-logs/assist', body)
+    expect(assist.result.current.data?.riskCandidates[0]).toMatchObject({
+      typeLabel: '밸류에이션',
+    })
   })
 })

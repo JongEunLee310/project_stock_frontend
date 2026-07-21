@@ -207,6 +207,11 @@ vi.mock('@/features/decision-log/queries', () => ({
   useDecisionLog: () => decisionLogState,
   useCreateDecisionLog: () => ({ isPending: false, mutateAsync: vi.fn() }),
   useActivateDecision: () => ({ isPending: false, mutateAsync: vi.fn() }),
+  useDecisionAssist: () => ({
+    data: undefined,
+    isPending: false,
+    mutateAsync: vi.fn(),
+  }),
 }))
 
 beforeEach(() => {

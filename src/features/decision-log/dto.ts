@@ -168,6 +168,33 @@ export interface CreateDecisionLogBodyDto {
   review_triggers?: CreateDecisionReviewTriggerDto[]
 }
 
+export interface DecisionAssistRequestDto {
+  target: Omit<DecisionTargetDto, 'label'>
+  decision_type?: DecisionTypeDto
+  thesis?: string
+  rationale?: string
+  memo?: string
+}
+
+export interface DecisionAssistCheckCandidateDto {
+  type: string
+  reason: string
+}
+
+export interface DecisionAssistVagueFlagDto {
+  quote: string
+  suggestion: string
+}
+
+export interface DecisionAssistResponseDto {
+  structured_thesis?: string | null
+  structured_rationale?: string | null
+  counter_arguments: string[]
+  risk_candidates: DecisionAssistCheckCandidateDto[]
+  bias_candidates: DecisionAssistCheckCandidateDto[]
+  vague_flags: DecisionAssistVagueFlagDto[]
+}
+
 export type UpdateDecisionDraftBodyDto = Partial<CreateDecisionLogBodyDto>
 
 export interface ActivateDecisionSnapshotDto {
