@@ -156,7 +156,9 @@ export interface DecisionLogDetail {
   statusLabel: string
   reviewAt: string | null
   activatedAt: string | null
+  reviewedAt: string | null
   closedAt: string | null
+  supersededById: string | null
   createdAt: string
   updatedAt: string
   evidence: DecisionEvidence[]
@@ -333,7 +335,12 @@ export function adaptDecisionLogDetail(
     statusLabel: toDecisionStatusLabel(dto.status),
     reviewAt: formatNullableDateTime(dto.review_at),
     activatedAt: formatNullableDateTime(dto.activated_at),
+    reviewedAt: formatNullableDateTime(dto.reviewed_at),
     closedAt: formatNullableDateTime(dto.closed_at),
+    supersededById:
+      dto.superseded_by_id === null || dto.superseded_by_id === undefined
+        ? null
+        : String(dto.superseded_by_id),
     createdAt: formatKstDateTime(dto.created_at),
     updatedAt: formatKstDateTime(dto.updated_at),
     evidence: dto.evidence.map(adaptDecisionEvidence),

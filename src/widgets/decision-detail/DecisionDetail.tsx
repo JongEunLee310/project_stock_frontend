@@ -4,8 +4,10 @@ import { Link } from 'react-router-dom'
 import type {
   DecisionEvidence,
   DecisionLogDetail,
+  DecisionReview,
   DecisionSnapshot,
 } from '@/features/decision-log/adapters'
+import { useResearchPriceSeries } from '@/features/research/queries'
 import {
   evidenceRelationshipLabels,
   toReviewTriggerStatusLabel,
@@ -30,6 +32,8 @@ const relationshipTones = {
 
 const snapshotKeyLabels: Record<string, string> = {
   price: '가격',
+  close: '종가',
+  current_price: '현재가',
   forward_per: '선행 PER',
   news_risk: '뉴스 위험',
   valuation_risk: '밸류에이션 위험',
@@ -233,8 +237,152 @@ function groupSnapshots(snapshots: DecisionSnapshot[]) {
   )
 }
 
-export function DecisionDetail({ detail }: { detail: DecisionLogDetail }) {
+function readMarket(data: Record<string, unknown>): string | null {
+  if (typeof data.market === 'string' && data.market.trim()) {
+    return data.market.trim()
+  }
+
+  const session = data.session
+  if (
+    session !== null &&
+    typeof session === 'object' &&
+    'market' in session &&
+    typeof session.market === 'string' &&
+    session.market.trim()
+  ) {
+    return session.market.trim()
+  }
+
+  return null
+}
+
+function getSnapshotMarket(snapshots: DecisionSnapshot[]): string | null {
+  const priceSnapshot = snapshots.find(
+    (snapshot) =>
+      snapshot.snapshotType === 'PRICE' && readMarket(snapshot.data),
+  )
+
+  return priceSnapshot ? readMarket(priceSnapshot.data) : null
+}
+
+function isPriceSnapshotKey(snapshotType: string, key: string): boolean {
+  return (
+    snapshotType === 'PRICE' &&
+    ['price', 'close', 'current_price'].includes(key)
+  )
+}
+
+function CurrentSnapshotValue({
+  snapshotType,
+  snapshotKey,
+  currentPrice,
+  currency,
+}: {
+  snapshotType: string
+  snapshotKey: string
+  currentPrice: number | null
+  currency: string | null
+}) {
+  if (!isPriceSnapshotKey(snapshotType, snapshotKey) || currentPrice === null) {
+    return <span className="text-cockpit-text-muted">—</span>
+  }
+
+  return (
+    <>
+      {currentPrice.toLocaleString('ko-KR')}
+      {currency ? ` ${currency}` : ''}
+    </>
+  )
+}
+
+interface TimelineEvent {
+  id: string
+  label: string
+  description?: string
+  occurredAt: string
+}
+
+function toSortableDateTime(value: string): string {
+  const [year = '0', month = '0', day = '0', rawHour = '0', minute = '0'] =
+    value.match(/\d+/g) ?? []
+  let hour = Number(rawHour)
+
+  if (value.includes('오후') && hour < 12) hour += 12
+  if (value.includes('오전') && hour === 12) hour = 0
+
+  return [year, month, day, String(hour), minute]
+    .map((part) => part.padStart(4, '0'))
+    .join('')
+}
+
+function buildTimelineEvents(
+  detail: DecisionLogDetail,
+  reviews: DecisionReview[],
+): TimelineEvent[] {
+  const lifecycleEvents: TimelineEvent[] = [
+    {
+      id: 'created',
+      label: '판단 작성',
+      occurredAt: detail.createdAt,
+    },
+    ...(detail.activatedAt
+      ? [
+          {
+            id: 'activated',
+            label: '판단 확정',
+            occurredAt: detail.activatedAt,
+          },
+        ]
+      : []),
+    ...(detail.reviewedAt
+      ? [
+          {
+            id: 'reviewed',
+            label: '판단 복기 완료',
+            occurredAt: detail.reviewedAt,
+          },
+        ]
+      : []),
+  ]
+  const triggerEvents = detail.reviewTriggers.flatMap((trigger) =>
+    trigger.triggeredAt
+      ? [
+          {
+            id: `trigger-${trigger.id}`,
+            label: `재검토 조건 발동 · ${trigger.typeLabel}`,
+            description: trigger.condition,
+            occurredAt: trigger.triggeredAt,
+          },
+        ]
+      : [],
+  )
+  const reviewEvents = reviews.map((review) => ({
+    id: `review-${review.id}`,
+    label: `복기 · ${review.outcomeStatusLabel}`,
+    description: `가설 결과: ${review.thesisResultLabel}`,
+    occurredAt: review.reviewedAt,
+  }))
+
+  return [...lifecycleEvents, ...triggerEvents, ...reviewEvents].sort((a, b) =>
+    toSortableDateTime(a.occurredAt).localeCompare(
+      toSortableDateTime(b.occurredAt),
+    ),
+  )
+}
+
+export function DecisionDetail({
+  detail,
+  reviews = [],
+}: {
+  detail: DecisionLogDetail
+  reviews?: DecisionReview[]
+}) {
   const groupedSnapshots = groupSnapshots(detail.snapshots)
+  const market = getSnapshotMarket(detail.snapshots)
+  const symbol = detail.target.type === 'SYMBOL' ? detail.target.id : null
+  const priceSeriesQuery = useResearchPriceSeries(symbol, market, '1D')
+  const currentPrice = priceSeriesQuery.data?.closes.at(-1) ?? null
+  const timelineEvents = buildTimelineEvents(detail, reviews)
   const reasonGroups: Partial<Record<EvidenceRelationshipCode, string[]>> = {
     SUPPORTING: detail.supportingReasons,
     CONTRADICTING: detail.counterArguments,
@@ -352,36 +500,76 @@ export function DecisionDetail({ detail }: { detail: DecisionLogDetail }) {
             id="decision-snapshot-heading"
             className="text-xl font-semibold text-cockpit-text"
           >
-            당시 데이터 스냅샷
+            당시/현재 비교
           </h2>
           <p className="text-xs text-cockpit-text-muted">
-            판단 시점에 고정된 값입니다.
+            당시 값은 판단 시점에 고정된 원본이며 현재값으로 덮어쓰지 않습니다.
           </p>
         </div>
         {Object.keys(groupedSnapshots).length > 0 ? (
-          <div className="mt-4 flex flex-col gap-4">
-            {Object.entries(groupedSnapshots).map(
-              ([snapshotType, snapshots]) => (
-                <section
-                  key={snapshotType}
-                  className="rounded-card border border-cockpit-border bg-cockpit-surface-muted/35 p-4"
-                >
-                  <h3 className="font-semibold text-cockpit-text">
-                    {toSnapshotTypeLabel(snapshotType)}
-                  </h3>
-                  <div className="mt-3 flex flex-col gap-4">
-                    {snapshots.map((snapshot) => (
-                      <div key={snapshot.id}>
-                        <p className="mb-3 text-xs text-cockpit-text-muted">
-                          캡처 {snapshot.capturedAt}
-                        </p>
-                        <SnapshotValue value={snapshot.data} />
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              ),
-            )}
+          <div className="mt-4 overflow-x-auto rounded-card border border-cockpit-border">
+            <table
+              aria-label="판단 당시와 현재 데이터 비교"
+              className="w-full min-w-[42rem] border-collapse text-left text-sm"
+            >
+              <thead className="bg-cockpit-surface-muted/70 text-xs text-cockpit-text-muted">
+                <tr>
+                  <th scope="col" className="px-4 py-3 font-semibold">
+                    데이터
+                  </th>
+                  <th scope="col" className="px-4 py-3 font-semibold">
+                    지표
+                  </th>
+                  <th scope="col" className="px-4 py-3 font-semibold">
+                    당시 값
+                  </th>
+                  <th scope="col" className="px-4 py-3 font-semibold">
+                    현재 값
+                  </th>
+                  <th scope="col" className="px-4 py-3 font-semibold">
+                    캡처 시각
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-cockpit-border">
+                {Object.entries(groupedSnapshots).flatMap(
+                  ([snapshotType, snapshots]) =>
+                    snapshots.flatMap((snapshot) => {
+                      const entries = Object.entries(snapshot.data)
+                      const rows: Array<[string, unknown]> =
+                        entries.length > 0 ? entries : [['', null]]
+
+                      return rows.map(([key, value]) => (
+                        <tr key={`${snapshot.id}-${key || 'empty'}`}>
+                          <th
+                            scope="row"
+                            className="px-4 py-3 font-semibold text-cockpit-text"
+                          >
+                            {toSnapshotTypeLabel(snapshotType)}
+                          </th>
+                          <td className="px-4 py-3 text-cockpit-text-muted">
+                            {(snapshotKeyLabels[key] ?? key) || '기록 값'}
+                          </td>
+                          <td className="px-4 py-3 text-cockpit-text">
+                            <SnapshotValue value={value} />
+                          </td>
+                          <td className="px-4 py-3 text-cockpit-text">
+                            <CurrentSnapshotValue
+                              snapshotType={snapshotType}
+                              snapshotKey={key}
+                              currentPrice={currentPrice}
+                              currency={priceSeriesQuery.data?.currency ?? null}
+                            />
+                          </td>
+                          <td className="px-4 py-3 text-cockpit-text-muted">
+                            {snapshot.capturedAt}
+                          </td>
+                        </tr>
+                      ))
+                    }),
+                )}
+              </tbody>
+            </table>
           </div>
         ) : (
           <EmptyState title="저장된 당시 데이터가 없습니다." />
@@ -426,23 +614,62 @@ export function DecisionDetail({ detail }: { detail: DecisionLogDetail }) {
       </Card>
 
       <Card
-        aria-labelledby="decision-next-phase-heading"
-        className="border-dashed border-cockpit-border bg-cockpit-surface/35"
+        aria-labelledby="decision-timeline-heading"
+        className="border-cockpit-border bg-cockpit-surface/70"
       >
         <h2
-          id="decision-next-phase-heading"
-          className="text-lg font-semibold text-cockpit-text"
+          id="decision-timeline-heading"
+          className="text-xl font-semibold text-cockpit-text"
         >
-          2차 기능
+          변화 타임라인
         </h2>
-        <ul className="mt-3 grid gap-3 text-sm text-cockpit-text-muted sm:grid-cols-3">
-          <li className="rounded-card border border-cockpit-border p-3">
-            이후 변화 타임라인
-          </li>
-          <li className="rounded-card border border-cockpit-border p-3">
-            변경 이력
-          </li>
-        </ul>
+        <ol
+          aria-label="판단 변화 타임라인"
+          className="mt-4 flex flex-col gap-3"
+        >
+          {timelineEvents.map((event) => (
+            <li
+              key={event.id}
+              className="grid gap-1 rounded-card border border-cockpit-border bg-cockpit-surface-muted/35 p-4 sm:grid-cols-[10rem_1fr]"
+            >
+              <time className="text-xs font-medium text-cockpit-text-muted">
+                {event.occurredAt}
+              </time>
+              <div>
+                <p className="font-semibold text-cockpit-text">{event.label}</p>
+                {event.description ? (
+                  <p className="mt-1 text-sm text-cockpit-text-muted">
+                    {event.description}
+                  </p>
+                ) : null}
+              </div>
+            </li>
+          ))}
+        </ol>
+      </Card>
+
+      <Card
+        aria-labelledby="decision-version-heading"
+        className="border-cockpit-border bg-cockpit-surface/70"
+      >
+        <h2
+          id="decision-version-heading"
+          className="text-xl font-semibold text-cockpit-text"
+        >
+          버전 이력
+        </h2>
+        {detail.supersededById ? (
+          <Link
+            to={`/decision-log/${encodeURIComponent(detail.supersededById)}`}
+            className="mt-4 inline-flex min-h-10 items-center rounded-control border border-cockpit-accent bg-cockpit-accent/10 px-4 py-2 text-sm font-semibold text-cockpit-accent hover:bg-cockpit-accent/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cockpit-accent"
+          >
+            이 판단을 대체한 판단 보기
+          </Link>
+        ) : (
+          <p className="mt-3 text-sm text-cockpit-text-muted">
+            이 판단을 대체한 후속 판단이 없습니다.
+          </p>
+        )}
       </Card>
     </div>
   )
