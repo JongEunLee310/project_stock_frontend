@@ -149,17 +149,18 @@ function renderRoute(path = '/decision-log') {
 }
 
 describe('DecisionLogPage shell', () => {
-  it('renders the shell with overview and list hook data', async () => {
+  it('renders the shell with summary cards and the decision table', async () => {
     renderRoute()
 
     expect(
       await screen.findByRole('heading', { name: '판단 기록' }),
     ).toBeVisible()
+    expect(screen.getByLabelText('전체 기록 요약')).toHaveTextContent('1')
     expect(
-      screen.getByRole('heading', { name: '판단 기록 개요' }),
+      screen.getByRole('heading', { name: '판단 기록 목록' }),
     ).toBeVisible()
-    expect(screen.getByText(/총 1건/)).toBeVisible()
-    expect(screen.getByText(/1개 기록을 불러왔습니다/)).toBeVisible()
+    expect(screen.getByRole('table', { name: '판단 기록' })).toBeVisible()
+    expect(screen.getByText('NVIDIA')).toBeVisible()
     expect(screen.getByRole('heading', { name: '판단 작성' })).toBeVisible()
   })
 
@@ -173,12 +174,14 @@ describe('DecisionLogPage shell', () => {
     expect(container.querySelectorAll('.animate-pulse').length).toBeGreaterThan(
       0,
     )
-    expect(
-      screen.queryByRole('heading', { name: '판단 기록 개요' }),
-    ).not.toBeInTheDocument()
+    expect(screen.getByLabelText('판단 기록 요약')).toHaveAttribute(
+      'aria-busy',
+      'true',
+    )
+    expect(screen.getByRole('table', { name: '판단 기록' })).toBeVisible()
   })
 
-  it('renders error state and retries both shell queries', async () => {
+  it('renders an isolated overview error and retries its query', async () => {
     overviewState = {
       ...overviewState,
       data: undefined,
@@ -188,11 +191,12 @@ describe('DecisionLogPage shell', () => {
     renderRoute()
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      '판단 기록을 불러오지 못했습니다',
+      '판단 기록 요약을 불러오지 못했습니다',
     )
+    expect(screen.getByRole('table', { name: '판단 기록' })).toBeVisible()
     fireEvent.click(screen.getByRole('button', { name: '재시도' }))
     expect(refetchOverview).toHaveBeenCalledOnce()
-    expect(refetchDecisionLogs).toHaveBeenCalledOnce()
+    expect(refetchDecisionLogs).not.toHaveBeenCalled()
   })
 
   it('renders empty state when the list has no records', async () => {
@@ -202,10 +206,11 @@ describe('DecisionLogPage shell', () => {
     }
     renderRoute()
 
-    expect(await screen.findByText('기록된 판단이 없습니다')).toBeVisible()
+    expect(await screen.findByText('기록된 판단이 없습니다.')).toBeVisible()
     expect(
-      screen.queryByRole('heading', { name: '판단 기록 목록' }),
-    ).not.toBeInTheDocument()
+      screen.getByRole('heading', { name: '판단 기록 목록' }),
+    ).toBeVisible()
+    expect(screen.getByLabelText('전체 기록 요약')).toBeVisible()
   })
 })
 
