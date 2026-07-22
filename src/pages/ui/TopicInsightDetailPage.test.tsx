@@ -49,7 +49,14 @@ const detail: NewsTopicDetailView = {
   scores: [
     { id: 'impact', label: '종합 영향도', valuePercent: 90, tone: 'danger' },
   ],
-  affectedSymbols: [],
+  affectedSymbols: [
+    {
+      symbol: '005930',
+      exposurePercent: 82,
+      direction: { label: '긍정', tone: 'success' },
+      relationship: { label: '직접 영향', tone: 'info' },
+    },
+  ],
   insight: {
     summary: '페이지 요약',
     whyItMatters: '페이지 중요성',
@@ -274,7 +281,7 @@ function renderPage() {
 describe('TopicInsightDetailPage', () => {
   beforeEach(() => mockQueries())
 
-  it('composes live panels and planned phase panels from the route topic id', async () => {
+  it('composes live panels and topic actions from the route topic id', async () => {
     renderPage()
     await screen.findByTestId('topic-keyword-cytoscape')
 
@@ -306,8 +313,17 @@ describe('TopicInsightDetailPage', () => {
     ).toBeVisible()
     expect(screen.getByText('수요 증가')).toBeVisible()
     expect(screen.queryByLabelText('왜 이런 인사이트 준비 중')).toBeNull()
-    expect(screen.getByLabelText('액션 체크리스트 준비 중')).toBeVisible()
-    expect(screen.getByText('3차 · #270')).toBeVisible()
+    expect(
+      screen.getByRole('heading', { name: '액션 체크리스트' }),
+    ).toBeVisible()
+    expect(screen.queryByLabelText('액션 체크리스트 준비 중')).toBeNull()
+    expect(
+      screen.getByText('토픽 7의 근거 확인 후 실행할 다음 행동을 점검합니다.'),
+    ).toBeVisible()
+    expect(
+      screen.getByText('첫 영향 종목 005930의 리서치를 확인합니다.'),
+    ).toBeVisible()
+    expect(screen.getByRole('button', { name: '리서치 보기' })).toBeEnabled()
     expect(useNewsTopicDetailQuery).toHaveBeenCalledWith('7')
     expect(useNewsTopicTrendQuery).toHaveBeenCalledWith('7')
     expect(useNewsTopicEvidenceQuery).toHaveBeenCalledWith('7')
@@ -334,6 +350,13 @@ describe('TopicInsightDetailPage', () => {
     expect(screen.getByText('반대 관점을 불러오지 못했습니다')).toBeVisible()
     expect(screen.getByText(/언급 12건, 감성 70%/)).toBeInTheDocument()
     expect(screen.getByText('페이지 근거 제목')).toBeVisible()
+    expect(
+      screen.getByRole('heading', { name: '액션 체크리스트' }),
+    ).toBeVisible()
+    expect(screen.getByRole('button', { name: '리서치 보기' })).toBeDisabled()
+    expect(
+      screen.getByRole('button', { name: '포트폴리오 보기' }),
+    ).toBeEnabled()
   })
 
   it('keeps the other panels visible when trend or evidence fails', async () => {
@@ -410,6 +433,8 @@ describe('TopicInsightDetailPage', () => {
     expect(screen.getByText('확장 근거를 불러오지 못했습니다')).toBeVisible()
     expect(screen.getByText('수요 회복이 지연될 수 있습니다.')).toBeVisible()
     expect(screen.getByText('페이지 토픽 제목')).toBeVisible()
-    expect(screen.getByText('3차 · #270')).toBeVisible()
+    expect(
+      screen.getByRole('heading', { name: '액션 체크리스트' }),
+    ).toBeVisible()
   })
 })
