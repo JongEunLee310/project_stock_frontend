@@ -1,4 +1,8 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import {
+  keepPreviousData,
+  QueryClient,
+  QueryClientProvider,
+} from '@tanstack/react-query'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { createElement, type ReactNode } from 'react'
 
@@ -23,6 +27,7 @@ import type {
   NewsTopicTrendDto,
 } from './dto'
 import {
+  newsInsightsRefetchIntervals,
   useNewsAgentRunsQuery,
   useNewsCalendarQuery,
   useNewsEventDetailQuery,
@@ -42,11 +47,11 @@ import {
 
 vi.mock('@/shared/api/client', () => ({ apiGet: vi.fn() }))
 
-function createWrapper() {
-  const queryClient = new QueryClient({
+function createWrapper(
+  queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
-  })
-
+  }),
+) {
   return function Wrapper({ children }: { children: ReactNode }) {
     return createElement(QueryClientProvider, { client: queryClient }, children)
   }
@@ -285,6 +290,73 @@ function createEvent(id: number): NewsInsightEventDto {
 describe('news insights queries', () => {
   beforeEach(() => {
     vi.mocked(apiGet).mockReset()
+  })
+
+  it('uses differentiated centralized polling intervals for all 15 queries', () => {
+    expect(newsInsightsRefetchIntervals).toEqual({
+      overview: 60_000,
+      calendar: 1_800_000,
+      agentRuns: 60_000,
+      investorFlows: 1_800_000,
+      fundFlowOutlook: 1_800_000,
+      topicScenarios: 300_000,
+      events: 45_000,
+      eventDetail: 300_000,
+      topicMap: 300_000,
+      topicDetail: 300_000,
+      topicSymbols: 300_000,
+      topicGraph: 300_000,
+      topicTrend: 300_000,
+      topicEvidence: 300_000,
+      topicExplanation: 300_000,
+    })
+  })
+
+  it('configures polling and previous-data placeholders on regular and infinite queries', () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+
+    vi.mocked(apiGet).mockImplementation((path) => {
+      if (path === '/news-insights/overview') {
+        return Promise.resolve({ data: overviewDto })
+      }
+      return Promise.resolve({
+        data: [createEvent(1)],
+        meta: { limit: 20, has_more: false, next_cursor: null },
+      })
+    })
+
+    const overview = renderHook(() => useNewsOverviewQuery(), {
+      wrapper: createWrapper(queryClient),
+    })
+    const events = renderHook(() => useNewsEventsQuery(), {
+      wrapper: createWrapper(queryClient),
+    })
+
+    const overviewOptions = queryClient.getQueryCache().find({
+      queryKey: ['news-insights', 'overview'],
+    })?.options as
+      | { refetchInterval?: unknown; placeholderData?: unknown }
+      | undefined
+    const eventsOptions = queryClient.getQueryCache().find({
+      queryKey: ['news-insights', 'events'],
+    })?.options as
+      | { refetchInterval?: unknown; placeholderData?: unknown }
+      | undefined
+
+    expect(overviewOptions?.refetchInterval).toBe(
+      newsInsightsRefetchIntervals.overview,
+    )
+    expect(overviewOptions?.placeholderData).toBe(keepPreviousData)
+    expect(eventsOptions?.refetchInterval).toBe(
+      newsInsightsRefetchIntervals.events,
+    )
+    expect(eventsOptions?.placeholderData).toBe(keepPreviousData)
+
+    overview.unmount()
+    events.unmount()
+    queryClient.clear()
   })
 
   it('fetches calendar data and preserves empty data and request errors', async () => {

@@ -2,13 +2,21 @@ import { useState } from 'react'
 import { FiX } from 'react-icons/fi'
 
 import type { NewsOverviewView } from '@/features/news-insights'
-import { Badge, Card, EmptyState, ErrorState, Skeleton } from '@/shared/ui'
+import {
+  Badge,
+  Card,
+  EmptyState,
+  ErrorState,
+  PanelFreshness,
+  Skeleton,
+} from '@/shared/ui'
 
 interface AgentBriefingProps {
   data?: NewsOverviewView['briefing']
   isLoading: boolean
   isError: boolean
   onRetry: () => void
+  updatedAt?: number
 }
 
 function BriefingBody({
@@ -76,7 +84,7 @@ function BriefingBody({
 }
 
 export function AgentBriefing(props: AgentBriefingProps) {
-  const { data } = props
+  const { data, updatedAt } = props
   const [open, setOpen] = useState(false)
 
   return (
@@ -96,6 +104,9 @@ export function AgentBriefing(props: AgentBriefingProps) {
                     생성 {data.generatedAt}
                   </span>
                 ) : null}
+              </div>
+              <div className="mt-2">
+                <PanelFreshness updatedAt={updatedAt} />
               </div>
               <h2
                 id="agent-briefing-title"

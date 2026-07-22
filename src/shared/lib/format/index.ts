@@ -4,6 +4,7 @@ export {
   formatKstDateTimeCompact,
   formatKstTime,
   formatLocalDateTime,
+  formatRelativeTime,
 } from './datetime'
 export { formatMoney, formatPercent, parseDecimal } from './decimal'
 export {

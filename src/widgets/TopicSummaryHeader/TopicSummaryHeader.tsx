@@ -12,6 +12,7 @@ import {
   Card,
   EmptyState,
   ErrorState,
+  PanelFreshness,
   Skeleton,
 } from '@/shared/ui'
 
@@ -20,6 +21,7 @@ interface TopicSummaryHeaderProps {
   isLoading: boolean
   isError: boolean
   onRetry: () => void
+  updatedAt?: number
 }
 
 function TopicSummaryLoading() {
@@ -97,6 +99,7 @@ export function TopicSummaryHeader({
   isLoading,
   isError,
   onRetry,
+  updatedAt,
 }: TopicSummaryHeaderProps) {
   const navigate = useNavigate()
 
@@ -157,36 +160,39 @@ export function TopicSummaryHeader({
             </div>
           </div>
 
-          <div className="flex flex-wrap justify-end gap-2">
-            <Button
-              variant="secondary"
-              disabled={!firstAffectedSymbol}
-              onClick={() => {
-                if (!firstAffectedSymbol) return
-                void navigate(
-                  generatePath(appRoutePaths.researchDetail, {
-                    symbol: firstAffectedSymbol,
-                  }),
-                )
-              }}
-            >
-              관련 종목 보기
-            </Button>
-            <Button variant="secondary" disabled title="준비 중">
-              포트폴리오 영향 보기
-            </Button>
-            <Button
-              variant="primary"
-              onClick={() => void navigate(appRoutePaths.alerts)}
-            >
-              + 알림 생성
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={() => void navigate(appRoutePaths.decisionLog)}
-            >
-              판단 기록 연결
-            </Button>
+          <div className="flex flex-col items-end gap-3">
+            <PanelFreshness updatedAt={updatedAt} />
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button
+                variant="secondary"
+                disabled={!firstAffectedSymbol}
+                onClick={() => {
+                  if (!firstAffectedSymbol) return
+                  void navigate(
+                    generatePath(appRoutePaths.researchDetail, {
+                      symbol: firstAffectedSymbol,
+                    }),
+                  )
+                }}
+              >
+                관련 종목 보기
+              </Button>
+              <Button variant="secondary" disabled title="준비 중">
+                포트폴리오 영향 보기
+              </Button>
+              <Button
+                variant="primary"
+                onClick={() => void navigate(appRoutePaths.alerts)}
+              >
+                + 알림 생성
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => void navigate(appRoutePaths.decisionLog)}
+              >
+                판단 기록 연결
+              </Button>
+            </div>
           </div>
         </div>
 

@@ -7,13 +7,20 @@ import {
 } from 'react-icons/fi'
 
 import type { NewsOverviewView } from '@/features/news-insights'
-import { Card, EmptyState, ErrorState, Skeleton } from '@/shared/ui'
+import {
+  Card,
+  EmptyState,
+  ErrorState,
+  PanelFreshness,
+  Skeleton,
+} from '@/shared/ui'
 
 interface InsightSummaryCardsProps {
   data?: NewsOverviewView
   isLoading: boolean
   isError: boolean
   onRetry: () => void
+  updatedAt?: number
 }
 
 const metricPresentations: Record<
@@ -67,6 +74,7 @@ export function InsightSummaryCards({
   isLoading,
   isError,
   onRetry,
+  updatedAt,
 }: InsightSummaryCardsProps) {
   return (
     <section aria-labelledby="insight-summary-title">
@@ -82,9 +90,14 @@ export function InsightSummaryCards({
             오늘의 인사이트
           </h2>
         </div>
-        {data ? (
-          <span className="text-xs text-app-text-muted">기준 {data.asOf}</span>
-        ) : null}
+        <div className="flex flex-col items-end gap-1">
+          <PanelFreshness updatedAt={updatedAt} />
+          {data ? (
+            <span className="text-xs text-app-text-muted">
+              기준 {data.asOf}
+            </span>
+          ) : null}
+        </div>
       </div>
 
       {isLoading ? <SummaryLoadingState /> : null}

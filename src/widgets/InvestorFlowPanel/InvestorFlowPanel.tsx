@@ -4,7 +4,14 @@ import {
   useNewsInvestorFlowsQuery,
 } from '@/features/news-insights'
 import { formatMoney, formatPercent, parseDecimal } from '@/shared/lib/format'
-import { Badge, Card, EmptyState, ErrorState, Skeleton } from '@/shared/ui'
+import {
+  Badge,
+  Card,
+  EmptyState,
+  ErrorState,
+  PanelFreshness,
+  Skeleton,
+} from '@/shared/ui'
 
 interface InvestorFlowPanelProps {
   market: string
@@ -113,9 +120,12 @@ export function InvestorFlowPanel({
             {context}
           </p>
         </div>
-        <Badge tone="info">
-          {market} · {window}
-        </Badge>
+        <div className="flex flex-col items-end gap-2">
+          <Badge tone="info">
+            {market} · {window}
+          </Badge>
+          <PanelFreshness updatedAt={flowsQuery.dataUpdatedAt} />
+        </div>
       </div>
 
       {flowsQuery.isLoading ? <InvestorFlowLoading /> : null}

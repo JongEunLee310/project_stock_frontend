@@ -5,6 +5,7 @@ import { appRoutePaths } from '@/shared/config/navigation'
 import {
   useNewsEventsQuery,
   useNewsOverviewQuery,
+  useNewsTopicMapQuery,
 } from '@/features/news-insights'
 import { AgentBriefing } from '@/widgets/AgentBriefing'
 import { AgentPipelinePanel } from '@/widgets/AgentPipelinePanel'
@@ -19,6 +20,7 @@ export function NewsInsightsOverviewPage() {
   const navigate = useNavigate()
   const overviewQuery = useNewsOverviewQuery()
   const eventsQuery = useNewsEventsQuery()
+  const topicMapQuery = useNewsTopicMapQuery()
   const events = eventsQuery.data?.flatMap((page) => page.items) ?? []
 
   return (
@@ -58,6 +60,7 @@ export function NewsInsightsOverviewPage() {
           isLoading={overviewQuery.isLoading}
           isError={overviewQuery.isError}
           onRetry={() => void overviewQuery.refetch()}
+          updatedAt={overviewQuery.dataUpdatedAt}
         />
 
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1.9fr)_minmax(22rem,1fr)]">
@@ -70,8 +73,15 @@ export function NewsInsightsOverviewPage() {
             hasNextPage={eventsQuery.hasNextPage}
             onLoadMore={() => void eventsQuery.fetchNextPage()}
             onRetry={() => void eventsQuery.refetch()}
+            updatedAt={eventsQuery.dataUpdatedAt}
           />
-          <TopicMap />
+          <TopicMap
+            data={topicMapQuery.data}
+            isLoading={topicMapQuery.isLoading}
+            isError={topicMapQuery.isError}
+            onRetry={() => void topicMapQuery.refetch()}
+            updatedAt={topicMapQuery.dataUpdatedAt}
+          />
         </div>
 
         <InvestorFlowPanel
@@ -94,6 +104,7 @@ export function NewsInsightsOverviewPage() {
         isLoading={overviewQuery.isLoading}
         isError={overviewQuery.isError}
         onRetry={() => void overviewQuery.refetch()}
+        updatedAt={overviewQuery.dataUpdatedAt}
       />
     </>
   )

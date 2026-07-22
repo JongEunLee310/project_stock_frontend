@@ -1,8 +1,17 @@
 import { render, screen } from '@testing-library/react'
 
-import type { NewsTopicExplanationView } from '@/features/news-insights'
+import {
+  type NewsTopicExplanationView,
+  useNewsTopicExplanationQuery,
+} from '@/features/news-insights'
 
 import { InsightExplanationPanel } from './InsightExplanationPanel'
+
+vi.mock('@/features/news-insights', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@/features/news-insights')>()
+  return { ...actual, useNewsTopicExplanationQuery: vi.fn() }
+})
 
 const explanation: NewsTopicExplanationView = {
   factors: [
@@ -27,15 +36,18 @@ const explanation: NewsTopicExplanationView = {
 }
 
 describe('InsightExplanationPanel', () => {
+  beforeEach(() => {
+    vi.mocked(useNewsTopicExplanationQuery).mockReturnValue({
+      data: explanation,
+      isLoading: false,
+      isError: false,
+      dataUpdatedAt: Date.now() - 5 * 60 * 1000,
+      refetch: vi.fn(),
+    } as unknown as ReturnType<typeof useNewsTopicExplanationQuery>)
+  })
+
   it('renders backend ratios, metadata, and an explicit AI confidence badge', () => {
-    render(
-      <InsightExplanationPanel
-        data={explanation}
-        isLoading={false}
-        isError={false}
-        onRetry={vi.fn()}
-      />,
-    )
+    render(<InsightExplanationPanel topicId="7" />)
 
     expect(
       screen.getByRole('heading', { name: '왜 이런 인사이트가 나왔나' }),
@@ -50,12 +62,20 @@ describe('InsightExplanationPanel', () => {
     expect(screen.getByText('수집 대상의 86% 포함')).toBeVisible()
     expect(screen.getByText('해외 비공개 주문')).toBeVisible()
     expect(screen.getByText('단기 표본 중심')).toBeVisible()
+    expect(screen.getByLabelText('데이터 갱신 5분 전')).toBeVisible()
+    expect(useNewsTopicExplanationQuery).toHaveBeenCalledWith('7')
   })
 
   it('isolates errors inside the panel', () => {
-    render(
-      <InsightExplanationPanel isLoading={false} isError onRetry={vi.fn()} />,
-    )
+    vi.mocked(useNewsTopicExplanationQuery).mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: true,
+      dataUpdatedAt: 0,
+      refetch: vi.fn(),
+    } as unknown as ReturnType<typeof useNewsTopicExplanationQuery>)
+
+    render(<InsightExplanationPanel topicId="7" />)
 
     expect(
       screen.getByText('인사이트 설명을 불러오지 못했습니다'),
@@ -64,14 +84,15 @@ describe('InsightExplanationPanel', () => {
   })
 
   it('renders an explicit empty state without inventing factors', () => {
-    render(
-      <InsightExplanationPanel
-        data={{ ...explanation, factors: [] }}
-        isLoading={false}
-        isError={false}
-        onRetry={vi.fn()}
-      />,
-    )
+    vi.mocked(useNewsTopicExplanationQuery).mockReturnValue({
+      data: { ...explanation, factors: [] },
+      isLoading: false,
+      isError: false,
+      dataUpdatedAt: Date.now(),
+      refetch: vi.fn(),
+    } as unknown as ReturnType<typeof useNewsTopicExplanationQuery>)
+
+    render(<InsightExplanationPanel topicId="7" />)
 
     expect(screen.getByText('표시할 기여 요인이 없습니다')).toBeVisible()
     expect(screen.queryByText('수요 증가')).not.toBeInTheDocument()

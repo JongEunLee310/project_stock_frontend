@@ -1,4 +1,8 @@
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
+import {
+  keepPreviousData,
+  useInfiniteQuery,
+  useQuery,
+} from '@tanstack/react-query'
 
 import { apiGet } from '@/shared/api/client'
 import type { ApiCursorMeta } from '@/shared/api/envelope'
@@ -62,6 +66,24 @@ const newsEventsPageSize = 20
 const topicMapStaleTimeMs = 5 * 60 * 1000
 const topicEvidencePageSize = 20
 
+export const newsInsightsRefetchIntervals = {
+  overview: 60 * 1000,
+  calendar: 30 * 60 * 1000,
+  agentRuns: 60 * 1000,
+  investorFlows: 30 * 60 * 1000,
+  fundFlowOutlook: 30 * 60 * 1000,
+  topicScenarios: 5 * 60 * 1000,
+  events: 45 * 1000,
+  eventDetail: 5 * 60 * 1000,
+  topicMap: 5 * 60 * 1000,
+  topicDetail: 5 * 60 * 1000,
+  topicSymbols: 5 * 60 * 1000,
+  topicGraph: 5 * 60 * 1000,
+  topicTrend: 5 * 60 * 1000,
+  topicEvidence: 5 * 60 * 1000,
+  topicExplanation: 5 * 60 * 1000,
+} as const
+
 export interface NewsEventsPage {
   items: NewsEventView[]
   pageInfo: CursorPageInfo
@@ -81,6 +103,8 @@ export function useNewsOverviewQuery() {
       )
       return adaptNewsOverview(data)
     },
+    placeholderData: keepPreviousData,
+    refetchInterval: newsInsightsRefetchIntervals.overview,
   })
 }
 
@@ -108,6 +132,8 @@ export function useNewsCalendarQuery({
       )
       return adaptNewsCalendar(data)
     },
+    placeholderData: keepPreviousData,
+    refetchInterval: newsInsightsRefetchIntervals.calendar,
   })
 }
 
@@ -120,6 +146,8 @@ export function useNewsAgentRunsQuery() {
       )
       return adaptNewsAgentRuns(data)
     },
+    placeholderData: keepPreviousData,
+    refetchInterval: newsInsightsRefetchIntervals.agentRuns,
   })
 }
 
@@ -145,6 +173,8 @@ export function useNewsInvestorFlowsQuery({
       )
       return adaptNewsInvestorFlows(data)
     },
+    placeholderData: keepPreviousData,
+    refetchInterval: newsInsightsRefetchIntervals.investorFlows,
   })
 }
 
@@ -157,6 +187,8 @@ export function useNewsFundFlowOutlookQuery() {
       )
       return adaptNewsFundFlowOutlook(data)
     },
+    placeholderData: keepPreviousData,
+    refetchInterval: newsInsightsRefetchIntervals.fundFlowOutlook,
   })
 }
 
@@ -170,6 +202,8 @@ export function useNewsTopicScenariosQuery(topicId: string) {
       return adaptNewsTopicScenarios(data)
     },
     enabled: topicId.length > 0,
+    placeholderData: keepPreviousData,
+    refetchInterval: newsInsightsRefetchIntervals.topicScenarios,
   })
 }
 
@@ -202,6 +236,8 @@ export function useNewsEventsQuery() {
         ? (lastPage.pageInfo.nextCursor ?? undefined)
         : undefined,
     select: (data) => data.pages,
+    placeholderData: keepPreviousData,
+    refetchInterval: newsInsightsRefetchIntervals.events,
   })
 }
 
@@ -215,6 +251,8 @@ export function useNewsEventDetailQuery(eventId: string) {
       return adaptNewsEventDetail(data)
     },
     enabled: eventId.length > 0,
+    placeholderData: keepPreviousData,
+    refetchInterval: newsInsightsRefetchIntervals.eventDetail,
   })
 }
 
@@ -228,6 +266,8 @@ export function useNewsTopicMapQuery() {
       return adaptNewsTopicMap(data)
     },
     staleTime: topicMapStaleTimeMs,
+    placeholderData: keepPreviousData,
+    refetchInterval: newsInsightsRefetchIntervals.topicMap,
   })
 }
 
@@ -241,6 +281,8 @@ export function useNewsTopicDetailQuery(topicId: string) {
       return adaptNewsTopicDetail(data)
     },
     enabled: topicId.length > 0,
+    placeholderData: keepPreviousData,
+    refetchInterval: newsInsightsRefetchIntervals.topicDetail,
   })
 }
 
@@ -254,6 +296,8 @@ export function useNewsTopicSymbolsQuery(topicId: string) {
       return adaptNewsTopicSymbols(data)
     },
     enabled: topicId.length > 0,
+    placeholderData: keepPreviousData,
+    refetchInterval: newsInsightsRefetchIntervals.topicSymbols,
   })
 }
 
@@ -267,6 +311,8 @@ export function useNewsTopicGraphQuery(topicId: string) {
       return adaptNewsTopicGraph(data)
     },
     enabled: topicId.length > 0,
+    placeholderData: keepPreviousData,
+    refetchInterval: newsInsightsRefetchIntervals.topicGraph,
   })
 }
 
@@ -280,6 +326,8 @@ export function useNewsTopicTrendQuery(topicId: string) {
       return adaptNewsTopicTrend(data)
     },
     enabled: topicId.length > 0,
+    placeholderData: keepPreviousData,
+    refetchInterval: newsInsightsRefetchIntervals.topicTrend,
   })
 }
 
@@ -315,6 +363,8 @@ export function useNewsTopicEvidenceQuery(topicId: string) {
         : undefined,
     select: (data) => data.pages,
     enabled: topicId.length > 0,
+    placeholderData: keepPreviousData,
+    refetchInterval: newsInsightsRefetchIntervals.topicEvidence,
   })
 }
 
@@ -328,5 +378,7 @@ export function useNewsTopicExplanationQuery(topicId: string) {
       return adaptNewsTopicExplanation(data)
     },
     enabled: topicId.length > 0,
+    placeholderData: keepPreviousData,
+    refetchInterval: newsInsightsRefetchIntervals.topicExplanation,
   })
 }

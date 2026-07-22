@@ -5,6 +5,7 @@ import {
   formatKstDateTime,
   formatKstTime,
   formatLocalDateTime,
+  formatRelativeTime,
 } from './datetime'
 
 describe('formatLocalDateTime', () => {
@@ -16,6 +17,31 @@ describe('formatLocalDateTime', () => {
 
   it('파싱할 수 없는 문자열은 원문을 유지한다', () => {
     expect(formatLocalDateTime('수집 시각 미상')).toBe('수집 시각 미상')
+  })
+})
+
+describe('formatRelativeTime', () => {
+  const now = Date.parse('2026-07-22T12:00:00Z')
+
+  it.each([
+    [now, '방금 전'],
+    [now - 59_999, '방금 전'],
+    [now - 60_000, '1분 전'],
+    [now - 59 * 60_000, '59분 전'],
+    [now - 60 * 60_000, '1시간 전'],
+    [now - 23 * 60 * 60_000, '23시간 전'],
+    [now - 24 * 60 * 60_000, '1일 전'],
+  ])('%s를 %s으로 표시한다', (updatedAt, expected) => {
+    expect(formatRelativeTime(updatedAt, now)).toBe(expected)
+  })
+
+  it('미래 시각은 방금 전으로 제한한다', () => {
+    expect(formatRelativeTime(now + 60_000, now)).toBe('방금 전')
+  })
+
+  it('유효하지 않은 숫자는 안전한 대체 문구를 반환한다', () => {
+    expect(formatRelativeTime(Number.NaN, now)).toBe('알 수 없음')
+    expect(formatRelativeTime(now, Number.NaN)).toBe('알 수 없음')
   })
 })
 

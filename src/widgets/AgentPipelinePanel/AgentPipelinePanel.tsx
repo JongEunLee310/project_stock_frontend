@@ -2,7 +2,14 @@ import {
   type NewsAgentRunsView,
   useNewsAgentRunsQuery,
 } from '@/features/news-insights'
-import { Badge, Card, EmptyState, ErrorState, Skeleton } from '@/shared/ui'
+import {
+  Badge,
+  Card,
+  EmptyState,
+  ErrorState,
+  PanelFreshness,
+  Skeleton,
+} from '@/shared/ui'
 
 const aggregateDefinitions = [
   { key: 'processedDocuments', label: '처리 문서' },
@@ -106,11 +113,14 @@ export function AgentPipelinePanel() {
             검증 가능한 처리 단계와 집계 수치만 표시합니다.
           </p>
         </div>
-        {runsQuery.data ? (
-          <Badge tone={runsQuery.data.hasDelay ? 'warning' : 'success'}>
-            {runsQuery.data.hasDelay ? '전체 지연 있음' : '전체 지연 없음'}
-          </Badge>
-        ) : null}
+        <div className="flex flex-col items-end gap-2">
+          {runsQuery.data ? (
+            <Badge tone={runsQuery.data.hasDelay ? 'warning' : 'success'}>
+              {runsQuery.data.hasDelay ? '전체 지연 있음' : '전체 지연 없음'}
+            </Badge>
+          ) : null}
+          <PanelFreshness updatedAt={runsQuery.dataUpdatedAt} />
+        </div>
       </div>
 
       {runsQuery.isLoading ? <PipelineLoading /> : null}

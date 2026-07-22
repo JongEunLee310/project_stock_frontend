@@ -2,7 +2,14 @@ import {
   type FundFlowOutlookItemView,
   useNewsFundFlowOutlookQuery,
 } from '@/features/news-insights'
-import { Badge, Card, EmptyState, ErrorState, Skeleton } from '@/shared/ui'
+import {
+  Badge,
+  Card,
+  EmptyState,
+  ErrorState,
+  PanelFreshness,
+  Skeleton,
+} from '@/shared/ui'
 
 function EvidenceList({ title, items }: { title: string; items: string[] }) {
   return (
@@ -99,9 +106,14 @@ export function FundFlowOutlookPanel() {
             현재 근거에서 읽히는 방향·가능성 수준·범위이며 확정 예측이 아닙니다.
           </p>
         </div>
-        {outlookQuery.data ? (
-          <Badge tone="accent">분석 {outlookQuery.data.analysisVersion}</Badge>
-        ) : null}
+        <div className="flex flex-col items-end gap-2">
+          {outlookQuery.data ? (
+            <Badge tone="accent">
+              분석 {outlookQuery.data.analysisVersion}
+            </Badge>
+          ) : null}
+          <PanelFreshness updatedAt={outlookQuery.dataUpdatedAt} />
+        </div>
       </div>
 
       {outlookQuery.isLoading ? <OutlookLoading /> : null}

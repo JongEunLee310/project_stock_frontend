@@ -1,5 +1,12 @@
 import type { NewsTopicExplanationView } from '@/features/news-insights'
-import { Badge, Card, EmptyState, ErrorState, Skeleton } from '@/shared/ui'
+import {
+  Badge,
+  Card,
+  EmptyState,
+  ErrorState,
+  PanelFreshness,
+  Skeleton,
+} from '@/shared/ui'
 
 interface CounterViewPanelProps {
   counterArguments: string[]
@@ -10,6 +17,7 @@ interface CounterViewPanelProps {
   isExplanationError?: boolean
   onRetry?: () => void
   onExplanationRetry?: () => void
+  updatedAt?: number
 }
 
 function AnalysisList({ title, items }: { title: string; items: string[] }) {
@@ -84,6 +92,7 @@ export function CounterViewPanel({
   isExplanationError = false,
   onRetry,
   onExplanationRetry,
+  updatedAt,
 }: CounterViewPanelProps) {
   if (isLoading) {
     return (
@@ -130,11 +139,14 @@ export function CounterViewPanel({
             확인합니다.
           </p>
         </div>
-        {explanation ? (
-          <Badge tone="accent">
-            AI 확장 분석 · 신뢰도 {explanation.meta.confidencePercent}%
-          </Badge>
-        ) : null}
+        <div className="flex flex-col items-end gap-2">
+          <PanelFreshness updatedAt={updatedAt} />
+          {explanation ? (
+            <Badge tone="accent">
+              AI 확장 분석 · 신뢰도 {explanation.meta.confidencePercent}%
+            </Badge>
+          ) : null}
+        </div>
       </div>
 
       <section className="mt-5" aria-labelledby="base-counter-title">

@@ -9,6 +9,7 @@ import {
   Card,
   EmptyState,
   ErrorState,
+  PanelFreshness,
   Skeleton,
   Table,
   type BadgeTone,
@@ -144,7 +145,10 @@ export function TopicSymbolSensitivity({
             노출도는 막대와 수치로, 예상 영향 방향은 별도 배지로 구분합니다.
           </p>
         </div>
-        <Badge tone="info">토픽 영향 종목</Badge>
+        <div className="flex flex-col items-end gap-2">
+          <Badge tone="info">토픽 영향 종목</Badge>
+          <PanelFreshness updatedAt={symbolsQuery.dataUpdatedAt} />
+        </div>
       </div>
 
       {symbolsQuery.isLoading ? <SensitivityLoading /> : null}

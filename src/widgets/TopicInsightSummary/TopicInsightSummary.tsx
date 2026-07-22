@@ -1,11 +1,18 @@
 import type { NewsTopicDetailView } from '@/features/news-insights'
-import { Card, EmptyState, ErrorState, Skeleton } from '@/shared/ui'
+import {
+  Card,
+  EmptyState,
+  ErrorState,
+  PanelFreshness,
+  Skeleton,
+} from '@/shared/ui'
 
 interface TopicInsightSummaryProps {
   data?: NewsTopicDetailView
   isLoading: boolean
   isError: boolean
   onRetry: () => void
+  updatedAt?: number
 }
 
 function InsightList({
@@ -40,6 +47,7 @@ export function TopicInsightSummary({
   isLoading,
   isError,
   onRetry,
+  updatedAt,
 }: TopicInsightSummaryProps) {
   if (isLoading) {
     return (
@@ -70,15 +78,20 @@ export function TopicInsightSummary({
 
   return (
     <Card aria-labelledby="topic-insight-title">
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-app-accent">
-        AI insight
-      </p>
-      <h2
-        id="topic-insight-title"
-        className="mt-1 text-xl font-semibold text-app-text"
-      >
-        인사이트 요약
-      </h2>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-app-accent">
+            AI insight
+          </p>
+          <h2
+            id="topic-insight-title"
+            className="mt-1 text-xl font-semibold text-app-text"
+          >
+            인사이트 요약
+          </h2>
+        </div>
+        <PanelFreshness updatedAt={updatedAt} />
+      </div>
       <div className="mt-4 space-y-5">
         <section>
           <h3 className="text-sm font-semibold text-sky-300">왜 중요한가</h3>

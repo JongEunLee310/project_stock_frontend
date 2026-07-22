@@ -2,10 +2,7 @@ import type { Core, ElementDefinition, EventObjectNode } from 'cytoscape'
 import { useEffect } from 'react'
 import { act, render, screen, waitFor } from '@testing-library/react'
 
-import {
-  type NewsTopicMap,
-  useNewsTopicMapQuery,
-} from '@/features/news-insights'
+import type { NewsTopicMap } from '@/features/news-insights'
 
 import { TopicMap } from './TopicMap'
 
@@ -33,12 +30,6 @@ const core = {
 vi.mock('react-router-dom', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-router-dom')>()
   return { ...actual, useNavigate: () => navigate }
-})
-
-vi.mock('@/features/news-insights', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@/features/news-insights')>()
-  return { ...actual, useNewsTopicMapQuery: vi.fn() }
 })
 
 vi.mock('react-cytoscapejs', () => ({
@@ -100,16 +91,12 @@ const topicMap: NewsTopicMap = {
   ],
 }
 
-function mockQuery(
-  state: Partial<ReturnType<typeof useNewsTopicMapQuery>> = {},
-) {
-  vi.mocked(useNewsTopicMapQuery).mockReturnValue({
-    data: topicMap,
-    isLoading: false,
-    isError: false,
-    refetch: vi.fn(),
-    ...state,
-  } as unknown as ReturnType<typeof useNewsTopicMapQuery>)
+const defaultProps = {
+  data: topicMap,
+  isLoading: false,
+  isError: false,
+  onRetry: vi.fn(),
+  updatedAt: Date.now() - 5 * 60 * 1000,
 }
 
 function tapNode(id: string, type: 'TOPIC' | 'KEYWORD') {
@@ -130,11 +117,11 @@ describe('TopicMap', () => {
     vi.mocked(core.on).mockClear()
     nodeTapHandler = undefined
     isDestroyed = false
-    mockQuery()
+    defaultProps.onRetry.mockReset()
   })
 
   it('passes every backend node and edge to Cytoscape', async () => {
-    render(<TopicMap />)
+    render(<TopicMap {...defaultProps} />)
 
     const graph = await screen.findByTestId('cytoscape')
     expect(graph).toHaveAttribute('data-node-count', '2')
@@ -146,10 +133,11 @@ describe('TopicMap', () => {
     ).toBeVisible()
     expect(screen.getByLabelText('카테고리 범례')).toBeVisible()
     expect(screen.getByText('성장/투자')).toBeVisible()
+    expect(screen.getByLabelText('데이터 갱신 5분 전')).toBeVisible()
   })
 
   it('navigates only TOPIC node taps to the topic detail path', async () => {
-    render(<TopicMap />)
+    render(<TopicMap {...defaultProps} />)
     await waitFor(() => expect(nodeTapHandler).toBeDefined())
 
     act(() => tapNode('keyword:2', 'KEYWORD'))
@@ -160,25 +148,22 @@ describe('TopicMap', () => {
   })
 
   it('shows independent loading, error, and empty panel states', () => {
-    mockQuery({ data: undefined, isLoading: true })
-    const { rerender } = render(<TopicMap />)
+    const { rerender } = render(
+      <TopicMap {...defaultProps} data={undefined} isLoading />,
+    )
     expect(screen.getByLabelText('토픽 맵 불러오는 중')).toBeVisible()
 
-    mockQuery({ data: undefined, isLoading: false, isError: true })
-    rerender(<TopicMap />)
+    rerender(
+      <TopicMap {...defaultProps} data={undefined} isLoading={false} isError />,
+    )
     expect(screen.getByText('토픽 맵을 불러오지 못했습니다')).toBeVisible()
 
-    mockQuery({
-      data: { nodes: [], edges: [] },
-      isLoading: false,
-      isError: false,
-    })
-    rerender(<TopicMap />)
+    rerender(<TopicMap {...defaultProps} data={{ nodes: [], edges: [] }} />)
     expect(screen.getByText('표시할 토픽 관계가 없습니다')).toBeVisible()
   })
 
   it('destroys the Cytoscape instance on unmount', async () => {
-    const { unmount } = render(<TopicMap />)
+    const { unmount } = render(<TopicMap {...defaultProps} />)
     await waitFor(() => expect(nodeTapHandler).toBeDefined())
 
     unmount()

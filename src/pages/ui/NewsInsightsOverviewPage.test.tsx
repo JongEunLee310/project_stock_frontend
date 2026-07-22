@@ -14,6 +14,8 @@ import {
   type NewsFundFlowOutlookView,
   type NewsInvestorFlowsView,
   type NewsOverviewView,
+  type NewsTopicMap,
+  useNewsTopicMapQuery,
 } from '@/features/news-insights'
 
 import { NewsInsightsOverviewPage } from './NewsInsightsOverviewPage'
@@ -41,6 +43,7 @@ vi.mock('@/features/news-insights', async (importOriginal) => {
     useNewsFundFlowOutlookQuery: vi.fn(),
     useNewsInvestorFlowsQuery: vi.fn(),
     useNewsOverviewQuery: vi.fn(),
+    useNewsTopicMapQuery: vi.fn(),
   }
 })
 
@@ -158,6 +161,11 @@ const agentRuns: NewsAgentRunsView = {
   hasDelay: false,
 }
 
+const topicMap: NewsTopicMap = {
+  nodes: [],
+  edges: [],
+}
+
 function mockQueries({
   overviewError = false,
   eventsError = false,
@@ -167,11 +175,14 @@ function mockQueries({
   agentRunsError = false,
   loading = false,
 } = {}) {
+  const dataUpdatedAt = Date.now() - 5 * 60 * 1000
+
   vi.mocked(useNewsOverviewQuery).mockReturnValue({
     data: overviewError || loading ? undefined : overview,
     isLoading: loading,
     isError: overviewError,
     refetch: vi.fn(),
+    dataUpdatedAt,
   } as unknown as ReturnType<typeof useNewsOverviewQuery>)
   vi.mocked(useNewsEventsQuery).mockReturnValue({
     data: eventsError || loading ? undefined : [{ items: [event] }],
@@ -182,31 +193,43 @@ function mockQueries({
     hasNextPage: false,
     fetchNextPage: vi.fn(),
     refetch: vi.fn(),
+    dataUpdatedAt,
   } as unknown as ReturnType<typeof useNewsEventsQuery>)
   vi.mocked(useNewsInvestorFlowsQuery).mockReturnValue({
     data: flowsError || loading ? undefined : investorFlows,
     isLoading: loading,
     isError: flowsError,
     refetch: vi.fn(),
+    dataUpdatedAt,
   } as unknown as ReturnType<typeof useNewsInvestorFlowsQuery>)
   vi.mocked(useNewsFundFlowOutlookQuery).mockReturnValue({
     data: outlookError || loading ? undefined : fundFlowOutlook,
     isLoading: loading,
     isError: outlookError,
     refetch: vi.fn(),
+    dataUpdatedAt,
   } as unknown as ReturnType<typeof useNewsFundFlowOutlookQuery>)
   vi.mocked(useNewsCalendarQuery).mockReturnValue({
     data: calendarError || loading ? undefined : calendar,
     isLoading: loading,
     isError: calendarError,
     refetch: vi.fn(),
+    dataUpdatedAt,
   } as unknown as ReturnType<typeof useNewsCalendarQuery>)
   vi.mocked(useNewsAgentRunsQuery).mockReturnValue({
     data: agentRunsError || loading ? undefined : agentRuns,
     isLoading: loading,
     isError: agentRunsError,
     refetch: vi.fn(),
+    dataUpdatedAt,
   } as unknown as ReturnType<typeof useNewsAgentRunsQuery>)
+  vi.mocked(useNewsTopicMapQuery).mockReturnValue({
+    data: topicMap,
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
+    dataUpdatedAt,
+  } as unknown as ReturnType<typeof useNewsTopicMapQuery>)
 }
 
 describe('NewsInsightsOverviewPage', () => {
@@ -252,6 +275,9 @@ describe('NewsInsightsOverviewPage', () => {
       screen.queryByLabelText('에이전트 파이프라인 준비 중'),
     ).not.toBeInTheDocument()
     expect(screen.queryByLabelText('토픽 맵 준비 중')).not.toBeInTheDocument()
+    expect(
+      screen.getAllByLabelText('데이터 갱신 5분 전').length,
+    ).toBeGreaterThanOrEqual(6)
   })
 
   it('keeps the event panel visible when the overview request fails', () => {
