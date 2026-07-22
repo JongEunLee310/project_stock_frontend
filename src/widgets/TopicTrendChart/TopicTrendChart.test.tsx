@@ -1,0 +1,68 @@
+import { render, screen } from '@testing-library/react'
+
+import type { NewsTopicTrendView } from '@/features/news-insights'
+
+import { TopicTrendChart } from './TopicTrendChart'
+
+const trend: NewsTopicTrendView = {
+  points: [
+    {
+      timestamp: '2026-07-21T00:00:00Z',
+      timestampLabel: '2026. 7. 21. 오전 9:00',
+      mentionCount: 12,
+      sentimentScore: 0.73,
+      impactScore: 0.91,
+    },
+  ],
+  markers: [
+    {
+      timestamp: '2026-07-21T00:00:00Z',
+      timestampLabel: '2026. 7. 21. 오전 9:00',
+      label: '공급 계약',
+      eventId: '10',
+    },
+  ],
+  sourceDistribution: [
+    {
+      sourceTypeLabel: '공시',
+      sourceTypeTone: 'info',
+      count: 3,
+      sharePercent: 75,
+    },
+  ],
+}
+
+const defaultProps = {
+  data: trend,
+  isLoading: false,
+  isError: false,
+  onRetry: vi.fn(),
+}
+
+describe('TopicTrendChart', () => {
+  it('binds mention, sentiment, markers, and source distribution data', () => {
+    render(<TopicTrendChart {...defaultProps} />)
+
+    expect(
+      screen.getByRole('img', {
+        name: '언급량 막대와 감성 선 복합 차트, 데이터 1개, 이벤트 마커 1개',
+      }),
+    ).toBeVisible()
+    expect(screen.getByText(/언급 12건, 감성 73%/)).toBeInTheDocument()
+    expect(screen.getByText('공급 계약')).toBeVisible()
+    expect(screen.getByText('3건 · 75%')).toBeVisible()
+  })
+
+  it('renders independent empty and error states', () => {
+    const { rerender } = render(
+      <TopicTrendChart
+        {...defaultProps}
+        data={{ points: [], markers: [], sourceDistribution: [] }}
+      />,
+    )
+    expect(screen.getByText('표시할 토픽 추이가 없습니다')).toBeVisible()
+
+    rerender(<TopicTrendChart {...defaultProps} data={undefined} isError />)
+    expect(screen.getByText('토픽 추이를 불러오지 못했습니다')).toBeVisible()
+  })
+})

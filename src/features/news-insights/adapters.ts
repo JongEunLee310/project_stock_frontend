@@ -5,6 +5,9 @@ import type {
   NewsInsightEventDto,
   NewsInsightOverviewDto,
   NewsInsightSummaryMetricDto,
+  NewsTopicDetailDto,
+  NewsTopicEvidenceItemDto,
+  NewsTopicTrendDto,
   NewsTopicCategoryDto,
   NewsTopicMapDto,
   NewsTopicMapNodeTypeDto,
@@ -82,6 +85,72 @@ export interface NewsTopicMap {
   edges: NewsTopicMapEdge[]
 }
 
+export interface TopicScoreView {
+  id: keyof NewsTopicDetailDto['scores']
+  label: string
+  valuePercent: number
+  tone: BadgeTone
+}
+
+export interface NewsTopicDetailView {
+  title: string
+  tags: string[]
+  lifecycle: { label: string; tone: BadgeTone }
+  scores: TopicScoreView[]
+  affectedSymbols: Array<{
+    symbol: string
+    exposurePercent: number
+    direction: { label: string; tone: BadgeTone }
+    relationship: { label: string; tone: BadgeTone }
+  }>
+  insight: {
+    summary: string
+    whyItMatters: string
+    keyEvidence: Array<{ id: string; label: string }>
+    riskPoints: string[]
+    counterArguments: string[]
+  }
+  version: number
+  updatedAt: string
+}
+
+export interface NewsTopicTrendView {
+  points: Array<{
+    timestamp: string
+    timestampLabel: string
+    mentionCount: number
+    sentimentScore: number
+    impactScore: number
+  }>
+  markers: Array<{
+    timestamp: string
+    timestampLabel: string
+    label: string
+    eventId: string
+  }>
+  sourceDistribution: Array<{
+    sourceTypeLabel: string
+    sourceTypeTone: BadgeTone
+    count: number
+    sharePercent: number
+  }>
+}
+
+export interface NewsTopicEvidenceView {
+  id: string
+  eventId: string
+  documentId: string
+  evidenceRole: { label: string; tone: BadgeTone }
+  documentType: { label: string; tone: BadgeTone }
+  symbol: string
+  title: string
+  summary: string
+  direction: { label: string; tone: BadgeTone }
+  relevancePercent: number
+  source: string
+  publishedAt: string
+}
+
 const summaryMetricDefinitions = [
   {
     key: 'high_importance_events',
@@ -144,6 +213,48 @@ const documentTypePresentations: Record<
   COMMUNITY: { label: '커뮤니티', tone: 'neutral' },
   COMPANY_IR: { label: '기업 IR', tone: 'info' },
 }
+
+const lifecyclePresentations: Record<
+  string,
+  { label: string; tone: BadgeTone }
+> = {
+  EMERGING: { label: '출현', tone: 'info' },
+  RISING: { label: '상승', tone: 'accent' },
+  ACTIVE: { label: '활성', tone: 'success' },
+  COOLING: { label: '둔화', tone: 'warning' },
+  ARCHIVED: { label: '보관', tone: 'neutral' },
+}
+
+const relationshipPresentations: Record<
+  string,
+  { label: string; tone: BadgeTone }
+> = {
+  DIRECT: { label: '직접 영향', tone: 'info' },
+  SUPPLY_CHAIN: { label: '공급망', tone: 'warning' },
+  COMPETITOR: { label: '경쟁사', tone: 'danger' },
+  CUSTOMER: { label: '고객사', tone: 'accent' },
+}
+
+const evidenceRolePresentations: Record<
+  string,
+  { label: string; tone: BadgeTone }
+> = {
+  PRIMARY: { label: '핵심 근거', tone: 'info' },
+  SUPPORTING: { label: '보조 근거', tone: 'success' },
+  CONTRADICTING: { label: '반대 근거', tone: 'danger' },
+  BACKGROUND: { label: '배경 정보', tone: 'neutral' },
+}
+
+const topicScoreDefinitions = [
+  { id: 'impact', label: '종합 영향도', tone: 'danger' },
+  { id: 'sentiment', label: '감성 방향', tone: 'success' },
+  { id: 'confidence', label: '신뢰도', tone: 'info' },
+  { id: 'momentum', label: '모멘텀', tone: 'accent' },
+] as const satisfies ReadonlyArray<{
+  id: keyof NewsTopicDetailDto['scores']
+  label: string
+  tone: BadgeTone
+}>
 
 const eventTypeLabels: Record<string, string> = {
   EARNINGS_GUIDANCE: '실적 가이던스',
@@ -270,5 +381,145 @@ export function adaptNewsTopicMap(dto: NewsTopicMapDto): NewsTopicMap {
       strength: edge.strength,
       cooccurrenceCount: edge.cooccurrence_count,
     })),
+  }
+}
+
+function presentationFor(
+  presentations: Record<string, { label: string; tone: BadgeTone }>,
+  value: string,
+  fallbackLabel: string,
+) {
+  return (
+    presentations[value] ?? {
+      label: fallbackLabel,
+      tone: 'neutral' as const,
+    }
+  )
+}
+
+function adaptKeyEvidence(
+  evidence: Record<string, unknown>,
+  index: number,
+): { id: string; label: string } {
+  const eventId = evidence.event_id
+  const labelCandidate =
+    evidence.title ?? evidence.summary ?? evidence.quote ?? evidence.text
+  const label =
+    typeof labelCandidate === 'string' && labelCandidate.trim()
+      ? labelCandidate.trim()
+      : typeof eventId === 'number' || typeof eventId === 'string'
+        ? `이벤트 #${String(eventId)}`
+        : `핵심 근거 ${index + 1}`
+
+  return {
+    id: `${typeof eventId === 'number' || typeof eventId === 'string' ? String(eventId) : 'evidence'}-${index}`,
+    label,
+  }
+}
+
+export function adaptNewsTopicDetail(
+  dto: NewsTopicDetailDto,
+): NewsTopicDetailView {
+  return {
+    title: dto.title.trim() || '제목 없는 토픽',
+    tags: dto.tags.map((tag) => tag.trim()).filter(Boolean),
+    lifecycle: presentationFor(
+      lifecyclePresentations,
+      dto.lifecycle,
+      '상태 미상',
+    ),
+    scores: topicScoreDefinitions.map((definition) => ({
+      ...definition,
+      valuePercent: toScorePercent(dto.scores[definition.id]),
+    })),
+    affectedSymbols: dto.affected_symbols.map((item) => ({
+      symbol: item.symbol.trim() || '종목 미상',
+      exposurePercent: toScorePercent(item.exposure_score),
+      direction: presentationFor(
+        sentimentPresentations,
+        item.impact_direction,
+        '방향 미상',
+      ),
+      relationship: presentationFor(
+        relationshipPresentations,
+        item.relationship,
+        '관계 미상',
+      ),
+    })),
+    insight: {
+      summary: dto.insight.summary.trim(),
+      whyItMatters: dto.insight.why_it_matters.trim(),
+      keyEvidence: dto.insight.key_evidence.map(adaptKeyEvidence),
+      riskPoints: dto.insight.risk_points.map((point) => point.trim()),
+      counterArguments: dto.insight.counter_arguments.map((point) =>
+        point.trim(),
+      ),
+    },
+    version: dto.version,
+    updatedAt: formatDateTime(dto.updated_at),
+  }
+}
+
+export function adaptNewsTopicTrend(
+  dto: NewsTopicTrendDto,
+): NewsTopicTrendView {
+  return {
+    points: dto.points.map((point) => ({
+      timestamp: point.timestamp,
+      timestampLabel: formatDateTime(point.timestamp),
+      mentionCount: point.mention_count,
+      sentimentScore: point.sentiment_score,
+      impactScore: point.impact_score,
+    })),
+    markers: dto.markers.map((marker) => ({
+      timestamp: marker.timestamp,
+      timestampLabel: formatDateTime(marker.timestamp),
+      label: marker.label.trim() || '이벤트',
+      eventId: String(marker.event_id),
+    })),
+    sourceDistribution: dto.source_distribution.map((source) => {
+      const presentation = presentationFor(
+        documentTypePresentations,
+        source.source_type,
+        '기타 문서',
+      )
+      return {
+        sourceTypeLabel: presentation.label,
+        sourceTypeTone: presentation.tone,
+        count: source.count,
+        sharePercent: toScorePercent(source.share),
+      }
+    }),
+  }
+}
+
+export function adaptNewsTopicEvidence(
+  dto: NewsTopicEvidenceItemDto,
+): NewsTopicEvidenceView {
+  return {
+    id: `${dto.event_id}-${dto.document_id}`,
+    eventId: String(dto.event_id),
+    documentId: String(dto.document_id),
+    evidenceRole: presentationFor(
+      evidenceRolePresentations,
+      dto.evidence_role,
+      '근거 역할 미상',
+    ),
+    documentType: presentationFor(
+      documentTypePresentations,
+      dto.document_type,
+      '기타 문서',
+    ),
+    symbol: dto.symbol?.trim() || '시장',
+    title: dto.title.trim() || '제목 없음',
+    summary: dto.summary.trim(),
+    direction: presentationFor(
+      sentimentPresentations,
+      dto.direction,
+      '방향 미상',
+    ),
+    relevancePercent: toScorePercent(dto.relevance_score),
+    source: dto.source.trim() || '출처 미상',
+    publishedAt: formatDateTime(dto.published_at),
   }
 }

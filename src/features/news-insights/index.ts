@@ -1,16 +1,27 @@
 export {
   adaptNewsEvent,
   adaptNewsOverview,
+  adaptNewsTopicDetail,
+  adaptNewsTopicEvidence,
   adaptNewsTopicMap,
+  adaptNewsTopicTrend,
   type NewsEventView,
   type NewsOverviewView,
+  type NewsTopicDetailView,
+  type NewsTopicEvidenceView,
   type NewsTopicMap,
   type NewsTopicMapEdge,
   type NewsTopicMapNode,
+  type NewsTopicTrendView,
+  type TopicScoreView,
 } from './adapters'
 export {
   useNewsEventsQuery,
   useNewsOverviewQuery,
+  useNewsTopicDetailQuery,
+  useNewsTopicEvidenceQuery,
   useNewsTopicMapQuery,
+  useNewsTopicTrendQuery,
   type NewsEventsPage,
+  type NewsTopicEvidencePage,
 } from './queries'

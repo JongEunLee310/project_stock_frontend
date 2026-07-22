@@ -1,12 +1,18 @@
 import {
   adaptNewsEvent,
   adaptNewsOverview,
+  adaptNewsTopicDetail,
+  adaptNewsTopicEvidence,
   adaptNewsTopicMap,
+  adaptNewsTopicTrend,
 } from './adapters'
 import type {
   NewsInsightEventDto,
   NewsInsightOverviewDto,
+  NewsTopicDetailDto,
+  NewsTopicEvidenceItemDto,
   NewsTopicMapDto,
+  NewsTopicTrendDto,
 } from './dto'
 
 const overviewDto: NewsInsightOverviewDto = {
@@ -75,6 +81,68 @@ const topicMapDto: NewsTopicMapDto = {
       cooccurrence_count: 5,
     },
   ],
+}
+
+const topicDetailDto: NewsTopicDetailDto = {
+  title: ' 반도체 장기 수요 회복 ',
+  tags: [' AI ', 'HBM'],
+  lifecycle: 'RISING',
+  scores: {
+    impact: 0.91,
+    sentiment: 0.73,
+    confidence: 0.88,
+    momentum: 0.82,
+  },
+  affected_symbols: [
+    {
+      symbol: ' 005930 ',
+      exposure_score: 0.91,
+      impact_direction: 'POSITIVE',
+      relationship: 'DIRECT',
+    },
+  ],
+  insight: {
+    summary: ' 수요 회복 요약 ',
+    why_it_matters: ' 공급 가시성이 높아진다. ',
+    key_evidence: [{ event_id: 10 }],
+    risk_points: [' 계약 지연 '],
+    counter_arguments: [' 단기 실적 영향은 제한적이다. '],
+  },
+  version: 2,
+  updated_at: '2026-07-21T06:00:00Z',
+}
+
+const topicTrendDto: NewsTopicTrendDto = {
+  points: [
+    {
+      timestamp: '2026-07-21T00:00:00Z',
+      mention_count: 12,
+      sentiment_score: 0.73,
+      impact_score: 0.91,
+    },
+  ],
+  markers: [
+    {
+      timestamp: '2026-07-21T00:00:00Z',
+      label: ' 공급 계약 ',
+      event_id: 10,
+    },
+  ],
+  source_distribution: [{ source_type: 'DISCLOSURE', count: 3, share: 0.75 }],
+}
+
+const topicEvidenceDto: NewsTopicEvidenceItemDto = {
+  event_id: 10,
+  document_id: 20,
+  evidence_role: 'CONTRADICTING',
+  document_type: 'NEWS',
+  symbol: ' 005930 ',
+  title: ' 반대 근거 기사 ',
+  summary: ' AI 요약 ',
+  direction: 'NEGATIVE',
+  relevance_score: 0.846,
+  source: ' Reuters ',
+  published_at: '2026-07-21T00:00:00Z',
 }
 
 describe('news insights adapters', () => {
@@ -190,5 +258,83 @@ describe('news insights adapters', () => {
         cooccurrenceCount: 5,
       },
     ])
+  })
+
+  it('maps topic detail scores, affected symbols, and counter arguments', () => {
+    const result = adaptNewsTopicDetail(topicDetailDto)
+
+    expect(result.title).toBe('반도체 장기 수요 회복')
+    expect(result.lifecycle).toEqual({ label: '상승', tone: 'accent' })
+    expect(result.scores[0]).toEqual(
+      expect.objectContaining({ label: '종합 영향도', valuePercent: 91 }),
+    )
+    expect(result.affectedSymbols[0]).toEqual(
+      expect.objectContaining({ symbol: '005930', exposurePercent: 91 }),
+    )
+    expect(result.insight.keyEvidence[0].label).toBe('이벤트 #10')
+    expect(result.insight.counterArguments).toEqual([
+      '단기 실적 영향은 제한적이다.',
+    ])
+  })
+
+  it('maps trend values and server-computed source distribution unchanged', () => {
+    const result = adaptNewsTopicTrend(topicTrendDto)
+
+    expect(result.points[0]).toEqual(
+      expect.objectContaining({
+        mentionCount: 12,
+        sentimentScore: 0.73,
+        impactScore: 0.91,
+      }),
+    )
+    expect(result.markers[0]).toEqual(
+      expect.objectContaining({ label: '공급 계약', eventId: '10' }),
+    )
+    expect(result.sourceDistribution[0]).toEqual(
+      expect.objectContaining({
+        sourceTypeLabel: '공시',
+        count: 3,
+        sharePercent: 75,
+      }),
+    )
+  })
+
+  it('maps evidence fact labels separately from its AI summary', () => {
+    const result = adaptNewsTopicEvidence(topicEvidenceDto)
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        id: '10-20',
+        title: '반대 근거 기사',
+        summary: 'AI 요약',
+        symbol: '005930',
+        relevancePercent: 85,
+        source: 'Reuters',
+      }),
+    )
+    expect(result.evidenceRole.label).toBe('반대 근거')
+    expect(result.direction.label).toBe('부정')
+  })
+
+  it('preserves empty topic insight, trend, and evidence collections', () => {
+    expect(
+      adaptNewsTopicDetail({
+        ...topicDetailDto,
+        affected_symbols: [],
+        insight: {
+          ...topicDetailDto.insight,
+          key_evidence: [],
+          risk_points: [],
+          counter_arguments: [],
+        },
+      }).insight.counterArguments,
+    ).toEqual([])
+    expect(
+      adaptNewsTopicTrend({
+        points: [],
+        markers: [],
+        source_distribution: [],
+      }),
+    ).toEqual({ points: [], markers: [], sourceDistribution: [] })
   })
 })
