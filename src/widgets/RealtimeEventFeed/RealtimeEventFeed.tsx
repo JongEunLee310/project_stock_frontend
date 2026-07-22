@@ -123,6 +123,7 @@ export function RealtimeEventFeed({
         <Table
           aria-label="실시간 이벤트 목록"
           className="rounded-none border-x-0 border-b-0"
+          headerAlign="center"
           columns={eventColumns}
           rows={events}
           getRowKey={(event) => event.id}
