@@ -1,17 +1,20 @@
 import {
   adaptNewsEvent,
   adaptNewsEventDetail,
+  adaptNewsFundFlowOutlook,
   adaptNewsInvestorFlows,
   adaptNewsOverview,
   adaptNewsTopicDetail,
   adaptNewsTopicEvidence,
   adaptNewsTopicGraph,
   adaptNewsTopicMap,
+  adaptNewsTopicScenarios,
   adaptNewsTopicSymbols,
   adaptNewsTopicTrend,
 } from './adapters'
 import type {
   NewsEventDetailDto,
+  NewsFundFlowOutlookDto,
   NewsInsightEventDto,
   NewsInsightOverviewDto,
   NewsInvestorFlowsDto,
@@ -19,6 +22,7 @@ import type {
   NewsTopicEvidenceItemDto,
   NewsTopicGraphDto,
   NewsTopicMapDto,
+  NewsTopicScenariosDto,
   NewsTopicSymbolSensitivityItemDto,
   NewsTopicTrendDto,
 } from './dto'
@@ -66,6 +70,41 @@ const investorFlowsDto: NewsInvestorFlowsDto = {
     note: ' 긍정 뉴스와 달리 기관은 순매도입니다. ',
   },
   availability: { available: true, fallback: null },
+}
+
+const fundFlowOutlookDto: NewsFundFlowOutlookDto = {
+  as_of: '2026-07-21T06:00:00Z',
+  analysis_version: ' v3.1 ',
+  items: [
+    {
+      sector: ' 반도체 ',
+      direction: 'INFLOW',
+      likelihood: 'HIGH',
+      estimated_range: ' 1,000억~1,500억원 ',
+      horizon: ' 1개월 ',
+      confidence: 0.824,
+      key_assumptions: [' AI 수요가 유지됩니다. '],
+      risk_factors: [' 공급 차질 가능성이 있습니다. '],
+    },
+  ],
+}
+
+const topicScenariosDto: NewsTopicScenariosDto = {
+  topic_id: 7,
+  analysis_version: ' v3.1 ',
+  as_of: '2026-07-21T06:00:00Z',
+  scenarios: [
+    {
+      scenario_kind: 'BASE',
+      weight: 0.5,
+      expected_flow_direction: 'NEUTRAL',
+      key_assumptions: [' 수요가 현재 수준을 유지합니다. '],
+      benefiting_sectors: [' 반도체 '],
+      risk_sectors: [' 유통 '],
+      related_symbols: [' NVDA '],
+      invalidation_conditions: [' 주문이 20% 이상 감소합니다. '],
+    },
+  ],
 }
 
 const eventDto: NewsInsightEventDto = {
@@ -251,6 +290,50 @@ const topicGraphDto: NewsTopicGraphDto = {
 }
 
 describe('news insights adapters', () => {
+  it('maps fund-flow outlook levels and keeps the server range with grounded sentences', () => {
+    const result = adaptNewsFundFlowOutlook(fundFlowOutlookDto)
+
+    expect(result).toEqual({
+      asOf: expect.any(String),
+      analysisVersion: 'v3.1',
+      items: [
+        {
+          sector: '반도체',
+          direction: { label: '유입 방향', tone: 'success' },
+          likelihood: { label: '높음', tone: 'success' },
+          estimatedRange: '1,000억~1,500억원',
+          horizon: '1개월',
+          confidencePercent: 82,
+          keyAssumptions: ['AI 수요가 유지됩니다.'],
+          riskFactors: ['공급 차질 가능성이 있습니다.'],
+        },
+      ],
+    })
+  })
+
+  it('maps scenario weight as a display level and preserves empty response data', () => {
+    const result = adaptNewsTopicScenarios(topicScenariosDto)
+
+    expect(result.scenarios[0]).toEqual({
+      kind: 'BASE',
+      kindPresentation: { label: '기준', tone: 'info' },
+      weightPercent: 50,
+      direction: { label: '중립 방향', tone: 'neutral' },
+      keyAssumptions: ['수요가 현재 수준을 유지합니다.'],
+      benefitingSectors: ['반도체'],
+      riskSectors: ['유통'],
+      relatedSymbols: ['NVDA'],
+      invalidationConditions: ['주문이 20% 이상 감소합니다.'],
+    })
+    expect(
+      adaptNewsTopicScenarios({ ...topicScenariosDto, scenarios: [] })
+        .scenarios,
+    ).toEqual([])
+    expect(
+      adaptNewsFundFlowOutlook({ ...fundFlowOutlookDto, items: [] }).items,
+    ).toEqual([])
+  })
+
   it('preserves decimal flow values and maps investor and direction presentations', () => {
     const result = adaptNewsInvestorFlows(investorFlowsDto)
 

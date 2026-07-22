@@ -7,6 +7,7 @@ import {
   useNewsOverviewQuery,
 } from '@/features/news-insights'
 import { AgentBriefing } from '@/widgets/AgentBriefing'
+import { FundFlowOutlookPanel } from '@/widgets/FundFlowOutlookPanel'
 import { InsightSummaryCards } from '@/widgets/InsightSummaryCards'
 import { InvestorFlowPanel } from '@/widgets/InvestorFlowPanel'
 import { RealtimeEventFeed } from '@/widgets/RealtimeEventFeed'
@@ -18,13 +19,6 @@ interface OverviewPlannedPanel extends PlannedPanel {
 }
 
 const plannedPanels: OverviewPlannedPanel[] = [
-  {
-    id: 'fund-flow-outlook',
-    title: '예상 자금 흐름',
-    description: '확률과 범위가 포함된 자금 흐름 시나리오를 제공합니다.',
-    phase: '3차',
-    issue: '#267',
-  },
   {
     id: 'event-timeline',
     title: '이벤트 타임라인',
@@ -106,6 +100,8 @@ export function NewsInsightsOverviewPage() {
           title="투자자 동향"
           context="시장 전체의 투자 주체별 순매수·순매도와 뉴스 내러티브의 방향을 비교합니다."
         />
+
+        <FundFlowOutlookPanel />
 
         <section aria-labelledby="planned-panels-title">
           <div className="mb-3">

@@ -4,12 +4,14 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import {
   type NewsTopicDetailView,
   type NewsInvestorFlowsView,
+  type NewsTopicScenariosView,
   type NewsTopicEvidenceView,
   type NewsTopicGraphView,
   type NewsTopicSymbolSensitivityView,
   type NewsTopicTrendView,
   useNewsTopicDetailQuery,
   useNewsInvestorFlowsQuery,
+  useNewsTopicScenariosQuery,
   useNewsTopicEvidenceQuery,
   useNewsTopicGraphQuery,
   useNewsTopicSymbolsQuery,
@@ -25,6 +27,7 @@ vi.mock('@/features/news-insights', async (importOriginal) => {
     ...actual,
     useNewsTopicDetailQuery: vi.fn(),
     useNewsInvestorFlowsQuery: vi.fn(),
+    useNewsTopicScenariosQuery: vi.fn(),
     useNewsTopicEvidenceQuery: vi.fn(),
     useNewsTopicGraphQuery: vi.fn(),
     useNewsTopicSymbolsQuery: vi.fn(),
@@ -128,6 +131,47 @@ const investorFlows: NewsInvestorFlowsView = {
   availability: { available: true, fallback: null },
 }
 
+const topicScenarios: NewsTopicScenariosView = {
+  topicId: '7',
+  analysisVersion: 'v3.1',
+  asOf: '2026. 7. 21. 오후 3:00',
+  scenarios: [
+    {
+      kind: 'OPTIMISTIC',
+      kindPresentation: { label: '낙관', tone: 'success' },
+      weightPercent: 30,
+      direction: { label: '유입 방향', tone: 'success' },
+      keyAssumptions: ['낙관 가정'],
+      benefitingSectors: ['반도체'],
+      riskSectors: ['유통'],
+      relatedSymbols: ['NVDA'],
+      invalidationConditions: ['낙관 무효화 조건'],
+    },
+    {
+      kind: 'BASE',
+      kindPresentation: { label: '기준', tone: 'info' },
+      weightPercent: 50,
+      direction: { label: '중립 방향', tone: 'neutral' },
+      keyAssumptions: ['기준 가정'],
+      benefitingSectors: ['반도체'],
+      riskSectors: ['유통'],
+      relatedSymbols: ['NVDA'],
+      invalidationConditions: ['기준 무효화 조건'],
+    },
+    {
+      kind: 'CONSERVATIVE',
+      kindPresentation: { label: '보수', tone: 'warning' },
+      weightPercent: 20,
+      direction: { label: '유출 방향', tone: 'danger' },
+      keyAssumptions: ['보수 가정'],
+      benefitingSectors: ['현금성 자산'],
+      riskSectors: ['반도체'],
+      relatedSymbols: ['NVDA'],
+      invalidationConditions: ['보수 무효화 조건'],
+    },
+  ],
+}
+
 function mockQueries({
   detailError = false,
   trendError = false,
@@ -135,6 +179,7 @@ function mockQueries({
   graphError = false,
   symbolsError = false,
   flowsError = false,
+  scenariosError = false,
 } = {}) {
   vi.mocked(useNewsTopicDetailQuery).mockReturnValue({
     data: detailError ? undefined : detail,
@@ -176,6 +221,12 @@ function mockQueries({
     isError: flowsError,
     refetch: vi.fn(),
   } as unknown as ReturnType<typeof useNewsInvestorFlowsQuery>)
+  vi.mocked(useNewsTopicScenariosQuery).mockReturnValue({
+    data: scenariosError ? undefined : topicScenarios,
+    isLoading: false,
+    isError: scenariosError,
+    refetch: vi.fn(),
+  } as unknown as ReturnType<typeof useNewsTopicScenariosQuery>)
 }
 
 function renderPage() {
@@ -207,15 +258,21 @@ describe('TopicInsightDetailPage', () => {
     expect(screen.getByText('수요 회복이 지연될 수 있습니다.')).toBeVisible()
     expect(screen.getByRole('heading', { name: '키워드 관계망' })).toBeVisible()
     expect(screen.getByRole('heading', { name: '종목 민감도' })).toBeVisible()
-    expect(screen.getByText('NVDA')).toBeVisible()
+    expect(screen.getAllByText('NVDA').length).toBeGreaterThan(0)
     expect(screen.getByRole('heading', { name: '투자자 반응' })).toBeVisible()
     expect(screen.getByText('ETF')).toBeVisible()
     expect(screen.getByText('불일치 신호')).toBeVisible()
     expect(
       screen.queryByLabelText('투자자 반응 준비 중'),
     ).not.toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { name: '예상 자금 흐름 시나리오' }),
+    ).toBeVisible()
+    expect(screen.getByText('현재 근거 기준 가중치 50%')).toBeVisible()
+    expect(
+      screen.queryByLabelText('예상 자금 흐름 시나리오 준비 중'),
+    ).not.toBeInTheDocument()
     ;[
-      ['예상 자금 흐름 시나리오', '3차 · #267'],
       ['왜 이런 인사이트', '3차 · #268'],
       ['액션 체크리스트', '3차 · #268'],
     ].forEach(([title, phaseIssue]) => {
@@ -232,6 +289,7 @@ describe('TopicInsightDetailPage', () => {
       window: '7d',
       topicId: '7',
     })
+    expect(useNewsTopicScenariosQuery).toHaveBeenCalledWith('7')
   })
 
   it('keeps trend and evidence visible when the detail panel fails', async () => {
@@ -272,7 +330,7 @@ describe('TopicInsightDetailPage', () => {
     expect(
       screen.getByText('키워드 관계망을 불러오지 못했습니다'),
     ).toBeVisible()
-    expect(screen.getByText('NVDA')).toBeVisible()
+    expect(screen.getAllByText('NVDA').length).toBeGreaterThan(0)
     expect(screen.getByRole('heading', { name: '투자자 반응' })).toBeVisible()
     unmount()
 
@@ -291,9 +349,21 @@ describe('TopicInsightDetailPage', () => {
 
     expect(screen.getByText('투자자 반응을 불러오지 못했습니다')).toBeVisible()
     expect(screen.getByText('페이지 토픽 제목')).toBeVisible()
-    expect(screen.getByText('NVDA')).toBeVisible()
+    expect(screen.getAllByText('NVDA').length).toBeGreaterThan(0)
+    expect(screen.getByText('현재 근거 기준 가중치 50%')).toBeVisible()
+  })
+
+  it('isolates unanalysed topic scenario errors from the other panels', async () => {
+    mockQueries({ scenariosError: true })
+    renderPage()
+    await screen.findByTestId('topic-keyword-cytoscape')
+
     expect(
-      screen.getByLabelText('예상 자금 흐름 시나리오 준비 중'),
+      screen.getByText('예상 자금 흐름 시나리오를 불러오지 못했습니다'),
     ).toBeVisible()
+    expect(screen.getByText(/아직 분석되지 않은 토픽/)).toBeVisible()
+    expect(screen.getByText('페이지 토픽 제목')).toBeVisible()
+    expect(screen.getByText('NVDA')).toBeVisible()
+    expect(screen.getByLabelText('왜 이런 인사이트 준비 중')).toBeVisible()
   })
 })

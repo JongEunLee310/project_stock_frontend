@@ -8,6 +8,7 @@ import {
 import { appRoutePaths } from '@/shared/config/navigation'
 import { Button } from '@/shared/ui'
 import { CounterViewPanel } from '@/widgets/CounterViewPanel'
+import { FundFlowScenarioPanel } from '@/widgets/FundFlowScenarioPanel'
 import { InvestorFlowPanel } from '@/widgets/InvestorFlowPanel'
 import { PlannedPanelCard, type PlannedPanel } from '@/widgets/PlannedPanelCard'
 import { TopicEvidenceList } from '@/widgets/TopicEvidenceList'
@@ -18,13 +19,6 @@ import { TopicSummaryHeader } from '@/widgets/TopicSummaryHeader'
 import { TopicTrendChart } from '@/widgets/TopicTrendChart'
 
 const plannedPanels = {
-  fundFlowScenario: {
-    title: '예상 자금 흐름 시나리오',
-    description:
-      '낙관·기준·보수 시나리오별 예상 범위와 전제 조건을 제공합니다.',
-    phase: '3차',
-    issue: '#267',
-  },
   explanation: {
     title: '왜 이런 인사이트',
     description:
@@ -116,7 +110,7 @@ export function TopicInsightDetailPage() {
           title="투자자 반응"
           context="이 토픽의 영향 종목군에서 나타난 투자 주체별 수급 반응을 비교합니다."
         />
-        <PlannedPanelCard panel={plannedPanels.fundFlowScenario} />
+        <FundFlowScenarioPanel topicId={topicId} />
 
         <TopicSymbolSensitivity topicId={topicId} />
 

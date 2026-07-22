@@ -3,9 +3,13 @@ import type { BadgeTone } from '@/shared/ui'
 
 import type {
   FlowDirectionDto,
+  FlowLikelihoodDto,
+  FundFlowDirectionDto,
   InvestorTypeDto,
+  NewsFundFlowOutlookDto,
   NewsEventDetailDto,
   NewsInvestorFlowsDto,
+  NewsTopicScenariosDto,
   NewsInsightEventDto,
   NewsInsightOverviewDto,
   NewsInsightSummaryMetricDto,
@@ -17,6 +21,7 @@ import type {
   NewsTopicMapDto,
   NewsTopicMapNodeTypeDto,
   NewsTopicSymbolSensitivityItemDto,
+  ScenarioKindDto,
 } from './dto'
 
 export interface InvestorFlowView {
@@ -39,6 +44,47 @@ export interface NewsInvestorFlowsView {
     available: boolean
     fallback: string | null
   }
+}
+
+interface PresentationView {
+  label: string
+  tone: BadgeTone
+}
+
+export interface FundFlowOutlookItemView {
+  sector: string
+  direction: PresentationView
+  likelihood: PresentationView
+  estimatedRange: string | null
+  horizon: string
+  confidencePercent: number
+  keyAssumptions: string[]
+  riskFactors: string[]
+}
+
+export interface NewsFundFlowOutlookView {
+  asOf: string
+  analysisVersion: string
+  items: FundFlowOutlookItemView[]
+}
+
+export interface FundFlowScenarioView {
+  kind: ScenarioKindDto
+  kindPresentation: PresentationView
+  weightPercent: number
+  direction: PresentationView
+  keyAssumptions: string[]
+  benefitingSectors: string[]
+  riskSectors: string[]
+  relatedSymbols: string[]
+  invalidationConditions: string[]
+}
+
+export interface NewsTopicScenariosView {
+  topicId: string
+  analysisVersion: string
+  asOf: string
+  scenarios: FundFlowScenarioView[]
 }
 
 export interface InsightSummaryMetric {
@@ -378,6 +424,33 @@ export const flowDirectionPresentations: Record<
   NEUTRAL: { label: '중립', tone: 'neutral' },
 }
 
+export const fundFlowDirectionPresentations: Record<
+  FundFlowDirectionDto,
+  PresentationView
+> = {
+  INFLOW: { label: '유입 방향', tone: 'success' },
+  OUTFLOW: { label: '유출 방향', tone: 'danger' },
+  NEUTRAL: { label: '중립 방향', tone: 'neutral' },
+}
+
+export const flowLikelihoodPresentations: Record<
+  FlowLikelihoodDto,
+  PresentationView
+> = {
+  LOW: { label: '낮음', tone: 'neutral' },
+  MEDIUM: { label: '중간', tone: 'warning' },
+  HIGH: { label: '높음', tone: 'success' },
+}
+
+export const scenarioKindPresentations: Record<
+  ScenarioKindDto,
+  PresentationView
+> = {
+  OPTIMISTIC: { label: '낙관', tone: 'success' },
+  BASE: { label: '기준', tone: 'info' },
+  CONSERVATIVE: { label: '보수', tone: 'warning' },
+}
+
 const topicScoreDefinitions = [
   { id: 'impact', label: '종합 영향도', tone: 'danger' },
   { id: 'sentiment', label: '감성 방향', tone: 'success' },
@@ -508,6 +581,51 @@ export function adaptNewsInvestorFlows(
       available: dto.availability.available,
       fallback: dto.availability.fallback?.trim() || null,
     },
+  }
+}
+
+function trimStrings(values: string[]): string[] {
+  return values.map((value) => value.trim()).filter(Boolean)
+}
+
+export function adaptNewsFundFlowOutlook(
+  dto: NewsFundFlowOutlookDto,
+): NewsFundFlowOutlookView {
+  return {
+    asOf: formatDateTime(dto.as_of),
+    analysisVersion: dto.analysis_version.trim() || '버전 미상',
+    items: dto.items.map((item) => ({
+      sector: item.sector.trim() || '섹터 미상',
+      direction: fundFlowDirectionPresentations[item.direction],
+      likelihood: flowLikelihoodPresentations[item.likelihood],
+      estimatedRange: item.estimated_range?.trim() || null,
+      horizon: item.horizon.trim() || '기간 미상',
+      confidencePercent: toScorePercent(item.confidence),
+      keyAssumptions: trimStrings(item.key_assumptions),
+      riskFactors: trimStrings(item.risk_factors),
+    })),
+  }
+}
+
+export function adaptNewsTopicScenarios(
+  dto: NewsTopicScenariosDto,
+): NewsTopicScenariosView {
+  return {
+    topicId: String(dto.topic_id),
+    analysisVersion: dto.analysis_version.trim() || '버전 미상',
+    asOf: formatDateTime(dto.as_of),
+    scenarios: dto.scenarios.map((scenario) => ({
+      kind: scenario.scenario_kind,
+      kindPresentation: scenarioKindPresentations[scenario.scenario_kind],
+      weightPercent: toScorePercent(scenario.weight),
+      direction:
+        fundFlowDirectionPresentations[scenario.expected_flow_direction],
+      keyAssumptions: trimStrings(scenario.key_assumptions),
+      benefitingSectors: trimStrings(scenario.benefiting_sectors),
+      riskSectors: trimStrings(scenario.risk_sectors),
+      relatedSymbols: trimStrings(scenario.related_symbols),
+      invalidationConditions: trimStrings(scenario.invalidation_conditions),
+    })),
   }
 }
 

@@ -3,9 +3,11 @@ import { MemoryRouter } from 'react-router-dom'
 
 import {
   useNewsEventsQuery,
+  useNewsFundFlowOutlookQuery,
   useNewsInvestorFlowsQuery,
   useNewsOverviewQuery,
   type NewsEventView,
+  type NewsFundFlowOutlookView,
   type NewsInvestorFlowsView,
   type NewsOverviewView,
 } from '@/features/news-insights'
@@ -30,6 +32,7 @@ vi.mock('@/features/news-insights', async (importOriginal) => {
   return {
     ...actual,
     useNewsEventsQuery: vi.fn(),
+    useNewsFundFlowOutlookQuery: vi.fn(),
     useNewsInvestorFlowsQuery: vi.fn(),
     useNewsOverviewQuery: vi.fn(),
   }
@@ -99,10 +102,28 @@ const investorFlows: NewsInvestorFlowsView = {
   availability: { available: true, fallback: null },
 }
 
+const fundFlowOutlook: NewsFundFlowOutlookView = {
+  asOf: '2026. 7. 21. 오후 3:00',
+  analysisVersion: 'v3.1',
+  items: [
+    {
+      sector: '반도체',
+      direction: { label: '유입 방향', tone: 'success' },
+      likelihood: { label: '높음', tone: 'success' },
+      estimatedRange: '1,000억~1,500억원',
+      horizon: '1개월',
+      confidencePercent: 82,
+      keyAssumptions: ['AI 수요 유지'],
+      riskFactors: ['공급 차질'],
+    },
+  ],
+}
+
 function mockQueries({
   overviewError = false,
   eventsError = false,
   flowsError = false,
+  outlookError = false,
   loading = false,
 } = {}) {
   vi.mocked(useNewsOverviewQuery).mockReturnValue({
@@ -127,6 +148,12 @@ function mockQueries({
     isError: flowsError,
     refetch: vi.fn(),
   } as unknown as ReturnType<typeof useNewsInvestorFlowsQuery>)
+  vi.mocked(useNewsFundFlowOutlookQuery).mockReturnValue({
+    data: outlookError || loading ? undefined : fundFlowOutlook,
+    isLoading: loading,
+    isError: outlookError,
+    refetch: vi.fn(),
+  } as unknown as ReturnType<typeof useNewsFundFlowOutlookQuery>)
 }
 
 describe('NewsInsightsOverviewPage', () => {
@@ -152,11 +179,16 @@ describe('NewsInsightsOverviewPage', () => {
     expect(
       screen.queryByLabelText('투자자 동향 준비 중'),
     ).not.toBeInTheDocument()
-    ;['예상 자금 흐름', '이벤트 타임라인', '에이전트 파이프라인'].forEach(
-      (title) => {
-        expect(screen.getByLabelText(`${title} 준비 중`)).toBeVisible()
-      },
-    )
+    expect(
+      screen.getByRole('heading', { name: '예상 자금 흐름' }),
+    ).toBeVisible()
+    expect(screen.getByText('흐름 가능성: 높음')).toBeVisible()
+    expect(
+      screen.queryByLabelText('예상 자금 흐름 준비 중'),
+    ).not.toBeInTheDocument()
+    ;['이벤트 타임라인', '에이전트 파이프라인'].forEach((title) => {
+      expect(screen.getByLabelText(`${title} 준비 중`)).toBeVisible()
+    })
     expect(screen.queryByLabelText('토픽 맵 준비 중')).not.toBeInTheDocument()
   })
 
@@ -192,6 +224,18 @@ describe('NewsInsightsOverviewPage', () => {
 
     expect(screen.getByText('API 이벤트 제목')).toBeVisible()
     expect(screen.getByText('투자자 동향을 불러오지 못했습니다')).toBeVisible()
-    expect(screen.getByLabelText('예상 자금 흐름 준비 중')).toBeVisible()
+    expect(screen.getByText('흐름 가능성: 높음')).toBeVisible()
+  })
+
+  it('isolates fund-flow outlook failures from the other overview panels', () => {
+    mockQueries({ outlookError: true })
+    renderPage()
+
+    expect(
+      screen.getByText('예상 자금 흐름을 불러오지 못했습니다'),
+    ).toBeVisible()
+    expect(screen.getByText('API 이벤트 제목')).toBeVisible()
+    expect(screen.getByRole('heading', { name: '투자자 동향' })).toBeVisible()
+    expect(screen.getByLabelText('이벤트 타임라인 준비 중')).toBeVisible()
   })
 })
