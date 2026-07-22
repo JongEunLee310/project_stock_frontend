@@ -5,6 +5,7 @@ export const appRoutePaths = {
   research: '/research',
   researchNews: '/research/:symbol/news',
   researchDetail: '/research/:symbol',
+  news: '/news',
   portfolio: '/portfolio',
   alerts: '/alerts',
   decisionLog: '/decision-log',
@@ -52,6 +53,13 @@ export const navigationItems: NavigationItem[] = [
     href: appRoutePaths.research,
     path: appRoutePaths.research,
     matchPrefix: '/research',
+  },
+  {
+    id: 'news',
+    label: 'News & Disclosures',
+    href: appRoutePaths.news,
+    path: appRoutePaths.news,
+    matchPrefix: appRoutePaths.news,
   },
   {
     id: 'portfolio',

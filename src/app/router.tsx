@@ -8,6 +8,7 @@ import {
   DecisionLogPage,
   DecisionReviewPage,
   LoginPage,
+  NewsInsightsOverviewPage,
   NotFoundPage,
   PortfolioPage,
   ResearchListPage,
@@ -38,6 +39,10 @@ export const appRouteObjects: RouteObject[] = [
       { path: appRoutePaths.watchlist.slice(1), element: <WatchlistPage /> },
       { path: appRoutePaths.signals.slice(1), element: <SignalsPage /> },
       { path: appRoutePaths.research.slice(1), element: <ResearchListPage /> },
+      {
+        path: appRoutePaths.news.slice(1),
+        element: <NewsInsightsOverviewPage />,
+      },
       {
         path: appRoutePaths.researchNews.slice(1),
         element: <ResearchNewsPage />,
