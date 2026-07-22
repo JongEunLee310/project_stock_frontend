@@ -100,7 +100,7 @@ export function RealtimeEventFeed({
             id="realtime-event-feed-title"
             className="mt-1 text-xl font-semibold text-app-text"
           >
-            실시간 이벤트 피드
+            실시간 뉴스·공시 피드
           </h2>
           <p className="mt-1 text-sm text-app-text-muted">
             관련 문서를 하나의 시장 이벤트로 묶어 중요도와 감성을 분리했습니다.

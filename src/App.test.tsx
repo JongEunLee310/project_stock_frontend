@@ -411,7 +411,7 @@ describe('App', () => {
       'page',
     )
     expect(
-      screen.getByRole('heading', { name: '실시간 이벤트 피드' }),
+      screen.getByRole('heading', { name: '실시간 뉴스·공시 피드' }),
     ).toBeInTheDocument()
   })
 

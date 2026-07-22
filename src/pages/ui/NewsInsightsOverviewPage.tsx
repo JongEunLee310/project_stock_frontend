@@ -115,7 +115,7 @@ export function NewsInsightsOverviewPage() {
         onRetry={() => void overviewQuery.refetch()}
       />
 
-      <div className="grid gap-4 xl:grid-cols-2 2xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.15fr)]">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.9fr)_minmax(22rem,1fr)]">
         <RealtimeEventFeed
           events={events}
           isLoading={eventsQuery.isLoading}
@@ -126,14 +126,15 @@ export function NewsInsightsOverviewPage() {
           onLoadMore={() => void eventsQuery.fetchNextPage()}
           onRetry={() => void eventsQuery.refetch()}
         />
-        <AgentBriefing
-          data={overviewQuery.data?.briefing}
-          isLoading={overviewQuery.isLoading}
-          isError={overviewQuery.isError}
-          onRetry={() => void overviewQuery.refetch()}
-        />
         <TopicMap />
       </div>
+
+      <AgentBriefing
+        data={overviewQuery.data?.briefing}
+        isLoading={overviewQuery.isLoading}
+        isError={overviewQuery.isError}
+        onRetry={() => void overviewQuery.refetch()}
+      />
 
       <section aria-labelledby="planned-panels-title">
         <div className="mb-3">

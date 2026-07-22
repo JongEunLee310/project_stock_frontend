@@ -20,7 +20,6 @@ import {
   EmptyState,
   ErrorState,
   Skeleton,
-  type BadgeTone,
 } from '@/shared/ui'
 
 const CytoscapeComponent = lazy(() => import('react-cytoscapejs'))
@@ -28,18 +27,15 @@ const CytoscapeComponent = lazy(() => import('react-cytoscapejs'))
 const topicNodePrefix = 'topic:'
 
 const categoryPresentations = {
-  GROWTH: { label: '성장', color: '#8b5cf6', tone: 'accent' },
-  REGULATION: { label: '규제', color: '#f97316', tone: 'warning' },
-  EARNINGS: { label: '실적', color: '#0ea5e9', tone: 'info' },
-  DEMAND: { label: '수요', color: '#14b8a6', tone: 'success' },
-  MARKET_EVENT: { label: '시장 이벤트', color: '#3b82f6', tone: 'info' },
-  CAPITAL_POLICY: { label: '자본 정책', color: '#ec4899', tone: 'accent' },
-  SUPPLY_CHAIN: { label: '공급망', color: '#eab308', tone: 'warning' },
-  UNCATEGORIZED: { label: '미분류', color: '#64748b', tone: 'neutral' },
-} as const satisfies Record<
-  string,
-  { label: string; color: string; tone: BadgeTone }
->
+  GROWTH: { label: '성장/투자', color: '#8b5cf6' },
+  REGULATION: { label: '규제/정책', color: '#f97316' },
+  EARNINGS: { label: '실적/기업', color: '#0ea5e9' },
+  DEMAND: { label: '수요/소비', color: '#14b8a6' },
+  MARKET_EVENT: { label: '시장 이벤트', color: '#3b82f6' },
+  CAPITAL_POLICY: { label: '자본정책', color: '#ec4899' },
+  SUPPLY_CHAIN: { label: '공급망', color: '#eab308' },
+  UNCATEGORIZED: { label: '미분류', color: '#64748b' },
+} as const satisfies Record<string, { label: string; color: string }>
 
 const sentimentPresentations = [
   { label: '부정 0–33%', color: '#f87171' },
@@ -168,22 +164,24 @@ function TopicMapLegend() {
   return (
     <div className="space-y-3 border-t border-app-border px-panel py-4">
       <div
-        className="flex flex-wrap items-center gap-2"
+        className="flex flex-wrap items-center gap-x-4 gap-y-2"
         aria-label="카테고리 범례"
       >
-        <span className="mr-1 text-xs font-semibold text-app-text-muted">
-          카테고리
-        </span>
-        {Object.values(categoryPresentations).map((presentation) => (
-          <Badge key={presentation.label} tone={presentation.tone}>
+        {Object.entries(categoryPresentations)
+          .filter(([category]) => category !== 'UNCATEGORIZED')
+          .map(([category, presentation]) => (
             <span
-              className="mr-1.5 h-2 w-2 rounded-full"
-              style={{ backgroundColor: presentation.color }}
-              aria-hidden="true"
-            />
-            {presentation.label}
-          </Badge>
-        ))}
+              key={category}
+              className="inline-flex items-center gap-1.5 text-xs text-app-text-muted"
+            >
+              <span
+                className="h-2 w-2 rounded-full"
+                style={{ backgroundColor: presentation.color }}
+                aria-hidden="true"
+              />
+              {presentation.label}
+            </span>
+          ))}
       </div>
       <div className="flex flex-wrap items-center gap-3" aria-label="감성 범례">
         <span className="text-xs font-semibold text-app-text-muted">
