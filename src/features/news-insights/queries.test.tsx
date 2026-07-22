@@ -13,6 +13,7 @@ import type {
   NewsInvestorFlowsDto,
   NewsTopicDetailDto,
   NewsTopicEvidenceItemDto,
+  NewsTopicExplanationDto,
   NewsTopicGraphDto,
   NewsTopicMapDto,
   NewsTopicScenariosDto,
@@ -27,6 +28,7 @@ import {
   useNewsOverviewQuery,
   useNewsTopicDetailQuery,
   useNewsTopicEvidenceQuery,
+  useNewsTopicExplanationQuery,
   useNewsTopicGraphQuery,
   useNewsTopicMapQuery,
   useNewsTopicScenariosQuery,
@@ -173,6 +175,25 @@ const topicTrendDto: NewsTopicTrendDto = {
   ],
   markers: [],
   source_distribution: [],
+}
+
+const topicExplanationDto: NewsTopicExplanationDto = {
+  factors: [{ label: '수요 증가', contribution_ratio: 0.6 }],
+  meta: {
+    analysis_version: 'v3.2',
+    data_coverage: 0.9,
+    last_updated: '2026-07-21T06:00:00Z',
+    missing_data: [],
+    counter_argument_count: 1,
+    confidence: 0.84,
+    limitations: [],
+  },
+  counter_view: {
+    counter_arguments: ['고평가 가능성'],
+    invalidation_conditions: ['주문 감소'],
+    already_priced_in: { likely: false, note: null },
+    contradicting_evidence: [],
+  },
 }
 
 const topicSymbolsDto: NewsTopicSymbolSensitivityItemDto[] = [
@@ -697,6 +718,49 @@ describe('news insights queries', () => {
       new ApiError('INTERNAL_ERROR', '요청에 실패했습니다.'),
     )
     const failure = renderHook(() => useNewsTopicEvidenceQuery('8'), {
+      wrapper: createWrapper(),
+    })
+    await waitFor(() => expect(failure.result.current.isError).toBe(true))
+    expect(failure.result.current.error).toBeInstanceOf(ApiError)
+  })
+
+  it('fetches topic explanation, preserves empty data, guards id, and isolates errors', async () => {
+    vi.mocked(apiGet).mockResolvedValueOnce({ data: topicExplanationDto })
+    const success = renderHook(() => useNewsTopicExplanationQuery('topic/7'), {
+      wrapper: createWrapper(),
+    })
+    await waitFor(() => expect(success.result.current.isSuccess).toBe(true))
+    expect(apiGet).toHaveBeenCalledWith(
+      '/news-insights/topics/topic%2F7/explanation',
+    )
+    expect(success.result.current.data?.factors[0]).toEqual({
+      label: '수요 증가',
+      contributionRatio: 0.6,
+    })
+    success.unmount()
+
+    vi.mocked(apiGet).mockResolvedValueOnce({
+      data: { ...topicExplanationDto, factors: [] },
+    })
+    const empty = renderHook(() => useNewsTopicExplanationQuery('7'), {
+      wrapper: createWrapper(),
+    })
+    await waitFor(() => expect(empty.result.current.isSuccess).toBe(true))
+    expect(empty.result.current.data?.factors).toEqual([])
+    empty.unmount()
+
+    vi.mocked(apiGet).mockClear()
+    const guarded = renderHook(() => useNewsTopicExplanationQuery(''), {
+      wrapper: createWrapper(),
+    })
+    expect(guarded.result.current.fetchStatus).toBe('idle')
+    expect(apiGet).not.toHaveBeenCalled()
+    guarded.unmount()
+
+    vi.mocked(apiGet).mockRejectedValueOnce(
+      new ApiError('INTERNAL_ERROR', '미분석 토픽입니다.'),
+    )
+    const failure = renderHook(() => useNewsTopicExplanationQuery('8'), {
       wrapper: createWrapper(),
     })
     await waitFor(() => expect(failure.result.current.isError).toBe(true))

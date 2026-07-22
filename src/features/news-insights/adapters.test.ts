@@ -6,6 +6,7 @@ import {
   adaptNewsOverview,
   adaptNewsTopicDetail,
   adaptNewsTopicEvidence,
+  adaptNewsTopicExplanation,
   adaptNewsTopicGraph,
   adaptNewsTopicMap,
   adaptNewsTopicScenarios,
@@ -20,6 +21,7 @@ import type {
   NewsInvestorFlowsDto,
   NewsTopicDetailDto,
   NewsTopicEvidenceItemDto,
+  NewsTopicExplanationDto,
   NewsTopicGraphDto,
   NewsTopicMapDto,
   NewsTopicScenariosDto,
@@ -246,6 +248,36 @@ const topicEvidenceDto: NewsTopicEvidenceItemDto = {
   published_at: '2026-07-21T00:00:00Z',
 }
 
+const topicExplanationDto: NewsTopicExplanationDto = {
+  factors: [
+    { label: ' 수요 증가 ', contribution_ratio: 0.425 },
+    { label: ' 공급 제약 ', contribution_ratio: 0.575 },
+  ],
+  meta: {
+    analysis_version: ' v3.2 ',
+    data_coverage: 0.86,
+    last_updated: '2026-07-21T06:00:00Z',
+    missing_data: [' 해외 비공개 주문 '],
+    counter_argument_count: 2,
+    confidence: 0.81,
+    limitations: [' 단기 표본 중심 '],
+  },
+  counter_view: {
+    counter_arguments: [' 밸류에이션 부담 '],
+    invalidation_conditions: [' 주문 감소 '],
+    already_priced_in: { likely: true, note: ' 주가에 일부 반영됨 ' },
+    contradicting_evidence: [
+      {
+        event_id: 30,
+        document_id: 40,
+        title: ' 수요 둔화 기사 ',
+        source: ' Reuters ',
+        published_at: '2026-07-21T00:00:00Z',
+      },
+    ],
+  },
+}
+
 const topicSymbolsDto: NewsTopicSymbolSensitivityItemDto[] = [
   {
     symbol: ' NVDA ',
@@ -290,6 +322,56 @@ const topicGraphDto: NewsTopicGraphDto = {
 }
 
 describe('news insights adapters', () => {
+  it('preserves backend contribution ratios and adapts explanation metadata', () => {
+    const result = adaptNewsTopicExplanation(topicExplanationDto)
+
+    expect(result.factors).toEqual([
+      { label: '수요 증가', contributionRatio: 0.425 },
+      { label: '공급 제약', contributionRatio: 0.575 },
+    ])
+    expect(result.meta).toEqual(
+      expect.objectContaining({
+        analysisVersion: 'v3.2',
+        dataCoveragePercent: 86,
+        missingData: ['해외 비공개 주문'],
+        counterArgumentCount: 2,
+        confidencePercent: 81,
+        limitations: ['단기 표본 중심'],
+      }),
+    )
+    expect(result.counterView).toEqual(
+      expect.objectContaining({
+        counterArguments: ['밸류에이션 부담'],
+        invalidationConditions: ['주문 감소'],
+        alreadyPricedIn: { likely: true, note: '주가에 일부 반영됨' },
+        contradictingEvidence: [
+          expect.objectContaining({
+            id: '30-40',
+            title: '수요 둔화 기사',
+            source: 'Reuters',
+          }),
+        ],
+      }),
+    )
+  })
+
+  it('preserves empty explanation collections without creating factors', () => {
+    const result = adaptNewsTopicExplanation({
+      ...topicExplanationDto,
+      factors: [],
+      counter_view: {
+        counter_arguments: [],
+        invalidation_conditions: [],
+        already_priced_in: { likely: false, note: null },
+        contradicting_evidence: [],
+      },
+    })
+
+    expect(result.factors).toEqual([])
+    expect(result.counterView.counterArguments).toEqual([])
+    expect(result.counterView.contradictingEvidence).toEqual([])
+  })
+
   it('maps fund-flow outlook levels and keeps the server range with grounded sentences', () => {
     const result = adaptNewsFundFlowOutlook(fundFlowOutlookDto)
 

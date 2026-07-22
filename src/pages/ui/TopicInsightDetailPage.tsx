@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import {
   useNewsTopicDetailQuery,
   useNewsTopicEvidenceQuery,
+  useNewsTopicExplanationQuery,
   useNewsTopicTrendQuery,
 } from '@/features/news-insights'
 import { appRoutePaths } from '@/shared/config/navigation'
@@ -10,6 +11,7 @@ import { Button } from '@/shared/ui'
 import { CounterViewPanel } from '@/widgets/CounterViewPanel'
 import { FundFlowScenarioPanel } from '@/widgets/FundFlowScenarioPanel'
 import { InvestorFlowPanel } from '@/widgets/InvestorFlowPanel'
+import { InsightExplanationPanel } from '@/widgets/InsightExplanationPanel'
 import { PlannedPanelCard, type PlannedPanel } from '@/widgets/PlannedPanelCard'
 import { TopicEvidenceList } from '@/widgets/TopicEvidenceList'
 import { TopicInsightSummary } from '@/widgets/TopicInsightSummary'
@@ -19,19 +21,12 @@ import { TopicSummaryHeader } from '@/widgets/TopicSummaryHeader'
 import { TopicTrendChart } from '@/widgets/TopicTrendChart'
 
 const plannedPanels = {
-  explanation: {
-    title: '왜 이런 인사이트',
-    description:
-      'AI Agent의 분석 단계와 주요 요인 기여도를 근거와 함께 설명합니다.',
-    phase: '3차',
-    issue: '#268',
-  },
   actionChecklist: {
     title: '액션 체크리스트',
     description:
       '관련 종목 리서치, 포트폴리오 확인, 알림과 판단 기록을 한곳에서 점검합니다.',
     phase: '3차',
-    issue: '#268',
+    issue: '#270',
   },
 } as const satisfies Record<string, PlannedPanel>
 
@@ -41,6 +36,7 @@ export function TopicInsightDetailPage() {
   const detailQuery = useNewsTopicDetailQuery(topicId)
   const trendQuery = useNewsTopicTrendQuery(topicId)
   const evidenceQuery = useNewsTopicEvidenceQuery(topicId)
+  const explanationQuery = useNewsTopicExplanationQuery(topicId)
   const evidence = evidenceQuery.data?.flatMap((page) => page.items) ?? []
 
   return (
@@ -114,13 +110,22 @@ export function TopicInsightDetailPage() {
 
         <TopicSymbolSensitivity topicId={topicId} />
 
-        <PlannedPanelCard panel={plannedPanels.explanation} />
+        <InsightExplanationPanel
+          data={explanationQuery.data}
+          isLoading={explanationQuery.isLoading}
+          isError={explanationQuery.isError}
+          onRetry={() => void explanationQuery.refetch()}
+        />
         <PlannedPanelCard panel={plannedPanels.actionChecklist} />
         <CounterViewPanel
           counterArguments={detailQuery.data?.insight.counterArguments ?? []}
+          explanation={explanationQuery.data}
           isLoading={detailQuery.isLoading}
           isError={detailQuery.isError}
+          isExplanationLoading={explanationQuery.isLoading}
+          isExplanationError={explanationQuery.isError}
           onRetry={() => void detailQuery.refetch()}
+          onExplanationRetry={() => void explanationQuery.refetch()}
         />
       </div>
     </section>

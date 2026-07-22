@@ -308,3 +308,34 @@ export interface NewsTopicEvidenceItemDto {
   source: string
   published_at: string
 }
+
+export interface NewsTopicExplanationDto {
+  factors: Array<{
+    label: string
+    contribution_ratio: number
+  }>
+  meta: {
+    analysis_version: string
+    data_coverage: number
+    last_updated: string
+    missing_data: string[]
+    counter_argument_count: number
+    confidence: number
+    limitations: string[]
+  }
+  counter_view: {
+    counter_arguments: string[]
+    invalidation_conditions: string[]
+    already_priced_in: {
+      likely: boolean
+      note: string | null
+    }
+    contradicting_evidence: Array<{
+      event_id: number
+      document_id: number
+      title: string
+      source: string
+      published_at: string
+    }>
+  }
+}

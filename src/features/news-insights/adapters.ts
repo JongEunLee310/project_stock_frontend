@@ -15,6 +15,7 @@ import type {
   NewsInsightSummaryMetricDto,
   NewsTopicDetailDto,
   NewsTopicEvidenceItemDto,
+  NewsTopicExplanationDto,
   NewsTopicGraphDto,
   NewsTopicTrendDto,
   NewsTopicCategoryDto,
@@ -255,6 +256,38 @@ export interface NewsTopicEvidenceView {
   relevancePercent: number
   source: string
   publishedAt: string
+}
+
+export interface NewsTopicExplanationView {
+  factors: Array<{
+    label: string
+    contributionRatio: number
+  }>
+  meta: {
+    analysisVersion: string
+    dataCoveragePercent: number
+    lastUpdated: string
+    missingData: string[]
+    counterArgumentCount: number
+    confidencePercent: number
+    limitations: string[]
+  }
+  counterView: {
+    counterArguments: string[]
+    invalidationConditions: string[]
+    alreadyPricedIn: {
+      likely: boolean
+      note: string | null
+    }
+    contradictingEvidence: Array<{
+      id: string
+      eventId: string
+      documentId: string
+      title: string
+      source: string
+      publishedAt: string
+    }>
+  }
 }
 
 export interface NewsTopicSymbolSensitivityView {
@@ -965,5 +998,47 @@ export function adaptNewsTopicEvidence(
     relevancePercent: toScorePercent(dto.relevance_score),
     source: dto.source.trim() || '출처 미상',
     publishedAt: formatDateTime(dto.published_at),
+  }
+}
+
+export function adaptNewsTopicExplanation(
+  dto: NewsTopicExplanationDto,
+): NewsTopicExplanationView {
+  return {
+    factors: dto.factors.map((factor) => ({
+      label: factor.label.trim() || '요인명 없음',
+      contributionRatio: factor.contribution_ratio,
+    })),
+    meta: {
+      analysisVersion: dto.meta.analysis_version.trim() || '버전 미상',
+      dataCoveragePercent: toScorePercent(dto.meta.data_coverage),
+      lastUpdated: formatDateTime(dto.meta.last_updated),
+      missingData: trimStrings(dto.meta.missing_data),
+      counterArgumentCount: toNonNegativeInteger(
+        dto.meta.counter_argument_count,
+      ),
+      confidencePercent: toScorePercent(dto.meta.confidence),
+      limitations: trimStrings(dto.meta.limitations),
+    },
+    counterView: {
+      counterArguments: trimStrings(dto.counter_view.counter_arguments),
+      invalidationConditions: trimStrings(
+        dto.counter_view.invalidation_conditions,
+      ),
+      alreadyPricedIn: {
+        likely: dto.counter_view.already_priced_in.likely,
+        note: dto.counter_view.already_priced_in.note?.trim() || null,
+      },
+      contradictingEvidence: dto.counter_view.contradicting_evidence.map(
+        (evidence) => ({
+          id: `${evidence.event_id}-${evidence.document_id}`,
+          eventId: String(evidence.event_id),
+          documentId: String(evidence.document_id),
+          title: evidence.title.trim() || '제목 없음',
+          source: evidence.source.trim() || '출처 미상',
+          publishedAt: formatDateTime(evidence.published_at),
+        }),
+      ),
+    },
   }
 }
