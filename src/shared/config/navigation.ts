@@ -6,6 +6,7 @@ export const appRoutePaths = {
   researchNews: '/research/:symbol/news',
   researchDetail: '/research/:symbol',
   news: '/news',
+  newsTopicDetail: '/news/topics/:topicId',
   portfolio: '/portfolio',
   alerts: '/alerts',
   decisionLog: '/decision-log',
@@ -17,7 +18,7 @@ export const appRoutePaths = {
 
 export type AppRouteId = Exclude<
   keyof typeof appRoutePaths,
-  'decisionAnalytics' | 'decisionDetail' | 'decisionReview'
+  'newsTopicDetail' | 'decisionAnalytics' | 'decisionDetail' | 'decisionReview'
 >
 
 export interface NavigationItem {

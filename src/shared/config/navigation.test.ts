@@ -34,6 +34,7 @@ describe('getActiveNavigationItem', () => {
     const newsIndex = navigationItems.findIndex((item) => item.id === 'news')
 
     expect(appRoutePaths.news).toBe('/news')
+    expect(appRoutePaths.newsTopicDetail).toBe('/news/topics/:topicId')
     expect(newsIndex).toBe(researchIndex + 1)
     expect(navigationItems[newsIndex]).toMatchObject({
       label: 'News & Disclosures',

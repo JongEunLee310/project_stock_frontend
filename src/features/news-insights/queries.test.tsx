@@ -5,8 +5,16 @@ import { createElement, type ReactNode } from 'react'
 import { apiGet } from '@/shared/api/client'
 import { ApiError } from '@/shared/api/envelope'
 
-import type { NewsInsightEventDto, NewsInsightOverviewDto } from './dto'
-import { useNewsEventsQuery, useNewsOverviewQuery } from './queries'
+import type {
+  NewsInsightEventDto,
+  NewsInsightOverviewDto,
+  NewsTopicMapDto,
+} from './dto'
+import {
+  useNewsEventsQuery,
+  useNewsOverviewQuery,
+  useNewsTopicMapQuery,
+} from './queries'
 
 vi.mock('@/shared/api/client', () => ({ apiGet: vi.fn() }))
 
@@ -33,6 +41,21 @@ const overviewDto: NewsInsightOverviewDto = {
     highlights: [],
     generated_at: '2026-07-21T05:50:00Z',
   },
+}
+
+const topicMapDto: NewsTopicMapDto = {
+  nodes: [
+    {
+      id: 'topic:7',
+      label: '반도체 장기 수요 회복',
+      type: 'TOPIC',
+      mention_count: 12,
+      momentum_score: 0.81,
+      sentiment_score: 0.76,
+      category: 'DEMAND',
+    },
+  ],
+  edges: [],
 }
 
 function createEvent(id: number): NewsInsightEventDto {
@@ -125,6 +148,37 @@ describe('news insights queries', () => {
     )
 
     const { result } = renderHook(() => useNewsEventsQuery(), {
+      wrapper: createWrapper(),
+    })
+
+    await waitFor(() => expect(result.current.isError).toBe(true))
+    expect(result.current.error).toBeInstanceOf(ApiError)
+  })
+
+  it('fetches and adapts the topic map response', async () => {
+    vi.mocked(apiGet).mockResolvedValue({ data: topicMapDto })
+
+    const { result } = renderHook(() => useNewsTopicMapQuery(), {
+      wrapper: createWrapper(),
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(apiGet).toHaveBeenCalledWith('/news-insights/topics/map')
+    expect(result.current.data?.nodes[0]).toEqual(
+      expect.objectContaining({
+        id: 'topic:7',
+        mentionCount: 12,
+        sentimentScore: 0.76,
+      }),
+    )
+  })
+
+  it('preserves ApiError when the topic map request fails', async () => {
+    vi.mocked(apiGet).mockRejectedValue(
+      new ApiError('INTERNAL_ERROR', '요청에 실패했습니다.'),
+    )
+
+    const { result } = renderHook(() => useNewsTopicMapQuery(), {
       wrapper: createWrapper(),
     })
 

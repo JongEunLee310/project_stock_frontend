@@ -46,3 +46,36 @@ export interface NewsInsightEventDto {
   evidence_count: number
   topic_ids: number[]
 }
+
+export type NewsTopicMapNodeTypeDto = 'TOPIC' | 'KEYWORD'
+
+export type NewsTopicCategoryDto =
+  | 'GROWTH'
+  | 'REGULATION'
+  | 'EARNINGS'
+  | 'DEMAND'
+  | 'MARKET_EVENT'
+  | 'CAPITAL_POLICY'
+  | 'SUPPLY_CHAIN'
+
+export interface NewsTopicMapNodeDto {
+  id: string
+  label: string
+  type: NewsTopicMapNodeTypeDto
+  mention_count: number
+  momentum_score: number
+  sentiment_score: number
+  category: NewsTopicCategoryDto | null
+}
+
+export interface NewsTopicMapEdgeDto {
+  source: string
+  target: string
+  strength: number
+  cooccurrence_count: number
+}
+
+export interface NewsTopicMapDto {
+  nodes: NewsTopicMapNodeDto[]
+  edges: NewsTopicMapEdgeDto[]
+}
