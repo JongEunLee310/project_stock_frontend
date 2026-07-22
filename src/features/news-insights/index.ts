@@ -1,4 +1,6 @@
 export {
+  adaptNewsAgentRuns,
+  adaptNewsCalendar,
   adaptNewsEvent,
   adaptNewsEventDetail,
   adaptNewsFundFlowOutlook,
@@ -12,6 +14,11 @@ export {
   adaptNewsTopicScenarios,
   adaptNewsTopicSymbols,
   adaptNewsTopicTrend,
+  agentRunStatusPresentations,
+  agentStagePresentations,
+  marketEventKindPresentations,
+  type NewsAgentRunsView,
+  type NewsCalendarItemView,
   type NewsEventView,
   type NewsEventDetailView,
   type FundFlowOutlookItemView,
@@ -35,6 +42,8 @@ export {
   type TopicScoreView,
 } from './adapters'
 export {
+  useNewsAgentRunsQuery,
+  useNewsCalendarQuery,
   useNewsEventsQuery,
   useNewsEventDetailQuery,
   useNewsFundFlowOutlookQuery,
@@ -49,14 +58,20 @@ export {
   useNewsTopicSymbolsQuery,
   useNewsTopicTrendQuery,
   type NewsEventsPage,
+  type NewsCalendarQueryParams,
   type NewsInvestorFlowsQueryParams,
   type NewsTopicEvidencePage,
 } from './queries'
 export type {
+  AgentRunStatusDto,
+  AgentStageDto,
   FlowDirectionDto,
   FlowLikelihoodDto,
   FundFlowDirectionDto,
   InvestorTypeDto,
+  MarketEventKindDto,
+  NewsAgentRunsDto,
+  NewsCalendarItemDto,
   NewsInvestorFlowsDto,
   NewsFundFlowOutlookDto,
   NewsTopicScenariosDto,

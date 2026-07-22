@@ -9,6 +9,8 @@ import {
 } from '@/shared/api/paging'
 
 import {
+  adaptNewsAgentRuns,
+  adaptNewsCalendar,
   adaptNewsEvent,
   adaptNewsEventDetail,
   adaptNewsFundFlowOutlook,
@@ -22,6 +24,8 @@ import {
   adaptNewsTopicScenarios,
   adaptNewsTopicSymbols,
   adaptNewsTopicTrend,
+  type NewsAgentRunsView,
+  type NewsCalendarItemView,
   type NewsEventView,
   type NewsEventDetailView,
   type NewsFundFlowOutlookView,
@@ -37,6 +41,8 @@ import {
   type NewsTopicTrendView,
 } from './adapters'
 import type {
+  NewsAgentRunsDto,
+  NewsCalendarItemDto,
   NewsEventDetailDto,
   NewsFundFlowOutlookDto,
   NewsInvestorFlowsDto,
@@ -82,6 +88,39 @@ export interface NewsInvestorFlowsQueryParams {
   market: string
   window: string
   topicId?: string
+}
+
+export interface NewsCalendarQueryParams {
+  market: string
+  window: string
+}
+
+export function useNewsCalendarQuery({
+  market,
+  window,
+}: NewsCalendarQueryParams) {
+  return useQuery<NewsCalendarItemView[]>({
+    queryKey: ['news-insights', 'calendar', market, window],
+    queryFn: async () => {
+      const searchParams = new URLSearchParams({ market, window })
+      const { data } = await apiGet<NewsCalendarItemDto[]>(
+        `/news-insights/calendar?${searchParams.toString()}`,
+      )
+      return adaptNewsCalendar(data)
+    },
+  })
+}
+
+export function useNewsAgentRunsQuery() {
+  return useQuery<NewsAgentRunsView>({
+    queryKey: ['news-insights', 'agent-runs'],
+    queryFn: async () => {
+      const { data } = await apiGet<NewsAgentRunsDto>(
+        '/news-insights/agent-runs',
+      )
+      return adaptNewsAgentRuns(data)
+    },
+  })
 }
 
 export function useNewsInvestorFlowsQuery({

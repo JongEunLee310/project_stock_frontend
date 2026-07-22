@@ -2,10 +2,15 @@ import { formatKstDateTime, formatKstTime } from '@/shared/lib/format'
 import type { BadgeTone } from '@/shared/ui'
 
 import type {
+  AgentRunStatusDto,
+  AgentStageDto,
   FlowDirectionDto,
   FlowLikelihoodDto,
   FundFlowDirectionDto,
   InvestorTypeDto,
+  MarketEventKindDto,
+  NewsAgentRunsDto,
+  NewsCalendarItemDto,
   NewsFundFlowOutlookDto,
   NewsEventDetailDto,
   NewsInvestorFlowsDto,
@@ -50,6 +55,35 @@ export interface NewsInvestorFlowsView {
 interface PresentationView {
   label: string
   tone: BadgeTone
+}
+
+export interface NewsCalendarItemView {
+  scheduledAt: string
+  scheduledAtLabel: string
+  eventKind: MarketEventKindDto
+  eventKindPresentation: PresentationView
+  title: string
+  symbol: string | null
+  market: string | null
+  importancePercent: number
+  importancePresentation: PresentationView
+  relatedTopicIds: string[]
+}
+
+export interface NewsAgentRunsView {
+  lastProcessedAt: string
+  processedDocuments: number
+  extractedEvents: number
+  activeTopics: number
+  stages: Array<{
+    name: AgentStageDto
+    namePresentation: PresentationView
+    status: AgentRunStatusDto
+    statusPresentation: PresentationView
+    delayed: boolean
+  }>
+  analysisVersion: string
+  hasDelay: boolean
 }
 
 export interface FundFlowOutlookItemView {
@@ -484,6 +518,42 @@ export const scenarioKindPresentations: Record<
   CONSERVATIVE: { label: '보수', tone: 'warning' },
 }
 
+export const marketEventKindPresentations: Record<
+  MarketEventKindDto,
+  PresentationView
+> = {
+  EARNINGS: { label: '실적 발표', tone: 'accent' },
+  IR_EVENT: { label: 'IR 행사', tone: 'info' },
+  POLICY: { label: '정책 발표', tone: 'warning' },
+  RATE_DECISION: { label: '금리 결정', tone: 'danger' },
+  SHAREHOLDER_MEETING: { label: '주주총회', tone: 'info' },
+  PRODUCT_EVENT: { label: '제품 행사', tone: 'success' },
+  REGULATION: { label: '규제 일정', tone: 'warning' },
+  LOCKUP_EXPIRY: { label: '보호예수 해제', tone: 'danger' },
+  OTHER: { label: '기타 일정', tone: 'neutral' },
+}
+
+export const agentStagePresentations: Record<AgentStageDto, PresentationView> =
+  {
+    COLLECT: { label: '수집', tone: 'info' },
+    NORMALIZE: { label: '정규화', tone: 'info' },
+    EXTRACT: { label: '이벤트 추출', tone: 'accent' },
+    CLUSTER: { label: '토픽 군집', tone: 'accent' },
+    SENTIMENT: { label: '감성 분석', tone: 'accent' },
+    IMPACT: { label: '영향 분석', tone: 'warning' },
+    LINK: { label: '근거 연결', tone: 'success' },
+  }
+
+export const agentRunStatusPresentations: Record<
+  AgentRunStatusDto,
+  PresentationView
+> = {
+  RUNNING: { label: '실행 중', tone: 'info' },
+  COMPLETED: { label: '완료', tone: 'success' },
+  DELAYED: { label: '지연', tone: 'warning' },
+  FAILED: { label: '실패', tone: 'danger' },
+}
+
 const topicScoreDefinitions = [
   { id: 'impact', label: '종합 영향도', tone: 'danger' },
   { id: 'sentiment', label: '감성 방향', tone: 'success' },
@@ -590,6 +660,51 @@ export function adaptNewsOverview(
       })),
       generatedAt: formatDateTime(dto.briefing.generated_at),
     },
+  }
+}
+
+function importancePresentation(scorePercent: number): PresentationView {
+  if (scorePercent >= 67) return { label: '중요도 높음', tone: 'danger' }
+  if (scorePercent >= 34) return { label: '중요도 중간', tone: 'warning' }
+  return { label: '중요도 낮음', tone: 'success' }
+}
+
+export function adaptNewsCalendar(
+  dto: NewsCalendarItemDto[],
+): NewsCalendarItemView[] {
+  return dto.map((item) => {
+    const importancePercent = toScorePercent(item.importance)
+
+    return {
+      scheduledAt: item.scheduled_at,
+      scheduledAtLabel: formatDateTime(item.scheduled_at),
+      eventKind: item.event_kind,
+      eventKindPresentation: marketEventKindPresentations[item.event_kind],
+      title: item.title.trim() || '제목 없음',
+      symbol: item.symbol?.trim() || null,
+      market: item.market?.trim() || null,
+      importancePercent,
+      importancePresentation: importancePresentation(importancePercent),
+      relatedTopicIds: item.related_topic_ids.map(String),
+    }
+  })
+}
+
+export function adaptNewsAgentRuns(dto: NewsAgentRunsDto): NewsAgentRunsView {
+  return {
+    lastProcessedAt: formatDateTime(dto.last_processed_at),
+    processedDocuments: toNonNegativeInteger(dto.processed_documents),
+    extractedEvents: toNonNegativeInteger(dto.extracted_events),
+    activeTopics: toNonNegativeInteger(dto.active_topics),
+    stages: dto.stages.map((stage) => ({
+      name: stage.name,
+      namePresentation: agentStagePresentations[stage.name],
+      status: stage.status,
+      statusPresentation: agentRunStatusPresentations[stage.status],
+      delayed: stage.delayed,
+    })),
+    analysisVersion: dto.analysis_version.trim() || '버전 미상',
+    hasDelay: dto.has_delay,
   }
 }
 

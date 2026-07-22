@@ -2,10 +2,14 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 
 import {
+  useNewsAgentRunsQuery,
+  useNewsCalendarQuery,
   useNewsEventsQuery,
   useNewsFundFlowOutlookQuery,
   useNewsInvestorFlowsQuery,
   useNewsOverviewQuery,
+  type NewsAgentRunsView,
+  type NewsCalendarItemView,
   type NewsEventView,
   type NewsFundFlowOutlookView,
   type NewsInvestorFlowsView,
@@ -32,6 +36,8 @@ vi.mock('@/features/news-insights', async (importOriginal) => {
   return {
     ...actual,
     useNewsEventsQuery: vi.fn(),
+    useNewsAgentRunsQuery: vi.fn(),
+    useNewsCalendarQuery: vi.fn(),
     useNewsFundFlowOutlookQuery: vi.fn(),
     useNewsInvestorFlowsQuery: vi.fn(),
     useNewsOverviewQuery: vi.fn(),
@@ -119,11 +125,46 @@ const fundFlowOutlook: NewsFundFlowOutlookView = {
   ],
 }
 
+const calendar: NewsCalendarItemView[] = [
+  {
+    scheduledAt: '2026-08-01T00:00:00Z',
+    scheduledAtLabel: '2026. 8. 1. 오전 9:00',
+    eventKind: 'EARNINGS',
+    eventKindPresentation: { label: '실적 발표', tone: 'accent' },
+    title: '예정 실적 발표',
+    symbol: '005930',
+    market: 'KR',
+    importancePercent: 85,
+    importancePresentation: { label: '중요도 높음', tone: 'danger' },
+    relatedTopicIds: ['3'],
+  },
+]
+
+const agentRuns: NewsAgentRunsView = {
+  lastProcessedAt: '2026. 7. 21. 오후 3:00',
+  processedDocuments: 1200,
+  extractedEvents: 48,
+  activeTopics: 12,
+  stages: [
+    {
+      name: 'COLLECT',
+      namePresentation: { label: '수집', tone: 'info' },
+      status: 'COMPLETED',
+      statusPresentation: { label: '완료', tone: 'success' },
+      delayed: false,
+    },
+  ],
+  analysisVersion: 'v3.2',
+  hasDelay: false,
+}
+
 function mockQueries({
   overviewError = false,
   eventsError = false,
   flowsError = false,
   outlookError = false,
+  calendarError = false,
+  agentRunsError = false,
   loading = false,
 } = {}) {
   vi.mocked(useNewsOverviewQuery).mockReturnValue({
@@ -154,6 +195,18 @@ function mockQueries({
     isError: outlookError,
     refetch: vi.fn(),
   } as unknown as ReturnType<typeof useNewsFundFlowOutlookQuery>)
+  vi.mocked(useNewsCalendarQuery).mockReturnValue({
+    data: calendarError || loading ? undefined : calendar,
+    isLoading: loading,
+    isError: calendarError,
+    refetch: vi.fn(),
+  } as unknown as ReturnType<typeof useNewsCalendarQuery>)
+  vi.mocked(useNewsAgentRunsQuery).mockReturnValue({
+    data: agentRunsError || loading ? undefined : agentRuns,
+    isLoading: loading,
+    isError: agentRunsError,
+    refetch: vi.fn(),
+  } as unknown as ReturnType<typeof useNewsAgentRunsQuery>)
 }
 
 describe('NewsInsightsOverviewPage', () => {
@@ -161,7 +214,7 @@ describe('NewsInsightsOverviewPage', () => {
     mockQueries()
   })
 
-  it('composes API-backed overview widgets and planned phase panels', () => {
+  it('composes API-backed overview widgets and removes the exhausted roadmap section', () => {
     renderPage()
 
     expect(
@@ -186,9 +239,18 @@ describe('NewsInsightsOverviewPage', () => {
     expect(
       screen.queryByLabelText('예상 자금 흐름 준비 중'),
     ).not.toBeInTheDocument()
-    ;['이벤트 타임라인', '에이전트 파이프라인'].forEach((title) => {
-      expect(screen.getByLabelText(`${title} 준비 중`)).toBeVisible()
-    })
+    expect(screen.getByText('예정 실적 발표')).toBeVisible()
+    expect(screen.getByText('1,200건')).toBeVisible()
+    expect(screen.getByText('분석 버전 v3.2')).toBeVisible()
+    expect(
+      screen.queryByRole('heading', { name: '단계별 확장 패널' }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByLabelText('이벤트 타임라인 준비 중'),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByLabelText('에이전트 파이프라인 준비 중'),
+    ).not.toBeInTheDocument()
     expect(screen.queryByLabelText('토픽 맵 준비 중')).not.toBeInTheDocument()
   })
 
@@ -236,6 +298,26 @@ describe('NewsInsightsOverviewPage', () => {
     ).toBeVisible()
     expect(screen.getByText('API 이벤트 제목')).toBeVisible()
     expect(screen.getByRole('heading', { name: '투자자 동향' })).toBeVisible()
-    expect(screen.getByLabelText('이벤트 타임라인 준비 중')).toBeVisible()
+    expect(screen.getByText('예정 실적 발표')).toBeVisible()
+  })
+
+  it('isolates calendar and agent-run failures from each other and the page', () => {
+    mockQueries({ calendarError: true })
+    const { unmount } = renderPage()
+
+    expect(
+      screen.getByText('이벤트 타임라인을 불러오지 못했습니다'),
+    ).toBeVisible()
+    expect(screen.getByText('1,200건')).toBeVisible()
+    expect(screen.getByText('API 이벤트 제목')).toBeVisible()
+    unmount()
+
+    mockQueries({ agentRunsError: true })
+    renderPage()
+    expect(
+      screen.getByText('에이전트 파이프라인을 불러오지 못했습니다'),
+    ).toBeVisible()
+    expect(screen.getByText('예정 실적 발표')).toBeVisible()
+    expect(screen.getByText('API 이벤트 제목')).toBeVisible()
   })
 })
