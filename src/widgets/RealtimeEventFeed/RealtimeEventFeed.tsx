@@ -22,7 +22,10 @@ interface RealtimeEventFeedProps {
 const eventColumns: Array<TableColumn<NewsEventView>> = [
   {
     key: 'documentType',
-    header: '문서',
+    header: '분류',
+    align: 'center',
+    headerClassName: 'w-20',
+    className: 'w-20',
     cell: (event) => (
       <Badge tone={event.documentTypeTone}>{event.documentTypeLabel}</Badge>
     ),
@@ -30,6 +33,7 @@ const eventColumns: Array<TableColumn<NewsEventView>> = [
   {
     key: 'symbol',
     header: '종목',
+    align: 'center',
     cell: (event) => (
       <strong className="text-cockpit-text">{event.symbol}</strong>
     ),
@@ -50,32 +54,40 @@ const eventColumns: Array<TableColumn<NewsEventView>> = [
   {
     key: 'importance',
     header: '중요도',
+    align: 'center',
+    headerClassName: 'w-20',
+    className: 'w-20',
     cell: (event) => (
-      <Badge tone={event.importance.tone}>
-        중요도 {event.importance.label} · {event.importance.scorePercent}%
-      </Badge>
+      <Badge tone={event.importance.tone}>{event.importance.label}</Badge>
     ),
   },
   {
     key: 'sentiment',
     header: '감성',
+    align: 'center',
+    headerClassName: 'w-20',
+    className: 'w-20',
     cell: (event) => (
-      <Badge tone={event.sentiment.tone}>
-        감성 {event.sentiment.label} · {event.sentiment.scorePercent}%
-      </Badge>
+      <Badge tone={event.sentiment.tone}>{event.sentiment.label}</Badge>
     ),
   },
-  { key: 'source', header: '출처', cell: (event) => event.sourceName },
+  {
+    key: 'source',
+    header: '출처',
+    align: 'center',
+    headerClassName: 'w-28',
+    className: 'w-28',
+    cell: (event) => event.sourceName,
+  },
   {
     key: 'publishedAt',
     header: '발행 시각',
-    cell: (event) => <time>{event.publishedAt}</time>,
-  },
-  {
-    key: 'evidence',
-    header: '근거',
-    align: 'right',
-    cell: (event) => `${event.evidenceCount}건`,
+    align: 'center',
+    headerClassName: 'w-20',
+    className: 'w-20',
+    cell: (event) => (
+      <time title={event.publishedAt}>{event.publishedAtTime}</time>
+    ),
   },
 ]
 
@@ -100,7 +112,7 @@ export function RealtimeEventFeed({
             id="realtime-event-feed-title"
             className="mt-1 text-xl font-semibold text-app-text"
           >
-            실시간 이벤트 피드
+            실시간 뉴스·공시 피드
           </h2>
           <p className="mt-1 text-sm text-app-text-muted">
             관련 문서를 하나의 시장 이벤트로 묶어 중요도와 감성을 분리했습니다.
@@ -123,6 +135,7 @@ export function RealtimeEventFeed({
         <Table
           aria-label="실시간 이벤트 목록"
           className="rounded-none border-x-0 border-b-0"
+          headerAlign="center"
           columns={eventColumns}
           rows={events}
           getRowKey={(event) => event.id}

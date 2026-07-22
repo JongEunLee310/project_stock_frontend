@@ -25,7 +25,31 @@ const briefing: NewsOverviewView['briefing'] = {
   ],
 }
 
+function openBriefing() {
+  fireEvent.click(screen.getByRole('button', { name: '에이전트 브리핑 열기' }))
+}
+
 describe('AgentBriefing', () => {
+  it('stays collapsed until the floating button is clicked', () => {
+    render(
+      <AgentBriefing
+        data={briefing}
+        isLoading={false}
+        isError={false}
+        onRetry={vi.fn()}
+      />,
+    )
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: '에이전트 브리핑 열기' }),
+    ).toBeVisible()
+
+    openBriefing()
+
+    expect(screen.getByRole('dialog')).toBeVisible()
+  })
+
   it('renders an API summary and evidence counts for every highlight', () => {
     render(
       <AgentBriefing
@@ -35,6 +59,7 @@ describe('AgentBriefing', () => {
         onRetry={vi.fn()}
       />,
     )
+    openBriefing()
 
     expect(screen.getByText('AI 분석')).toBeVisible()
     expect(screen.getByText(briefing.summary)).toBeVisible()
@@ -46,6 +71,7 @@ describe('AgentBriefing', () => {
 
   it('renders a panel loading state', () => {
     render(<AgentBriefing isLoading isError={false} onRetry={vi.fn()} />)
+    openBriefing()
 
     expect(
       screen.getByRole('status', { name: '브리핑 불러오는 중' }),
@@ -55,6 +81,7 @@ describe('AgentBriefing', () => {
   it('renders a retryable panel error', () => {
     const onRetry = vi.fn()
     render(<AgentBriefing isLoading={false} isError onRetry={onRetry} />)
+    openBriefing()
 
     expect(
       screen.getByText('에이전트 브리핑을 불러오지 못했습니다'),

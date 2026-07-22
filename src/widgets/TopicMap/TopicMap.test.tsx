@@ -144,8 +144,8 @@ describe('TopicMap', () => {
         name: '토픽 1개, 전체 노드 2개, 연관 관계 1개의 토픽 맵',
       }),
     ).toBeVisible()
-    expect(screen.getByText('감성 테두리')).toBeVisible()
-    expect(screen.getByText('연관 강도')).toBeVisible()
+    expect(screen.getByLabelText('카테고리 범례')).toBeVisible()
+    expect(screen.getByText('성장/투자')).toBeVisible()
   })
 
   it('navigates only TOPIC node taps to the topic detail path', async () => {

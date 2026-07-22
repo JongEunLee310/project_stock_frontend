@@ -17,6 +17,7 @@ const event: NewsEventView = {
   sourceName: 'DART',
   sourceReliabilityPercent: 98,
   publishedAt: '2026. 7. 21. 오전 9:42',
+  publishedAtTime: '09:42',
   evidenceCount: 4,
   topicIds: [7],
 }
@@ -33,7 +34,7 @@ const defaultProps = {
 }
 
 describe('RealtimeEventFeed', () => {
-  it('renders event rows with separate importance, sentiment, and evidence', () => {
+  it('renders event rows with compact importance, sentiment, and time', () => {
     render(<RealtimeEventFeed {...defaultProps} />)
 
     const table = screen.getByRole('table', { name: '실시간 이벤트 목록' })
@@ -42,9 +43,9 @@ describe('RealtimeEventFeed', () => {
 
     expect(row).not.toBeNull()
     expect(within(row!).getByText('공시')).toBeVisible()
-    expect(within(row!).getByText('중요도 높음 · 91%')).toBeVisible()
-    expect(within(row!).getByText('감성 긍정 · 82%')).toBeVisible()
-    expect(within(row!).getByText('4건')).toBeVisible()
+    expect(within(row!).getByText('높음')).toBeVisible()
+    expect(within(row!).getByText('긍정')).toBeVisible()
+    expect(within(row!).getByText('09:42')).toBeVisible()
   })
 
   it('renders a table loading state', () => {

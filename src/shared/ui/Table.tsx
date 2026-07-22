@@ -36,6 +36,7 @@ export interface TableProps<T> {
   rowAction?: (row: T) => ReactNode
   pagination?: TablePagination
   className?: string
+  headerAlign?: TableColumnAlign
   'aria-label'?: string
 }
 
@@ -64,6 +65,7 @@ export function Table<T>({
   rowAction,
   pagination,
   className,
+  headerAlign,
   'aria-label': ariaLabel,
 }: TableProps<T>) {
   const [internalPage, setInternalPage] = useState(pagination?.defaultPage ?? 1)
@@ -116,7 +118,7 @@ export function Table<T>({
                   scope="col"
                   className={classNames(
                     'border-b border-app-border px-4 py-3',
-                    alignClassNames[column.align ?? 'left'],
+                    alignClassNames[headerAlign ?? column.align ?? 'left'],
                     column.headerClassName,
                   )}
                 >

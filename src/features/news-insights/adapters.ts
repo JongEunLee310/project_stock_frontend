@@ -1,4 +1,4 @@
-import { formatKstDateTime } from '@/shared/lib/format'
+import { formatKstDateTime, formatKstTime } from '@/shared/lib/format'
 import type { BadgeTone } from '@/shared/ui'
 
 import type {
@@ -55,6 +55,7 @@ export interface NewsEventView {
   sourceName: string
   sourceReliabilityPercent: number | null
   publishedAt: string
+  publishedAtTime: string
   evidenceCount: number
   topicIds: number[]
 }
@@ -169,6 +170,11 @@ function formatDateTime(value: string): string {
   return Number.isNaN(date.getTime()) ? '시각 미상' : formatKstDateTime(value)
 }
 
+function formatTime(value: string): string {
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? '시각 미상' : formatKstTime(value)
+}
+
 function adaptSummaryMetric(
   dto: NewsInsightSummaryMetricDto,
   definition: (typeof summaryMetricDefinitions)[number],
@@ -241,6 +247,7 @@ export function adaptNewsEvent(dto: NewsInsightEventDto): NewsEventView {
     sourceReliabilityPercent:
       dto.source === null ? null : toScorePercent(dto.source.reliability),
     publishedAt: formatDateTime(dto.published_at),
+    publishedAtTime: formatTime(dto.published_at),
     evidenceCount: toNonNegativeInteger(dto.evidence_count),
     topicIds: [...dto.topic_ids],
   }

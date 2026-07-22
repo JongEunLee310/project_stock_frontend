@@ -1,4 +1,7 @@
-import { Badge, Card } from '@/shared/ui'
+import { useNavigate } from 'react-router-dom'
+
+import { Badge, Button, Card } from '@/shared/ui'
+import { appRoutePaths } from '@/shared/config/navigation'
 import {
   useNewsEventsQuery,
   useNewsOverviewQuery,
@@ -70,48 +73,83 @@ function PlannedPanelCard({ panel }: { panel: PlannedPanel }) {
 }
 
 export function NewsInsightsOverviewPage() {
+  const navigate = useNavigate()
   const overviewQuery = useNewsOverviewQuery()
   const eventsQuery = useNewsEventsQuery()
   const events = eventsQuery.data?.flatMap((page) => page.items) ?? []
 
   return (
-    <section className="flex flex-col gap-6 py-4">
-      <header className="flex min-h-16 flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-app-text-muted">
-            News intelligence
-          </p>
-          <h1 className="mt-1 text-3xl font-bold text-app-text">
-            뉴스·공시 인사이트
-          </h1>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-app-text-muted">
-            흩어진 뉴스와 공시를 시장 이벤트로 묶어 중요도, 감성, 근거를 한
-            화면에서 확인합니다.
-          </p>
-        </div>
-        <Badge tone="info">API 연결 · 패널별 갱신</Badge>
-      </header>
+    <>
+      <section className="flex flex-col gap-6 py-4">
+        <header className="flex min-h-16 flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-wide text-app-text-muted">
+              News intelligence
+            </p>
+            <h1 className="mt-1 text-3xl font-bold text-app-text">
+              뉴스·공시 인사이트
+            </h1>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-app-text-muted">
+              AI Agent가 뉴스·공시·실적·투자 동향을 분석해 인사이트를
+              추출합니다.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="primary"
+              onClick={() => void navigate(appRoutePaths.alerts)}
+            >
+              + 알림 생성
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => void navigate(appRoutePaths.decisionLog)}
+            >
+              판단 기록 연결
+            </Button>
+          </div>
+        </header>
 
-      <InsightSummaryCards
-        data={overviewQuery.data}
-        isLoading={overviewQuery.isLoading}
-        isError={overviewQuery.isError}
-        onRetry={() => void overviewQuery.refetch()}
-      />
-
-      <div className="grid gap-4 2xl:grid-cols-[minmax(0,2fr)_minmax(22rem,1fr)]">
-        <RealtimeEventFeed
-          events={events}
-          isLoading={eventsQuery.isLoading}
-          isError={eventsQuery.isError}
-          isFetchingNextPage={eventsQuery.isFetchingNextPage}
-          isFetchNextPageError={eventsQuery.isFetchNextPageError}
-          hasNextPage={eventsQuery.hasNextPage}
-          onLoadMore={() => void eventsQuery.fetchNextPage()}
-          onRetry={() => void eventsQuery.refetch()}
+        <InsightSummaryCards
+          data={overviewQuery.data}
+          isLoading={overviewQuery.isLoading}
+          isError={overviewQuery.isError}
+          onRetry={() => void overviewQuery.refetch()}
         />
-        <TopicMap />
-      </div>
+
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.9fr)_minmax(22rem,1fr)]">
+          <RealtimeEventFeed
+            events={events}
+            isLoading={eventsQuery.isLoading}
+            isError={eventsQuery.isError}
+            isFetchingNextPage={eventsQuery.isFetchingNextPage}
+            isFetchNextPageError={eventsQuery.isFetchNextPageError}
+            hasNextPage={eventsQuery.hasNextPage}
+            onLoadMore={() => void eventsQuery.fetchNextPage()}
+            onRetry={() => void eventsQuery.refetch()}
+          />
+          <TopicMap />
+        </div>
+
+        <section aria-labelledby="planned-panels-title">
+          <div className="mb-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-app-accent">
+              Roadmap
+            </p>
+            <h2
+              id="planned-panels-title"
+              className="mt-1 text-xl font-semibold text-app-text"
+            >
+              단계별 확장 패널
+            </h2>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
+            {plannedPanels.map((panel) => (
+              <PlannedPanelCard key={panel.id} panel={panel} />
+            ))}
+          </div>
+        </section>
+      </section>
 
       <AgentBriefing
         data={overviewQuery.data?.briefing}
@@ -119,25 +157,6 @@ export function NewsInsightsOverviewPage() {
         isError={overviewQuery.isError}
         onRetry={() => void overviewQuery.refetch()}
       />
-
-      <section aria-labelledby="planned-panels-title">
-        <div className="mb-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-app-accent">
-            Roadmap
-          </p>
-          <h2
-            id="planned-panels-title"
-            className="mt-1 text-xl font-semibold text-app-text"
-          >
-            단계별 확장 패널
-          </h2>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
-          {plannedPanels.map((panel) => (
-            <PlannedPanelCard key={panel.id} panel={panel} />
-          ))}
-        </div>
-      </section>
-    </section>
+    </>
   )
 }

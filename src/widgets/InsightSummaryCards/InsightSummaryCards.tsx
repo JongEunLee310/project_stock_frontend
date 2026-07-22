@@ -1,11 +1,40 @@
+import type { IconType } from 'react-icons'
+import {
+  FiActivity,
+  FiAlertTriangle,
+  FiShare2,
+  FiTrendingUp,
+} from 'react-icons/fi'
+
 import type { NewsOverviewView } from '@/features/news-insights'
-import { Badge, Card, EmptyState, ErrorState, Skeleton } from '@/shared/ui'
+import { Card, EmptyState, ErrorState, Skeleton } from '@/shared/ui'
 
 interface InsightSummaryCardsProps {
   data?: NewsOverviewView
   isLoading: boolean
   isError: boolean
   onRetry: () => void
+}
+
+const metricPresentations: Record<
+  string,
+  { icon: IconType; iconClassName: string }
+> = {
+  'high-importance-events': {
+    icon: FiAlertTriangle,
+    iconClassName: 'text-red-400',
+  },
+  'sentiment-shifts': { icon: FiActivity, iconClassName: 'text-amber-400' },
+  'active-topic-clusters': { icon: FiShare2, iconClassName: 'text-violet-400' },
+  'fund-flow-signals': {
+    icon: FiTrendingUp,
+    iconClassName: 'text-emerald-400',
+  },
+}
+
+const fallbackPresentation = {
+  icon: FiActivity,
+  iconClassName: 'text-app-text-muted',
 }
 
 function formatDelta(delta: number) {
@@ -75,21 +104,35 @@ export function InsightSummaryCards({
       ) : null}
       {!isLoading && !isError && data && data.metrics.length > 0 ? (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {data.metrics.map((metric) => (
-            <Card
-              key={metric.id}
-              aria-label={`${metric.label} 요약`}
-              className="border-cockpit-border bg-cockpit-surface/80"
-            >
-              <Badge tone={metric.tone}>{metric.label}</Badge>
-              <strong className="mt-4 block text-3xl font-bold text-cockpit-text">
-                {metric.count}건
-              </strong>
-              <span className="mt-2 block text-sm text-cockpit-text-muted">
-                {formatDelta(metric.change)}
-              </span>
-            </Card>
-          ))}
+          {data.metrics.map((metric) => {
+            const presentation =
+              metricPresentations[metric.id] ?? fallbackPresentation
+            const Icon = presentation.icon
+
+            return (
+              <Card
+                key={metric.id}
+                aria-label={`${metric.label} 요약`}
+                className="border-cockpit-border bg-cockpit-surface/80"
+              >
+                <div className="flex items-center gap-2">
+                  <Icon
+                    className={`h-5 w-5 shrink-0 ${presentation.iconClassName}`}
+                    aria-hidden="true"
+                  />
+                  <span className="text-base font-semibold text-cockpit-text">
+                    {metric.label}
+                  </span>
+                </div>
+                <strong className="mt-4 block text-3xl font-bold text-cockpit-text">
+                  {metric.count}건
+                </strong>
+                <span className="mt-2 block text-sm text-cockpit-text-muted">
+                  {formatDelta(metric.change)}
+                </span>
+              </Card>
+            )
+          })}
         </div>
       ) : null}
     </section>

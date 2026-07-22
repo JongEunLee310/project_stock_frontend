@@ -13,39 +13,22 @@ import {
   useNewsTopicMapQuery,
 } from '@/features/news-insights'
 import { appRoutePaths } from '@/shared/config/navigation'
-import {
-  Badge,
-  Button,
-  Card,
-  EmptyState,
-  ErrorState,
-  Skeleton,
-  type BadgeTone,
-} from '@/shared/ui'
+import { Badge, Card, EmptyState, ErrorState, Skeleton } from '@/shared/ui'
 
 const CytoscapeComponent = lazy(() => import('react-cytoscapejs'))
 
 const topicNodePrefix = 'topic:'
 
 const categoryPresentations = {
-  GROWTH: { label: '성장', color: '#8b5cf6', tone: 'accent' },
-  REGULATION: { label: '규제', color: '#f97316', tone: 'warning' },
-  EARNINGS: { label: '실적', color: '#0ea5e9', tone: 'info' },
-  DEMAND: { label: '수요', color: '#14b8a6', tone: 'success' },
-  MARKET_EVENT: { label: '시장 이벤트', color: '#3b82f6', tone: 'info' },
-  CAPITAL_POLICY: { label: '자본 정책', color: '#ec4899', tone: 'accent' },
-  SUPPLY_CHAIN: { label: '공급망', color: '#eab308', tone: 'warning' },
-  UNCATEGORIZED: { label: '미분류', color: '#64748b', tone: 'neutral' },
-} as const satisfies Record<
-  string,
-  { label: string; color: string; tone: BadgeTone }
->
-
-const sentimentPresentations = [
-  { label: '부정 0–33%', color: '#f87171' },
-  { label: '중립 34–66%', color: '#94a3b8' },
-  { label: '긍정 67–100%', color: '#34d399' },
-] as const
+  GROWTH: { label: '성장/투자', color: '#8b5cf6' },
+  REGULATION: { label: '규제/정책', color: '#f97316' },
+  EARNINGS: { label: '실적/기업', color: '#0ea5e9' },
+  DEMAND: { label: '수요/소비', color: '#14b8a6' },
+  MARKET_EVENT: { label: '시장 이벤트', color: '#3b82f6' },
+  CAPITAL_POLICY: { label: '자본정책', color: '#ec4899' },
+  SUPPLY_CHAIN: { label: '공급망', color: '#eab308' },
+  UNCATEGORIZED: { label: '미분류', color: '#64748b' },
+} as const satisfies Record<string, { label: string; color: string }>
 
 const topicMapStylesheet: StylesheetJson = [
   {
@@ -166,57 +149,25 @@ function getTopicId(nodeId: string): string | null {
 
 function TopicMapLegend() {
   return (
-    <div className="space-y-3 border-t border-app-border px-panel py-4">
-      <div
-        className="flex flex-wrap items-center gap-2"
-        aria-label="카테고리 범례"
-      >
-        <span className="mr-1 text-xs font-semibold text-app-text-muted">
-          카테고리
-        </span>
-        {Object.values(categoryPresentations).map((presentation) => (
-          <Badge key={presentation.label} tone={presentation.tone}>
-            <span
-              className="mr-1.5 h-2 w-2 rounded-full"
-              style={{ backgroundColor: presentation.color }}
-              aria-hidden="true"
-            />
-            {presentation.label}
-          </Badge>
-        ))}
-      </div>
-      <div className="flex flex-wrap items-center gap-3" aria-label="감성 범례">
-        <span className="text-xs font-semibold text-app-text-muted">
-          감성 테두리
-        </span>
-        {sentimentPresentations.map((presentation) => (
+    <div
+      className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-app-border px-panel py-4"
+      aria-label="카테고리 범례"
+    >
+      {Object.entries(categoryPresentations)
+        .filter(([category]) => category !== 'UNCATEGORIZED')
+        .map(([category, presentation]) => (
           <span
-            key={presentation.label}
+            key={category}
             className="inline-flex items-center gap-1.5 text-xs text-app-text-muted"
           >
             <span
-              className="h-3 w-3 rounded-full border-[3px] bg-app-surface-muted"
-              style={{ borderColor: presentation.color }}
+              className="h-2 w-2 rounded-full"
+              style={{ backgroundColor: presentation.color }}
               aria-hidden="true"
             />
             {presentation.label}
           </span>
         ))}
-      </div>
-      <div
-        className="flex flex-wrap items-center gap-3"
-        aria-label="연관 강도 범례"
-      >
-        <span className="text-xs font-semibold text-app-text-muted">
-          연관 강도
-        </span>
-        <span className="inline-flex items-center gap-2 text-xs text-app-text-muted">
-          <span className="h-px w-8 bg-slate-500" aria-hidden="true" /> 약함
-        </span>
-        <span className="inline-flex items-center gap-2 text-xs text-app-text-muted">
-          <span className="h-1.5 w-8 bg-slate-500" aria-hidden="true" /> 강함
-        </span>
-      </div>
     </div>
   )
 }
@@ -340,25 +291,6 @@ export function TopicMap() {
             </Suspense>
           </div>
           <TopicMapLegend />
-          {topicNodes.length > 0 ? (
-            <div className="border-t border-app-border px-panel py-4">
-              <p className="mb-2 text-xs font-semibold text-app-text-muted">
-                토픽 바로가기
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {topicNodes.map((node) => (
-                  <Button
-                    key={node.id}
-                    variant="ghost"
-                    className="min-h-8 px-2.5 py-1 text-xs"
-                    onClick={() => navigateToTopic(node.id)}
-                  >
-                    {node.label}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          ) : null}
         </>
       ) : null}
     </Card>
