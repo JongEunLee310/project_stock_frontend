@@ -6,6 +6,7 @@ import {
   type NewsInvestorFlowsView,
   type NewsTopicScenariosView,
   type NewsTopicEvidenceView,
+  type NewsTopicExplanationView,
   type NewsTopicGraphView,
   type NewsTopicSymbolSensitivityView,
   type NewsTopicTrendView,
@@ -13,6 +14,7 @@ import {
   useNewsInvestorFlowsQuery,
   useNewsTopicScenariosQuery,
   useNewsTopicEvidenceQuery,
+  useNewsTopicExplanationQuery,
   useNewsTopicGraphQuery,
   useNewsTopicSymbolsQuery,
   useNewsTopicTrendQuery,
@@ -29,6 +31,7 @@ vi.mock('@/features/news-insights', async (importOriginal) => {
     useNewsInvestorFlowsQuery: vi.fn(),
     useNewsTopicScenariosQuery: vi.fn(),
     useNewsTopicEvidenceQuery: vi.fn(),
+    useNewsTopicExplanationQuery: vi.fn(),
     useNewsTopicGraphQuery: vi.fn(),
     useNewsTopicSymbolsQuery: vi.fn(),
     useNewsTopicTrendQuery: vi.fn(),
@@ -85,6 +88,25 @@ const evidence: NewsTopicEvidenceView = {
   relevancePercent: 90,
   source: 'Reuters',
   publishedAt: '2026. 7. 21. 오전 9:00',
+}
+
+const topicExplanation: NewsTopicExplanationView = {
+  factors: [{ label: '수요 증가', contributionRatio: 0.6 }],
+  meta: {
+    analysisVersion: 'v3.2',
+    dataCoveragePercent: 90,
+    lastUpdated: '2026. 7. 21. 오후 3:00',
+    missingData: [],
+    counterArgumentCount: 1,
+    confidencePercent: 84,
+    limitations: [],
+  },
+  counterView: {
+    counterArguments: ['밸류에이션 부담이 높습니다.'],
+    invalidationConditions: ['주문 감소'],
+    alreadyPricedIn: { likely: false, note: '선반영은 제한적입니다.' },
+    contradictingEvidence: [],
+  },
 }
 
 const topicGraph: NewsTopicGraphView = {
@@ -180,6 +202,7 @@ function mockQueries({
   symbolsError = false,
   flowsError = false,
   scenariosError = false,
+  explanationError = false,
 } = {}) {
   vi.mocked(useNewsTopicDetailQuery).mockReturnValue({
     data: detailError ? undefined : detail,
@@ -203,6 +226,12 @@ function mockQueries({
     fetchNextPage: vi.fn(),
     refetch: vi.fn(),
   } as unknown as ReturnType<typeof useNewsTopicEvidenceQuery>)
+  vi.mocked(useNewsTopicExplanationQuery).mockReturnValue({
+    data: explanationError ? undefined : topicExplanation,
+    isLoading: false,
+    isError: explanationError,
+    refetch: vi.fn(),
+  } as unknown as ReturnType<typeof useNewsTopicExplanationQuery>)
   vi.mocked(useNewsTopicGraphQuery).mockReturnValue({
     data: graphError ? undefined : topicGraph,
     isLoading: false,
@@ -272,16 +301,17 @@ describe('TopicInsightDetailPage', () => {
     expect(
       screen.queryByLabelText('예상 자금 흐름 시나리오 준비 중'),
     ).not.toBeInTheDocument()
-    ;[
-      ['왜 이런 인사이트', '3차 · #268'],
-      ['액션 체크리스트', '3차 · #268'],
-    ].forEach(([title, phaseIssue]) => {
-      expect(screen.getByLabelText(`${title} 준비 중`)).toBeVisible()
-      expect(screen.getAllByText(phaseIssue).length).toBeGreaterThan(0)
-    })
+    expect(
+      screen.getByRole('heading', { name: '왜 이런 인사이트가 나왔나' }),
+    ).toBeVisible()
+    expect(screen.getByText('수요 증가')).toBeVisible()
+    expect(screen.queryByLabelText('왜 이런 인사이트 준비 중')).toBeNull()
+    expect(screen.getByLabelText('액션 체크리스트 준비 중')).toBeVisible()
+    expect(screen.getByText('3차 · #270')).toBeVisible()
     expect(useNewsTopicDetailQuery).toHaveBeenCalledWith('7')
     expect(useNewsTopicTrendQuery).toHaveBeenCalledWith('7')
     expect(useNewsTopicEvidenceQuery).toHaveBeenCalledWith('7')
+    expect(useNewsTopicExplanationQuery).toHaveBeenCalledWith('7')
     expect(useNewsTopicGraphQuery).toHaveBeenCalledWith('7')
     expect(useNewsTopicSymbolsQuery).toHaveBeenCalledWith('7')
     expect(useNewsInvestorFlowsQuery).toHaveBeenCalledWith({
@@ -364,6 +394,22 @@ describe('TopicInsightDetailPage', () => {
     expect(screen.getByText(/아직 분석되지 않은 토픽/)).toBeVisible()
     expect(screen.getByText('페이지 토픽 제목')).toBeVisible()
     expect(screen.getByText('NVDA')).toBeVisible()
-    expect(screen.getByLabelText('왜 이런 인사이트 준비 중')).toBeVisible()
+    expect(
+      screen.getByRole('heading', { name: '왜 이런 인사이트가 나왔나' }),
+    ).toBeVisible()
+  })
+
+  it('isolates explanation errors and keeps the base counter view visible', async () => {
+    mockQueries({ explanationError: true })
+    renderPage()
+    await screen.findByTestId('topic-keyword-cytoscape')
+
+    expect(
+      screen.getByText('인사이트 설명을 불러오지 못했습니다'),
+    ).toBeVisible()
+    expect(screen.getByText('확장 근거를 불러오지 못했습니다')).toBeVisible()
+    expect(screen.getByText('수요 회복이 지연될 수 있습니다.')).toBeVisible()
+    expect(screen.getByText('페이지 토픽 제목')).toBeVisible()
+    expect(screen.getByText('3차 · #270')).toBeVisible()
   })
 })

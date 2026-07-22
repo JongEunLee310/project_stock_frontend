@@ -16,6 +16,7 @@ import {
   adaptNewsOverview,
   adaptNewsTopicDetail,
   adaptNewsTopicEvidence,
+  adaptNewsTopicExplanation,
   adaptNewsTopicGraph,
   adaptNewsTopicMap,
   adaptNewsTopicScenarios,
@@ -28,6 +29,7 @@ import {
   type NewsOverviewView,
   type NewsTopicDetailView,
   type NewsTopicEvidenceView,
+  type NewsTopicExplanationView,
   type NewsTopicGraphView,
   type NewsTopicMap,
   type NewsTopicScenariosView,
@@ -42,6 +44,7 @@ import type {
   NewsInsightOverviewDto,
   NewsTopicDetailDto,
   NewsTopicEvidenceItemDto,
+  NewsTopicExplanationDto,
   NewsTopicGraphDto,
   NewsTopicMapDto,
   NewsTopicScenariosDto,
@@ -272,6 +275,19 @@ export function useNewsTopicEvidenceQuery(topicId: string) {
         ? (lastPage.pageInfo.nextCursor ?? undefined)
         : undefined,
     select: (data) => data.pages,
+    enabled: topicId.length > 0,
+  })
+}
+
+export function useNewsTopicExplanationQuery(topicId: string) {
+  return useQuery<NewsTopicExplanationView>({
+    queryKey: ['news-insights', 'topics', topicId, 'explanation'],
+    queryFn: async () => {
+      const { data } = await apiGet<NewsTopicExplanationDto>(
+        `/news-insights/topics/${encodeURIComponent(topicId)}/explanation`,
+      )
+      return adaptNewsTopicExplanation(data)
+    },
     enabled: topicId.length > 0,
   })
 }
