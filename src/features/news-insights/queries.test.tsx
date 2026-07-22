@@ -6,6 +6,8 @@ import { apiGet } from '@/shared/api/client'
 import { ApiError } from '@/shared/api/envelope'
 
 import type {
+  NewsAgentRunsDto,
+  NewsCalendarItemDto,
   NewsEventDetailDto,
   NewsFundFlowOutlookDto,
   NewsInsightEventDto,
@@ -21,6 +23,8 @@ import type {
   NewsTopicTrendDto,
 } from './dto'
 import {
+  useNewsAgentRunsQuery,
+  useNewsCalendarQuery,
   useNewsEventDetailQuery,
   useNewsFundFlowOutlookQuery,
   useNewsEventsQuery,
@@ -61,6 +65,28 @@ const overviewDto: NewsInsightOverviewDto = {
     highlights: [],
     generated_at: '2026-07-21T05:50:00Z',
   },
+}
+
+const calendarDto: NewsCalendarItemDto[] = [
+  {
+    scheduled_at: '2026-07-25T00:00:00Z',
+    event_kind: 'POLICY',
+    title: '정책 발표',
+    symbol: null,
+    market: 'KR',
+    importance: 0.7,
+    related_topic_ids: [],
+  },
+]
+
+const agentRunsDto: NewsAgentRunsDto = {
+  last_processed_at: '2026-07-21T06:00:00Z',
+  processed_documents: 10,
+  extracted_events: 4,
+  active_topics: 2,
+  stages: [{ name: 'COLLECT', status: 'COMPLETED', delayed: false }],
+  analysis_version: 'v3.2',
+  has_delay: false,
 }
 
 const investorFlowsDto: NewsInvestorFlowsDto = {
@@ -259,6 +285,69 @@ function createEvent(id: number): NewsInsightEventDto {
 describe('news insights queries', () => {
   beforeEach(() => {
     vi.mocked(apiGet).mockReset()
+  })
+
+  it('fetches calendar data and preserves empty data and request errors', async () => {
+    vi.mocked(apiGet).mockResolvedValueOnce({ data: calendarDto })
+    const success = renderHook(
+      () => useNewsCalendarQuery({ market: 'KR', window: '30d' }),
+      { wrapper: createWrapper() },
+    )
+    await waitFor(() => expect(success.result.current.isSuccess).toBe(true))
+    expect(apiGet).toHaveBeenCalledWith(
+      '/news-insights/calendar?market=KR&window=30d',
+    )
+    expect(success.result.current.data?.[0].title).toBe('정책 발표')
+    success.unmount()
+
+    vi.mocked(apiGet).mockResolvedValueOnce({ data: [] })
+    const empty = renderHook(
+      () => useNewsCalendarQuery({ market: 'US', window: '7d' }),
+      { wrapper: createWrapper() },
+    )
+    await waitFor(() => expect(empty.result.current.isSuccess).toBe(true))
+    expect(empty.result.current.data).toEqual([])
+    empty.unmount()
+
+    vi.mocked(apiGet).mockRejectedValueOnce(
+      new ApiError('INTERNAL_ERROR', '요청에 실패했습니다.'),
+    )
+    const failure = renderHook(
+      () => useNewsCalendarQuery({ market: 'KR', window: '30d' }),
+      { wrapper: createWrapper() },
+    )
+    await waitFor(() => expect(failure.result.current.isError).toBe(true))
+    expect(failure.result.current.error).toBeInstanceOf(ApiError)
+  })
+
+  it('fetches agent runs and preserves empty stages and request errors', async () => {
+    vi.mocked(apiGet).mockResolvedValueOnce({ data: agentRunsDto })
+    const success = renderHook(() => useNewsAgentRunsQuery(), {
+      wrapper: createWrapper(),
+    })
+    await waitFor(() => expect(success.result.current.isSuccess).toBe(true))
+    expect(apiGet).toHaveBeenCalledWith('/news-insights/agent-runs')
+    expect(success.result.current.data?.processedDocuments).toBe(10)
+    success.unmount()
+
+    vi.mocked(apiGet).mockResolvedValueOnce({
+      data: { ...agentRunsDto, stages: [] },
+    })
+    const empty = renderHook(() => useNewsAgentRunsQuery(), {
+      wrapper: createWrapper(),
+    })
+    await waitFor(() => expect(empty.result.current.isSuccess).toBe(true))
+    expect(empty.result.current.data?.stages).toEqual([])
+    empty.unmount()
+
+    vi.mocked(apiGet).mockRejectedValueOnce(
+      new ApiError('INTERNAL_ERROR', '요청에 실패했습니다.'),
+    )
+    const failure = renderHook(() => useNewsAgentRunsQuery(), {
+      wrapper: createWrapper(),
+    })
+    await waitFor(() => expect(failure.result.current.isError).toBe(true))
+    expect(failure.result.current.error).toBeInstanceOf(ApiError)
   })
 
   it('fetches and adapts the overview response', async () => {

@@ -1,4 +1,6 @@
 import {
+  adaptNewsAgentRuns,
+  adaptNewsCalendar,
   adaptNewsEvent,
   adaptNewsEventDetail,
   adaptNewsFundFlowOutlook,
@@ -14,6 +16,8 @@ import {
   adaptNewsTopicTrend,
 } from './adapters'
 import type {
+  NewsAgentRunsDto,
+  NewsCalendarItemDto,
   NewsEventDetailDto,
   NewsFundFlowOutlookDto,
   NewsInsightEventDto,
@@ -49,6 +53,31 @@ const overviewDto: NewsInsightOverviewDto = {
     ],
     generated_at: '2026-07-21T05:50:00Z',
   },
+}
+
+const calendarDto: NewsCalendarItemDto[] = [
+  {
+    scheduled_at: '2026-07-25T00:00:00Z',
+    event_kind: 'EARNINGS',
+    title: ' 분기 실적 발표 ',
+    symbol: ' 005930 ',
+    market: ' KR ',
+    importance: 0.86,
+    related_topic_ids: [7, 9],
+  },
+]
+
+const agentRunsDto: NewsAgentRunsDto = {
+  last_processed_at: '2026-07-21T06:00:00Z',
+  processed_documents: 1200,
+  extracted_events: 48,
+  active_topics: 12,
+  stages: [
+    { name: 'COLLECT', status: 'COMPLETED', delayed: false },
+    { name: 'EXTRACT', status: 'DELAYED', delayed: true },
+  ],
+  analysis_version: ' v3.2 ',
+  has_delay: true,
 }
 
 const investorFlowsDto: NewsInvestorFlowsDto = {
@@ -322,6 +351,57 @@ const topicGraphDto: NewsTopicGraphDto = {
 }
 
 describe('news insights adapters', () => {
+  it('maps calendar event presentation while preserving its scheduled timestamp', () => {
+    const result = adaptNewsCalendar(calendarDto)
+
+    expect(result[0]).toEqual({
+      scheduledAt: '2026-07-25T00:00:00Z',
+      scheduledAtLabel: expect.any(String),
+      eventKind: 'EARNINGS',
+      eventKindPresentation: { label: '실적 발표', tone: 'accent' },
+      title: '분기 실적 발표',
+      symbol: '005930',
+      market: 'KR',
+      importancePercent: 86,
+      importancePresentation: { label: '중요도 높음', tone: 'danger' },
+      relatedTopicIds: ['7', '9'],
+    })
+    expect(adaptNewsCalendar([])).toEqual([])
+  })
+
+  it('maps only verifiable agent stages and aggregate values', () => {
+    const result = adaptNewsAgentRuns(agentRunsDto)
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        processedDocuments: 1200,
+        extractedEvents: 48,
+        activeTopics: 12,
+        analysisVersion: 'v3.2',
+        hasDelay: true,
+      }),
+    )
+    expect(result.stages).toEqual([
+      {
+        name: 'COLLECT',
+        namePresentation: { label: '수집', tone: 'info' },
+        status: 'COMPLETED',
+        statusPresentation: { label: '완료', tone: 'success' },
+        delayed: false,
+      },
+      {
+        name: 'EXTRACT',
+        namePresentation: { label: '이벤트 추출', tone: 'accent' },
+        status: 'DELAYED',
+        statusPresentation: { label: '지연', tone: 'warning' },
+        delayed: true,
+      },
+    ])
+    expect(adaptNewsAgentRuns({ ...agentRunsDto, stages: [] }).stages).toEqual(
+      [],
+    )
+  })
+
   it('preserves backend contribution ratios and adapts explanation metadata', () => {
     const result = adaptNewsTopicExplanation(topicExplanationDto)
 

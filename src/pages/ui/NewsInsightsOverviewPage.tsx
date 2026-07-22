@@ -7,33 +7,13 @@ import {
   useNewsOverviewQuery,
 } from '@/features/news-insights'
 import { AgentBriefing } from '@/widgets/AgentBriefing'
+import { AgentPipelinePanel } from '@/widgets/AgentPipelinePanel'
 import { FundFlowOutlookPanel } from '@/widgets/FundFlowOutlookPanel'
 import { InsightSummaryCards } from '@/widgets/InsightSummaryCards'
 import { InvestorFlowPanel } from '@/widgets/InvestorFlowPanel'
+import { MarketEventTimeline } from '@/widgets/MarketEventTimeline'
 import { RealtimeEventFeed } from '@/widgets/RealtimeEventFeed'
 import { TopicMap } from '@/widgets/TopicMap'
-import { PlannedPanelCard, type PlannedPanel } from '@/widgets/PlannedPanelCard'
-
-interface OverviewPlannedPanel extends PlannedPanel {
-  id: string
-}
-
-const plannedPanels: OverviewPlannedPanel[] = [
-  {
-    id: 'event-timeline',
-    title: '이벤트 타임라인',
-    description: '예정 이벤트와 과거 시장 반응을 시간순으로 연결합니다.',
-    phase: '3차',
-    issue: '#269',
-  },
-  {
-    id: 'agent-pipeline',
-    title: '에이전트 파이프라인',
-    description: '수집·분석 에이전트의 실행 상태와 최신 결과를 표시합니다.',
-    phase: '3차',
-    issue: '#269',
-  },
-]
 
 export function NewsInsightsOverviewPage() {
   const navigate = useNavigate()
@@ -103,28 +83,10 @@ export function NewsInsightsOverviewPage() {
 
         <FundFlowOutlookPanel />
 
-        <section aria-labelledby="planned-panels-title">
-          <div className="mb-3">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-app-accent">
-              Roadmap
-            </p>
-            <h2
-              id="planned-panels-title"
-              className="mt-1 text-xl font-semibold text-app-text"
-            >
-              단계별 확장 패널
-            </h2>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
-            {plannedPanels.map((panel) => (
-              <PlannedPanelCard
-                key={panel.id}
-                panel={panel}
-                headingLevel="h3"
-              />
-            ))}
-          </div>
-        </section>
+        <div className="grid gap-4 2xl:grid-cols-2">
+          <MarketEventTimeline market="KR" window="30d" />
+          <AgentPipelinePanel />
+        </div>
       </section>
 
       <AgentBriefing

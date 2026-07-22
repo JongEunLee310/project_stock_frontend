@@ -339,3 +339,49 @@ export interface NewsTopicExplanationDto {
     }>
   }
 }
+
+export type MarketEventKindDto =
+  | 'EARNINGS'
+  | 'IR_EVENT'
+  | 'POLICY'
+  | 'RATE_DECISION'
+  | 'SHAREHOLDER_MEETING'
+  | 'PRODUCT_EVENT'
+  | 'REGULATION'
+  | 'LOCKUP_EXPIRY'
+  | 'OTHER'
+
+export interface NewsCalendarItemDto {
+  scheduled_at: string
+  event_kind: MarketEventKindDto
+  title: string
+  symbol: string | null
+  market: string | null
+  importance: number
+  related_topic_ids: number[]
+}
+
+export type AgentStageDto =
+  | 'COLLECT'
+  | 'NORMALIZE'
+  | 'EXTRACT'
+  | 'CLUSTER'
+  | 'SENTIMENT'
+  | 'IMPACT'
+  | 'LINK'
+
+export type AgentRunStatusDto = 'RUNNING' | 'COMPLETED' | 'DELAYED' | 'FAILED'
+
+export interface NewsAgentRunsDto {
+  last_processed_at: string
+  processed_documents: number
+  extracted_events: number
+  active_topics: number
+  stages: Array<{
+    name: AgentStageDto
+    status: AgentRunStatusDto
+    delayed: boolean
+  }>
+  analysis_version: string
+  has_delay: boolean
+}
