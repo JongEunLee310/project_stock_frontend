@@ -1,0 +1,1 @@
+export { NewsEventHeader } from './NewsEventHeader'

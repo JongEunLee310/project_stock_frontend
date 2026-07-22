@@ -10,6 +10,7 @@ import {
 
 import {
   adaptNewsEvent,
+  adaptNewsEventDetail,
   adaptNewsOverview,
   adaptNewsTopicDetail,
   adaptNewsTopicEvidence,
@@ -18,6 +19,7 @@ import {
   adaptNewsTopicSymbols,
   adaptNewsTopicTrend,
   type NewsEventView,
+  type NewsEventDetailView,
   type NewsOverviewView,
   type NewsTopicDetailView,
   type NewsTopicEvidenceView,
@@ -27,6 +29,7 @@ import {
   type NewsTopicTrendView,
 } from './adapters'
 import type {
+  NewsEventDetailDto,
   NewsInsightEventDto,
   NewsInsightOverviewDto,
   NewsTopicDetailDto,
@@ -92,6 +95,19 @@ export function useNewsEventsQuery() {
         ? (lastPage.pageInfo.nextCursor ?? undefined)
         : undefined,
     select: (data) => data.pages,
+  })
+}
+
+export function useNewsEventDetailQuery(eventId: string) {
+  return useQuery<NewsEventDetailView>({
+    queryKey: ['news-insights', 'events', eventId, 'detail'],
+    queryFn: async () => {
+      const { data } = await apiGet<NewsEventDetailDto>(
+        `/news-insights/events/${encodeURIComponent(eventId)}`,
+      )
+      return adaptNewsEventDetail(data)
+    },
+    enabled: eventId.length > 0,
   })
 }
 

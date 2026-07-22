@@ -34,6 +34,7 @@ describe('getActiveNavigationItem', () => {
     const newsIndex = navigationItems.findIndex((item) => item.id === 'news')
 
     expect(appRoutePaths.news).toBe('/news')
+    expect(appRoutePaths.newsEventDetail).toBe('/news/events/:eventId')
     expect(appRoutePaths.newsTopicDetail).toBe('/news/topics/:topicId')
     expect(newsIndex).toBe(researchIndex + 1)
     expect(navigationItems[newsIndex]).toMatchObject({
@@ -43,6 +44,7 @@ describe('getActiveNavigationItem', () => {
       matchPrefix: '/news',
     })
     expect(getActiveNavigationItem('/news')?.id).toBe('news')
+    expect(getActiveNavigationItem('/news/events/204')?.id).toBe('news')
     expect(getActiveNavigationItem('/news/topics/ai-semiconductors')?.id).toBe(
       'news',
     )

@@ -1,5 +1,6 @@
 export {
   adaptNewsEvent,
+  adaptNewsEventDetail,
   adaptNewsOverview,
   adaptNewsTopicDetail,
   adaptNewsTopicEvidence,
@@ -8,6 +9,7 @@ export {
   adaptNewsTopicSymbols,
   adaptNewsTopicTrend,
   type NewsEventView,
+  type NewsEventDetailView,
   type NewsOverviewView,
   type NewsTopicDetailView,
   type NewsTopicEvidenceView,
@@ -23,6 +25,7 @@ export {
 } from './adapters'
 export {
   useNewsEventsQuery,
+  useNewsEventDetailQuery,
   useNewsOverviewQuery,
   useNewsTopicDetailQuery,
   useNewsTopicEvidenceQuery,
