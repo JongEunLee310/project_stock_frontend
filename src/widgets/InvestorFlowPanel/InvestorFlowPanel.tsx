@@ -15,8 +15,8 @@ interface InvestorFlowPanelProps {
 }
 
 const directionBarClassNames: Record<FlowDirectionDto, string> = {
-  BUY: 'ml-1/2 bg-emerald-400',
-  SELL: 'mr-1/2 bg-red-400',
+  BUY: 'ml-[50%] bg-emerald-400',
+  SELL: 'bg-red-400',
   NEUTRAL: 'mx-auto bg-app-text-muted',
 }
 
