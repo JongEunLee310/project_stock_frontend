@@ -11,7 +11,9 @@ import type {
   NewsInsightOverviewDto,
   NewsTopicDetailDto,
   NewsTopicEvidenceItemDto,
+  NewsTopicGraphDto,
   NewsTopicMapDto,
+  NewsTopicSymbolSensitivityItemDto,
   NewsTopicTrendDto,
 } from './dto'
 import {
@@ -20,7 +22,9 @@ import {
   useNewsOverviewQuery,
   useNewsTopicDetailQuery,
   useNewsTopicEvidenceQuery,
+  useNewsTopicGraphQuery,
   useNewsTopicMapQuery,
+  useNewsTopicSymbolsQuery,
   useNewsTopicTrendQuery,
 } from './queries'
 
@@ -114,6 +118,33 @@ const topicTrendDto: NewsTopicTrendDto = {
   ],
   markers: [],
   source_distribution: [],
+}
+
+const topicSymbolsDto: NewsTopicSymbolSensitivityItemDto[] = [
+  {
+    symbol: 'NVDA',
+    exposure_score: 0.82,
+    impact_direction: 'POSITIVE',
+    relationship: 'DIRECT',
+    valuation_burden: null,
+    portfolio_weight: null,
+    current_signal: null,
+  },
+]
+
+const topicGraphDto: NewsTopicGraphDto = {
+  nodes: [
+    {
+      id: 'keyword:ai-chip',
+      label: 'AI 반도체',
+      type: 'KEYWORD',
+      mention_count: 17,
+      sentiment_score: 0.78,
+      related_event_ids: [101],
+      related_symbols: ['NVDA'],
+    },
+  ],
+  edges: [],
 }
 
 function createEvidence(documentId: number): NewsTopicEvidenceItemDto {
@@ -323,6 +354,86 @@ describe('news insights queries', () => {
 
     await waitFor(() => expect(result.current.isError).toBe(true))
     expect(result.current.error).toBeInstanceOf(ApiError)
+  })
+
+  it('fetches and adapts topic symbols including null fields', async () => {
+    vi.mocked(apiGet).mockResolvedValue({ data: topicSymbolsDto })
+
+    const { result } = renderHook(() => useNewsTopicSymbolsQuery('topic/7'), {
+      wrapper: createWrapper(),
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(apiGet).toHaveBeenCalledWith(
+      '/news-insights/topics/topic%2F7/symbols',
+    )
+    expect(result.current.data?.[0]).toEqual(
+      expect.objectContaining({
+        symbol: 'NVDA',
+        exposurePercent: 82,
+        valuationBurden: null,
+        portfolioWeightPercent: null,
+        currentSignal: null,
+      }),
+    )
+  })
+
+  it('preserves empty topic symbols and symbol request errors', async () => {
+    vi.mocked(apiGet).mockResolvedValueOnce({ data: [] })
+    const empty = renderHook(() => useNewsTopicSymbolsQuery('7'), {
+      wrapper: createWrapper(),
+    })
+    await waitFor(() => expect(empty.result.current.isSuccess).toBe(true))
+    expect(empty.result.current.data).toEqual([])
+    empty.unmount()
+
+    vi.mocked(apiGet).mockRejectedValueOnce(
+      new ApiError('INTERNAL_ERROR', '요청에 실패했습니다.'),
+    )
+    const failure = renderHook(() => useNewsTopicSymbolsQuery('8'), {
+      wrapper: createWrapper(),
+    })
+    await waitFor(() => expect(failure.result.current.isError).toBe(true))
+    expect(failure.result.current.error).toBeInstanceOf(ApiError)
+  })
+
+  it('fetches and adapts a topic keyword graph', async () => {
+    vi.mocked(apiGet).mockResolvedValue({ data: topicGraphDto })
+
+    const { result } = renderHook(() => useNewsTopicGraphQuery('7'), {
+      wrapper: createWrapper(),
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(apiGet).toHaveBeenCalledWith('/news-insights/topics/7/graph')
+    expect(result.current.data?.nodes[0]).toEqual(
+      expect.objectContaining({
+        id: 'keyword:ai-chip',
+        relatedEventIds: ['101'],
+        relatedSymbols: ['NVDA'],
+      }),
+    )
+  })
+
+  it('preserves empty topic graphs and graph request errors', async () => {
+    vi.mocked(apiGet).mockResolvedValueOnce({
+      data: { nodes: [], edges: [] },
+    })
+    const empty = renderHook(() => useNewsTopicGraphQuery('7'), {
+      wrapper: createWrapper(),
+    })
+    await waitFor(() => expect(empty.result.current.isSuccess).toBe(true))
+    expect(empty.result.current.data).toEqual({ nodes: [], edges: [] })
+    empty.unmount()
+
+    vi.mocked(apiGet).mockRejectedValueOnce(
+      new ApiError('INTERNAL_ERROR', '요청에 실패했습니다.'),
+    )
+    const failure = renderHook(() => useNewsTopicGraphQuery('8'), {
+      wrapper: createWrapper(),
+    })
+    await waitFor(() => expect(failure.result.current.isError).toBe(true))
+    expect(failure.result.current.error).toBeInstanceOf(ApiError)
   })
 
   it('fetches trend query parameters and preserves empty trend data', async () => {

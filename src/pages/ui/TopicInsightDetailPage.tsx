@@ -11,24 +11,17 @@ import { CounterViewPanel } from '@/widgets/CounterViewPanel'
 import { PlannedPanelCard, type PlannedPanel } from '@/widgets/PlannedPanelCard'
 import { TopicEvidenceList } from '@/widgets/TopicEvidenceList'
 import { TopicInsightSummary } from '@/widgets/TopicInsightSummary'
+import { TopicKeywordGraph } from '@/widgets/TopicKeywordGraph'
+import { TopicSymbolSensitivity } from '@/widgets/TopicSymbolSensitivity'
 import { TopicSummaryHeader } from '@/widgets/TopicSummaryHeader'
 import { TopicTrendChart } from '@/widgets/TopicTrendChart'
 
 const plannedPanels = {
-  keywordGraph: {
-    title: '키워드 관계망',
-    description:
-      '토픽과 핵심 키워드의 연결 강도와 감성 방향을 관계망으로 표시합니다.',
-    phase: '2차',
-    issue: '#265',
-  },
   investorReaction: {
     title: '투자자 반응',
-    supportingLabel: '종목 민감도',
-    description:
-      '투자 주체별 수급 반응과 영향 종목별 노출도·민감도를 함께 비교합니다.',
+    description: '투자 주체별 수급 변화와 토픽 전후의 반응을 비교합니다.',
     phase: '2차',
-    issue: '#264 · #265',
+    issue: '#264',
   },
   fundFlowScenario: {
     title: '예상 자금 흐름 시나리오',
@@ -109,7 +102,7 @@ export function TopicInsightDetailPage() {
           isError={trendQuery.isError}
           onRetry={() => void trendQuery.refetch()}
         />
-        <PlannedPanelCard panel={plannedPanels.keywordGraph} />
+        <TopicKeywordGraph topicId={topicId} />
 
         <TopicEvidenceList
           evidence={evidence}
@@ -123,6 +116,8 @@ export function TopicInsightDetailPage() {
         />
         <PlannedPanelCard panel={plannedPanels.investorReaction} />
         <PlannedPanelCard panel={plannedPanels.fundFlowScenario} />
+
+        <TopicSymbolSensitivity topicId={topicId} />
 
         <PlannedPanelCard panel={plannedPanels.explanation} />
         <PlannedPanelCard panel={plannedPanels.actionChecklist} />

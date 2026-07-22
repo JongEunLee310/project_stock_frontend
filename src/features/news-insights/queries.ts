@@ -14,14 +14,18 @@ import {
   adaptNewsOverview,
   adaptNewsTopicDetail,
   adaptNewsTopicEvidence,
+  adaptNewsTopicGraph,
   adaptNewsTopicMap,
+  adaptNewsTopicSymbols,
   adaptNewsTopicTrend,
   type NewsEventView,
   type NewsEventDetailView,
   type NewsOverviewView,
   type NewsTopicDetailView,
   type NewsTopicEvidenceView,
+  type NewsTopicGraphView,
   type NewsTopicMap,
+  type NewsTopicSymbolSensitivityView,
   type NewsTopicTrendView,
 } from './adapters'
 import type {
@@ -30,7 +34,9 @@ import type {
   NewsInsightOverviewDto,
   NewsTopicDetailDto,
   NewsTopicEvidenceItemDto,
+  NewsTopicGraphDto,
   NewsTopicMapDto,
+  NewsTopicSymbolSensitivityItemDto,
   NewsTopicTrendDto,
 } from './dto'
 
@@ -126,6 +132,32 @@ export function useNewsTopicDetailQuery(topicId: string) {
         `/news-insights/topics/${encodeURIComponent(topicId)}`,
       )
       return adaptNewsTopicDetail(data)
+    },
+    enabled: topicId.length > 0,
+  })
+}
+
+export function useNewsTopicSymbolsQuery(topicId: string) {
+  return useQuery<NewsTopicSymbolSensitivityView[]>({
+    queryKey: ['news-insights', 'topics', topicId, 'symbols'],
+    queryFn: async () => {
+      const { data } = await apiGet<NewsTopicSymbolSensitivityItemDto[]>(
+        `/news-insights/topics/${encodeURIComponent(topicId)}/symbols`,
+      )
+      return adaptNewsTopicSymbols(data)
+    },
+    enabled: topicId.length > 0,
+  })
+}
+
+export function useNewsTopicGraphQuery(topicId: string) {
+  return useQuery<NewsTopicGraphView>({
+    queryKey: ['news-insights', 'topics', topicId, 'graph'],
+    queryFn: async () => {
+      const { data } = await apiGet<NewsTopicGraphDto>(
+        `/news-insights/topics/${encodeURIComponent(topicId)}/graph`,
+      )
+      return adaptNewsTopicGraph(data)
     },
     enabled: topicId.length > 0,
   })

@@ -8,10 +8,12 @@ import type {
   NewsInsightSummaryMetricDto,
   NewsTopicDetailDto,
   NewsTopicEvidenceItemDto,
+  NewsTopicGraphDto,
   NewsTopicTrendDto,
   NewsTopicCategoryDto,
   NewsTopicMapDto,
   NewsTopicMapNodeTypeDto,
+  NewsTopicSymbolSensitivityItemDto,
 } from './dto'
 
 export interface InsightSummaryMetric {
@@ -184,6 +186,39 @@ export interface NewsTopicEvidenceView {
   publishedAt: string
 }
 
+export interface NewsTopicSymbolSensitivityView {
+  symbol: string
+  exposurePercent: number
+  impactDirection: { label: string; tone: BadgeTone }
+  relationship: { label: string; tone: BadgeTone }
+  valuationBurden: { label: string; tone: BadgeTone } | null
+  portfolioWeightPercent: number | null
+  currentSignal: { label: string; tone: BadgeTone } | null
+}
+
+export interface NewsTopicGraphNodeView {
+  id: string
+  label: string
+  type: 'KEYWORD'
+  mentionCount: number
+  sentimentScore: number
+  sentiment: { label: string; tone: BadgeTone }
+  relatedEventIds: string[]
+  relatedSymbols: string[]
+}
+
+export interface NewsTopicGraphEdgeView {
+  source: string
+  target: string
+  strength: number
+  cooccurrenceCount: number
+}
+
+export interface NewsTopicGraphView {
+  nodes: NewsTopicGraphNodeView[]
+  edges: NewsTopicGraphEdgeView[]
+}
+
 const summaryMetricDefinitions = [
   {
     key: 'high_importance_events',
@@ -268,6 +303,27 @@ const relationshipPresentations: Record<
   CUSTOMER: { label: '고객사', tone: 'accent' },
 }
 
+const valuationBurdenPresentations: Record<
+  string,
+  { label: string; tone: BadgeTone }
+> = {
+  LOW: { label: '낮음', tone: 'success' },
+  MEDIUM: { label: '중간', tone: 'warning' },
+  HIGH: { label: '높음', tone: 'danger' },
+}
+
+const topicSignalPresentations: Record<
+  string,
+  { label: string; tone: BadgeTone }
+> = {
+  WATCH: { label: '관찰', tone: 'info' },
+  RISK_ALERT: { label: '위험 경보', tone: 'danger' },
+  THESIS_BROKEN: { label: '투자 가설 훼손', tone: 'danger' },
+  BUY_CANDIDATE: { label: '매수 후보', tone: 'success' },
+  SELL_REVIEW: { label: '매도 검토', tone: 'warning' },
+  OVERHEATED: { label: '과열', tone: 'warning' },
+}
+
 const evidenceRolePresentations: Record<
   string,
   { label: string; tone: BadgeTone }
@@ -334,6 +390,12 @@ function toNonNegativeInteger(value: number): number {
 function toScorePercent(value: number): number {
   if (!Number.isFinite(value)) return 0
   return Math.round(Math.min(1, Math.max(0, value)) * 100)
+}
+
+function sentimentForScore(score: number): { label: string; tone: BadgeTone } {
+  if (score < 0.34) return sentimentPresentations.NEGATIVE
+  if (score < 0.67) return sentimentPresentations.NEUTRAL
+  return sentimentPresentations.POSITIVE
 }
 
 function formatDateTime(value: string): string {
@@ -495,6 +557,68 @@ export function adaptNewsTopicMap(dto: NewsTopicMapDto): NewsTopicMap {
       momentumScore: node.momentum_score,
       sentimentScore: node.sentiment_score,
       category: node.category,
+    })),
+    edges: dto.edges.map((edge) => ({
+      source: edge.source,
+      target: edge.target,
+      strength: edge.strength,
+      cooccurrenceCount: edge.cooccurrence_count,
+    })),
+  }
+}
+
+export function adaptNewsTopicSymbols(
+  dto: NewsTopicSymbolSensitivityItemDto[],
+): NewsTopicSymbolSensitivityView[] {
+  return dto.map((item) => ({
+    symbol: item.symbol.trim() || '종목 미상',
+    exposurePercent: toScorePercent(item.exposure_score),
+    impactDirection: presentationFor(
+      sentimentPresentations,
+      item.impact_direction,
+      '방향 미상',
+    ),
+    relationship: presentationFor(
+      relationshipPresentations,
+      item.relationship,
+      '관계 미상',
+    ),
+    valuationBurden:
+      item.valuation_burden === null
+        ? null
+        : presentationFor(
+            valuationBurdenPresentations,
+            item.valuation_burden,
+            '부담 미상',
+          ),
+    portfolioWeightPercent:
+      item.portfolio_weight === null
+        ? null
+        : toScorePercent(item.portfolio_weight),
+    currentSignal:
+      item.current_signal === null
+        ? null
+        : presentationFor(
+            topicSignalPresentations,
+            item.current_signal,
+            '시그널 미상',
+          ),
+  }))
+}
+
+export function adaptNewsTopicGraph(
+  dto: NewsTopicGraphDto,
+): NewsTopicGraphView {
+  return {
+    nodes: dto.nodes.map((node) => ({
+      id: node.id,
+      label: node.label.trim() || '키워드 없음',
+      type: node.type,
+      mentionCount: node.mention_count,
+      sentimentScore: node.sentiment_score,
+      sentiment: sentimentForScore(node.sentiment_score),
+      relatedEventIds: node.related_event_ids.map(String),
+      relatedSymbols: node.related_symbols.map((symbol) => symbol.trim()),
     })),
     edges: dto.edges.map((edge) => ({
       source: edge.source,

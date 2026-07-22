@@ -4,7 +4,9 @@ import {
   adaptNewsOverview,
   adaptNewsTopicDetail,
   adaptNewsTopicEvidence,
+  adaptNewsTopicGraph,
   adaptNewsTopicMap,
+  adaptNewsTopicSymbols,
   adaptNewsTopicTrend,
 } from './adapters'
 import type {
@@ -13,7 +15,9 @@ import type {
   NewsInsightOverviewDto,
   NewsTopicDetailDto,
   NewsTopicEvidenceItemDto,
+  NewsTopicGraphDto,
   NewsTopicMapDto,
+  NewsTopicSymbolSensitivityItemDto,
   NewsTopicTrendDto,
 } from './dto'
 
@@ -176,6 +180,49 @@ const topicEvidenceDto: NewsTopicEvidenceItemDto = {
   relevance_score: 0.846,
   source: ' Reuters ',
   published_at: '2026-07-21T00:00:00Z',
+}
+
+const topicSymbolsDto: NewsTopicSymbolSensitivityItemDto[] = [
+  {
+    symbol: ' NVDA ',
+    exposure_score: 0.824,
+    impact_direction: 'POSITIVE',
+    relationship: 'DIRECT',
+    valuation_burden: 'HIGH',
+    portfolio_weight: 0.125,
+    current_signal: 'OVERHEATED',
+  },
+  {
+    symbol: 'TSM',
+    exposure_score: 0.61,
+    impact_direction: 'MIXED',
+    relationship: 'SUPPLY_CHAIN',
+    valuation_burden: null,
+    portfolio_weight: null,
+    current_signal: null,
+  },
+]
+
+const topicGraphDto: NewsTopicGraphDto = {
+  nodes: [
+    {
+      id: 'keyword:ai-chip',
+      label: ' AI 반도체 ',
+      type: 'KEYWORD',
+      mention_count: 17,
+      sentiment_score: 0.78,
+      related_event_ids: [101, 102],
+      related_symbols: ['NVDA', 'TSM'],
+    },
+  ],
+  edges: [
+    {
+      source: 'keyword:ai-chip',
+      target: 'keyword:hbm',
+      strength: 0.86,
+      cooccurrence_count: 9,
+    },
+  ],
 }
 
 describe('news insights adapters', () => {
@@ -414,6 +461,50 @@ describe('news insights adapters', () => {
     expect(result.direction.label).toBe('부정')
   })
 
+  it('maps symbol exposure, direction, relationship, and nullable fields independently', () => {
+    const result = adaptNewsTopicSymbols(topicSymbolsDto)
+
+    expect(result[0]).toEqual({
+      symbol: 'NVDA',
+      exposurePercent: 82,
+      impactDirection: { label: '긍정', tone: 'success' },
+      relationship: { label: '직접 영향', tone: 'info' },
+      valuationBurden: { label: '높음', tone: 'danger' },
+      portfolioWeightPercent: 13,
+      currentSignal: { label: '과열', tone: 'warning' },
+    })
+    expect(result[1]).toEqual(
+      expect.objectContaining({
+        valuationBurden: null,
+        portfolioWeightPercent: null,
+        currentSignal: null,
+      }),
+    )
+  })
+
+  it('maps graph nodes and edges without changing backend relationships', () => {
+    const result = adaptNewsTopicGraph(topicGraphDto)
+
+    expect(result.nodes[0]).toEqual({
+      id: 'keyword:ai-chip',
+      label: 'AI 반도체',
+      type: 'KEYWORD',
+      mentionCount: 17,
+      sentimentScore: 0.78,
+      sentiment: { label: '긍정', tone: 'success' },
+      relatedEventIds: ['101', '102'],
+      relatedSymbols: ['NVDA', 'TSM'],
+    })
+    expect(result.edges).toEqual([
+      {
+        source: 'keyword:ai-chip',
+        target: 'keyword:hbm',
+        strength: 0.86,
+        cooccurrenceCount: 9,
+      },
+    ])
+  })
+
   it('preserves empty topic insight, trend, and evidence collections', () => {
     expect(
       adaptNewsTopicDetail({
@@ -434,5 +525,10 @@ describe('news insights adapters', () => {
         source_distribution: [],
       }),
     ).toEqual({ points: [], markers: [], sourceDistribution: [] })
+    expect(adaptNewsTopicSymbols([])).toEqual([])
+    expect(adaptNewsTopicGraph({ nodes: [], edges: [] })).toEqual({
+      nodes: [],
+      edges: [],
+    })
   })
 })

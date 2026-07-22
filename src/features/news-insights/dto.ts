@@ -134,6 +134,48 @@ export type TopicSymbolRelationshipDto =
   | 'COMPETITOR'
   | 'CUSTOMER'
 
+export type TopicSymbolValuationBurdenDto = 'LOW' | 'MEDIUM' | 'HIGH'
+
+export type TopicSymbolSignalDto =
+  | 'WATCH'
+  | 'RISK_ALERT'
+  | 'THESIS_BROKEN'
+  | 'BUY_CANDIDATE'
+  | 'SELL_REVIEW'
+  | 'OVERHEATED'
+
+export interface NewsTopicSymbolSensitivityItemDto {
+  symbol: string
+  exposure_score: number
+  impact_direction: SentimentDirectionDto
+  relationship: TopicSymbolRelationshipDto
+  valuation_burden: TopicSymbolValuationBurdenDto | null
+  portfolio_weight: number | null
+  current_signal: TopicSymbolSignalDto | null
+}
+
+export interface NewsTopicGraphNodeDto {
+  id: string
+  label: string
+  type: 'KEYWORD'
+  mention_count: number
+  sentiment_score: number
+  related_event_ids: number[]
+  related_symbols: string[]
+}
+
+export interface NewsTopicGraphEdgeDto {
+  source: string
+  target: string
+  strength: number
+  cooccurrence_count: number
+}
+
+export interface NewsTopicGraphDto {
+  nodes: NewsTopicGraphNodeDto[]
+  edges: NewsTopicGraphEdgeDto[]
+}
+
 export type DocumentTypeDto =
   | 'NEWS'
   | 'DISCLOSURE'
