@@ -1,43 +1,12 @@
-import { Badge, Card, type BadgeTone } from '@/shared/ui'
+import type { NewsOverviewView } from '@/features/news-insights'
+import { Badge, Card, EmptyState, ErrorState, Skeleton } from '@/shared/ui'
 
-interface InsightSummaryMetric {
-  id: string
-  label: string
-  count: number
-  delta: number
-  tone: BadgeTone
+interface InsightSummaryCardsProps {
+  data?: NewsOverviewView
+  isLoading: boolean
+  isError: boolean
+  onRetry: () => void
 }
-
-const insightSummaryMetrics = [
-  {
-    id: 'high-importance-events',
-    label: '고중요 이벤트',
-    count: 12,
-    delta: 3,
-    tone: 'danger',
-  },
-  {
-    id: 'sentiment-shifts',
-    label: '감성 급변',
-    count: 7,
-    delta: -2,
-    tone: 'warning',
-  },
-  {
-    id: 'keyword-clusters',
-    label: '키워드 클러스터',
-    count: 18,
-    delta: 4,
-    tone: 'accent',
-  },
-  {
-    id: 'fund-flow-signals',
-    label: '자금 흐름 시그널',
-    count: 5,
-    delta: 1,
-    tone: 'success',
-  },
-] as const satisfies readonly InsightSummaryMetric[]
 
 function formatDelta(delta: number) {
   if (delta === 0) {
@@ -47,7 +16,29 @@ function formatDelta(delta: number) {
   return `전일 대비 ${delta > 0 ? '+' : ''}${delta}건`
 }
 
-export function InsightSummaryCards() {
+function SummaryLoadingState() {
+  return (
+    <div role="status" aria-label="오늘의 인사이트 불러오는 중">
+      <span className="sr-only">오늘의 인사이트를 불러오는 중입니다.</span>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {Array.from({ length: 4 }, (_, index) => (
+          <Card key={index} className="min-h-36">
+            <Skeleton className="h-6 w-28" />
+            <Skeleton className="mt-4 h-9 w-20" />
+            <Skeleton className="mt-3 w-32" />
+          </Card>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+export function InsightSummaryCards({
+  data,
+  isLoading,
+  isError,
+  onRetry,
+}: InsightSummaryCardsProps) {
   return (
     <section aria-labelledby="insight-summary-title">
       <div className="mb-3 flex items-end justify-between gap-4">
@@ -62,26 +53,45 @@ export function InsightSummaryCards() {
             오늘의 인사이트
           </h2>
         </div>
-        <span className="text-xs text-app-text-muted">1분 전</span>
+        {data ? (
+          <span className="text-xs text-app-text-muted">기준 {data.asOf}</span>
+        ) : null}
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {insightSummaryMetrics.map((metric) => (
-          <Card
-            key={metric.id}
-            aria-label={`${metric.label} 요약`}
-            className="border-cockpit-border bg-cockpit-surface/80"
-          >
-            <Badge tone={metric.tone}>{metric.label}</Badge>
-            <strong className="mt-4 block text-3xl font-bold text-cockpit-text">
-              {metric.count}건
-            </strong>
-            <span className="mt-2 block text-sm text-cockpit-text-muted">
-              {formatDelta(metric.delta)}
-            </span>
-          </Card>
-        ))}
-      </div>
+      {isLoading ? <SummaryLoadingState /> : null}
+      {isError ? (
+        <Card>
+          <ErrorState
+            title="오늘의 인사이트를 불러오지 못했습니다"
+            description="요약 데이터만 다시 요청할 수 있습니다."
+            onRetry={onRetry}
+          />
+        </Card>
+      ) : null}
+      {!isLoading && !isError && data?.metrics.length === 0 ? (
+        <Card>
+          <EmptyState title="표시할 인사이트 요약이 없습니다" />
+        </Card>
+      ) : null}
+      {!isLoading && !isError && data && data.metrics.length > 0 ? (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {data.metrics.map((metric) => (
+            <Card
+              key={metric.id}
+              aria-label={`${metric.label} 요약`}
+              className="border-cockpit-border bg-cockpit-surface/80"
+            >
+              <Badge tone={metric.tone}>{metric.label}</Badge>
+              <strong className="mt-4 block text-3xl font-bold text-cockpit-text">
+                {metric.count}건
+              </strong>
+              <span className="mt-2 block text-sm text-cockpit-text-muted">
+                {formatDelta(metric.change)}
+              </span>
+            </Card>
+          ))}
+        </div>
+      ) : null}
     </section>
   )
 }

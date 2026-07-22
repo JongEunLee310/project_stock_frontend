@@ -1,4 +1,8 @@
 import { Badge, Card } from '@/shared/ui'
+import {
+  useNewsEventsQuery,
+  useNewsOverviewQuery,
+} from '@/features/news-insights'
 import { AgentBriefing } from '@/widgets/AgentBriefing'
 import { InsightSummaryCards } from '@/widgets/InsightSummaryCards'
 import { RealtimeEventFeed } from '@/widgets/RealtimeEventFeed'
@@ -73,6 +77,9 @@ function PlannedPanelCard({ panel }: { panel: PlannedPanel }) {
 
 export function NewsInsightsOverviewPage() {
   const [topicMapPanel, ...laterPanels] = plannedPanels
+  const overviewQuery = useNewsOverviewQuery()
+  const eventsQuery = useNewsEventsQuery()
+  const events = eventsQuery.data?.flatMap((page) => page.items) ?? []
 
   return (
     <section className="flex flex-col gap-6 py-4">
@@ -89,17 +96,36 @@ export function NewsInsightsOverviewPage() {
             화면에서 확인합니다.
           </p>
         </div>
-        <Badge tone="info">로컬 mock · 계약 연동 전</Badge>
+        <Badge tone="info">API 연결 · 패널별 갱신</Badge>
       </header>
 
-      <InsightSummaryCards />
+      <InsightSummaryCards
+        data={overviewQuery.data}
+        isLoading={overviewQuery.isLoading}
+        isError={overviewQuery.isError}
+        onRetry={() => void overviewQuery.refetch()}
+      />
 
       <div className="grid gap-4 2xl:grid-cols-[minmax(0,2fr)_minmax(22rem,1fr)]">
-        <RealtimeEventFeed />
+        <RealtimeEventFeed
+          events={events}
+          isLoading={eventsQuery.isLoading}
+          isError={eventsQuery.isError}
+          isFetchingNextPage={eventsQuery.isFetchingNextPage}
+          isFetchNextPageError={eventsQuery.isFetchNextPageError}
+          hasNextPage={eventsQuery.hasNextPage}
+          onLoadMore={() => void eventsQuery.fetchNextPage()}
+          onRetry={() => void eventsQuery.refetch()}
+        />
         <PlannedPanelCard panel={topicMapPanel} />
       </div>
 
-      <AgentBriefing />
+      <AgentBriefing
+        data={overviewQuery.data?.briefing}
+        isLoading={overviewQuery.isLoading}
+        isError={overviewQuery.isError}
+        onRetry={() => void overviewQuery.refetch()}
+      />
 
       <section aria-labelledby="planned-panels-title">
         <div className="mb-3">

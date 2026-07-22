@@ -1,87 +1,30 @@
+import type { NewsEventView } from '@/features/news-insights'
 import {
   Badge,
+  Button,
   Card,
+  ErrorState,
   Table,
-  type BadgeTone,
   type TableColumn,
 } from '@/shared/ui'
 
-type EventImportance = '높음' | '중간' | '낮음'
-type EventSentiment = '긍정' | '중립' | '부정'
-type EventCategory = '공시' | '산업' | '거시경제'
-
-interface MarketEvent {
-  id: string
-  category: EventCategory
-  symbol: string
-  title: string
-  importance: EventImportance
-  sentiment: EventSentiment
-  source: string
-  occurredAt: string
-  evidenceCount: number
+interface RealtimeEventFeedProps {
+  events: NewsEventView[]
+  isLoading: boolean
+  isError: boolean
+  isFetchingNextPage: boolean
+  isFetchNextPageError: boolean
+  hasNextPage: boolean
+  onLoadMore: () => void
+  onRetry: () => void
 }
 
-const realtimeEvents: MarketEvent[] = [
+const eventColumns: Array<TableColumn<NewsEventView>> = [
   {
-    id: 'event-1',
-    category: '공시',
-    symbol: '005930',
-    title: '삼성전자, 차세대 HBM 공급 확대 계획 발표',
-    importance: '높음',
-    sentiment: '긍정',
-    source: 'DART',
-    occurredAt: '09:42',
-    evidenceCount: 4,
-  },
-  {
-    id: 'event-2',
-    category: '산업',
-    symbol: 'NVDA',
-    title: 'AI 가속기 공급 일정 조정 가능성 부각',
-    importance: '중간',
-    sentiment: '부정',
-    source: 'Reuters',
-    occurredAt: '09:31',
-    evidenceCount: 6,
-  },
-  {
-    id: 'event-3',
-    category: '거시경제',
-    symbol: '시장',
-    title: '미 국채 금리 보합권, 성장주 영향 제한적',
-    importance: '낮음',
-    sentiment: '중립',
-    source: '연합인포맥스',
-    occurredAt: '09:18',
-    evidenceCount: 3,
-  },
-]
-
-const categoryTones: Record<EventCategory, BadgeTone> = {
-  공시: 'info',
-  산업: 'accent',
-  거시경제: 'neutral',
-}
-
-const importanceTones: Record<EventImportance, BadgeTone> = {
-  높음: 'danger',
-  중간: 'warning',
-  낮음: 'success',
-}
-
-const sentimentTones: Record<EventSentiment, BadgeTone> = {
-  긍정: 'success',
-  중립: 'neutral',
-  부정: 'danger',
-}
-
-const eventColumns: Array<TableColumn<MarketEvent>> = [
-  {
-    key: 'category',
-    header: '분류',
+    key: 'documentType',
+    header: '문서',
     cell: (event) => (
-      <Badge tone={categoryTones[event.category]}>{event.category}</Badge>
+      <Badge tone={event.documentTypeTone}>{event.documentTypeLabel}</Badge>
     ),
   },
   {
@@ -95,14 +38,21 @@ const eventColumns: Array<TableColumn<MarketEvent>> = [
     key: 'title',
     header: '이벤트 요약',
     className: 'min-w-64',
-    cell: (event) => event.title,
+    cell: (event) => (
+      <div>
+        <strong className="font-medium text-cockpit-text">{event.title}</strong>
+        <span className="mt-1 block text-xs text-cockpit-text-muted">
+          {event.eventTypeLabel}
+        </span>
+      </div>
+    ),
   },
   {
     key: 'importance',
     header: '중요도',
     cell: (event) => (
-      <Badge tone={importanceTones[event.importance]}>
-        중요도 {event.importance}
+      <Badge tone={event.importance.tone}>
+        중요도 {event.importance.label} · {event.importance.scorePercent}%
       </Badge>
     ),
   },
@@ -110,16 +60,16 @@ const eventColumns: Array<TableColumn<MarketEvent>> = [
     key: 'sentiment',
     header: '감성',
     cell: (event) => (
-      <Badge tone={sentimentTones[event.sentiment]}>
-        감성 {event.sentiment}
+      <Badge tone={event.sentiment.tone}>
+        감성 {event.sentiment.label} · {event.sentiment.scorePercent}%
       </Badge>
     ),
   },
-  { key: 'source', header: '출처', cell: (event) => event.source },
+  { key: 'source', header: '출처', cell: (event) => event.sourceName },
   {
-    key: 'occurredAt',
-    header: '시각',
-    cell: (event) => <time>{event.occurredAt}</time>,
+    key: 'publishedAt',
+    header: '발행 시각',
+    cell: (event) => <time>{event.publishedAt}</time>,
   },
   {
     key: 'evidence',
@@ -129,7 +79,16 @@ const eventColumns: Array<TableColumn<MarketEvent>> = [
   },
 ]
 
-export function RealtimeEventFeed() {
+export function RealtimeEventFeed({
+  events,
+  isLoading,
+  isError,
+  isFetchingNextPage,
+  isFetchNextPageError,
+  hasNextPage,
+  onLoadMore,
+  onRetry,
+}: RealtimeEventFeedProps) {
   return (
     <Card aria-labelledby="realtime-event-feed-title" className="p-0">
       <div className="flex flex-wrap items-end justify-between gap-3 p-panel">
@@ -147,15 +106,48 @@ export function RealtimeEventFeed() {
             관련 문서를 하나의 시장 이벤트로 묶어 중요도와 감성을 분리했습니다.
           </p>
         </div>
-        <span className="text-xs text-app-text-muted">2분 전</span>
+        {events[0] ? (
+          <span className="text-xs text-app-text-muted">
+            최신 {events[0].publishedAt}
+          </span>
+        ) : null}
       </div>
-      <Table
-        aria-label="실시간 이벤트 목록"
-        className="rounded-none border-x-0 border-b-0"
-        columns={eventColumns}
-        rows={realtimeEvents}
-        getRowKey={(event) => event.id}
-      />
+
+      {isError && events.length === 0 ? (
+        <ErrorState
+          title="이벤트 피드를 불러오지 못했습니다"
+          description="다른 패널은 계속 확인할 수 있습니다."
+          onRetry={onRetry}
+        />
+      ) : (
+        <Table
+          aria-label="실시간 이벤트 목록"
+          className="rounded-none border-x-0 border-b-0"
+          columns={eventColumns}
+          rows={events}
+          getRowKey={(event) => event.id}
+          isLoading={isLoading}
+          loadingMessage="이벤트 피드를 불러오는 중입니다."
+          emptyMessage="표시할 이벤트가 없습니다."
+        />
+      )}
+
+      {events.length > 0 && (hasNextPage || isFetchNextPageError) ? (
+        <div className="flex flex-col items-center gap-2 border-t border-app-border p-4">
+          {isFetchNextPageError ? (
+            <p role="alert" className="text-sm text-red-300">
+              다음 이벤트를 불러오지 못했습니다. 다시 시도해 주세요.
+            </p>
+          ) : null}
+          <Button
+            variant="secondary"
+            disabled={isFetchingNextPage}
+            onClick={onLoadMore}
+          >
+            {isFetchingNextPage ? '불러오는 중…' : '이벤트 더 보기'}
+          </Button>
+        </div>
+      ) : null}
     </Card>
   )
 }

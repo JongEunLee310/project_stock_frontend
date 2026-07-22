@@ -11,11 +11,19 @@ export interface ApiMeta {
   total: number
 }
 
-export interface ApiEnvelope<T> {
+export interface ApiCursorMeta {
+  limit: number
+  has_more: boolean
+  next_cursor: string | null
+}
+
+export type ApiResponseMeta = ApiMeta | ApiCursorMeta
+
+export interface ApiEnvelope<T, TMeta extends ApiResponseMeta = ApiMeta> {
   data: T
   message?: string
   error?: ApiErrorBody | null
-  meta?: ApiMeta
+  meta?: TMeta
 }
 
 export class ApiError extends Error {
@@ -28,9 +36,11 @@ export class ApiError extends Error {
   }
 }
 
-export function unwrapEnvelope<T>(env: ApiEnvelope<T>): {
+export function unwrapEnvelope<T, TMeta extends ApiResponseMeta = ApiMeta>(
+  env: ApiEnvelope<T, TMeta>,
+): {
   data: T
-  meta?: ApiMeta
+  meta?: TMeta
 } {
   if (env.error) {
     const message = messageForErrorCode(env.error.code)

@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { buildSortParam, toTablePagination } from './paging'
+import {
+  buildCursorSearchParams,
+  buildSortParam,
+  toCursorPageInfo,
+  toTablePagination,
+} from './paging'
 import type { ApiMeta } from './envelope'
 
 describe('toTablePagination', () => {
@@ -30,5 +35,25 @@ describe('buildSortParam', () => {
   it('다른 필드에도 동작한다', () => {
     expect(buildSortParam('created_at', 'desc')).toBe('-created_at')
     expect(buildSortParam('name', 'asc')).toBe('name')
+  })
+})
+
+describe('cursor paging', () => {
+  it('builds first and subsequent cursor query params', () => {
+    expect(buildCursorSearchParams(20).toString()).toBe('limit=20')
+    expect(buildCursorSearchParams(20, 'a+b/c=').toString()).toBe(
+      'limit=20&cursor=a%2Bb%2Fc%3D',
+    )
+  })
+
+  it('maps cursor meta and falls back safely when meta is absent', () => {
+    expect(
+      toCursorPageInfo({ limit: 20, has_more: true, next_cursor: 'next' }, 10),
+    ).toEqual({ limit: 20, hasMore: true, nextCursor: 'next' })
+    expect(toCursorPageInfo(undefined, 10)).toEqual({
+      limit: 10,
+      hasMore: false,
+      nextCursor: null,
+    })
   })
 })
