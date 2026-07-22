@@ -7,6 +7,7 @@ import { ApiError } from '@/shared/api/envelope'
 
 import type {
   NewsEventDetailDto,
+  NewsFundFlowOutlookDto,
   NewsInsightEventDto,
   NewsInsightOverviewDto,
   NewsInvestorFlowsDto,
@@ -14,11 +15,13 @@ import type {
   NewsTopicEvidenceItemDto,
   NewsTopicGraphDto,
   NewsTopicMapDto,
+  NewsTopicScenariosDto,
   NewsTopicSymbolSensitivityItemDto,
   NewsTopicTrendDto,
 } from './dto'
 import {
   useNewsEventDetailQuery,
+  useNewsFundFlowOutlookQuery,
   useNewsEventsQuery,
   useNewsInvestorFlowsQuery,
   useNewsOverviewQuery,
@@ -26,6 +29,7 @@ import {
   useNewsTopicEvidenceQuery,
   useNewsTopicGraphQuery,
   useNewsTopicMapQuery,
+  useNewsTopicScenariosQuery,
   useNewsTopicSymbolsQuery,
   useNewsTopicTrendQuery,
 } from './queries'
@@ -69,6 +73,41 @@ const investorFlowsDto: NewsInvestorFlowsDto = {
   ],
   narrative_alignment: { aligned: true, note: '수급 방향과 일치합니다.' },
   availability: { available: true, fallback: null },
+}
+
+const fundFlowOutlookDto: NewsFundFlowOutlookDto = {
+  as_of: '2026-07-21T06:00:00Z',
+  analysis_version: 'v3.1',
+  items: [
+    {
+      sector: '반도체',
+      direction: 'INFLOW',
+      likelihood: 'HIGH',
+      estimated_range: '1,000억~1,500억원',
+      horizon: '1개월',
+      confidence: 0.82,
+      key_assumptions: ['AI 수요 유지'],
+      risk_factors: ['공급 차질'],
+    },
+  ],
+}
+
+const topicScenariosDto: NewsTopicScenariosDto = {
+  topic_id: 7,
+  analysis_version: 'v3.1',
+  as_of: '2026-07-21T06:00:00Z',
+  scenarios: [
+    {
+      scenario_kind: 'BASE',
+      weight: 0.5,
+      expected_flow_direction: 'NEUTRAL',
+      key_assumptions: ['수요 유지'],
+      benefiting_sectors: ['반도체'],
+      risk_sectors: ['유통'],
+      related_symbols: ['NVDA'],
+      invalidation_conditions: ['주문 감소'],
+    },
+  ],
 }
 
 const eventDetailDto: NewsEventDetailDto = {
@@ -213,6 +252,78 @@ describe('news insights queries', () => {
     expect(result.current.data?.metrics[0]).toEqual(
       expect.objectContaining({ label: '고중요 이벤트', count: 2 }),
     )
+  })
+
+  it('fetches fund-flow outlook and preserves empty data and request errors', async () => {
+    vi.mocked(apiGet).mockResolvedValueOnce({ data: fundFlowOutlookDto })
+    const success = renderHook(() => useNewsFundFlowOutlookQuery(), {
+      wrapper: createWrapper(),
+    })
+    await waitFor(() => expect(success.result.current.isSuccess).toBe(true))
+    expect(apiGet).toHaveBeenCalledWith('/news-insights/fund-flow-outlook')
+    expect(success.result.current.data?.items[0]).toEqual(
+      expect.objectContaining({ sector: '반도체', confidencePercent: 82 }),
+    )
+    success.unmount()
+
+    vi.mocked(apiGet).mockResolvedValueOnce({
+      data: { ...fundFlowOutlookDto, items: [] },
+    })
+    const empty = renderHook(() => useNewsFundFlowOutlookQuery(), {
+      wrapper: createWrapper(),
+    })
+    await waitFor(() => expect(empty.result.current.isSuccess).toBe(true))
+    expect(empty.result.current.data?.items).toEqual([])
+    empty.unmount()
+
+    vi.mocked(apiGet).mockRejectedValueOnce(
+      new ApiError('INTERNAL_ERROR', '요청에 실패했습니다.'),
+    )
+    const failure = renderHook(() => useNewsFundFlowOutlookQuery(), {
+      wrapper: createWrapper(),
+    })
+    await waitFor(() => expect(failure.result.current.isError).toBe(true))
+    expect(failure.result.current.error).toBeInstanceOf(ApiError)
+  })
+
+  it('fetches topic scenarios, guards an empty id, and isolates server errors', async () => {
+    vi.mocked(apiGet).mockResolvedValueOnce({ data: topicScenariosDto })
+    const success = renderHook(() => useNewsTopicScenariosQuery('topic/7'), {
+      wrapper: createWrapper(),
+    })
+    await waitFor(() => expect(success.result.current.isSuccess).toBe(true))
+    expect(apiGet).toHaveBeenCalledWith(
+      '/news-insights/topics/topic%2F7/scenarios',
+    )
+    expect(success.result.current.data?.scenarios[0].weightPercent).toBe(50)
+    success.unmount()
+
+    vi.mocked(apiGet).mockResolvedValueOnce({
+      data: { ...topicScenariosDto, scenarios: [] },
+    })
+    const empty = renderHook(() => useNewsTopicScenariosQuery('7'), {
+      wrapper: createWrapper(),
+    })
+    await waitFor(() => expect(empty.result.current.isSuccess).toBe(true))
+    expect(empty.result.current.data?.scenarios).toEqual([])
+    empty.unmount()
+
+    vi.mocked(apiGet).mockClear()
+    const guarded = renderHook(() => useNewsTopicScenariosQuery(''), {
+      wrapper: createWrapper(),
+    })
+    expect(guarded.result.current.fetchStatus).toBe('idle')
+    expect(apiGet).not.toHaveBeenCalled()
+    guarded.unmount()
+
+    vi.mocked(apiGet).mockRejectedValueOnce(
+      new ApiError('INTERNAL_ERROR', '미분석 토픽입니다.'),
+    )
+    const failure = renderHook(() => useNewsTopicScenariosQuery('7'), {
+      wrapper: createWrapper(),
+    })
+    await waitFor(() => expect(failure.result.current.isError).toBe(true))
+    expect(failure.result.current.error).toBeInstanceOf(ApiError)
   })
 
   it('fetches market and topic investor flows with the required parameters', async () => {

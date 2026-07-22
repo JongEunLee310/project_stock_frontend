@@ -11,27 +11,32 @@ import {
 import {
   adaptNewsEvent,
   adaptNewsEventDetail,
+  adaptNewsFundFlowOutlook,
   adaptNewsInvestorFlows,
   adaptNewsOverview,
   adaptNewsTopicDetail,
   adaptNewsTopicEvidence,
   adaptNewsTopicGraph,
   adaptNewsTopicMap,
+  adaptNewsTopicScenarios,
   adaptNewsTopicSymbols,
   adaptNewsTopicTrend,
   type NewsEventView,
   type NewsEventDetailView,
+  type NewsFundFlowOutlookView,
   type NewsInvestorFlowsView,
   type NewsOverviewView,
   type NewsTopicDetailView,
   type NewsTopicEvidenceView,
   type NewsTopicGraphView,
   type NewsTopicMap,
+  type NewsTopicScenariosView,
   type NewsTopicSymbolSensitivityView,
   type NewsTopicTrendView,
 } from './adapters'
 import type {
   NewsEventDetailDto,
+  NewsFundFlowOutlookDto,
   NewsInvestorFlowsDto,
   NewsInsightEventDto,
   NewsInsightOverviewDto,
@@ -39,6 +44,7 @@ import type {
   NewsTopicEvidenceItemDto,
   NewsTopicGraphDto,
   NewsTopicMapDto,
+  NewsTopicScenariosDto,
   NewsTopicSymbolSensitivityItemDto,
   NewsTopicTrendDto,
 } from './dto'
@@ -97,6 +103,31 @@ export function useNewsInvestorFlowsQuery({
       )
       return adaptNewsInvestorFlows(data)
     },
+  })
+}
+
+export function useNewsFundFlowOutlookQuery() {
+  return useQuery<NewsFundFlowOutlookView>({
+    queryKey: ['news-insights', 'fund-flow-outlook'],
+    queryFn: async () => {
+      const { data } = await apiGet<NewsFundFlowOutlookDto>(
+        '/news-insights/fund-flow-outlook',
+      )
+      return adaptNewsFundFlowOutlook(data)
+    },
+  })
+}
+
+export function useNewsTopicScenariosQuery(topicId: string) {
+  return useQuery<NewsTopicScenariosView>({
+    queryKey: ['news-insights', 'topics', topicId, 'scenarios'],
+    queryFn: async () => {
+      const { data } = await apiGet<NewsTopicScenariosDto>(
+        `/news-insights/topics/${encodeURIComponent(topicId)}/scenarios`,
+      )
+      return adaptNewsTopicScenarios(data)
+    },
+    enabled: topicId.length > 0,
   })
 }
 

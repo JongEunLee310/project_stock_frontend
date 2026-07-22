@@ -45,6 +45,43 @@ export interface NewsInvestorFlowsDto {
   }
 }
 
+export type FundFlowDirectionDto = 'INFLOW' | 'OUTFLOW' | 'NEUTRAL'
+
+export type FlowLikelihoodDto = 'LOW' | 'MEDIUM' | 'HIGH'
+
+export interface NewsFundFlowOutlookDto {
+  as_of: string
+  analysis_version: string
+  items: Array<{
+    sector: string
+    direction: FundFlowDirectionDto
+    likelihood: FlowLikelihoodDto
+    estimated_range: string | null
+    horizon: string
+    confidence: number
+    key_assumptions: string[]
+    risk_factors: string[]
+  }>
+}
+
+export type ScenarioKindDto = 'OPTIMISTIC' | 'BASE' | 'CONSERVATIVE'
+
+export interface NewsTopicScenariosDto {
+  topic_id: number
+  analysis_version: string
+  as_of: string
+  scenarios: Array<{
+    scenario_kind: ScenarioKindDto
+    weight: number
+    expected_flow_direction: FundFlowDirectionDto
+    key_assumptions: string[]
+    benefiting_sectors: string[]
+    risk_sectors: string[]
+    related_symbols: string[]
+    invalidation_conditions: string[]
+  }>
+}
+
 export interface NewsInsightEventDto {
   id: number
   event_type: string
