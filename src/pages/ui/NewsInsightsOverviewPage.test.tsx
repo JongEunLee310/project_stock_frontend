@@ -1,4 +1,5 @@
 import { render, screen, within } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 
 import {
   useNewsEventsQuery,
@@ -8,6 +9,14 @@ import {
 } from '@/features/news-insights'
 
 import { NewsInsightsOverviewPage } from './NewsInsightsOverviewPage'
+
+function renderPage() {
+  return render(
+    <MemoryRouter>
+      <NewsInsightsOverviewPage />
+    </MemoryRouter>,
+  )
+}
 
 vi.mock('@/features/news-insights', async (importOriginal) => {
   const actual =
@@ -95,7 +104,7 @@ describe('NewsInsightsOverviewPage', () => {
   })
 
   it('composes API-backed overview widgets and planned phase panels', () => {
-    render(<NewsInsightsOverviewPage />)
+    renderPage()
 
     expect(
       screen.getByRole('heading', { name: '뉴스·공시 인사이트' }),
@@ -119,7 +128,7 @@ describe('NewsInsightsOverviewPage', () => {
 
   it('keeps the event panel visible when the overview request fails', () => {
     mockQueries({ overviewError: true })
-    render(<NewsInsightsOverviewPage />)
+    renderPage()
 
     expect(screen.getByText('API 이벤트 제목')).toBeVisible()
     expect(
@@ -132,7 +141,7 @@ describe('NewsInsightsOverviewPage', () => {
 
   it('keeps overview panels visible when the events request fails', () => {
     mockQueries({ eventsError: true })
-    render(<NewsInsightsOverviewPage />)
+    renderPage()
 
     expect(
       within(screen.getByLabelText('고중요 이벤트 요약')).getByText('2건'),
