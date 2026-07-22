@@ -12,23 +12,13 @@ import { CounterViewPanel } from '@/widgets/CounterViewPanel'
 import { FundFlowScenarioPanel } from '@/widgets/FundFlowScenarioPanel'
 import { InvestorFlowPanel } from '@/widgets/InvestorFlowPanel'
 import { InsightExplanationPanel } from '@/widgets/InsightExplanationPanel'
-import { PlannedPanelCard, type PlannedPanel } from '@/widgets/PlannedPanelCard'
+import { TopicActionChecklist } from '@/widgets/TopicActionChecklist'
 import { TopicEvidenceList } from '@/widgets/TopicEvidenceList'
 import { TopicInsightSummary } from '@/widgets/TopicInsightSummary'
 import { TopicKeywordGraph } from '@/widgets/TopicKeywordGraph'
 import { TopicSymbolSensitivity } from '@/widgets/TopicSymbolSensitivity'
 import { TopicSummaryHeader } from '@/widgets/TopicSummaryHeader'
 import { TopicTrendChart } from '@/widgets/TopicTrendChart'
-
-const plannedPanels = {
-  actionChecklist: {
-    title: '액션 체크리스트',
-    description:
-      '관련 종목 리서치, 포트폴리오 확인, 알림과 판단 기록을 한곳에서 점검합니다.',
-    phase: '3차',
-    issue: '#270',
-  },
-} as const satisfies Record<string, PlannedPanel>
 
 export function TopicInsightDetailPage() {
   const { topicId = '' } = useParams<{ topicId: string }>()
@@ -116,7 +106,10 @@ export function TopicInsightDetailPage() {
           isError={explanationQuery.isError}
           onRetry={() => void explanationQuery.refetch()}
         />
-        <PlannedPanelCard panel={plannedPanels.actionChecklist} />
+        <TopicActionChecklist
+          topicId={topicId}
+          affectedSymbols={detailQuery.data?.affectedSymbols ?? []}
+        />
         <CounterViewPanel
           counterArguments={detailQuery.data?.insight.counterArguments ?? []}
           explanation={explanationQuery.data}
