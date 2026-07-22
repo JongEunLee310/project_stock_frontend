@@ -23,6 +23,11 @@ const detail: NewsTopicDetailView = {
       label: '감성 방향',
       valuePercent: 73,
       tone: 'success',
+      direction: {
+        label: '긍정',
+        trendLabel: '상승',
+        indicator: '↗',
+      },
     },
     { id: 'confidence', label: '신뢰도', valuePercent: 88, tone: 'info' },
     { id: 'momentum', label: '모멘텀', valuePercent: 82, tone: 'accent' },
@@ -56,7 +61,7 @@ const defaultProps = {
 describe('TopicSummaryHeader', () => {
   beforeEach(() => navigate.mockReset())
 
-  it('renders scores, affected symbols, guidance, and counter empty state', () => {
+  it('renders stat blocks, affected symbols, actions, and AI summary', () => {
     render(
       <MemoryRouter>
         <TopicSummaryHeader {...defaultProps} />
@@ -64,13 +69,18 @@ describe('TopicSummaryHeader', () => {
     )
 
     expect(screen.getByRole('heading', { name: detail.title })).toBeVisible()
-    expect(screen.getByLabelText('종합 영향도 91%')).toBeVisible()
+    expect(screen.getByLabelText('종합 영향도 91/100')).toBeVisible()
+    expect(screen.getByLabelText('감성 방향 긍정 상승')).toBeVisible()
+    expect(screen.getByLabelText('신뢰도 88%')).toBeVisible()
     expect(screen.getByText('직접 영향')).toBeVisible()
     expect(screen.getByText(/수익률 점수가 아닌 관찰 우선순위/)).toBeVisible()
-    expect(screen.getByText('등록된 반대 관점이 없습니다')).toBeVisible()
+    expect(screen.getByText('수요가 회복되고 있습니다.')).toBeVisible()
+    expect(
+      screen.getByRole('button', { name: '포트폴리오 영향 보기' }),
+    ).toBeDisabled()
   })
 
-  it('navigates an affected symbol chip to research detail', () => {
+  it('navigates action buttons and an affected symbol chip', () => {
     render(
       <MemoryRouter>
         <TopicSummaryHeader {...defaultProps} />
@@ -78,6 +88,13 @@ describe('TopicSummaryHeader', () => {
     )
 
     fireEvent.click(screen.getByRole('button', { name: '005930 리서치 보기' }))
+    fireEvent.click(screen.getByRole('button', { name: '관련 종목 보기' }))
+    fireEvent.click(screen.getByRole('button', { name: '+ 알림 생성' }))
+    fireEvent.click(screen.getByRole('button', { name: '판단 기록 연결' }))
+    expect(navigate).toHaveBeenNthCalledWith(1, '/research/005930')
+    expect(navigate).toHaveBeenNthCalledWith(2, '/research/005930')
+    expect(navigate).toHaveBeenNthCalledWith(3, '/alerts')
+    expect(navigate).toHaveBeenNthCalledWith(4, '/decision-log')
     expect(navigate).toHaveBeenCalledWith('/research/005930')
   })
 

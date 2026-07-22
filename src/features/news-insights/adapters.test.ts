@@ -268,6 +268,17 @@ describe('news insights adapters', () => {
     expect(result.scores[0]).toEqual(
       expect.objectContaining({ label: '종합 영향도', valuePercent: 91 }),
     )
+    expect(result.scores[1]).toEqual(
+      expect.objectContaining({
+        label: '감성 방향',
+        valuePercent: 73,
+        direction: {
+          label: '긍정',
+          trendLabel: '상승',
+          indicator: '↗',
+        },
+      }),
+    )
     expect(result.affectedSymbols[0]).toEqual(
       expect.objectContaining({ symbol: '005930', exposurePercent: 91 }),
     )

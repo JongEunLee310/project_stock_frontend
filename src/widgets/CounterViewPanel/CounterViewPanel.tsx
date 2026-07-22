@@ -1,10 +1,38 @@
-import { Card, EmptyState } from '@/shared/ui'
+import { Card, EmptyState, ErrorState, Skeleton } from '@/shared/ui'
 
 interface CounterViewPanelProps {
   counterArguments: string[]
+  isLoading?: boolean
+  isError?: boolean
+  onRetry?: () => void
 }
 
-export function CounterViewPanel({ counterArguments }: CounterViewPanelProps) {
+export function CounterViewPanel({
+  counterArguments,
+  isLoading = false,
+  isError = false,
+  onRetry,
+}: CounterViewPanelProps) {
+  if (isLoading) {
+    return (
+      <Card aria-label="반대 관점 불러오는 중" role="status">
+        <Skeleton className="h-7 w-32" />
+        <Skeleton className="mt-4 h-24" />
+      </Card>
+    )
+  }
+  if (isError) {
+    return (
+      <Card className="border-red-400/30 bg-red-950/10 shadow-none">
+        <ErrorState
+          title="반대 관점을 불러오지 못했습니다"
+          description="추이와 관련 근거 패널은 계속 확인할 수 있습니다."
+          onRetry={onRetry}
+        />
+      </Card>
+    )
+  }
+
   return (
     <Card
       aria-labelledby="counter-view-title"

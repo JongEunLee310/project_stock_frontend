@@ -7,9 +7,51 @@ import {
 } from '@/features/news-insights'
 import { appRoutePaths } from '@/shared/config/navigation'
 import { Button } from '@/shared/ui'
+import { CounterViewPanel } from '@/widgets/CounterViewPanel'
+import { PlannedPanelCard, type PlannedPanel } from '@/widgets/PlannedPanelCard'
 import { TopicEvidenceList } from '@/widgets/TopicEvidenceList'
+import { TopicInsightSummary } from '@/widgets/TopicInsightSummary'
 import { TopicSummaryHeader } from '@/widgets/TopicSummaryHeader'
 import { TopicTrendChart } from '@/widgets/TopicTrendChart'
+
+const plannedPanels = {
+  keywordGraph: {
+    title: '키워드 관계망',
+    description:
+      '토픽과 핵심 키워드의 연결 강도와 감성 방향을 관계망으로 표시합니다.',
+    phase: '2차',
+    issue: '#265',
+  },
+  investorReaction: {
+    title: '투자자 반응',
+    supportingLabel: '종목 민감도',
+    description:
+      '투자 주체별 수급 반응과 영향 종목별 노출도·민감도를 함께 비교합니다.',
+    phase: '2차',
+    issue: '#264 · #265',
+  },
+  fundFlowScenario: {
+    title: '예상 자금 흐름 시나리오',
+    description:
+      '낙관·기준·보수 시나리오별 예상 범위와 전제 조건을 제공합니다.',
+    phase: '3차',
+    issue: '#267',
+  },
+  explanation: {
+    title: '왜 이런 인사이트',
+    description:
+      'AI Agent의 분석 단계와 주요 요인 기여도를 근거와 함께 설명합니다.',
+    phase: '3차',
+    issue: '#268',
+  },
+  actionChecklist: {
+    title: '액션 체크리스트',
+    description:
+      '관련 종목 리서치, 포트폴리오 확인, 알림과 판단 기록을 한곳에서 점검합니다.',
+    phase: '3차',
+    issue: '#268',
+  },
+} as const satisfies Record<string, PlannedPanel>
 
 export function TopicInsightDetailPage() {
   const { topicId = '' } = useParams<{ topicId: string }>()
@@ -54,13 +96,21 @@ export function TopicInsightDetailPage() {
         onRetry={() => void detailQuery.refetch()}
       />
 
-      <div className="grid items-start gap-5 2xl:grid-cols-[minmax(0,1.2fr)_minmax(28rem,0.8fr)]">
+      <div className="grid gap-4 xl:grid-cols-3">
+        <TopicInsightSummary
+          data={detailQuery.data}
+          isLoading={detailQuery.isLoading}
+          isError={detailQuery.isError}
+          onRetry={() => void detailQuery.refetch()}
+        />
         <TopicTrendChart
           data={trendQuery.data}
           isLoading={trendQuery.isLoading}
           isError={trendQuery.isError}
           onRetry={() => void trendQuery.refetch()}
         />
+        <PlannedPanelCard panel={plannedPanels.keywordGraph} />
+
         <TopicEvidenceList
           evidence={evidence}
           isLoading={evidenceQuery.isLoading}
@@ -70,6 +120,17 @@ export function TopicInsightDetailPage() {
           hasNextPage={evidenceQuery.hasNextPage}
           onLoadMore={() => void evidenceQuery.fetchNextPage()}
           onRetry={() => void evidenceQuery.refetch()}
+        />
+        <PlannedPanelCard panel={plannedPanels.investorReaction} />
+        <PlannedPanelCard panel={plannedPanels.fundFlowScenario} />
+
+        <PlannedPanelCard panel={plannedPanels.explanation} />
+        <PlannedPanelCard panel={plannedPanels.actionChecklist} />
+        <CounterViewPanel
+          counterArguments={detailQuery.data?.insight.counterArguments ?? []}
+          isLoading={detailQuery.isLoading}
+          isError={detailQuery.isError}
+          onRetry={() => void detailQuery.refetch()}
         />
       </div>
     </section>

@@ -90,6 +90,11 @@ export interface TopicScoreView {
   label: string
   valuePercent: number
   tone: BadgeTone
+  direction?: {
+    label: string
+    trendLabel: string
+    indicator: '↗' | '→' | '↘'
+  }
 }
 
 export interface NewsTopicDetailView {
@@ -255,6 +260,33 @@ const topicScoreDefinitions = [
   label: string
   tone: BadgeTone
 }>
+
+function sentimentScorePresentation(valuePercent: number): {
+  label: string
+  trendLabel: string
+  indicator: '↗' | '→' | '↘'
+  tone: BadgeTone
+} {
+  if (valuePercent > 50) {
+    return {
+      ...sentimentPresentations.POSITIVE,
+      trendLabel: '상승',
+      indicator: '↗',
+    }
+  }
+  if (valuePercent < 50) {
+    return {
+      ...sentimentPresentations.NEGATIVE,
+      trendLabel: '하락',
+      indicator: '↘',
+    }
+  }
+  return {
+    ...sentimentPresentations.NEUTRAL,
+    trendLabel: '중립',
+    indicator: '→',
+  }
+}
 
 const eventTypeLabels: Record<string, string> = {
   EARNINGS_GUIDANCE: '실적 가이던스',
@@ -428,10 +460,23 @@ export function adaptNewsTopicDetail(
       dto.lifecycle,
       '상태 미상',
     ),
-    scores: topicScoreDefinitions.map((definition) => ({
-      ...definition,
-      valuePercent: toScorePercent(dto.scores[definition.id]),
-    })),
+    scores: topicScoreDefinitions.map((definition) => {
+      const valuePercent = toScorePercent(dto.scores[definition.id])
+      if (definition.id !== 'sentiment') {
+        return { ...definition, valuePercent }
+      }
+      const sentiment = sentimentScorePresentation(valuePercent)
+      return {
+        ...definition,
+        valuePercent,
+        tone: sentiment.tone,
+        direction: {
+          label: sentiment.label,
+          trendLabel: sentiment.trendLabel,
+          indicator: sentiment.indicator,
+        },
+      }
+    }),
     affectedSymbols: dto.affected_symbols.map((item) => ({
       symbol: item.symbol.trim() || '종목 미상',
       exposurePercent: toScorePercent(item.exposure_score),

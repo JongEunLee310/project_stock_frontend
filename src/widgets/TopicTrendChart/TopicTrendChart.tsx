@@ -92,7 +92,27 @@ export function TopicTrendChart({
             언급량은 막대, 감성은 선으로 표시하며 서로 다른 축을 사용합니다.
           </p>
         </div>
-        <Badge tone="accent">최근 7일 · 일간</Badge>
+        <div className="flex items-center gap-1" aria-label="추이 조회 기간">
+          <Badge tone="accent" aria-label="7일 선택됨">
+            7일
+          </Badge>
+          <button
+            type="button"
+            disabled
+            title="준비 중"
+            className="min-h-6 rounded-control border border-app-border px-2 py-0.5 text-xs font-semibold text-app-text-muted disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            30일
+          </button>
+          <button
+            type="button"
+            disabled
+            title="준비 중"
+            className="min-h-6 rounded-control border border-app-border px-2 py-0.5 text-xs font-semibold text-app-text-muted disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            90일
+          </button>
+        </div>
       </div>
 
       <div
