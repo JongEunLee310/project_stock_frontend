@@ -2,6 +2,7 @@ import { formatKstDateTime, formatKstTime } from '@/shared/lib/format'
 import type { BadgeTone } from '@/shared/ui'
 
 import type {
+  NewsEventDetailDto,
   NewsInsightEventDto,
   NewsInsightOverviewDto,
   NewsInsightSummaryMetricDto,
@@ -61,6 +62,33 @@ export interface NewsEventView {
   publishedAtTime: string
   evidenceCount: number
   topicIds: number[]
+}
+
+export interface NewsEventDetailView {
+  eventTypeLabel: string
+  title: string
+  summary: string
+  importance: EventStatusPresentation & { explanation: string }
+  sentiment: EventStatusPresentation
+  affectedSymbols: Array<{
+    symbol: string
+    direction: { label: string; tone: BadgeTone }
+    exposurePercent: number
+    reason: string
+  }>
+  evidence: Array<{
+    id: string
+    documentId: string
+    documentType: { label: string; tone: BadgeTone }
+    source: string
+    title: string
+    publishedAt: string
+    evidenceRole: { label: string; tone: BadgeTone }
+  }>
+  relatedTopics: Array<{
+    topicId: string
+    title: string
+  }>
 }
 
 export interface NewsTopicMapNode {
@@ -393,6 +421,67 @@ export function adaptNewsEvent(dto: NewsInsightEventDto): NewsEventView {
     publishedAtTime: formatTime(dto.published_at),
     evidenceCount: toNonNegativeInteger(dto.evidence_count),
     topicIds: [...dto.topic_ids],
+  }
+}
+
+export function adaptNewsEventDetail(
+  dto: NewsEventDetailDto,
+): NewsEventDetailView {
+  const importance = presentationFor(
+    importancePresentations,
+    dto.importance.level,
+    '알 수 없음',
+  )
+  const sentiment = presentationFor(
+    sentimentPresentations,
+    dto.sentiment.direction,
+    '알 수 없음',
+  )
+
+  return {
+    eventTypeLabel: eventTypeLabels[dto.event_type] ?? '기타 이벤트',
+    title: dto.title.trim() || '제목 없음',
+    summary: dto.summary.trim(),
+    importance: {
+      ...importance,
+      scorePercent: toScorePercent(dto.importance.score),
+      explanation: dto.importance.explanation.trim(),
+    },
+    sentiment: {
+      ...sentiment,
+      scorePercent: toScorePercent(dto.sentiment.score),
+    },
+    affectedSymbols: dto.affected_symbols.map((item) => ({
+      symbol: item.symbol.trim() || '종목 미상',
+      direction: presentationFor(
+        sentimentPresentations,
+        item.direction,
+        '방향 미상',
+      ),
+      exposurePercent: toScorePercent(item.exposure_score),
+      reason: item.reason.trim(),
+    })),
+    evidence: dto.evidence.map((item) => ({
+      id: String(item.document_id),
+      documentId: String(item.document_id),
+      documentType: presentationFor(
+        documentTypePresentations,
+        item.document_type,
+        '기타 문서',
+      ),
+      source: item.source.trim() || '출처 미상',
+      title: item.title.trim() || '제목 없음',
+      publishedAt: formatDateTime(item.published_at),
+      evidenceRole: presentationFor(
+        evidenceRolePresentations,
+        item.evidence_role,
+        '근거 역할 미상',
+      ),
+    })),
+    relatedTopics: dto.related_topics.map((topic) => ({
+      topicId: String(topic.topic_id),
+      title: topic.title.trim() || '제목 없는 토픽',
+    })),
   }
 }
 

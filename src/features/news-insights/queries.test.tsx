@@ -6,6 +6,7 @@ import { apiGet } from '@/shared/api/client'
 import { ApiError } from '@/shared/api/envelope'
 
 import type {
+  NewsEventDetailDto,
   NewsInsightEventDto,
   NewsInsightOverviewDto,
   NewsTopicDetailDto,
@@ -14,6 +15,7 @@ import type {
   NewsTopicTrendDto,
 } from './dto'
 import {
+  useNewsEventDetailQuery,
   useNewsEventsQuery,
   useNewsOverviewQuery,
   useNewsTopicDetailQuery,
@@ -47,6 +49,21 @@ const overviewDto: NewsInsightOverviewDto = {
     highlights: [],
     generated_at: '2026-07-21T05:50:00Z',
   },
+}
+
+const eventDetailDto: NewsEventDetailDto = {
+  event_type: 'REGULATION',
+  title: 'AI 규제 발표',
+  summary: '이벤트 요약',
+  importance: {
+    level: 'HIGH',
+    score: 0.9,
+    explanation: '시장 영향이 큽니다.',
+  },
+  sentiment: { direction: 'MIXED', score: 0.5 },
+  affected_symbols: [],
+  evidence: [],
+  related_topics: [],
 }
 
 const topicMapDto: NewsTopicMapDto = {
@@ -210,6 +227,45 @@ describe('news insights queries', () => {
 
     await waitFor(() => expect(result.current.isError).toBe(true))
     expect(result.current.error).toBeInstanceOf(ApiError)
+  })
+
+  it('fetches and adapts an event detail response with empty collections', async () => {
+    vi.mocked(apiGet).mockResolvedValue({ data: eventDetailDto })
+
+    const { result } = renderHook(() => useNewsEventDetailQuery('event/7'), {
+      wrapper: createWrapper(),
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(apiGet).toHaveBeenCalledWith('/news-insights/events/event%2F7')
+    expect(result.current.data).toEqual(
+      expect.objectContaining({
+        eventTypeLabel: '규제',
+        affectedSymbols: [],
+        evidence: [],
+        relatedTopics: [],
+      }),
+    )
+  })
+
+  it('preserves an event detail ApiError and guards an empty id', async () => {
+    vi.mocked(apiGet).mockRejectedValue(
+      new ApiError('NEWS_INSIGHT_EVENT_NOT_FOUND', '이벤트가 없습니다.'),
+    )
+
+    const failure = renderHook(() => useNewsEventDetailQuery('404'), {
+      wrapper: createWrapper(),
+    })
+    await waitFor(() => expect(failure.result.current.isError).toBe(true))
+    expect(failure.result.current.error).toBeInstanceOf(ApiError)
+    failure.unmount()
+
+    vi.mocked(apiGet).mockClear()
+    const disabled = renderHook(() => useNewsEventDetailQuery(''), {
+      wrapper: createWrapper(),
+    })
+    expect(disabled.result.current.fetchStatus).toBe('idle')
+    expect(apiGet).not.toHaveBeenCalled()
   })
 
   it('fetches and adapts the topic map response', async () => {

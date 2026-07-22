@@ -47,6 +47,41 @@ export interface NewsInsightEventDto {
   topic_ids: number[]
 }
 
+export type NewsEventImportanceLevelDto = 'LOW' | 'MEDIUM' | 'HIGH'
+
+export interface NewsEventDetailDto {
+  event_type: string
+  title: string
+  summary: string
+  importance: {
+    level: NewsEventImportanceLevelDto
+    score: number
+    explanation: string
+  }
+  sentiment: {
+    direction: SentimentDirectionDto
+    score: number
+  }
+  affected_symbols: Array<{
+    symbol: string
+    direction: SentimentDirectionDto
+    exposure_score: number
+    reason: string
+  }>
+  evidence: Array<{
+    document_id: number
+    document_type: DocumentTypeDto
+    source: string
+    title: string
+    published_at: string
+    evidence_role: EvidenceRoleDto
+  }>
+  related_topics: Array<{
+    topic_id: number
+    title: string
+  }>
+}
+
 export type NewsTopicMapNodeTypeDto = 'TOPIC' | 'KEYWORD'
 
 export type NewsTopicCategoryDto =

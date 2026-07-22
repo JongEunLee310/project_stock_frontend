@@ -1,0 +1,1 @@
+export { NewsEventEvidenceList } from './NewsEventEvidenceList'

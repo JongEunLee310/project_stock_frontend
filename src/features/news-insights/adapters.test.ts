@@ -1,5 +1,6 @@
 import {
   adaptNewsEvent,
+  adaptNewsEventDetail,
   adaptNewsOverview,
   adaptNewsTopicDetail,
   adaptNewsTopicEvidence,
@@ -7,6 +8,7 @@ import {
   adaptNewsTopicTrend,
 } from './adapters'
 import type {
+  NewsEventDetailDto,
   NewsInsightEventDto,
   NewsInsightOverviewDto,
   NewsTopicDetailDto,
@@ -50,6 +52,37 @@ const eventDto: NewsInsightEventDto = {
   published_at: '2026-07-21T00:42:00Z',
   evidence_count: 4,
   topic_ids: [7],
+}
+
+const eventDetailDto: NewsEventDetailDto = {
+  event_type: 'SUPPLY_CONTRACT',
+  title: ' AI 반도체 공급 계약 ',
+  summary: ' 이벤트 레벨 AI 요약 ',
+  importance: {
+    level: 'HIGH',
+    score: 0.91,
+    explanation: ' 공급 가시성이 높아졌습니다. ',
+  },
+  sentiment: { direction: 'POSITIVE', score: 0.82 },
+  affected_symbols: [
+    {
+      symbol: ' NVDA ',
+      direction: 'POSITIVE',
+      exposure_score: 0.88,
+      reason: ' 매출 증가 가능성 ',
+    },
+  ],
+  evidence: [
+    {
+      document_id: 20,
+      document_type: 'DISCLOSURE',
+      source: ' DART ',
+      title: ' 공급 계약 공시 ',
+      published_at: '2026-07-21T00:00:00Z',
+      evidence_role: 'PRIMARY',
+    },
+  ],
+  related_topics: [{ topic_id: 7, title: ' AI 반도체 수요 ' }],
 }
 
 const topicMapDto: NewsTopicMapDto = {
@@ -188,6 +221,60 @@ describe('news insights adapters', () => {
     expect(result.eventTypeLabel).toBe('공급 계약')
     expect(result.symbol).toBe('005930')
     expect(result.sourceName).toBe('DART')
+  })
+
+  it('maps an event detail without inventing per-document summaries', () => {
+    const result = adaptNewsEventDetail(eventDetailDto)
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        eventTypeLabel: '공급 계약',
+        title: 'AI 반도체 공급 계약',
+        summary: '이벤트 레벨 AI 요약',
+      }),
+    )
+    expect(result.importance).toEqual({
+      label: '높음',
+      tone: 'danger',
+      scorePercent: 91,
+      explanation: '공급 가시성이 높아졌습니다.',
+    })
+    expect(result.sentiment).toEqual({
+      label: '긍정',
+      tone: 'success',
+      scorePercent: 82,
+    })
+    expect(result.affectedSymbols[0]).toEqual(
+      expect.objectContaining({
+        symbol: 'NVDA',
+        exposurePercent: 88,
+        reason: '매출 증가 가능성',
+      }),
+    )
+    expect(result.evidence[0]).toEqual(
+      expect.objectContaining({
+        documentId: '20',
+        source: 'DART',
+        title: '공급 계약 공시',
+      }),
+    )
+    expect(result.evidence[0]).not.toHaveProperty('summary')
+    expect(result.relatedTopics).toEqual([
+      { topicId: '7', title: 'AI 반도체 수요' },
+    ])
+  })
+
+  it('preserves empty event detail collections', () => {
+    const result = adaptNewsEventDetail({
+      ...eventDetailDto,
+      affected_symbols: [],
+      evidence: [],
+      related_topics: [],
+    })
+
+    expect(result.affectedSymbols).toEqual([])
+    expect(result.evidence).toEqual([])
+    expect(result.relatedTopics).toEqual([])
   })
 
   it('uses safe display fallbacks for unknown or malformed wire values', () => {
