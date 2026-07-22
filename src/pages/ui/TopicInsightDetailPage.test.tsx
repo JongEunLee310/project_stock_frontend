@@ -3,11 +3,13 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 
 import {
   type NewsTopicDetailView,
+  type NewsInvestorFlowsView,
   type NewsTopicEvidenceView,
   type NewsTopicGraphView,
   type NewsTopicSymbolSensitivityView,
   type NewsTopicTrendView,
   useNewsTopicDetailQuery,
+  useNewsInvestorFlowsQuery,
   useNewsTopicEvidenceQuery,
   useNewsTopicGraphQuery,
   useNewsTopicSymbolsQuery,
@@ -22,6 +24,7 @@ vi.mock('@/features/news-insights', async (importOriginal) => {
   return {
     ...actual,
     useNewsTopicDetailQuery: vi.fn(),
+    useNewsInvestorFlowsQuery: vi.fn(),
     useNewsTopicEvidenceQuery: vi.fn(),
     useNewsTopicGraphQuery: vi.fn(),
     useNewsTopicSymbolsQuery: vi.fn(),
@@ -109,12 +112,29 @@ const topicSymbols: NewsTopicSymbolSensitivityView[] = [
   },
 ]
 
+const investorFlows: NewsInvestorFlowsView = {
+  asOf: '2026. 7. 21. 오후 3:00',
+  byInvestorType: [
+    {
+      investorType: 'ETF',
+      investor: { label: 'ETF', tone: 'neutral' },
+      netValue: '350000000',
+      direction: 'BUY',
+      directionPresentation: { label: '순매수', tone: 'success' },
+      change: 0.08,
+    },
+  ],
+  narrativeAlignment: { aligned: false, note: '뉴스와 수급이 다릅니다.' },
+  availability: { available: true, fallback: null },
+}
+
 function mockQueries({
   detailError = false,
   trendError = false,
   evidenceError = false,
   graphError = false,
   symbolsError = false,
+  flowsError = false,
 } = {}) {
   vi.mocked(useNewsTopicDetailQuery).mockReturnValue({
     data: detailError ? undefined : detail,
@@ -150,6 +170,12 @@ function mockQueries({
     isError: symbolsError,
     refetch: vi.fn(),
   } as unknown as ReturnType<typeof useNewsTopicSymbolsQuery>)
+  vi.mocked(useNewsInvestorFlowsQuery).mockReturnValue({
+    data: flowsError ? undefined : investorFlows,
+    isLoading: false,
+    isError: flowsError,
+    refetch: vi.fn(),
+  } as unknown as ReturnType<typeof useNewsInvestorFlowsQuery>)
 }
 
 function renderPage() {
@@ -182,8 +208,13 @@ describe('TopicInsightDetailPage', () => {
     expect(screen.getByRole('heading', { name: '키워드 관계망' })).toBeVisible()
     expect(screen.getByRole('heading', { name: '종목 민감도' })).toBeVisible()
     expect(screen.getByText('NVDA')).toBeVisible()
+    expect(screen.getByRole('heading', { name: '투자자 반응' })).toBeVisible()
+    expect(screen.getByText('ETF')).toBeVisible()
+    expect(screen.getByText('불일치 신호')).toBeVisible()
+    expect(
+      screen.queryByLabelText('투자자 반응 준비 중'),
+    ).not.toBeInTheDocument()
     ;[
-      ['투자자 반응', '2차 · #264'],
       ['예상 자금 흐름 시나리오', '3차 · #267'],
       ['왜 이런 인사이트', '3차 · #268'],
       ['액션 체크리스트', '3차 · #268'],
@@ -196,6 +227,11 @@ describe('TopicInsightDetailPage', () => {
     expect(useNewsTopicEvidenceQuery).toHaveBeenCalledWith('7')
     expect(useNewsTopicGraphQuery).toHaveBeenCalledWith('7')
     expect(useNewsTopicSymbolsQuery).toHaveBeenCalledWith('7')
+    expect(useNewsInvestorFlowsQuery).toHaveBeenCalledWith({
+      market: 'KR',
+      window: '7d',
+      topicId: '7',
+    })
   })
 
   it('keeps trend and evidence visible when the detail panel fails', async () => {
@@ -237,7 +273,7 @@ describe('TopicInsightDetailPage', () => {
       screen.getByText('키워드 관계망을 불러오지 못했습니다'),
     ).toBeVisible()
     expect(screen.getByText('NVDA')).toBeVisible()
-    expect(screen.getByLabelText('투자자 반응 준비 중')).toBeVisible()
+    expect(screen.getByRole('heading', { name: '투자자 반응' })).toBeVisible()
     unmount()
 
     mockQueries({ symbolsError: true })
@@ -245,6 +281,19 @@ describe('TopicInsightDetailPage', () => {
     await screen.findByTestId('topic-keyword-cytoscape')
     expect(screen.getByText('종목 민감도를 불러오지 못했습니다')).toBeVisible()
     expect(screen.getByRole('heading', { name: '키워드 관계망' })).toBeVisible()
-    expect(screen.getByLabelText('투자자 반응 준비 중')).toBeVisible()
+    expect(screen.getByRole('heading', { name: '투자자 반응' })).toBeVisible()
+  })
+
+  it('isolates investor flow failures from the other topic panels', async () => {
+    mockQueries({ flowsError: true })
+    renderPage()
+    await screen.findByTestId('topic-keyword-cytoscape')
+
+    expect(screen.getByText('투자자 반응을 불러오지 못했습니다')).toBeVisible()
+    expect(screen.getByText('페이지 토픽 제목')).toBeVisible()
+    expect(screen.getByText('NVDA')).toBeVisible()
+    expect(
+      screen.getByLabelText('예상 자금 흐름 시나리오 준비 중'),
+    ).toBeVisible()
   })
 })

@@ -11,6 +11,7 @@ import {
 import {
   adaptNewsEvent,
   adaptNewsEventDetail,
+  adaptNewsInvestorFlows,
   adaptNewsOverview,
   adaptNewsTopicDetail,
   adaptNewsTopicEvidence,
@@ -20,6 +21,7 @@ import {
   adaptNewsTopicTrend,
   type NewsEventView,
   type NewsEventDetailView,
+  type NewsInvestorFlowsView,
   type NewsOverviewView,
   type NewsTopicDetailView,
   type NewsTopicEvidenceView,
@@ -30,6 +32,7 @@ import {
 } from './adapters'
 import type {
   NewsEventDetailDto,
+  NewsInvestorFlowsDto,
   NewsInsightEventDto,
   NewsInsightOverviewDto,
   NewsTopicDetailDto,
@@ -62,6 +65,37 @@ export function useNewsOverviewQuery() {
         '/news-insights/overview',
       )
       return adaptNewsOverview(data)
+    },
+  })
+}
+
+export interface NewsInvestorFlowsQueryParams {
+  market: string
+  window: string
+  topicId?: string
+}
+
+export function useNewsInvestorFlowsQuery({
+  market,
+  window,
+  topicId,
+}: NewsInvestorFlowsQueryParams) {
+  return useQuery<NewsInvestorFlowsView>({
+    queryKey: [
+      'news-insights',
+      'investor-flows',
+      market,
+      window,
+      topicId ?? null,
+    ],
+    queryFn: async () => {
+      const searchParams = new URLSearchParams({ market, window })
+      if (topicId) searchParams.set('topic_id', topicId)
+
+      const { data } = await apiGet<NewsInvestorFlowsDto>(
+        `/news-insights/investor-flows?${searchParams.toString()}`,
+      )
+      return adaptNewsInvestorFlows(data)
     },
   })
 }

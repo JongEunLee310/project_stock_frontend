@@ -3,8 +3,10 @@ import { MemoryRouter } from 'react-router-dom'
 
 import {
   useNewsEventsQuery,
+  useNewsInvestorFlowsQuery,
   useNewsOverviewQuery,
   type NewsEventView,
+  type NewsInvestorFlowsView,
   type NewsOverviewView,
 } from '@/features/news-insights'
 
@@ -28,6 +30,7 @@ vi.mock('@/features/news-insights', async (importOriginal) => {
   return {
     ...actual,
     useNewsEventsQuery: vi.fn(),
+    useNewsInvestorFlowsQuery: vi.fn(),
     useNewsOverviewQuery: vi.fn(),
   }
 })
@@ -80,9 +83,26 @@ const event: NewsEventView = {
   topicIds: [3],
 }
 
+const investorFlows: NewsInvestorFlowsView = {
+  asOf: '2026. 7. 21. 오후 3:00',
+  byInvestorType: [
+    {
+      investorType: 'FOREIGN',
+      investor: { label: '외국인', tone: 'info' },
+      netValue: '1200000000',
+      direction: 'BUY',
+      directionPresentation: { label: '순매수', tone: 'success' },
+      change: 0.1,
+    },
+  ],
+  narrativeAlignment: { aligned: true, note: '수급과 일치합니다.' },
+  availability: { available: true, fallback: null },
+}
+
 function mockQueries({
   overviewError = false,
   eventsError = false,
+  flowsError = false,
   loading = false,
 } = {}) {
   vi.mocked(useNewsOverviewQuery).mockReturnValue({
@@ -101,6 +121,12 @@ function mockQueries({
     fetchNextPage: vi.fn(),
     refetch: vi.fn(),
   } as unknown as ReturnType<typeof useNewsEventsQuery>)
+  vi.mocked(useNewsInvestorFlowsQuery).mockReturnValue({
+    data: flowsError || loading ? undefined : investorFlows,
+    isLoading: loading,
+    isError: flowsError,
+    refetch: vi.fn(),
+  } as unknown as ReturnType<typeof useNewsInvestorFlowsQuery>)
 }
 
 describe('NewsInsightsOverviewPage', () => {
@@ -121,14 +147,16 @@ describe('NewsInsightsOverviewPage', () => {
     expect(screen.getByLabelText('토픽 맵 시각화')).toBeVisible()
     openBriefing()
     expect(screen.getByText('시장 브리핑입니다.')).toBeVisible()
-    ;[
-      '투자자 동향',
-      '예상 자금 흐름',
-      '이벤트 타임라인',
-      '에이전트 파이프라인',
-    ].forEach((title) => {
-      expect(screen.getByLabelText(`${title} 준비 중`)).toBeVisible()
-    })
+    expect(screen.getByRole('heading', { name: '투자자 동향' })).toBeVisible()
+    expect(screen.getByText('외국인')).toBeVisible()
+    expect(
+      screen.queryByLabelText('투자자 동향 준비 중'),
+    ).not.toBeInTheDocument()
+    ;['예상 자금 흐름', '이벤트 타임라인', '에이전트 파이프라인'].forEach(
+      (title) => {
+        expect(screen.getByLabelText(`${title} 준비 중`)).toBeVisible()
+      },
+    )
     expect(screen.queryByLabelText('토픽 맵 준비 중')).not.toBeInTheDocument()
   })
 
@@ -156,5 +184,14 @@ describe('NewsInsightsOverviewPage', () => {
     expect(screen.getByText('이벤트 피드를 불러오지 못했습니다')).toBeVisible()
     openBriefing()
     expect(screen.getByText('시장 브리핑입니다.')).toBeVisible()
+  })
+
+  it('keeps the page visible when investor flows fail', () => {
+    mockQueries({ flowsError: true })
+    renderPage()
+
+    expect(screen.getByText('API 이벤트 제목')).toBeVisible()
+    expect(screen.getByText('투자자 동향을 불러오지 못했습니다')).toBeVisible()
+    expect(screen.getByLabelText('예상 자금 흐름 준비 중')).toBeVisible()
   })
 })
