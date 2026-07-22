@@ -8,12 +8,18 @@ import { ApiError } from '@/shared/api/envelope'
 import type {
   NewsInsightEventDto,
   NewsInsightOverviewDto,
+  NewsTopicDetailDto,
+  NewsTopicEvidenceItemDto,
   NewsTopicMapDto,
+  NewsTopicTrendDto,
 } from './dto'
 import {
   useNewsEventsQuery,
   useNewsOverviewQuery,
+  useNewsTopicDetailQuery,
+  useNewsTopicEvidenceQuery,
   useNewsTopicMapQuery,
+  useNewsTopicTrendQuery,
 } from './queries'
 
 vi.mock('@/shared/api/client', () => ({ apiGet: vi.fn() }))
@@ -56,6 +62,57 @@ const topicMapDto: NewsTopicMapDto = {
     },
   ],
   edges: [],
+}
+
+const topicDetailDto: NewsTopicDetailDto = {
+  title: '반도체 장기 수요 회복',
+  tags: ['AI'],
+  lifecycle: 'ACTIVE',
+  scores: {
+    impact: 0.9,
+    sentiment: 0.7,
+    confidence: 0.8,
+    momentum: 0.6,
+  },
+  affected_symbols: [],
+  insight: {
+    summary: '요약',
+    why_it_matters: '중요한 이유',
+    key_evidence: [],
+    risk_points: [],
+    counter_arguments: [],
+  },
+  version: 1,
+  updated_at: '2026-07-21T06:00:00Z',
+}
+
+const topicTrendDto: NewsTopicTrendDto = {
+  points: [
+    {
+      timestamp: '2026-07-21T00:00:00Z',
+      mention_count: 12,
+      sentiment_score: 0.7,
+      impact_score: 0.9,
+    },
+  ],
+  markers: [],
+  source_distribution: [],
+}
+
+function createEvidence(documentId: number): NewsTopicEvidenceItemDto {
+  return {
+    event_id: 10,
+    document_id: documentId,
+    evidence_role: 'PRIMARY',
+    document_type: 'NEWS',
+    symbol: '005930',
+    title: `근거 ${documentId}`,
+    summary: '요약',
+    direction: 'POSITIVE',
+    relevance_score: 0.9,
+    source: 'Reuters',
+    published_at: '2026-07-21T00:00:00Z',
+  }
 }
 
 function createEvent(id: number): NewsInsightEventDto {
@@ -184,5 +241,120 @@ describe('news insights queries', () => {
 
     await waitFor(() => expect(result.current.isError).toBe(true))
     expect(result.current.error).toBeInstanceOf(ApiError)
+  })
+
+  it('fetches and adapts a topic detail response', async () => {
+    vi.mocked(apiGet).mockResolvedValue({ data: topicDetailDto })
+
+    const { result } = renderHook(() => useNewsTopicDetailQuery('7'), {
+      wrapper: createWrapper(),
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(apiGet).toHaveBeenCalledWith('/news-insights/topics/7')
+    expect(result.current.data?.title).toBe('반도체 장기 수요 회복')
+    expect(result.current.data?.insight.counterArguments).toEqual([])
+  })
+
+  it('preserves ApiError when a topic detail request fails', async () => {
+    vi.mocked(apiGet).mockRejectedValue(
+      new ApiError('NEWS_INSIGHT_TOPIC_NOT_FOUND', '토픽이 없습니다.'),
+    )
+
+    const { result } = renderHook(() => useNewsTopicDetailQuery('404'), {
+      wrapper: createWrapper(),
+    })
+
+    await waitFor(() => expect(result.current.isError).toBe(true))
+    expect(result.current.error).toBeInstanceOf(ApiError)
+  })
+
+  it('fetches trend query parameters and preserves empty trend data', async () => {
+    vi.mocked(apiGet).mockResolvedValue({
+      data: { points: [], markers: [], source_distribution: [] },
+    })
+
+    const { result } = renderHook(() => useNewsTopicTrendQuery('7'), {
+      wrapper: createWrapper(),
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(apiGet).toHaveBeenCalledWith(
+      '/news-insights/topics/7/trend?window=7d&interval=1d',
+    )
+    expect(result.current.data).toEqual({
+      points: [],
+      markers: [],
+      sourceDistribution: [],
+    })
+  })
+
+  it('adapts a populated trend and exposes trend request errors', async () => {
+    vi.mocked(apiGet).mockResolvedValueOnce({ data: topicTrendDto })
+    const success = renderHook(() => useNewsTopicTrendQuery('7'), {
+      wrapper: createWrapper(),
+    })
+    await waitFor(() => expect(success.result.current.isSuccess).toBe(true))
+    expect(success.result.current.data?.points[0].mentionCount).toBe(12)
+    success.unmount()
+
+    vi.mocked(apiGet).mockRejectedValueOnce(
+      new ApiError('INTERNAL_ERROR', '요청에 실패했습니다.'),
+    )
+    const failure = renderHook(() => useNewsTopicTrendQuery('8'), {
+      wrapper: createWrapper(),
+    })
+    await waitFor(() => expect(failure.result.current.isError).toBe(true))
+    expect(failure.result.current.error).toBeInstanceOf(ApiError)
+  })
+
+  it('requests and accumulates evidence pages with the server cursor', async () => {
+    vi.mocked(apiGet)
+      .mockResolvedValueOnce({
+        data: [createEvidence(20)],
+        meta: { limit: 20, has_more: true, next_cursor: 'next-evidence' },
+      })
+      .mockResolvedValueOnce({
+        data: [createEvidence(21)],
+        meta: { limit: 20, has_more: false, next_cursor: null },
+      })
+
+    const { result } = renderHook(() => useNewsTopicEvidenceQuery('7'), {
+      wrapper: createWrapper(),
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(apiGet).toHaveBeenNthCalledWith(
+      1,
+      '/news-insights/topics/7/evidence?limit=20',
+    )
+    const nextPageResult = await act(() => result.current.fetchNextPage())
+    expect(apiGet).toHaveBeenNthCalledWith(
+      2,
+      '/news-insights/topics/7/evidence?limit=20&cursor=next-evidence',
+    )
+    expect(nextPageResult?.data?.flatMap((page) => page.items)).toHaveLength(2)
+  })
+
+  it('preserves empty evidence pages and evidence request errors', async () => {
+    vi.mocked(apiGet).mockResolvedValueOnce({
+      data: [],
+      meta: { limit: 20, has_more: false, next_cursor: null },
+    })
+    const empty = renderHook(() => useNewsTopicEvidenceQuery('7'), {
+      wrapper: createWrapper(),
+    })
+    await waitFor(() => expect(empty.result.current.isSuccess).toBe(true))
+    expect(empty.result.current.data?.[0].items).toEqual([])
+    empty.unmount()
+
+    vi.mocked(apiGet).mockRejectedValueOnce(
+      new ApiError('INTERNAL_ERROR', '요청에 실패했습니다.'),
+    )
+    const failure = renderHook(() => useNewsTopicEvidenceQuery('8'), {
+      wrapper: createWrapper(),
+    })
+    await waitFor(() => expect(failure.result.current.isError).toBe(true))
+    expect(failure.result.current.error).toBeInstanceOf(ApiError)
   })
 })

@@ -1,0 +1,1 @@
+export { TopicTrendChart } from './TopicTrendChart'

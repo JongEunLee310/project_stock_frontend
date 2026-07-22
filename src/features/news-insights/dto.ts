@@ -79,3 +79,96 @@ export interface NewsTopicMapDto {
   nodes: NewsTopicMapNodeDto[]
   edges: NewsTopicMapEdgeDto[]
 }
+
+export type TopicLifecycleDto =
+  | 'EMERGING'
+  | 'RISING'
+  | 'ACTIVE'
+  | 'COOLING'
+  | 'ARCHIVED'
+
+export type SentimentDirectionDto =
+  | 'POSITIVE'
+  | 'NEUTRAL'
+  | 'NEGATIVE'
+  | 'MIXED'
+
+export type TopicSymbolRelationshipDto =
+  | 'DIRECT'
+  | 'SUPPLY_CHAIN'
+  | 'COMPETITOR'
+  | 'CUSTOMER'
+
+export type DocumentTypeDto =
+  | 'NEWS'
+  | 'DISCLOSURE'
+  | 'EARNINGS'
+  | 'ANALYST_REPORT'
+  | 'COMMUNITY'
+  | 'COMPANY_IR'
+
+export type EvidenceRoleDto =
+  | 'PRIMARY'
+  | 'SUPPORTING'
+  | 'CONTRADICTING'
+  | 'BACKGROUND'
+
+export interface NewsTopicDetailDto {
+  title: string
+  tags: string[]
+  lifecycle: TopicLifecycleDto
+  scores: {
+    impact: number
+    sentiment: number
+    confidence: number
+    momentum: number
+  }
+  affected_symbols: Array<{
+    symbol: string
+    exposure_score: number
+    impact_direction: SentimentDirectionDto
+    relationship: TopicSymbolRelationshipDto
+  }>
+  insight: {
+    summary: string
+    why_it_matters: string
+    key_evidence: Array<Record<string, unknown>>
+    risk_points: string[]
+    counter_arguments: string[]
+  }
+  version: number
+  updated_at: string
+}
+
+export interface NewsTopicTrendDto {
+  points: Array<{
+    timestamp: string
+    mention_count: number
+    sentiment_score: number
+    impact_score: number
+  }>
+  markers: Array<{
+    timestamp: string
+    label: string
+    event_id: number
+  }>
+  source_distribution: Array<{
+    source_type: DocumentTypeDto
+    count: number
+    share: number
+  }>
+}
+
+export interface NewsTopicEvidenceItemDto {
+  event_id: number
+  document_id: number
+  evidence_role: EvidenceRoleDto
+  document_type: DocumentTypeDto
+  symbol: string | null
+  title: string
+  summary: string
+  direction: SentimentDirectionDto
+  relevance_score: number
+  source: string
+  published_at: string
+}

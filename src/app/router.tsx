@@ -16,6 +16,7 @@ import {
   ResearchPage,
   SettingsPage,
   SignalsPage,
+  TopicInsightDetailPage,
   WatchlistPage,
 } from '@/pages'
 import { RequireAuth } from '@/shared/auth/AuthProvider'
@@ -42,6 +43,10 @@ export const appRouteObjects: RouteObject[] = [
       {
         path: appRoutePaths.news.slice(1),
         element: <NewsInsightsOverviewPage />,
+      },
+      {
+        path: appRoutePaths.newsTopicDetail.slice(1),
+        element: <TopicInsightDetailPage />,
       },
       {
         path: appRoutePaths.researchNews.slice(1),

@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 
-import { Badge, Button, Card } from '@/shared/ui'
+import { Button } from '@/shared/ui'
 import { appRoutePaths } from '@/shared/config/navigation'
 import {
   useNewsEventsQuery,
@@ -10,16 +10,13 @@ import { AgentBriefing } from '@/widgets/AgentBriefing'
 import { InsightSummaryCards } from '@/widgets/InsightSummaryCards'
 import { RealtimeEventFeed } from '@/widgets/RealtimeEventFeed'
 import { TopicMap } from '@/widgets/TopicMap'
+import { PlannedPanelCard, type PlannedPanel } from '@/widgets/PlannedPanelCard'
 
-interface PlannedPanel {
+interface OverviewPlannedPanel extends PlannedPanel {
   id: string
-  title: string
-  description: string
-  phase: string
-  issue: string
 }
 
-const plannedPanels: PlannedPanel[] = [
+const plannedPanels: OverviewPlannedPanel[] = [
   {
     id: 'investor-flow',
     title: '투자자 동향',
@@ -49,28 +46,6 @@ const plannedPanels: PlannedPanel[] = [
     issue: '#269',
   },
 ]
-
-function PlannedPanelCard({ panel }: { panel: PlannedPanel }) {
-  return (
-    <Card
-      aria-label={`${panel.title} 준비 중`}
-      className="min-h-40 border-dashed border-cockpit-border bg-cockpit-surface/50"
-    >
-      <div className="flex items-start justify-between gap-3">
-        <h3 className="text-base font-semibold text-cockpit-text">
-          {panel.title}
-        </h3>
-        <Badge tone="neutral">
-          {panel.phase} · {panel.issue}
-        </Badge>
-      </div>
-      <p className="mt-4 text-sm leading-6 text-cockpit-text-muted">
-        {panel.description}
-      </p>
-      <p className="mt-4 text-xs font-semibold text-app-accent">구현 예정</p>
-    </Card>
-  )
-}
 
 export function NewsInsightsOverviewPage() {
   const navigate = useNavigate()
@@ -145,7 +120,11 @@ export function NewsInsightsOverviewPage() {
           </div>
           <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
             {plannedPanels.map((panel) => (
-              <PlannedPanelCard key={panel.id} panel={panel} />
+              <PlannedPanelCard
+                key={panel.id}
+                panel={panel}
+                headingLevel="h3"
+              />
             ))}
           </div>
         </section>
