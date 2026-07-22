@@ -22,7 +22,10 @@ interface RealtimeEventFeedProps {
 const eventColumns: Array<TableColumn<NewsEventView>> = [
   {
     key: 'documentType',
-    header: '문서',
+    header: '분류',
+    align: 'center',
+    headerClassName: 'w-20',
+    className: 'w-20',
     cell: (event) => (
       <Badge tone={event.documentTypeTone}>{event.documentTypeLabel}</Badge>
     ),
@@ -30,6 +33,7 @@ const eventColumns: Array<TableColumn<NewsEventView>> = [
   {
     key: 'symbol',
     header: '종목',
+    align: 'center',
     cell: (event) => (
       <strong className="text-cockpit-text">{event.symbol}</strong>
     ),
@@ -67,10 +71,20 @@ const eventColumns: Array<TableColumn<NewsEventView>> = [
       <Badge tone={event.sentiment.tone}>{event.sentiment.label}</Badge>
     ),
   },
-  { key: 'source', header: '출처', cell: (event) => event.sourceName },
+  {
+    key: 'source',
+    header: '출처',
+    align: 'center',
+    headerClassName: 'w-28',
+    className: 'w-28',
+    cell: (event) => event.sourceName,
+  },
   {
     key: 'publishedAt',
     header: '발행 시각',
+    align: 'center',
+    headerClassName: 'w-20',
+    className: 'w-20',
     cell: (event) => (
       <time title={event.publishedAt}>{event.publishedAtTime}</time>
     ),
