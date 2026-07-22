@@ -75,6 +75,7 @@ const event: NewsEventView = {
   sourceName: 'DART',
   sourceReliabilityPercent: 98,
   publishedAt: '2026. 7. 21. 오후 2:40',
+  publishedAtTime: '14:40',
   evidenceCount: 2,
   topicIds: [3],
 }

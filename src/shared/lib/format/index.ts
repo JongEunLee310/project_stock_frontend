@@ -2,6 +2,7 @@ export {
   formatKstDate,
   formatKstDateTime,
   formatKstDateTimeCompact,
+  formatKstTime,
   formatLocalDateTime,
 } from './datetime'
 export { formatMoney, formatPercent, parseDecimal } from './decimal'

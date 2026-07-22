@@ -50,32 +50,30 @@ const eventColumns: Array<TableColumn<NewsEventView>> = [
   {
     key: 'importance',
     header: '중요도',
+    align: 'center',
+    headerClassName: 'w-20',
+    className: 'w-20',
     cell: (event) => (
-      <Badge tone={event.importance.tone}>
-        중요도 {event.importance.label} · {event.importance.scorePercent}%
-      </Badge>
+      <Badge tone={event.importance.tone}>{event.importance.label}</Badge>
     ),
   },
   {
     key: 'sentiment',
     header: '감성',
+    align: 'center',
+    headerClassName: 'w-20',
+    className: 'w-20',
     cell: (event) => (
-      <Badge tone={event.sentiment.tone}>
-        감성 {event.sentiment.label} · {event.sentiment.scorePercent}%
-      </Badge>
+      <Badge tone={event.sentiment.tone}>{event.sentiment.label}</Badge>
     ),
   },
   { key: 'source', header: '출처', cell: (event) => event.sourceName },
   {
     key: 'publishedAt',
     header: '발행 시각',
-    cell: (event) => <time>{event.publishedAt}</time>,
-  },
-  {
-    key: 'evidence',
-    header: '근거',
-    align: 'right',
-    cell: (event) => `${event.evidenceCount}건`,
+    cell: (event) => (
+      <time title={event.publishedAt}>{event.publishedAtTime}</time>
+    ),
   },
 ]
 
