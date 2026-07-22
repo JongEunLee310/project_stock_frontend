@@ -1,6 +1,7 @@
 import {
   adaptNewsEvent,
   adaptNewsEventDetail,
+  adaptNewsInvestorFlows,
   adaptNewsOverview,
   adaptNewsTopicDetail,
   adaptNewsTopicEvidence,
@@ -13,6 +14,7 @@ import type {
   NewsEventDetailDto,
   NewsInsightEventDto,
   NewsInsightOverviewDto,
+  NewsInvestorFlowsDto,
   NewsTopicDetailDto,
   NewsTopicEvidenceItemDto,
   NewsTopicGraphDto,
@@ -41,6 +43,29 @@ const overviewDto: NewsInsightOverviewDto = {
     ],
     generated_at: '2026-07-21T05:50:00Z',
   },
+}
+
+const investorFlowsDto: NewsInvestorFlowsDto = {
+  as_of: '2026-07-21T06:00:00Z',
+  by_investor_type: [
+    {
+      investor_type: 'FOREIGN',
+      net_value: '1234567890.12',
+      direction: 'BUY',
+      change: 0.125,
+    },
+    {
+      investor_type: 'INSTITUTION',
+      net_value: '-420000000.50',
+      direction: 'SELL',
+      change: -0.04,
+    },
+  ],
+  narrative_alignment: {
+    aligned: false,
+    note: ' 긍정 뉴스와 달리 기관은 순매도입니다. ',
+  },
+  availability: { available: true, fallback: null },
 }
 
 const eventDto: NewsInsightEventDto = {
@@ -226,6 +251,46 @@ const topicGraphDto: NewsTopicGraphDto = {
 }
 
 describe('news insights adapters', () => {
+  it('preserves decimal flow values and maps investor and direction presentations', () => {
+    const result = adaptNewsInvestorFlows(investorFlowsDto)
+
+    expect(result.byInvestorType[0]).toEqual({
+      investorType: 'FOREIGN',
+      investor: { label: '외국인', tone: 'info' },
+      netValue: '1234567890.12',
+      direction: 'BUY',
+      directionPresentation: { label: '순매수', tone: 'success' },
+      change: 0.125,
+    })
+    expect(result.byInvestorType[1]).toEqual(
+      expect.objectContaining({
+        investor: { label: '기관', tone: 'accent' },
+        directionPresentation: { label: '순매도', tone: 'danger' },
+      }),
+    )
+    expect(result.narrativeAlignment).toEqual({
+      aligned: false,
+      note: '긍정 뉴스와 달리 기관은 순매도입니다.',
+    })
+  })
+
+  it('preserves unavailable and empty investor flow responses without estimates', () => {
+    const result = adaptNewsInvestorFlows({
+      ...investorFlowsDto,
+      by_investor_type: [],
+      availability: {
+        available: false,
+        fallback: ' ETF 자금 흐름을 참고하세요. ',
+      },
+    })
+
+    expect(result.byInvestorType).toEqual([])
+    expect(result.availability).toEqual({
+      available: false,
+      fallback: 'ETF 자금 흐름을 참고하세요.',
+    })
+  })
+
   it('maps overview DTO fields to display metrics and grounded briefing', () => {
     const result = adaptNewsOverview(overviewDto)
 

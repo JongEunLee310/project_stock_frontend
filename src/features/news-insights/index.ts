@@ -1,6 +1,7 @@
 export {
   adaptNewsEvent,
   adaptNewsEventDetail,
+  adaptNewsInvestorFlows,
   adaptNewsOverview,
   adaptNewsTopicDetail,
   adaptNewsTopicEvidence,
@@ -10,6 +11,8 @@ export {
   adaptNewsTopicTrend,
   type NewsEventView,
   type NewsEventDetailView,
+  type InvestorFlowView,
+  type NewsInvestorFlowsView,
   type NewsOverviewView,
   type NewsTopicDetailView,
   type NewsTopicEvidenceView,
@@ -26,6 +29,7 @@ export {
 export {
   useNewsEventsQuery,
   useNewsEventDetailQuery,
+  useNewsInvestorFlowsQuery,
   useNewsOverviewQuery,
   useNewsTopicDetailQuery,
   useNewsTopicEvidenceQuery,
@@ -34,5 +38,11 @@ export {
   useNewsTopicSymbolsQuery,
   useNewsTopicTrendQuery,
   type NewsEventsPage,
+  type NewsInvestorFlowsQueryParams,
   type NewsTopicEvidencePage,
 } from './queries'
+export type {
+  FlowDirectionDto,
+  InvestorTypeDto,
+  NewsInvestorFlowsDto,
+} from './dto'

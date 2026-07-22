@@ -9,6 +9,7 @@ import type {
   NewsEventDetailDto,
   NewsInsightEventDto,
   NewsInsightOverviewDto,
+  NewsInvestorFlowsDto,
   NewsTopicDetailDto,
   NewsTopicEvidenceItemDto,
   NewsTopicGraphDto,
@@ -19,6 +20,7 @@ import type {
 import {
   useNewsEventDetailQuery,
   useNewsEventsQuery,
+  useNewsInvestorFlowsQuery,
   useNewsOverviewQuery,
   useNewsTopicDetailQuery,
   useNewsTopicEvidenceQuery,
@@ -53,6 +55,20 @@ const overviewDto: NewsInsightOverviewDto = {
     highlights: [],
     generated_at: '2026-07-21T05:50:00Z',
   },
+}
+
+const investorFlowsDto: NewsInvestorFlowsDto = {
+  as_of: '2026-07-21T06:00:00Z',
+  by_investor_type: [
+    {
+      investor_type: 'ETF',
+      net_value: '350000000.00',
+      direction: 'BUY',
+      change: 0.08,
+    },
+  ],
+  narrative_alignment: { aligned: true, note: '수급 방향과 일치합니다.' },
+  availability: { available: true, fallback: null },
 }
 
 const eventDetailDto: NewsEventDetailDto = {
@@ -197,6 +213,57 @@ describe('news insights queries', () => {
     expect(result.current.data?.metrics[0]).toEqual(
       expect.objectContaining({ label: '고중요 이벤트', count: 2 }),
     )
+  })
+
+  it('fetches market and topic investor flows with the required parameters', async () => {
+    vi.mocked(apiGet).mockResolvedValue({ data: investorFlowsDto })
+
+    const { result } = renderHook(
+      () =>
+        useNewsInvestorFlowsQuery({
+          market: 'KR',
+          window: '7d',
+          topicId: 'topic/7',
+        }),
+      { wrapper: createWrapper() },
+    )
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(apiGet).toHaveBeenCalledWith(
+      '/news-insights/investor-flows?market=KR&window=7d&topic_id=topic%2F7',
+    )
+    expect(result.current.data?.byInvestorType[0]).toEqual(
+      expect.objectContaining({
+        investorType: 'ETF',
+        netValue: '350000000.00',
+      }),
+    )
+  })
+
+  it('preserves empty investor flows and request errors', async () => {
+    vi.mocked(apiGet).mockResolvedValueOnce({
+      data: { ...investorFlowsDto, by_investor_type: [] },
+    })
+    const empty = renderHook(
+      () => useNewsInvestorFlowsQuery({ market: 'KR', window: '7d' }),
+      { wrapper: createWrapper() },
+    )
+    await waitFor(() => expect(empty.result.current.isSuccess).toBe(true))
+    expect(empty.result.current.data?.byInvestorType).toEqual([])
+    expect(apiGet).toHaveBeenCalledWith(
+      '/news-insights/investor-flows?market=KR&window=7d',
+    )
+    empty.unmount()
+
+    vi.mocked(apiGet).mockRejectedValueOnce(
+      new ApiError('INTERNAL_ERROR', '요청에 실패했습니다.'),
+    )
+    const failure = renderHook(
+      () => useNewsInvestorFlowsQuery({ market: 'US', window: '7d' }),
+      { wrapper: createWrapper() },
+    )
+    await waitFor(() => expect(failure.result.current.isError).toBe(true))
+    expect(failure.result.current.error).toBeInstanceOf(ApiError)
   })
 
   it('preserves ApiError when the overview request fails', async () => {

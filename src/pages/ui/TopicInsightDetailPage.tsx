@@ -8,6 +8,7 @@ import {
 import { appRoutePaths } from '@/shared/config/navigation'
 import { Button } from '@/shared/ui'
 import { CounterViewPanel } from '@/widgets/CounterViewPanel'
+import { InvestorFlowPanel } from '@/widgets/InvestorFlowPanel'
 import { PlannedPanelCard, type PlannedPanel } from '@/widgets/PlannedPanelCard'
 import { TopicEvidenceList } from '@/widgets/TopicEvidenceList'
 import { TopicInsightSummary } from '@/widgets/TopicInsightSummary'
@@ -17,12 +18,6 @@ import { TopicSummaryHeader } from '@/widgets/TopicSummaryHeader'
 import { TopicTrendChart } from '@/widgets/TopicTrendChart'
 
 const plannedPanels = {
-  investorReaction: {
-    title: '투자자 반응',
-    description: '투자 주체별 수급 변화와 토픽 전후의 반응을 비교합니다.',
-    phase: '2차',
-    issue: '#264',
-  },
   fundFlowScenario: {
     title: '예상 자금 흐름 시나리오',
     description:
@@ -114,7 +109,13 @@ export function TopicInsightDetailPage() {
           onLoadMore={() => void evidenceQuery.fetchNextPage()}
           onRetry={() => void evidenceQuery.refetch()}
         />
-        <PlannedPanelCard panel={plannedPanels.investorReaction} />
+        <InvestorFlowPanel
+          market="KR"
+          window="7d"
+          topicId={topicId}
+          title="투자자 반응"
+          context="이 토픽의 영향 종목군에서 나타난 투자 주체별 수급 반응을 비교합니다."
+        />
         <PlannedPanelCard panel={plannedPanels.fundFlowScenario} />
 
         <TopicSymbolSensitivity topicId={topicId} />

@@ -2,7 +2,10 @@ import { formatKstDateTime, formatKstTime } from '@/shared/lib/format'
 import type { BadgeTone } from '@/shared/ui'
 
 import type {
+  FlowDirectionDto,
+  InvestorTypeDto,
   NewsEventDetailDto,
+  NewsInvestorFlowsDto,
   NewsInsightEventDto,
   NewsInsightOverviewDto,
   NewsInsightSummaryMetricDto,
@@ -15,6 +18,28 @@ import type {
   NewsTopicMapNodeTypeDto,
   NewsTopicSymbolSensitivityItemDto,
 } from './dto'
+
+export interface InvestorFlowView {
+  investorType: InvestorTypeDto
+  investor: { label: string; tone: BadgeTone }
+  netValue: string
+  direction: FlowDirectionDto
+  directionPresentation: { label: string; tone: BadgeTone }
+  change: number
+}
+
+export interface NewsInvestorFlowsView {
+  asOf: string
+  byInvestorType: InvestorFlowView[]
+  narrativeAlignment: {
+    aligned: boolean
+    note: string
+  }
+  availability: {
+    available: boolean
+    fallback: string | null
+  }
+}
 
 export interface InsightSummaryMetric {
   id: string
@@ -334,6 +359,25 @@ const evidenceRolePresentations: Record<
   BACKGROUND: { label: '배경 정보', tone: 'neutral' },
 }
 
+export const investorTypePresentations: Record<
+  InvestorTypeDto,
+  { label: string; tone: BadgeTone }
+> = {
+  FOREIGN: { label: '외국인', tone: 'info' },
+  INSTITUTION: { label: '기관', tone: 'accent' },
+  RETAIL: { label: '개인', tone: 'warning' },
+  ETF: { label: 'ETF', tone: 'neutral' },
+}
+
+export const flowDirectionPresentations: Record<
+  FlowDirectionDto,
+  { label: string; tone: BadgeTone }
+> = {
+  BUY: { label: '순매수', tone: 'success' },
+  SELL: { label: '순매도', tone: 'danger' },
+  NEUTRAL: { label: '중립', tone: 'neutral' },
+}
+
 const topicScoreDefinitions = [
   { id: 'impact', label: '종합 영향도', tone: 'danger' },
   { id: 'sentiment', label: '감성 방향', tone: 'success' },
@@ -439,6 +483,30 @@ export function adaptNewsOverview(
         evidenceEventIds: [...highlight.evidence_event_ids],
       })),
       generatedAt: formatDateTime(dto.briefing.generated_at),
+    },
+  }
+}
+
+export function adaptNewsInvestorFlows(
+  dto: NewsInvestorFlowsDto,
+): NewsInvestorFlowsView {
+  return {
+    asOf: formatDateTime(dto.as_of),
+    byInvestorType: dto.by_investor_type.map((item) => ({
+      investorType: item.investor_type,
+      investor: investorTypePresentations[item.investor_type],
+      netValue: item.net_value,
+      direction: item.direction,
+      directionPresentation: flowDirectionPresentations[item.direction],
+      change: item.change,
+    })),
+    narrativeAlignment: {
+      aligned: dto.narrative_alignment.aligned,
+      note: dto.narrative_alignment.note.trim(),
+    },
+    availability: {
+      available: dto.availability.available,
+      fallback: dto.availability.fallback?.trim() || null,
     },
   }
 }

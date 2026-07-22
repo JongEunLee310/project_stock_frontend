@@ -8,6 +8,7 @@ import {
 } from '@/features/news-insights'
 import { AgentBriefing } from '@/widgets/AgentBriefing'
 import { InsightSummaryCards } from '@/widgets/InsightSummaryCards'
+import { InvestorFlowPanel } from '@/widgets/InvestorFlowPanel'
 import { RealtimeEventFeed } from '@/widgets/RealtimeEventFeed'
 import { TopicMap } from '@/widgets/TopicMap'
 import { PlannedPanelCard, type PlannedPanel } from '@/widgets/PlannedPanelCard'
@@ -17,13 +18,6 @@ interface OverviewPlannedPanel extends PlannedPanel {
 }
 
 const plannedPanels: OverviewPlannedPanel[] = [
-  {
-    id: 'investor-flow',
-    title: '투자자 동향',
-    description: '투자 주체별 수급과 이벤트 이후 반응을 비교합니다.',
-    phase: '2차',
-    issue: '#264',
-  },
   {
     id: 'fund-flow-outlook',
     title: '예상 자금 흐름',
@@ -106,6 +100,13 @@ export function NewsInsightsOverviewPage() {
           <TopicMap />
         </div>
 
+        <InvestorFlowPanel
+          market="KR"
+          window="7d"
+          title="투자자 동향"
+          context="시장 전체의 투자 주체별 순매수·순매도와 뉴스 내러티브의 방향을 비교합니다."
+        />
+
         <section aria-labelledby="planned-panels-title">
           <div className="mb-3">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-app-accent">
@@ -118,7 +119,7 @@ export function NewsInsightsOverviewPage() {
               단계별 확장 패널
             </h2>
           </div>
-          <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
             {plannedPanels.map((panel) => (
               <PlannedPanelCard
                 key={panel.id}

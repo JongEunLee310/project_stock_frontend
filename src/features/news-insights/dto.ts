@@ -23,6 +23,28 @@ export interface NewsInsightOverviewDto {
   }
 }
 
+export type InvestorTypeDto = 'FOREIGN' | 'INSTITUTION' | 'RETAIL' | 'ETF'
+
+export type FlowDirectionDto = 'BUY' | 'SELL' | 'NEUTRAL'
+
+export interface NewsInvestorFlowsDto {
+  as_of: string
+  by_investor_type: Array<{
+    investor_type: InvestorTypeDto
+    net_value: string
+    direction: FlowDirectionDto
+    change: number
+  }>
+  narrative_alignment: {
+    aligned: boolean
+    note: string
+  }
+  availability: {
+    available: boolean
+    fallback: string | null
+  }
+}
+
 export interface NewsInsightEventDto {
   id: number
   event_type: string
