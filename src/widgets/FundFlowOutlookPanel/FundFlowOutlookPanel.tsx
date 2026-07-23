@@ -45,7 +45,7 @@ function OutlookItem({ item }: { item: FundFlowOutlookItemView }) {
           </Badge>
         </div>
       </div>
-      <dl className="mt-4 grid gap-3 sm:grid-cols-2">
+      <dl className="mt-4 grid gap-3">
         <div>
           <dt className="text-xs font-semibold text-app-text-muted">
             예상 범위
@@ -61,7 +61,7 @@ function OutlookItem({ item }: { item: FundFlowOutlookItemView }) {
           </dd>
         </div>
       </dl>
-      <div className="mt-4 grid gap-4 border-t border-app-border pt-4 lg:grid-cols-2">
+      <div className="mt-4 grid gap-4 border-t border-app-border pt-4">
         <EvidenceList title="주요 가정" items={item.keyAssumptions} />
         <EvidenceList title="위험 요인" items={item.riskFactors} />
       </div>
@@ -74,7 +74,7 @@ function OutlookLoading() {
     <div
       role="status"
       aria-label="예상 자금 흐름 불러오는 중"
-      className="grid gap-3 border-t border-app-border p-panel lg:grid-cols-2"
+      className="grid gap-3 border-t border-app-border p-panel"
     >
       <Skeleton className="h-56 w-full" />
       <Skeleton className="h-56 w-full" />
@@ -89,10 +89,10 @@ export function FundFlowOutlookPanel() {
   return (
     <Card
       aria-labelledby="fund-flow-outlook-title"
-      className="overflow-hidden p-0"
+      className="min-w-0 overflow-hidden p-0"
     >
       <div className="flex flex-wrap items-start justify-between gap-3 p-panel">
-        <div>
+        <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-app-accent">
             Fund flow outlook
           </p>
@@ -134,7 +134,7 @@ export function FundFlowOutlookPanel() {
       ) : null}
       {!outlookQuery.isLoading && !outlookQuery.isError && items.length > 0 ? (
         <div className="space-y-4 border-t border-app-border p-panel">
-          <ul className="grid gap-4 lg:grid-cols-2">
+          <ul className="grid gap-4">
             {items.map((item, index) => (
               <OutlookItem key={`${item.sector}-${index}`} item={item} />
             ))}

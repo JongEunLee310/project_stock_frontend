@@ -1,6 +1,3 @@
-import { useState } from 'react'
-import { FiX } from 'react-icons/fi'
-
 import type { NewsOverviewView } from '@/features/news-insights'
 import {
   Badge,
@@ -85,67 +82,35 @@ function BriefingBody({
 
 export function AgentBriefing(props: AgentBriefingProps) {
   const { data, updatedAt } = props
-  const [open, setOpen] = useState(false)
 
   return (
-    <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-3">
-      {open ? (
-        <Card
-          role="dialog"
-          aria-labelledby="agent-briefing-title"
-          className="max-h-[70vh] w-[min(24rem,calc(100vw-3rem))] overflow-y-auto shadow-xl"
-        >
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <div className="flex items-center gap-2">
-                <Badge tone="accent">AI 분석</Badge>
-                {data ? (
-                  <span className="text-xs text-app-text-muted">
-                    생성 {data.generatedAt}
-                  </span>
-                ) : null}
-              </div>
-              <div className="mt-2">
-                <PanelFreshness updatedAt={updatedAt} />
-              </div>
-              <h2
-                id="agent-briefing-title"
-                className="mt-3 text-xl font-semibold text-app-text"
-              >
-                에이전트 브리핑
-              </h2>
-            </div>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              aria-label="브리핑 접기"
-              className="rounded-control p-1.5 text-app-text-muted transition-colors hover:bg-app-surface-muted hover:text-app-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent"
-            >
-              <FiX className="h-5 w-5" aria-hidden="true" />
-            </button>
+    <Card
+      aria-labelledby="agent-briefing-title"
+      className="min-w-0 overflow-hidden"
+    >
+      <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <Badge tone="accent">AI 분석</Badge>
+            {data ? (
+              <span className="min-w-0 break-words text-xs text-app-text-muted">
+                생성 {data.generatedAt}
+              </span>
+            ) : null}
           </div>
-
-          <BriefingBody {...props} />
-        </Card>
-      ) : null}
-
-      <button
-        type="button"
-        onClick={() => setOpen((value) => !value)}
-        aria-expanded={open}
-        aria-label={open ? '에이전트 브리핑 닫기' : '에이전트 브리핑 열기'}
-        className="relative inline-flex h-14 w-14 items-center justify-center rounded-full border border-violet-400/40 bg-violet-500 text-2xl text-white shadow-lg transition-colors hover:bg-violet-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent"
-      >
-        <span aria-hidden="true">✦</span>
-        {!open && data && data.highlights.length > 0 ? (
-          <span
-            className="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-xs font-semibold text-white"
-            aria-hidden="true"
+          <div className="mt-2">
+            <PanelFreshness updatedAt={updatedAt} />
+          </div>
+          <h2
+            id="agent-briefing-title"
+            className="mt-3 text-xl font-semibold text-app-text"
           >
-            {data.highlights.length}
-          </span>
-        ) : null}
-      </button>
-    </div>
+            에이전트 브리핑
+          </h2>
+        </div>
+      </div>
+
+      <BriefingBody {...props} />
+    </Card>
   )
 }

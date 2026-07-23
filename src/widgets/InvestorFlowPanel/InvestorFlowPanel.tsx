@@ -19,6 +19,7 @@ interface InvestorFlowPanelProps {
   topicId?: string
   title: string
   context: string
+  spanFullRow?: boolean
 }
 
 const directionBarClassNames: Record<FlowDirectionDto, string> = {
@@ -65,7 +66,7 @@ function InvestorFlowRow({ flow }: { flow: InvestorFlowView }) {
             {flow.directionPresentation.label}
           </Badge>
         </div>
-        <strong className="text-sm font-semibold text-app-text">
+        <strong className="whitespace-nowrap text-sm font-semibold text-app-text">
           {formatNetValue(flow.netValue)}
         </strong>
       </div>
@@ -84,7 +85,7 @@ function InvestorFlowLoading() {
     <div
       role="status"
       aria-label="투자자 수급 불러오는 중"
-      className="grid gap-3 p-panel sm:grid-cols-2"
+      className="grid gap-3 p-panel"
     >
       <Skeleton className="h-24 w-full" />
       <Skeleton className="h-24 w-full" />
@@ -98,6 +99,7 @@ export function InvestorFlowPanel({
   topicId,
   title,
   context,
+  spanFullRow = true,
 }: InvestorFlowPanelProps) {
   const flowsQuery = useNewsInvestorFlowsQuery({ market, window, topicId })
   const flows = flowsQuery.data?.byInvestorType ?? []
@@ -106,10 +108,10 @@ export function InvestorFlowPanel({
   return (
     <Card
       aria-labelledby={titleId}
-      className="overflow-hidden p-0 xl:col-span-3"
+      className={`min-w-0 overflow-hidden p-0 ${spanFullRow ? 'xl:col-span-3' : ''}`}
     >
       <div className="flex flex-wrap items-start justify-between gap-3 p-panel">
-        <div>
+        <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-app-accent">
             Investor flows
           </p>
@@ -162,7 +164,7 @@ export function InvestorFlowPanel({
       flowsQuery.data?.availability.available &&
       flows.length > 0 ? (
         <div className="space-y-4 border-t border-app-border p-panel">
-          <ul className="grid gap-3 sm:grid-cols-2">
+          <ul className="grid gap-3">
             {flows.map((flow) => (
               <InvestorFlowRow key={flow.investorType} flow={flow} />
             ))}
