@@ -1,4 +1,7 @@
 const KST_TIMEZONE = 'Asia/Seoul'
+const millisecondsPerMinute = 60 * 1000
+const minutesPerHour = 60
+const hoursPerDay = 24
 
 function padDateTimePart(value: number): string {
   return String(value).padStart(2, '0')
@@ -13,6 +16,27 @@ export function formatLocalDateTime(value: string): string {
     `${date.getFullYear()}-${padDateTimePart(date.getMonth() + 1)}-${padDateTimePart(date.getDate())}`,
     `${padDateTimePart(date.getHours())}:${padDateTimePart(date.getMinutes())}:${padDateTimePart(date.getSeconds())}`,
   ].join(' ')
+}
+
+export function formatRelativeTime(
+  updatedAtMs: number,
+  now = Date.now(),
+): string {
+  if (!Number.isFinite(updatedAtMs) || !Number.isFinite(now)) {
+    return '알 수 없음'
+  }
+
+  const elapsedMinutes = Math.floor(
+    Math.max(0, now - updatedAtMs) / millisecondsPerMinute,
+  )
+
+  if (elapsedMinutes < 1) return '방금 전'
+  if (elapsedMinutes < minutesPerHour) return `${elapsedMinutes}분 전`
+
+  const elapsedHours = Math.floor(elapsedMinutes / minutesPerHour)
+  if (elapsedHours < hoursPerDay) return `${elapsedHours}시간 전`
+
+  return `${Math.floor(elapsedHours / hoursPerDay)}일 전`
 }
 
 export function formatKstDate(iso: string): string {

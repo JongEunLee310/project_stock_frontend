@@ -1,11 +1,15 @@
-import type { NewsTopicExplanationView } from '@/features/news-insights'
-import { Badge, Card, EmptyState, ErrorState, Skeleton } from '@/shared/ui'
+import { useNewsTopicExplanationQuery } from '@/features/news-insights'
+import {
+  Badge,
+  Card,
+  EmptyState,
+  ErrorState,
+  PanelFreshness,
+  Skeleton,
+} from '@/shared/ui'
 
 interface InsightExplanationPanelProps {
-  data?: NewsTopicExplanationView
-  isLoading: boolean
-  isError: boolean
-  onRetry: () => void
+  topicId: string
 }
 
 const percentFormatter = new Intl.NumberFormat('ko-KR', {
@@ -25,12 +29,12 @@ function TextItems({ title, items }: { title: string; items: string[] }) {
 }
 
 export function InsightExplanationPanel({
-  data,
-  isLoading,
-  isError,
-  onRetry,
+  topicId,
 }: InsightExplanationPanelProps) {
-  if (isLoading) {
+  const explanationQuery = useNewsTopicExplanationQuery(topicId)
+  const data = explanationQuery.data
+
+  if (explanationQuery.isLoading) {
     return (
       <Card aria-label="인사이트 설명 불러오는 중" role="status">
         <Skeleton className="h-7 w-40" />
@@ -39,13 +43,13 @@ export function InsightExplanationPanel({
     )
   }
 
-  if (isError) {
+  if (explanationQuery.isError) {
     return (
       <Card>
         <ErrorState
           title="인사이트 설명을 불러오지 못했습니다"
           description="아직 분석되지 않은 토픽일 수 있습니다. 다른 패널은 계속 확인할 수 있습니다."
-          onRetry={onRetry}
+          onRetry={() => void explanationQuery.refetch()}
         />
       </Card>
     )
@@ -68,11 +72,14 @@ export function InsightExplanationPanel({
             서버 분석 결과의 요인별 기여 비율과 데이터 상태를 표시합니다.
           </p>
         </div>
-        {data ? (
-          <Badge tone="accent">
-            AI 분석 · 신뢰도 {data.meta.confidencePercent}%
-          </Badge>
-        ) : null}
+        <div className="flex flex-col items-end gap-2">
+          {data ? (
+            <Badge tone="accent">
+              AI 분석 · 신뢰도 {data.meta.confidencePercent}%
+            </Badge>
+          ) : null}
+          <PanelFreshness updatedAt={explanationQuery.dataUpdatedAt} />
+        </div>
       </div>
 
       {!data || data.factors.length === 0 ? (

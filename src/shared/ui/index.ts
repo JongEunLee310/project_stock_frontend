@@ -10,6 +10,7 @@ export {
 } from './charts'
 export { Input } from './Input'
 export { InfoTooltip } from './InfoTooltip'
+export { PanelFreshness } from './PanelFreshness'
 export { EmptyState } from './EmptyState'
 export { ErrorState } from './ErrorState'
 export { Skeleton } from './Skeleton'
@@ -29,6 +30,7 @@ export type {
 } from './Table'
 export type { EmptyStateProps } from './EmptyState'
 export type { ErrorStateProps } from './ErrorState'
+export type { PanelFreshnessProps } from './PanelFreshness'
 export type { SkeletonProps } from './Skeleton'
 export type {
   BadgeTone,

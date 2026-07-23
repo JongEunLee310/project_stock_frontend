@@ -42,6 +42,7 @@ export {
   type TopicScoreView,
 } from './adapters'
 export {
+  newsInsightsRefetchIntervals,
   useNewsAgentRunsQuery,
   useNewsCalendarQuery,
   useNewsEventsQuery,

@@ -211,17 +211,21 @@ function mockQueries({
   scenariosError = false,
   explanationError = false,
 } = {}) {
+  const dataUpdatedAt = Date.now() - 5 * 60 * 1000
+
   vi.mocked(useNewsTopicDetailQuery).mockReturnValue({
     data: detailError ? undefined : detail,
     isLoading: false,
     isError: detailError,
     refetch: vi.fn(),
+    dataUpdatedAt,
   } as unknown as ReturnType<typeof useNewsTopicDetailQuery>)
   vi.mocked(useNewsTopicTrendQuery).mockReturnValue({
     data: trendError ? undefined : trend,
     isLoading: false,
     isError: trendError,
     refetch: vi.fn(),
+    dataUpdatedAt,
   } as unknown as ReturnType<typeof useNewsTopicTrendQuery>)
   vi.mocked(useNewsTopicEvidenceQuery).mockReturnValue({
     data: evidenceError ? undefined : [{ items: [evidence] }],
@@ -232,36 +236,42 @@ function mockQueries({
     hasNextPage: false,
     fetchNextPage: vi.fn(),
     refetch: vi.fn(),
+    dataUpdatedAt,
   } as unknown as ReturnType<typeof useNewsTopicEvidenceQuery>)
   vi.mocked(useNewsTopicExplanationQuery).mockReturnValue({
     data: explanationError ? undefined : topicExplanation,
     isLoading: false,
     isError: explanationError,
     refetch: vi.fn(),
+    dataUpdatedAt,
   } as unknown as ReturnType<typeof useNewsTopicExplanationQuery>)
   vi.mocked(useNewsTopicGraphQuery).mockReturnValue({
     data: graphError ? undefined : topicGraph,
     isLoading: false,
     isError: graphError,
     refetch: vi.fn(),
+    dataUpdatedAt,
   } as unknown as ReturnType<typeof useNewsTopicGraphQuery>)
   vi.mocked(useNewsTopicSymbolsQuery).mockReturnValue({
     data: symbolsError ? undefined : topicSymbols,
     isLoading: false,
     isError: symbolsError,
     refetch: vi.fn(),
+    dataUpdatedAt,
   } as unknown as ReturnType<typeof useNewsTopicSymbolsQuery>)
   vi.mocked(useNewsInvestorFlowsQuery).mockReturnValue({
     data: flowsError ? undefined : investorFlows,
     isLoading: false,
     isError: flowsError,
     refetch: vi.fn(),
+    dataUpdatedAt,
   } as unknown as ReturnType<typeof useNewsInvestorFlowsQuery>)
   vi.mocked(useNewsTopicScenariosQuery).mockReturnValue({
     data: scenariosError ? undefined : topicScenarios,
     isLoading: false,
     isError: scenariosError,
     refetch: vi.fn(),
+    dataUpdatedAt,
   } as unknown as ReturnType<typeof useNewsTopicScenariosQuery>)
 }
 
@@ -336,6 +346,9 @@ describe('TopicInsightDetailPage', () => {
       topicId: '7',
     })
     expect(useNewsTopicScenariosQuery).toHaveBeenCalledWith('7')
+    expect(
+      screen.getAllByLabelText('데이터 갱신 5분 전').length,
+    ).toBeGreaterThanOrEqual(10)
   })
 
   it('keeps trend and evidence visible when the detail panel fails', async () => {

@@ -19,7 +19,14 @@ import {
   type NewsTopicGraphView,
   useNewsTopicGraphQuery,
 } from '@/features/news-insights'
-import { Badge, Card, EmptyState, ErrorState, Skeleton } from '@/shared/ui'
+import {
+  Badge,
+  Card,
+  EmptyState,
+  ErrorState,
+  PanelFreshness,
+  Skeleton,
+} from '@/shared/ui'
 
 const CytoscapeComponent = lazy(() => import('react-cytoscapejs'))
 
@@ -255,7 +262,10 @@ export function TopicKeywordGraph({ topicId }: TopicKeywordGraphProps) {
             감성은 노드 색과 텍스트 배지로, 연관 강도는 선 굵기로 구분합니다.
           </p>
         </div>
-        <Badge tone="accent">토픽 키워드</Badge>
+        <div className="flex flex-col items-end gap-2">
+          <Badge tone="accent">토픽 키워드</Badge>
+          <PanelFreshness updatedAt={graphQuery.dataUpdatedAt} />
+        </div>
       </div>
 
       {graphQuery.isLoading ? <KeywordGraphLoading /> : null}

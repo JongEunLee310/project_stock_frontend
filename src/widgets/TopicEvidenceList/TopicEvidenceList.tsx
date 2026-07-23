@@ -7,6 +7,7 @@ import {
   Card,
   EmptyState,
   ErrorState,
+  PanelFreshness,
   Skeleton,
 } from '@/shared/ui'
 
@@ -19,6 +20,7 @@ interface TopicEvidenceListProps {
   hasNextPage: boolean
   onLoadMore: () => void
   onRetry: () => void
+  updatedAt?: number
 }
 
 type EvidenceViewMode = 'source' | 'summary'
@@ -32,6 +34,7 @@ export function TopicEvidenceList({
   hasNextPage,
   onLoadMore,
   onRetry,
+  updatedAt,
 }: TopicEvidenceListProps) {
   const [viewModes, setViewModes] = useState<Record<string, EvidenceViewMode>>(
     {},
@@ -59,19 +62,22 @@ export function TopicEvidenceList({
 
   return (
     <Card aria-labelledby="topic-evidence-title" className="p-0">
-      <div className="p-panel">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-app-accent">
-          Evidence
-        </p>
-        <h2
-          id="topic-evidence-title"
-          className="mt-1 text-xl font-semibold text-app-text"
-        >
-          관련 근거
-        </h2>
-        <p className="mt-1 text-sm leading-6 text-app-text-muted">
-          출처의 원문 정보와 AI가 생성한 요약을 구분해 확인합니다.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3 p-panel">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-app-accent">
+            Evidence
+          </p>
+          <h2
+            id="topic-evidence-title"
+            className="mt-1 text-xl font-semibold text-app-text"
+          >
+            관련 근거
+          </h2>
+          <p className="mt-1 text-sm leading-6 text-app-text-muted">
+            출처의 원문 정보와 AI가 생성한 요약을 구분해 확인합니다.
+          </p>
+        </div>
+        <PanelFreshness updatedAt={updatedAt} />
       </div>
 
       {evidence.length === 0 ? (

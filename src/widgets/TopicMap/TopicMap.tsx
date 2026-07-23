@@ -10,14 +10,28 @@ import { generatePath, useNavigate } from 'react-router-dom'
 import {
   type NewsTopicMap,
   type NewsTopicMapNode,
-  useNewsTopicMapQuery,
 } from '@/features/news-insights'
 import { appRoutePaths } from '@/shared/config/navigation'
-import { Badge, Card, EmptyState, ErrorState, Skeleton } from '@/shared/ui'
+import {
+  Badge,
+  Card,
+  EmptyState,
+  ErrorState,
+  PanelFreshness,
+  Skeleton,
+} from '@/shared/ui'
 
 const CytoscapeComponent = lazy(() => import('react-cytoscapejs'))
 
 const topicNodePrefix = 'topic:'
+
+interface TopicMapProps {
+  data?: NewsTopicMap
+  isLoading: boolean
+  isError: boolean
+  onRetry: () => void
+  updatedAt?: number
+}
 
 const categoryPresentations = {
   GROWTH: { label: '성장/투자', color: '#8b5cf6' },
@@ -181,8 +195,13 @@ function TopicMapLoading() {
   )
 }
 
-export function TopicMap() {
-  const topicMapQuery = useNewsTopicMapQuery()
+export function TopicMap({
+  data,
+  isLoading,
+  isError,
+  onRetry,
+  updatedAt,
+}: TopicMapProps) {
   const navigate = useNavigate()
   const cytoscapeRef = useRef<Core | null>(null)
 
@@ -221,7 +240,6 @@ export function TopicMap() {
     [],
   )
 
-  const data = topicMapQuery.data
   const elements = data ? toElements(data) : []
   const topicNodes = data?.nodes.filter((node) => node.type === 'TOPIC') ?? []
 
@@ -243,29 +261,27 @@ export function TopicMap() {
             나타냅니다.
           </p>
         </div>
-        <Badge tone="accent">7일 관계망</Badge>
+        <div className="flex flex-col items-end gap-2">
+          <Badge tone="accent">7일 관계망</Badge>
+          <PanelFreshness updatedAt={updatedAt} />
+        </div>
       </div>
 
-      {topicMapQuery.isLoading ? <TopicMapLoading /> : null}
-      {topicMapQuery.isError ? (
+      {isLoading ? <TopicMapLoading /> : null}
+      {isError ? (
         <ErrorState
           title="토픽 맵을 불러오지 못했습니다"
           description="다른 인사이트 패널은 계속 확인할 수 있습니다."
-          onRetry={() => void topicMapQuery.refetch()}
+          onRetry={onRetry}
         />
       ) : null}
-      {!topicMapQuery.isLoading &&
-      !topicMapQuery.isError &&
-      data?.nodes.length === 0 ? (
+      {!isLoading && !isError && data?.nodes.length === 0 ? (
         <EmptyState
           title="표시할 토픽 관계가 없습니다"
           description="선택한 기간에 집계된 토픽이 생기면 이곳에 표시됩니다."
         />
       ) : null}
-      {!topicMapQuery.isLoading &&
-      !topicMapQuery.isError &&
-      data &&
-      data.nodes.length > 0 ? (
+      {!isLoading && !isError && data && data.nodes.length > 0 ? (
         <>
           <div
             role="img"

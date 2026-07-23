@@ -4,6 +4,7 @@ import {
   Button,
   Card,
   ErrorState,
+  PanelFreshness,
   Table,
   type TableColumn,
 } from '@/shared/ui'
@@ -17,6 +18,7 @@ interface RealtimeEventFeedProps {
   hasNextPage: boolean
   onLoadMore: () => void
   onRetry: () => void
+  updatedAt?: number
 }
 
 const eventColumns: Array<TableColumn<NewsEventView>> = [
@@ -100,6 +102,7 @@ export function RealtimeEventFeed({
   hasNextPage,
   onLoadMore,
   onRetry,
+  updatedAt,
 }: RealtimeEventFeedProps) {
   return (
     <Card aria-labelledby="realtime-event-feed-title" className="p-0">
@@ -118,11 +121,14 @@ export function RealtimeEventFeed({
             관련 문서를 하나의 시장 이벤트로 묶어 중요도와 감성을 분리했습니다.
           </p>
         </div>
-        {events[0] ? (
-          <span className="text-xs text-app-text-muted">
-            최신 {events[0].publishedAt}
-          </span>
-        ) : null}
+        <div className="flex flex-col items-end gap-1">
+          <PanelFreshness updatedAt={updatedAt} />
+          {events[0] ? (
+            <span className="text-xs text-app-text-muted">
+              최신 {events[0].publishedAt}
+            </span>
+          ) : null}
+        </div>
       </div>
 
       {isError && events.length === 0 ? (

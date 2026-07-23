@@ -3,7 +3,14 @@ import {
   type ScenarioKindDto,
   useNewsTopicScenariosQuery,
 } from '@/features/news-insights'
-import { Badge, Card, EmptyState, ErrorState, Skeleton } from '@/shared/ui'
+import {
+  Badge,
+  Card,
+  EmptyState,
+  ErrorState,
+  PanelFreshness,
+  Skeleton,
+} from '@/shared/ui'
 
 const scenarioOrder: ScenarioKindDto[] = ['OPTIMISTIC', 'BASE', 'CONSERVATIVE']
 
@@ -127,11 +134,14 @@ export function FundFlowScenarioPanel({ topicId }: { topicId: string }) {
             아닙니다.
           </p>
         </div>
-        {scenariosQuery.data ? (
-          <Badge tone="accent">
-            분석 {scenariosQuery.data.analysisVersion}
-          </Badge>
-        ) : null}
+        <div className="flex flex-col items-end gap-2">
+          {scenariosQuery.data ? (
+            <Badge tone="accent">
+              분석 {scenariosQuery.data.analysisVersion}
+            </Badge>
+          ) : null}
+          <PanelFreshness updatedAt={scenariosQuery.dataUpdatedAt} />
+        </div>
       </div>
 
       {scenariosQuery.isLoading ? <ScenarioLoading /> : null}

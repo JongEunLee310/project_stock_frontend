@@ -4,7 +4,14 @@ import {
   type NewsCalendarItemView,
   useNewsCalendarQuery,
 } from '@/features/news-insights'
-import { Badge, Card, EmptyState, ErrorState, Skeleton } from '@/shared/ui'
+import {
+  Badge,
+  Card,
+  EmptyState,
+  ErrorState,
+  PanelFreshness,
+  Skeleton,
+} from '@/shared/ui'
 
 interface MarketEventTimelineProps {
   market: string
@@ -121,9 +128,12 @@ export function MarketEventTimeline({
             계산합니다.
           </p>
         </div>
-        <Badge tone="info">
-          {market} · {window}
-        </Badge>
+        <div className="flex flex-col items-end gap-2">
+          <Badge tone="info">
+            {market} · {window}
+          </Badge>
+          <PanelFreshness updatedAt={calendarQuery.dataUpdatedAt} />
+        </div>
       </div>
 
       {calendarQuery.isLoading ? <TimelineLoading /> : null}

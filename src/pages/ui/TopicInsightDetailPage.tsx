@@ -62,6 +62,7 @@ export function TopicInsightDetailPage() {
         isLoading={detailQuery.isLoading}
         isError={detailQuery.isError}
         onRetry={() => void detailQuery.refetch()}
+        updatedAt={detailQuery.dataUpdatedAt}
       />
 
       <div className="grid gap-4 xl:grid-cols-3">
@@ -70,12 +71,14 @@ export function TopicInsightDetailPage() {
           isLoading={detailQuery.isLoading}
           isError={detailQuery.isError}
           onRetry={() => void detailQuery.refetch()}
+          updatedAt={detailQuery.dataUpdatedAt}
         />
         <TopicTrendChart
           data={trendQuery.data}
           isLoading={trendQuery.isLoading}
           isError={trendQuery.isError}
           onRetry={() => void trendQuery.refetch()}
+          updatedAt={trendQuery.dataUpdatedAt}
         />
         <TopicKeywordGraph topicId={topicId} />
 
@@ -88,6 +91,7 @@ export function TopicInsightDetailPage() {
           hasNextPage={evidenceQuery.hasNextPage}
           onLoadMore={() => void evidenceQuery.fetchNextPage()}
           onRetry={() => void evidenceQuery.refetch()}
+          updatedAt={evidenceQuery.dataUpdatedAt}
         />
         <InvestorFlowPanel
           market="KR"
@@ -100,12 +104,7 @@ export function TopicInsightDetailPage() {
 
         <TopicSymbolSensitivity topicId={topicId} />
 
-        <InsightExplanationPanel
-          data={explanationQuery.data}
-          isLoading={explanationQuery.isLoading}
-          isError={explanationQuery.isError}
-          onRetry={() => void explanationQuery.refetch()}
-        />
+        <InsightExplanationPanel topicId={topicId} />
         <TopicActionChecklist
           topicId={topicId}
           affectedSymbols={detailQuery.data?.affectedSymbols ?? []}
@@ -119,6 +118,7 @@ export function TopicInsightDetailPage() {
           isExplanationError={explanationQuery.isError}
           onRetry={() => void detailQuery.refetch()}
           onExplanationRetry={() => void explanationQuery.refetch()}
+          updatedAt={detailQuery.dataUpdatedAt}
         />
       </div>
     </section>
