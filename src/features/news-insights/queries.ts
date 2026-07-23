@@ -66,6 +66,8 @@ const newsEventsPageSize = 20
 const topicMapStaleTimeMs = 5 * 60 * 1000
 const topicEvidencePageSize = 20
 
+export type NewsTopicTrendWindow = '7d' | '30d' | '90d'
+
 export const newsInsightsRefetchIntervals = {
   overview: 60 * 1000,
   calendar: 30 * 60 * 1000,
@@ -321,12 +323,16 @@ export function useNewsTopicGraphQuery(topicId: string) {
   })
 }
 
-export function useNewsTopicTrendQuery(topicId: string) {
+export function useNewsTopicTrendQuery(
+  topicId: string,
+  window: NewsTopicTrendWindow = '7d',
+) {
   return useQuery<NewsTopicTrendView>({
-    queryKey: ['news-insights', 'topics', topicId, 'trend', '7d', '1d'],
+    queryKey: ['news-insights', 'topics', topicId, 'trend', window, '1d'],
     queryFn: async () => {
+      const searchParams = new URLSearchParams({ window, interval: '1d' })
       const { data } = await apiGet<NewsTopicTrendDto>(
-        `/news-insights/topics/${encodeURIComponent(topicId)}/trend?window=7d&interval=1d`,
+        `/news-insights/topics/${encodeURIComponent(topicId)}/trend?${searchParams.toString()}`,
       )
       return adaptNewsTopicTrend(data)
     },

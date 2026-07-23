@@ -128,7 +128,7 @@ export function TopicSymbolSensitivity({
   return (
     <Card
       aria-labelledby="topic-symbol-sensitivity-title"
-      className="overflow-hidden p-0 xl:col-span-3"
+      className="overflow-hidden p-0"
     >
       <div className="flex flex-wrap items-start justify-between gap-3 p-panel">
         <div>

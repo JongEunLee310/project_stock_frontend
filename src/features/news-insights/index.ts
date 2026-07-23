@@ -63,6 +63,7 @@ export {
   type NewsCalendarQueryParams,
   type NewsInvestorFlowsQueryParams,
   type NewsTopicEvidencePage,
+  type NewsTopicTrendWindow,
 } from './queries'
 export type {
   AgentRunStatusDto,

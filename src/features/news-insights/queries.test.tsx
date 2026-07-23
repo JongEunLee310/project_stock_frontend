@@ -858,6 +858,21 @@ describe('news insights queries', () => {
     })
   })
 
+  it('uses the selected trend window with a daily interval', async () => {
+    vi.mocked(apiGet).mockResolvedValue({
+      data: { points: [], markers: [], source_distribution: [] },
+    })
+
+    const { result } = renderHook(() => useNewsTopicTrendQuery('7', '90d'), {
+      wrapper: createWrapper(),
+    })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(apiGet).toHaveBeenCalledWith(
+      '/news-insights/topics/7/trend?window=90d&interval=1d',
+    )
+  })
+
   it('adapts a populated trend and exposes trend request errors', async () => {
     vi.mocked(apiGet).mockResolvedValueOnce({ data: topicTrendDto })
     const success = renderHook(() => useNewsTopicTrendQuery('7'), {

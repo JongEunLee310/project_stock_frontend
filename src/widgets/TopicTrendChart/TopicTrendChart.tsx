@@ -10,7 +10,10 @@ import {
   YAxis,
 } from 'recharts'
 
-import type { NewsTopicTrendView } from '@/features/news-insights'
+import type {
+  NewsTopicTrendView,
+  NewsTopicTrendWindow,
+} from '@/features/news-insights'
 import { formatKstTime } from '@/shared/lib/format'
 import {
   Badge,
@@ -30,11 +33,57 @@ interface TopicTrendChartProps {
   isError: boolean
   onRetry: () => void
   updatedAt?: number
+  window: NewsTopicTrendWindow
+  onWindowChange: (window: NewsTopicTrendWindow) => void
 }
 
-function TopicTrendLoading() {
+const trendWindowOptions: Array<{
+  value: NewsTopicTrendWindow
+  label: string
+}> = [
+  { value: '7d', label: '7일' },
+  { value: '30d', label: '30일' },
+  { value: '90d', label: '90일' },
+]
+
+function TrendWindowToggle({
+  window,
+  onWindowChange,
+}: Pick<TopicTrendChartProps, 'window' | 'onWindowChange'>) {
+  return (
+    <div className="flex items-center gap-1" aria-label="추이 조회 기간">
+      {trendWindowOptions.map((option) => {
+        const isSelected = option.value === window
+
+        return (
+          <button
+            key={option.value}
+            type="button"
+            aria-pressed={isSelected}
+            onClick={() => onWindowChange(option.value)}
+            className={`min-h-6 rounded-control border px-2 py-0.5 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent ${
+              isSelected
+                ? 'border-sky-400/30 bg-sky-400/15 text-sky-300'
+                : 'border-app-border text-app-text-muted hover:border-app-accent/50 hover:text-app-text'
+            }`}
+          >
+            {option.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+function TopicTrendLoading({
+  window,
+  onWindowChange,
+}: Pick<TopicTrendChartProps, 'window' | 'onWindowChange'>) {
   return (
     <Card aria-label="토픽 추이 불러오는 중" role="status">
+      <div className="flex justify-end">
+        <TrendWindowToggle window={window} onWindowChange={onWindowChange} />
+      </div>
       <Skeleton className="h-8 w-48" />
       <Skeleton className="mt-4 h-80" />
     </Card>
@@ -47,13 +96,20 @@ export function TopicTrendChart({
   isError,
   onRetry,
   updatedAt,
+  window,
+  onWindowChange,
 }: TopicTrendChartProps) {
   const { containerRef, chartWidth } = useMeasuredChartWidth()
 
-  if (isLoading) return <TopicTrendLoading />
+  if (isLoading) {
+    return <TopicTrendLoading window={window} onWindowChange={onWindowChange} />
+  }
   if (isError) {
     return (
       <Card>
+        <div className="mb-4 flex justify-end">
+          <TrendWindowToggle window={window} onWindowChange={onWindowChange} />
+        </div>
         <ErrorState
           title="토픽 추이를 불러오지 못했습니다"
           description="토픽 요약과 관련 근거는 계속 확인할 수 있습니다."
@@ -65,6 +121,9 @@ export function TopicTrendChart({
   if (!data || data.points.length === 0) {
     return (
       <Card>
+        <div className="mb-4 flex justify-end">
+          <TrendWindowToggle window={window} onWindowChange={onWindowChange} />
+        </div>
         <EmptyState
           title="표시할 토픽 추이가 없습니다"
           description="집계된 언급량과 감성 추이가 생기면 이곳에 표시됩니다."
@@ -97,27 +156,7 @@ export function TopicTrendChart({
         </div>
         <div className="flex flex-col items-end gap-2">
           <PanelFreshness updatedAt={updatedAt} />
-          <div className="flex items-center gap-1" aria-label="추이 조회 기간">
-            <Badge tone="accent" aria-label="7일 선택됨">
-              7일
-            </Badge>
-            <button
-              type="button"
-              disabled
-              title="준비 중"
-              className="min-h-6 rounded-control border border-app-border px-2 py-0.5 text-xs font-semibold text-app-text-muted disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              30일
-            </button>
-            <button
-              type="button"
-              disabled
-              title="준비 중"
-              className="min-h-6 rounded-control border border-app-border px-2 py-0.5 text-xs font-semibold text-app-text-muted disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              90일
-            </button>
-          </div>
+          <TrendWindowToggle window={window} onWindowChange={onWindowChange} />
         </div>
       </div>
 
@@ -216,7 +255,7 @@ export function TopicTrendChart({
         ))}
       </div>
 
-      <div className="mt-5 grid gap-5 border-t border-app-border pt-5 lg:grid-cols-2">
+      <div className="mt-5 grid gap-5 border-t border-app-border pt-5 2xl:grid-cols-2">
         <section aria-labelledby="trend-markers-title">
           <h3
             id="trend-markers-title"
@@ -257,17 +296,17 @@ export function TopicTrendChart({
               집계된 출처가 없습니다.
             </p>
           ) : (
-            <div className="mt-3 grid grid-cols-[7rem_minmax(0,1fr)] items-center gap-4">
+            <div className="mt-3 grid min-w-0 gap-4 sm:grid-cols-[7rem_minmax(0,1fr)] sm:items-center">
               <DonutChart
                 data={sourceChartData}
                 height={112}
                 ariaLabel="문서 유형별 출처 분포"
               />
-              <ul className="space-y-2">
+              <ul className="min-w-0 space-y-2">
                 {data.sourceDistribution.map((source) => (
                   <li
                     key={source.sourceTypeLabel}
-                    className="flex items-center justify-between gap-2 text-sm"
+                    className="flex min-w-0 flex-wrap items-center justify-between gap-2 text-sm"
                   >
                     <Badge tone={source.sourceTypeTone}>
                       {source.sourceTypeLabel}
