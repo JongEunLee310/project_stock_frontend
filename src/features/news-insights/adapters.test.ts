@@ -111,7 +111,11 @@ const fundFlowOutlookDto: NewsFundFlowOutlookDto = {
       sector: ' 반도체 ',
       direction: 'INFLOW',
       likelihood: 'HIGH',
-      estimated_range: ' 1,000억~1,500억원 ',
+      estimated_flow: {
+        low: '800000000000.0000',
+        high: '1800000000000.0000',
+        currency: 'KRW',
+      },
       horizon: ' 1개월 ',
       confidence: 0.824,
       key_assumptions: [' AI 수요가 유지됩니다. '],
@@ -452,7 +456,7 @@ describe('news insights adapters', () => {
     expect(result.counterView.contradictingEvidence).toEqual([])
   })
 
-  it('maps fund-flow outlook levels and keeps the server range with grounded sentences', () => {
+  it('maps fund-flow outlook levels and formats the estimated flow with grounded sentences', () => {
     const result = adaptNewsFundFlowOutlook(fundFlowOutlookDto)
 
     expect(result).toEqual({
@@ -463,7 +467,7 @@ describe('news insights adapters', () => {
           sector: '반도체',
           direction: { label: '유입 방향', tone: 'success' },
           likelihood: { label: '높음', tone: 'success' },
-          estimatedRange: '1,000억~1,500억원',
+          estimatedRange: '8,000~18,000억원',
           horizon: '1개월',
           confidencePercent: 82,
           keyAssumptions: ['AI 수요가 유지됩니다.'],
@@ -471,6 +475,57 @@ describe('news insights adapters', () => {
         },
       ],
     })
+  })
+
+  it.each([
+    [
+      '억 미만인 원화 구간',
+      { low: '50000000', high: '90000000', currency: 'KRW' },
+      '50,000,000~90,000,000원',
+    ],
+    [
+      '음수를 포함한 원화 구간',
+      { low: '-250000000', high: '150000000', currency: 'KRW' },
+      '-2.5~1.5억원',
+    ],
+    [
+      '공백과 소문자가 있는 비원화 구간',
+      { low: '1000.5', high: '2000.25', currency: ' usd ' },
+      '1,000.5~2,000.25 USD',
+    ],
+    [
+      '같은 값인 구간',
+      { low: '100000000', high: '100000000.0000', currency: 'KRW' },
+      '1억원',
+    ],
+    [
+      '통화가 비어 있는 원화 구간',
+      { low: '50000000', high: '50000000', currency: '   ' },
+      '50,000,000원',
+    ],
+    ['구간이 없는 값', null, null],
+    [
+      '숫자로 읽을 수 없는 최솟값',
+      { low: 'invalid', high: '100000000', currency: 'KRW' },
+      null,
+    ],
+    [
+      '유한하지 않은 최댓값',
+      { low: '100000000', high: 'Infinity', currency: 'KRW' },
+      null,
+    ],
+  ])('%s을 표시 규칙에 맞게 변환한다', (_, estimatedFlow, expected) => {
+    const result = adaptNewsFundFlowOutlook({
+      ...fundFlowOutlookDto,
+      items: [
+        {
+          ...fundFlowOutlookDto.items[0],
+          estimated_flow: estimatedFlow,
+        },
+      ],
+    })
+
+    expect(result.items[0].estimatedRange).toBe(expected)
   })
 
   it('maps scenario weight as a display level and preserves empty response data', () => {
