@@ -340,7 +340,7 @@ describe('news insights queries', () => {
       | { refetchInterval?: unknown; placeholderData?: unknown }
       | undefined
     const eventsOptions = queryClient.getQueryCache().find({
-      queryKey: ['news-insights', 'events'],
+      queryKey: ['news-insights', 'events', undefined],
     })?.options as
       | { refetchInterval?: unknown; placeholderData?: unknown }
       | undefined
@@ -605,6 +605,48 @@ describe('news insights queries', () => {
       ),
     )
     expect(result.current.hasNextPage).toBe(false)
+  })
+
+  it('separates unfiltered and symbol-filtered event requests and caches', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+    vi.mocked(apiGet).mockResolvedValue({
+      data: [createEvent(1)],
+      meta: { limit: 20, has_more: false, next_cursor: null },
+    })
+
+    const unfiltered = renderHook(() => useNewsEventsQuery(), {
+      wrapper: createWrapper(queryClient),
+    })
+    const filtered = renderHook(
+      () => useNewsEventsQuery({ symbols: ['NVDA', '005930'] }),
+      { wrapper: createWrapper(queryClient) },
+    )
+
+    await waitFor(() => expect(unfiltered.result.current.isSuccess).toBe(true))
+    await waitFor(() => expect(filtered.result.current.isSuccess).toBe(true))
+
+    expect(apiGet).toHaveBeenCalledWith('/news-insights/events?limit=20')
+    expect(apiGet).toHaveBeenCalledWith(
+      '/news-insights/events?limit=20&symbols=NVDA&symbols=005930',
+    )
+    expect(
+      queryClient.getQueryCache().find({
+        queryKey: ['news-insights', 'events', undefined],
+        exact: true,
+      }),
+    ).toBeDefined()
+    expect(
+      queryClient.getQueryCache().find({
+        queryKey: ['news-insights', 'events', ['NVDA', '005930']],
+        exact: true,
+      }),
+    ).toBeDefined()
+
+    unfiltered.unmount()
+    filtered.unmount()
+    queryClient.clear()
   })
 
   it('exposes an events request error without affecting another query', async () => {

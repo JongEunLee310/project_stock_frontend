@@ -59,6 +59,7 @@ export {
   useNewsTopicSymbolsQuery,
   useNewsTopicTrendQuery,
   type NewsEventsPage,
+  type NewsEventsQueryParams,
   type NewsCalendarQueryParams,
   type NewsInvestorFlowsQueryParams,
   type NewsTopicEvidencePage,
