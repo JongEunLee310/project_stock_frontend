@@ -89,6 +89,10 @@ export interface NewsEventsPage {
   pageInfo: CursorPageInfo
 }
 
+export interface NewsEventsQueryParams {
+  symbols?: string[]
+}
+
 export interface NewsTopicEvidencePage {
   items: NewsTopicEvidenceView[]
   pageInfo: CursorPageInfo
@@ -207,21 +211,22 @@ export function useNewsTopicScenariosQuery(topicId: string) {
   })
 }
 
-export function useNewsEventsQuery() {
+export function useNewsEventsQuery({ symbols }: NewsEventsQueryParams = {}) {
   return useInfiniteQuery<
     NewsEventsPage,
     Error,
     NewsEventsPage[],
-    readonly ['news-insights', 'events'],
+    readonly ['news-insights', 'events', string[] | undefined],
     string | undefined
   >({
-    queryKey: ['news-insights', 'events'],
+    queryKey: ['news-insights', 'events', symbols],
     initialPageParam: undefined,
     queryFn: async ({ pageParam }) => {
       const searchParams = buildCursorSearchParams(
         newsEventsPageSize,
         pageParam,
       )
+      symbols?.forEach((symbol) => searchParams.append('symbols', symbol))
       const { data, meta } = await apiGet<NewsInsightEventDto[], ApiCursorMeta>(
         `/news-insights/events?${searchParams.toString()}`,
       )

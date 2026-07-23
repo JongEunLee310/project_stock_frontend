@@ -1,4 +1,7 @@
+import { generatePath, Link } from 'react-router-dom'
+
 import type { NewsEventView } from '@/features/news-insights'
+import { appRoutePaths } from '@/shared/config/navigation'
 import {
   Badge,
   Button,
@@ -19,34 +22,50 @@ interface RealtimeEventFeedProps {
   onLoadMore: () => void
   onRetry: () => void
   updatedAt?: number
+  title?: string
+  description?: string
+  showSymbolColumn?: boolean
 }
 
-const eventColumns: Array<TableColumn<NewsEventView>> = [
-  {
-    key: 'documentType',
-    header: '분류',
-    align: 'center',
-    headerClassName: 'w-20',
-    className: 'w-20',
-    cell: (event) => (
-      <Badge tone={event.documentTypeTone}>{event.documentTypeLabel}</Badge>
-    ),
-  },
-  {
-    key: 'symbol',
-    header: '종목',
-    align: 'center',
-    cell: (event) => (
-      <strong className="text-cockpit-text">{event.symbol}</strong>
-    ),
-  },
+const defaultTitle = '실시간 뉴스·공시 피드'
+const defaultDescription =
+  '관련 문서를 하나의 시장 이벤트로 묶어 중요도와 감성을 분리했습니다.'
+
+const documentTypeColumn: TableColumn<NewsEventView> = {
+  key: 'documentType',
+  header: '분류',
+  align: 'center',
+  headerClassName: 'w-20',
+  className: 'w-20',
+  cell: (event) => (
+    <Badge tone={event.documentTypeTone}>{event.documentTypeLabel}</Badge>
+  ),
+}
+
+const symbolColumn: TableColumn<NewsEventView> = {
+  key: 'symbol',
+  header: '종목',
+  align: 'center',
+  cell: (event) => (
+    <strong className="text-cockpit-text">{event.symbol}</strong>
+  ),
+}
+
+const eventDetailColumns: Array<TableColumn<NewsEventView>> = [
   {
     key: 'title',
     header: '이벤트 요약',
     className: 'min-w-64',
     cell: (event) => (
       <div>
-        <strong className="font-medium text-cockpit-text">{event.title}</strong>
+        <Link
+          to={generatePath(appRoutePaths.newsEventDetail, {
+            eventId: event.id,
+          })}
+          className="font-medium text-cockpit-text underline-offset-4 hover:text-app-accent hover:underline focus-visible:rounded-control focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-app-accent"
+        >
+          {event.title}
+        </Link>
         <span className="mt-1 block text-xs text-cockpit-text-muted">
           {event.eventTypeLabel}
         </span>
@@ -103,7 +122,14 @@ export function RealtimeEventFeed({
   onLoadMore,
   onRetry,
   updatedAt,
+  title = defaultTitle,
+  description = defaultDescription,
+  showSymbolColumn = true,
 }: RealtimeEventFeedProps) {
+  const eventColumns = showSymbolColumn
+    ? [documentTypeColumn, symbolColumn, ...eventDetailColumns]
+    : [documentTypeColumn, ...eventDetailColumns]
+
   return (
     <Card aria-labelledby="realtime-event-feed-title" className="p-0">
       <div className="flex flex-wrap items-end justify-between gap-3 p-panel">
@@ -115,11 +141,9 @@ export function RealtimeEventFeed({
             id="realtime-event-feed-title"
             className="mt-1 text-xl font-semibold text-app-text"
           >
-            실시간 뉴스·공시 피드
+            {title}
           </h2>
-          <p className="mt-1 text-sm text-app-text-muted">
-            관련 문서를 하나의 시장 이벤트로 묶어 중요도와 감성을 분리했습니다.
-          </p>
+          <p className="mt-1 text-sm text-app-text-muted">{description}</p>
         </div>
         <div className="flex flex-col items-end gap-1">
           <PanelFreshness updatedAt={updatedAt} />
