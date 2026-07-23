@@ -1,9 +1,10 @@
-import { Link } from 'react-router-dom'
+import { generatePath, Link } from 'react-router-dom'
 
 import {
   type NewsCalendarItemView,
   useNewsCalendarQuery,
 } from '@/features/news-insights'
+import { appRoutePaths } from '@/shared/config/navigation'
 import {
   Badge,
   Card,
@@ -37,7 +38,7 @@ function EventItem({
   return (
     <li className="rounded-control border border-app-border bg-app-surface-muted/40 p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <Badge tone={event.eventKindPresentation.tone}>
               {event.eventKindPresentation.label}
@@ -65,7 +66,7 @@ function EventItem({
             {event.relatedTopicIds.map((topicId) => (
               <Link
                 key={topicId}
-                to={`/news/topics/${encodeURIComponent(topicId)}`}
+                to={generatePath(appRoutePaths.newsTopicDetail, { topicId })}
                 className="rounded-control border border-app-accent/40 px-2 py-1 text-xs font-semibold text-app-accent hover:bg-app-accent/10"
               >
                 토픽 {topicId}
@@ -83,7 +84,7 @@ function TimelineLoading() {
     <div
       role="status"
       aria-label="이벤트 타임라인 불러오는 중"
-      className="grid gap-3 border-t border-app-border p-panel lg:grid-cols-2"
+      className="grid gap-3 border-t border-app-border p-panel"
     >
       <Skeleton className="h-40 w-full" />
       <Skeleton className="h-40 w-full" />
@@ -110,10 +111,10 @@ export function MarketEventTimeline({
   return (
     <Card
       aria-labelledby="market-event-timeline-title"
-      className="overflow-hidden p-0"
+      className="min-w-0 overflow-hidden p-0"
     >
       <div className="flex flex-wrap items-start justify-between gap-3 p-panel">
-        <div>
+        <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-app-accent">
             Event calendar
           </p>
@@ -155,7 +156,7 @@ export function MarketEventTimeline({
       {!calendarQuery.isLoading &&
       !calendarQuery.isError &&
       futureEvents.length > 0 ? (
-        <ul className="grid gap-3 border-t border-app-border p-panel lg:grid-cols-2">
+        <ul className="grid gap-3 border-t border-app-border p-panel">
           {futureEvents.map((event, index) => (
             <EventItem
               key={`${event.scheduledAt}-${event.eventKind}-${event.title}-${index}`}

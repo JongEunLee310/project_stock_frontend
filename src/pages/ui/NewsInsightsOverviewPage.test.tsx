@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 
 import {
@@ -26,10 +26,6 @@ function renderPage() {
       <NewsInsightsOverviewPage />
     </MemoryRouter>,
   )
-}
-
-function openBriefing() {
-  fireEvent.click(screen.getByRole('button', { name: '에이전트 브리핑 열기' }))
 }
 
 vi.mock('@/features/news-insights', async (importOriginal) => {
@@ -248,8 +244,17 @@ describe('NewsInsightsOverviewPage', () => {
     ).toBeVisible()
     expect(screen.getByText('API 이벤트 제목')).toBeVisible()
     expect(screen.getByLabelText('토픽 맵 시각화')).toBeVisible()
-    openBriefing()
     expect(screen.getByText('시장 브리핑입니다.')).toBeVisible()
+    expect(
+      within(
+        screen.getByRole('group', { name: '핵심 인사이트 패널' }),
+      ).getByRole('heading', { name: '에이전트 브리핑' }),
+    ).toBeVisible()
+    expect(
+      within(
+        screen.getByRole('group', { name: '시장 분석 패널' }),
+      ).getAllByRole('heading', { level: 2 }),
+    ).toHaveLength(4)
     expect(screen.getByRole('heading', { name: '투자자 동향' })).toBeVisible()
     expect(screen.getByText('외국인')).toBeVisible()
     expect(
@@ -288,7 +293,6 @@ describe('NewsInsightsOverviewPage', () => {
     expect(
       screen.getByText('오늘의 인사이트를 불러오지 못했습니다'),
     ).toBeVisible()
-    openBriefing()
     expect(
       screen.getByText('에이전트 브리핑을 불러오지 못했습니다'),
     ).toBeVisible()
@@ -302,7 +306,6 @@ describe('NewsInsightsOverviewPage', () => {
       within(screen.getByLabelText('고중요 이벤트 요약')).getByText('2건'),
     ).toBeVisible()
     expect(screen.getByText('이벤트 피드를 불러오지 못했습니다')).toBeVisible()
-    openBriefing()
     expect(screen.getByText('시장 브리핑입니다.')).toBeVisible()
   })
 

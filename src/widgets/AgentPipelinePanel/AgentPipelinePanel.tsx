@@ -30,7 +30,7 @@ function PipelineLoading() {
       aria-label="에이전트 파이프라인 불러오는 중"
       className="space-y-4 border-t border-app-border p-panel"
     >
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-3 2xl:grid-cols-2">
         <Skeleton className="h-20 w-full" />
         <Skeleton className="h-20 w-full" />
         <Skeleton className="h-20 w-full" />
@@ -43,7 +43,7 @@ function PipelineLoading() {
 function PipelineContent({ data }: { data: NewsAgentRunsView }) {
   return (
     <div className="space-y-5 border-t border-app-border p-panel">
-      <dl className="grid gap-3 sm:grid-cols-3">
+      <dl className="grid gap-3 sm:grid-cols-3 2xl:grid-cols-2">
         {aggregateDefinitions.map((definition) => (
           <div
             key={definition.key}
@@ -61,7 +61,7 @@ function PipelineContent({ data }: { data: NewsAgentRunsView }) {
 
       <ol
         aria-label="에이전트 처리 단계"
-        className="grid gap-3 md:grid-cols-4 xl:grid-cols-7"
+        className="grid gap-3 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-2 2xl:grid-cols-3"
       >
         {data.stages.map((stage, index) => (
           <li
@@ -96,10 +96,10 @@ export function AgentPipelinePanel() {
   return (
     <Card
       aria-labelledby="agent-pipeline-title"
-      className="overflow-hidden p-0"
+      className="min-w-0 overflow-hidden p-0"
     >
       <div className="flex flex-wrap items-start justify-between gap-3 p-panel">
-        <div>
+        <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-app-accent">
             Agent pipeline
           </p>
