@@ -66,7 +66,7 @@ function InvestorFlowRow({ flow }: { flow: InvestorFlowView }) {
             {flow.directionPresentation.label}
           </Badge>
         </div>
-        <strong className="min-w-0 break-all text-sm font-semibold text-app-text">
+        <strong className="whitespace-nowrap text-sm font-semibold text-app-text">
           {formatNetValue(flow.netValue)}
         </strong>
       </div>

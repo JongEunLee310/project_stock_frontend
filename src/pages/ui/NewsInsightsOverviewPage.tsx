@@ -96,7 +96,7 @@ export function NewsInsightsOverviewPage() {
       <div
         role="group"
         aria-label="시장 분석 패널"
-        className="grid min-w-0 gap-4 xl:grid-cols-2 2xl:grid-cols-4"
+        className="grid min-w-0 gap-4 xl:grid-cols-2 2xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.8fr)]"
       >
         <InvestorFlowPanel
           market="KR"

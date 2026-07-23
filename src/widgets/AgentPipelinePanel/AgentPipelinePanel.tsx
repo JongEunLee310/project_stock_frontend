@@ -30,7 +30,7 @@ function PipelineLoading() {
       aria-label="에이전트 파이프라인 불러오는 중"
       className="space-y-4 border-t border-app-border p-panel"
     >
-      <div className="grid gap-3">
+      <div className="grid gap-3 sm:grid-cols-3 2xl:grid-cols-2">
         <Skeleton className="h-20 w-full" />
         <Skeleton className="h-20 w-full" />
         <Skeleton className="h-20 w-full" />
@@ -43,7 +43,7 @@ function PipelineLoading() {
 function PipelineContent({ data }: { data: NewsAgentRunsView }) {
   return (
     <div className="space-y-5 border-t border-app-border p-panel">
-      <dl className="grid gap-3">
+      <dl className="grid gap-3 sm:grid-cols-3 2xl:grid-cols-2">
         {aggregateDefinitions.map((definition) => (
           <div
             key={definition.key}
@@ -59,7 +59,10 @@ function PipelineContent({ data }: { data: NewsAgentRunsView }) {
         ))}
       </dl>
 
-      <ol aria-label="에이전트 처리 단계" className="grid gap-3">
+      <ol
+        aria-label="에이전트 처리 단계"
+        className="grid gap-3 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-2 2xl:grid-cols-3"
+      >
         {data.stages.map((stage, index) => (
           <li
             key={`${stage.name}-${index}`}
