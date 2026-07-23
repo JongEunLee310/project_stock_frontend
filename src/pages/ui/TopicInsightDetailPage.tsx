@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
 import {
+  type NewsTopicTrendWindow,
   useNewsTopicDetailQuery,
   useNewsTopicEvidenceQuery,
   useNewsTopicExplanationQuery,
@@ -23,8 +25,9 @@ import { TopicTrendChart } from '@/widgets/TopicTrendChart'
 export function TopicInsightDetailPage() {
   const { topicId = '' } = useParams<{ topicId: string }>()
   const navigate = useNavigate()
+  const [trendWindow, setTrendWindow] = useState<NewsTopicTrendWindow>('7d')
   const detailQuery = useNewsTopicDetailQuery(topicId)
-  const trendQuery = useNewsTopicTrendQuery(topicId)
+  const trendQuery = useNewsTopicTrendQuery(topicId, trendWindow)
   const evidenceQuery = useNewsTopicEvidenceQuery(topicId)
   const explanationQuery = useNewsTopicExplanationQuery(topicId)
   const evidence = evidenceQuery.data?.flatMap((page) => page.items) ?? []
@@ -65,45 +68,69 @@ export function TopicInsightDetailPage() {
         updatedAt={detailQuery.dataUpdatedAt}
       />
 
-      <div className="grid gap-4 xl:grid-cols-3">
-        <TopicInsightSummary
-          data={detailQuery.data}
-          isLoading={detailQuery.isLoading}
-          isError={detailQuery.isError}
-          onRetry={() => void detailQuery.refetch()}
-          updatedAt={detailQuery.dataUpdatedAt}
-        />
-        <TopicTrendChart
-          data={trendQuery.data}
-          isLoading={trendQuery.isLoading}
-          isError={trendQuery.isError}
-          onRetry={() => void trendQuery.refetch()}
-          updatedAt={trendQuery.dataUpdatedAt}
-        />
-        <TopicKeywordGraph topicId={topicId} />
+      <div className="grid min-w-0 gap-4 xl:grid-cols-3 xl:items-start">
+        <div
+          role="group"
+          aria-label="토픽 요약과 근거"
+          className="flex min-w-0 flex-col gap-4"
+        >
+          <TopicInsightSummary
+            data={detailQuery.data}
+            isLoading={detailQuery.isLoading}
+            isError={detailQuery.isError}
+            onRetry={() => void detailQuery.refetch()}
+            updatedAt={detailQuery.dataUpdatedAt}
+          />
+          <TopicEvidenceList
+            evidence={evidence}
+            isLoading={evidenceQuery.isLoading}
+            isError={evidenceQuery.isError}
+            isFetchingNextPage={evidenceQuery.isFetchingNextPage}
+            isFetchNextPageError={evidenceQuery.isFetchNextPageError}
+            hasNextPage={evidenceQuery.hasNextPage}
+            onLoadMore={() => void evidenceQuery.fetchNextPage()}
+            onRetry={() => void evidenceQuery.refetch()}
+            updatedAt={evidenceQuery.dataUpdatedAt}
+          />
+        </div>
+        <div
+          role="group"
+          aria-label="토픽 추이와 투자자 반응"
+          className="flex min-w-0 flex-col gap-4"
+        >
+          <TopicTrendChart
+            data={trendQuery.data}
+            isLoading={trendQuery.isLoading}
+            isError={trendQuery.isError}
+            onRetry={() => void trendQuery.refetch()}
+            updatedAt={trendQuery.dataUpdatedAt}
+            window={trendWindow}
+            onWindowChange={setTrendWindow}
+          />
+          <InvestorFlowPanel
+            market="KR"
+            window="7d"
+            topicId={topicId}
+            title="투자자 반응"
+            context="이 토픽의 영향 종목군에서 나타난 투자 주체별 수급 반응을 비교합니다."
+          />
+          <TopicSymbolSensitivity topicId={topicId} />
+        </div>
+        <div
+          role="group"
+          aria-label="토픽 관계망과 시나리오"
+          className="flex min-w-0 flex-col gap-4"
+        >
+          <TopicKeywordGraph topicId={topicId} />
+          <FundFlowScenarioPanel topicId={topicId} />
+        </div>
+      </div>
 
-        <TopicEvidenceList
-          evidence={evidence}
-          isLoading={evidenceQuery.isLoading}
-          isError={evidenceQuery.isError}
-          isFetchingNextPage={evidenceQuery.isFetchingNextPage}
-          isFetchNextPageError={evidenceQuery.isFetchNextPageError}
-          hasNextPage={evidenceQuery.hasNextPage}
-          onLoadMore={() => void evidenceQuery.fetchNextPage()}
-          onRetry={() => void evidenceQuery.refetch()}
-          updatedAt={evidenceQuery.dataUpdatedAt}
-        />
-        <InvestorFlowPanel
-          market="KR"
-          window="7d"
-          topicId={topicId}
-          title="투자자 반응"
-          context="이 토픽의 영향 종목군에서 나타난 투자 주체별 수급 반응을 비교합니다."
-        />
-        <FundFlowScenarioPanel topicId={topicId} />
-
-        <TopicSymbolSensitivity topicId={topicId} />
-
+      <div
+        role="group"
+        aria-label="토픽 보조 분석"
+        className="grid min-w-0 gap-4 xl:grid-cols-3 xl:items-start"
+      >
         <InsightExplanationPanel topicId={topicId} />
         <TopicActionChecklist
           topicId={topicId}

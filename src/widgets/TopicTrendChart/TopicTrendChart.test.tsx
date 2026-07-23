@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 
 import type { NewsTopicTrendView } from '@/features/news-insights'
 
@@ -37,6 +37,8 @@ const defaultProps = {
   isLoading: false,
   isError: false,
   onRetry: vi.fn(),
+  window: '7d' as const,
+  onWindowChange: vi.fn(),
 }
 
 describe('TopicTrendChart', () => {
@@ -51,6 +53,33 @@ describe('TopicTrendChart', () => {
     expect(screen.getByText(/언급 12건, 감성 73%/)).toBeInTheDocument()
     expect(screen.getByText('공급 계약')).toBeVisible()
     expect(screen.getByText('3건 · 75%')).toBeVisible()
+  })
+
+  it('renders selectable trend windows and reports window changes', () => {
+    const onWindowChange = vi.fn()
+    render(
+      <TopicTrendChart
+        {...defaultProps}
+        window="30d"
+        onWindowChange={onWindowChange}
+      />,
+    )
+
+    expect(screen.getByRole('button', { name: '7일' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    )
+    expect(screen.getByRole('button', { name: '30일' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    expect(screen.getByRole('button', { name: '90일' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: '90일' }))
+    expect(onWindowChange).toHaveBeenCalledWith('90d')
   })
 
   it('renders independent empty and error states', () => {

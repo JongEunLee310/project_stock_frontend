@@ -121,7 +121,7 @@ export function CounterViewPanel({
   return (
     <Card
       aria-labelledby="counter-view-title"
-      className="border-red-400/30 bg-red-950/10 shadow-none xl:col-span-3"
+      className="border-red-400/30 bg-red-950/10 shadow-none"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>

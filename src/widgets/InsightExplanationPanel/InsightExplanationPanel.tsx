@@ -56,7 +56,7 @@ export function InsightExplanationPanel({
   }
 
   return (
-    <Card aria-labelledby="insight-explanation-title" className="xl:col-span-2">
+    <Card aria-labelledby="insight-explanation-title">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-violet-300">

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 
 import {
@@ -10,6 +10,7 @@ import {
   type NewsTopicGraphView,
   type NewsTopicSymbolSensitivityView,
   type NewsTopicTrendView,
+  type NewsTopicTrendWindow,
   useNewsTopicDetailQuery,
   useNewsInvestorFlowsQuery,
   useNewsTopicScenariosQuery,
@@ -335,7 +336,7 @@ describe('TopicInsightDetailPage', () => {
     ).toBeVisible()
     expect(screen.getByRole('button', { name: '리서치 보기' })).toBeEnabled()
     expect(useNewsTopicDetailQuery).toHaveBeenCalledWith('7')
-    expect(useNewsTopicTrendQuery).toHaveBeenCalledWith('7')
+    expect(useNewsTopicTrendQuery).toHaveBeenCalledWith('7', '7d')
     expect(useNewsTopicEvidenceQuery).toHaveBeenCalledWith('7')
     expect(useNewsTopicExplanationQuery).toHaveBeenCalledWith('7')
     expect(useNewsTopicGraphQuery).toHaveBeenCalledWith('7')
@@ -349,6 +350,132 @@ describe('TopicInsightDetailPage', () => {
     expect(
       screen.getAllByLabelText('데이터 갱신 5분 전').length,
     ).toBeGreaterThanOrEqual(10)
+  })
+
+  it('keeps panels in explicit columns and connects trend window state', async () => {
+    const trendByWindow: Record<NewsTopicTrendWindow, NewsTopicTrendView> = {
+      '7d': {
+        ...trend,
+        markers: [
+          {
+            timestamp: trend.points[0].timestamp,
+            timestampLabel: trend.points[0].timestampLabel,
+            label: '7일 마커',
+            eventId: '7',
+          },
+        ],
+        sourceDistribution: [
+          {
+            sourceTypeLabel: '뉴스',
+            sourceTypeTone: 'info',
+            count: 7,
+            sharePercent: 70,
+          },
+        ],
+      },
+      '30d': trend,
+      '90d': {
+        points: [
+          {
+            ...trend.points[0],
+            mentionCount: 90,
+            sentimentScore: 0.9,
+          },
+        ],
+        markers: [
+          {
+            timestamp: trend.points[0].timestamp,
+            timestampLabel: trend.points[0].timestampLabel,
+            label: '90일 마커',
+            eventId: '90',
+          },
+        ],
+        sourceDistribution: [
+          {
+            sourceTypeLabel: '공시',
+            sourceTypeTone: 'accent',
+            count: 90,
+            sharePercent: 90,
+          },
+        ],
+      },
+    }
+    vi.mocked(useNewsTopicTrendQuery).mockImplementation(
+      (_topicId, window = '7d') =>
+        ({
+          data: trendByWindow[window],
+          isLoading: false,
+          isError: false,
+          refetch: vi.fn(),
+          dataUpdatedAt: Date.now() - 5 * 60 * 1000,
+        }) as unknown as ReturnType<typeof useNewsTopicTrendQuery>,
+    )
+
+    renderPage()
+    await screen.findByTestId('topic-keyword-cytoscape')
+
+    const summaryColumn = screen.getByRole('group', {
+      name: '토픽 요약과 근거',
+    })
+    expect(
+      within(summaryColumn).getByRole('heading', { name: '인사이트 요약' }),
+    ).toBeVisible()
+    expect(within(summaryColumn).getByText('페이지 근거 제목')).toBeVisible()
+
+    const trendColumn = screen.getByRole('group', {
+      name: '토픽 추이와 투자자 반응',
+    })
+    expect(
+      within(trendColumn).getByRole('heading', { name: '감성·언급 추이' }),
+    ).toBeVisible()
+    expect(
+      within(trendColumn).getByRole('heading', { name: '투자자 반응' }),
+    ).toBeVisible()
+    expect(
+      within(trendColumn).getByRole('heading', { name: '종목 민감도' }),
+    ).toBeVisible()
+    expect(within(trendColumn).getByText('7일 마커')).toBeVisible()
+    expect(within(trendColumn).getByText('7건 · 70%')).toBeVisible()
+
+    const graphColumn = screen.getByRole('group', {
+      name: '토픽 관계망과 시나리오',
+    })
+    expect(
+      within(graphColumn).getByRole('heading', { name: '키워드 관계망' }),
+    ).toBeVisible()
+    expect(
+      within(graphColumn).getByRole('heading', {
+        name: '예상 자금 흐름 시나리오',
+      }),
+    ).toBeVisible()
+
+    const supportingPanels = screen.getByRole('group', {
+      name: '토픽 보조 분석',
+    })
+    expect(
+      within(supportingPanels).getByRole('heading', {
+        name: '왜 이런 인사이트가 나왔나',
+      }),
+    ).toBeVisible()
+    expect(
+      within(supportingPanels).getByRole('heading', {
+        name: '액션 체크리스트',
+      }),
+    ).toBeVisible()
+    expect(
+      within(supportingPanels).getByRole('heading', { name: '반대 관점' }),
+    ).toBeVisible()
+
+    fireEvent.click(screen.getByRole('button', { name: '90일' }))
+    expect(useNewsTopicTrendQuery).toHaveBeenLastCalledWith('7', '90d')
+    expect(screen.getByRole('button', { name: '90일' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    expect(within(trendColumn).getByText(/언급 90건, 감성 90%/)).toBeVisible()
+    expect(within(trendColumn).getByText('90일 마커')).toBeVisible()
+    expect(within(trendColumn).getByText('90건 · 90%')).toBeVisible()
+    expect(within(trendColumn).queryByText('7일 마커')).not.toBeInTheDocument()
   })
 
   it('keeps trend and evidence visible when the detail panel fails', async () => {

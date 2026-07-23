@@ -86,7 +86,7 @@ function ScenarioLoading() {
     <div
       role="status"
       aria-label="예상 자금 흐름 시나리오 불러오는 중"
-      className="grid gap-3 border-t border-app-border p-panel lg:grid-cols-3"
+      className="grid gap-3 border-t border-app-border p-panel 2xl:grid-cols-3"
     >
       <Skeleton className="h-80 w-full" />
       <Skeleton className="h-80 w-full" />
@@ -116,7 +116,7 @@ export function FundFlowScenarioPanel({ topicId }: { topicId: string }) {
   return (
     <Card
       aria-labelledby="fund-flow-scenarios-title"
-      className="overflow-hidden p-0 xl:col-span-3"
+      className="overflow-hidden p-0"
     >
       <div className="flex flex-wrap items-start justify-between gap-3 p-panel">
         <div>
@@ -169,7 +169,7 @@ export function FundFlowScenarioPanel({ topicId }: { topicId: string }) {
       !isIncomplete &&
       orderedScenarios.length === scenarioOrder.length ? (
         <div className="space-y-4 border-t border-app-border p-panel">
-          <ul className="grid gap-4 lg:grid-cols-3">
+          <ul className="grid gap-4 2xl:grid-cols-3">
             {orderedScenarios.map((scenario) => (
               <ScenarioCard key={scenario.kind} scenario={scenario} />
             ))}
