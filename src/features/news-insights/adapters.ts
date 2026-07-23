@@ -1,9 +1,15 @@
-import { formatKstDateTime, formatKstTime } from '@/shared/lib/format'
+import {
+  formatKstDateTime,
+  formatKstTime,
+  formatMoney,
+  parseDecimal,
+} from '@/shared/lib/format'
 import type { BadgeTone } from '@/shared/ui'
 
 import type {
   AgentRunStatusDto,
   AgentStageDto,
+  EstimatedFlowDto,
   FlowDirectionDto,
   FlowLikelihoodDto,
   FundFlowDirectionDto,
@@ -736,6 +742,38 @@ function trimStrings(values: string[]): string[] {
   return values.map((value) => value.trim()).filter(Boolean)
 }
 
+const WON_PER_EOK = 100_000_000
+
+function formatEstimatedFlow(
+  estimatedFlow: EstimatedFlowDto | null,
+): string | null {
+  if (!estimatedFlow) return null
+
+  const low = parseDecimal(estimatedFlow.low.trim())
+  const high = parseDecimal(estimatedFlow.high.trim())
+
+  if (
+    low === null ||
+    high === null ||
+    !Number.isFinite(low) ||
+    !Number.isFinite(high)
+  ) {
+    return null
+  }
+
+  const currency = estimatedFlow.currency.trim().toUpperCase() || 'KRW'
+  const useEok =
+    currency === 'KRW' && Math.max(Math.abs(low), Math.abs(high)) >= WON_PER_EOK
+  const divisor = useEok ? WON_PER_EOK : 1
+  const formatOptions = useEok ? { maximumFractionDigits: 1 } : undefined
+  const formattedLow = formatMoney(low / divisor, formatOptions)
+  const formattedHigh = formatMoney(high / divisor, formatOptions)
+  const range = low === high ? formattedLow : `${formattedLow}~${formattedHigh}`
+
+  if (currency !== 'KRW') return `${range} ${currency}`
+  return `${range}${useEok ? '억원' : '원'}`
+}
+
 export function adaptNewsFundFlowOutlook(
   dto: NewsFundFlowOutlookDto,
 ): NewsFundFlowOutlookView {
@@ -746,7 +784,7 @@ export function adaptNewsFundFlowOutlook(
       sector: item.sector.trim() || '섹터 미상',
       direction: fundFlowDirectionPresentations[item.direction],
       likelihood: flowLikelihoodPresentations[item.likelihood],
-      estimatedRange: item.estimated_range?.trim() || null,
+      estimatedRange: formatEstimatedFlow(item.estimated_flow),
       horizon: item.horizon.trim() || '기간 미상',
       confidencePercent: toScorePercent(item.confidence),
       keyAssumptions: trimStrings(item.key_assumptions),

@@ -116,7 +116,11 @@ const fundFlowOutlookDto: NewsFundFlowOutlookDto = {
       sector: '반도체',
       direction: 'INFLOW',
       likelihood: 'HIGH',
-      estimated_range: '1,000억~1,500억원',
+      estimated_flow: {
+        low: '800000000000.0000',
+        high: '1800000000000.0000',
+        currency: 'KRW',
+      },
       horizon: '1개월',
       confidence: 0.82,
       key_assumptions: ['AI 수요 유지'],
@@ -444,7 +448,11 @@ describe('news insights queries', () => {
     await waitFor(() => expect(success.result.current.isSuccess).toBe(true))
     expect(apiGet).toHaveBeenCalledWith('/news-insights/fund-flow-outlook')
     expect(success.result.current.data?.items[0]).toEqual(
-      expect.objectContaining({ sector: '반도체', confidencePercent: 82 }),
+      expect.objectContaining({
+        sector: '반도체',
+        estimatedRange: '8,000~18,000억원',
+        confidencePercent: 82,
+      }),
     )
     success.unmount()
 
