@@ -21,6 +21,7 @@ import {
   DonutChart,
   EmptyState,
   ErrorState,
+  PanelHeader,
   PanelFreshness,
   Skeleton,
   chartTheme,
@@ -139,26 +140,19 @@ export function TopicTrendChart({
 
   return (
     <Card aria-labelledby="topic-trend-title" className="overflow-hidden">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-app-accent">
-            Mention & sentiment
-          </p>
-          <h2
-            id="topic-trend-title"
-            className="mt-1 text-xl font-semibold text-app-text"
-          >
-            감성·언급 추이
-          </h2>
-          <p className="mt-1 text-sm leading-6 text-app-text-muted">
-            언급량은 막대, 감성은 선으로 표시하며 서로 다른 축을 사용합니다.
-          </p>
-        </div>
-        <div className="flex flex-col items-end gap-2">
-          <PanelFreshness updatedAt={updatedAt} />
-          <TrendWindowToggle window={window} onWindowChange={onWindowChange} />
-        </div>
-      </div>
+      <PanelHeader
+        title="감성·언급 추이"
+        titleId="topic-trend-title"
+        controls={
+          <>
+            <PanelFreshness updatedAt={updatedAt} />
+            <TrendWindowToggle
+              window={window}
+              onWindowChange={onWindowChange}
+            />
+          </>
+        }
+      />
 
       <div
         ref={containerRef}
@@ -268,11 +262,11 @@ export function TopicTrendChart({
               표시할 이벤트 마커가 없습니다.
             </p>
           ) : (
-            <ul className="mt-3 space-y-2">
+            <ul className="mt-3 divide-y divide-app-border">
               {data.markers.map((marker) => (
                 <li
                   key={`${marker.eventId}-${marker.timestamp}`}
-                  className="rounded-control border border-amber-400/20 bg-amber-950/10 p-3 text-sm"
+                  className="py-3 text-sm"
                 >
                   <strong className="text-app-text">{marker.label}</strong>
                   <span className="mt-1 block text-xs text-app-text-muted">

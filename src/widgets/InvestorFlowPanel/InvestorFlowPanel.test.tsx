@@ -75,7 +75,6 @@ function renderPanel(topicId?: string) {
       window="7d"
       topicId={topicId}
       title="투자자 반응"
-      context="토픽 종목군의 수급 반응입니다."
     />,
   )
 }
@@ -130,14 +129,7 @@ describe('InvestorFlowPanel', () => {
     expect(screen.getByLabelText('투자자 수급 불러오는 중')).toBeVisible()
 
     mockQuery({ data: undefined, isLoading: false, isError: true })
-    rerender(
-      <InvestorFlowPanel
-        market="KR"
-        window="7d"
-        title="투자자 반응"
-        context="토픽 종목군의 수급 반응입니다."
-      />,
-    )
+    rerender(<InvestorFlowPanel market="KR" window="7d" title="투자자 반응" />)
     expect(screen.getByText('투자자 반응을 불러오지 못했습니다')).toBeVisible()
 
     mockQuery({
@@ -145,14 +137,7 @@ describe('InvestorFlowPanel', () => {
       isLoading: false,
       isError: false,
     })
-    rerender(
-      <InvestorFlowPanel
-        market="KR"
-        window="7d"
-        title="투자자 반응"
-        context="토픽 종목군의 수급 반응입니다."
-      />,
-    )
+    rerender(<InvestorFlowPanel market="KR" window="7d" title="투자자 반응" />)
     expect(screen.getByText('표시할 투자자 수급이 없습니다')).toBeVisible()
   })
 })

@@ -7,6 +7,7 @@ import {
   Button,
   Card,
   ErrorState,
+  PanelHeader,
   PanelFreshness,
   Table,
   type TableColumn,
@@ -28,9 +29,6 @@ interface RealtimeEventFeedProps {
 }
 
 const defaultTitle = '실시간 뉴스·공시 피드'
-const defaultDescription =
-  '관련 문서를 하나의 시장 이벤트로 묶어 중요도와 감성을 분리했습니다.'
-
 const documentTypeColumn: TableColumn<NewsEventView> = {
   key: 'documentType',
   header: '분류',
@@ -123,7 +121,6 @@ export function RealtimeEventFeed({
   onRetry,
   updatedAt,
   title = defaultTitle,
-  description = defaultDescription,
   showSymbolColumn = true,
 }: RealtimeEventFeedProps) {
   const eventColumns = showSymbolColumn
@@ -132,28 +129,21 @@ export function RealtimeEventFeed({
 
   return (
     <Card aria-labelledby="realtime-event-feed-title" className="p-0">
-      <div className="flex flex-wrap items-end justify-between gap-3 p-panel">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-app-accent">
-            Event feed
-          </p>
-          <h2
-            id="realtime-event-feed-title"
-            className="mt-1 text-xl font-semibold text-app-text"
-          >
-            {title}
-          </h2>
-          <p className="mt-1 text-sm text-app-text-muted">{description}</p>
-        </div>
-        <div className="flex flex-col items-end gap-1">
-          <PanelFreshness updatedAt={updatedAt} />
-          {events[0] ? (
-            <span className="text-xs text-app-text-muted">
-              최신 {events[0].publishedAt}
-            </span>
-          ) : null}
-        </div>
-      </div>
+      <PanelHeader
+        className="p-panel"
+        title={title}
+        titleId="realtime-event-feed-title"
+        controls={
+          <>
+            <PanelFreshness updatedAt={updatedAt} />
+            {events[0] ? (
+              <span className="text-xs text-app-text-muted">
+                최신 {events[0].publishedAt}
+              </span>
+            ) : null}
+          </>
+        }
+      />
 
       {isError && events.length === 0 ? (
         <ErrorState

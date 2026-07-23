@@ -17,6 +17,7 @@ import {
   Card,
   EmptyState,
   ErrorState,
+  PanelHeader,
   PanelFreshness,
   Skeleton,
 } from '@/shared/ui'
@@ -245,27 +246,17 @@ export function TopicMap({
 
   return (
     <Card aria-labelledby="topic-map-title" className="overflow-hidden p-0">
-      <div className="flex flex-wrap items-start justify-between gap-3 p-panel">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-app-accent">
-            Topic network
-          </p>
-          <h2
-            id="topic-map-title"
-            className="mt-1 text-xl font-semibold text-app-text"
-          >
-            토픽 맵
-          </h2>
-          <p className="mt-1 text-sm leading-6 text-app-text-muted">
-            노드 크기는 언급량·모멘텀, 테두리는 감성, 선 굵기는 연관 강도를
-            나타냅니다.
-          </p>
-        </div>
-        <div className="flex flex-col items-end gap-2">
-          <Badge tone="accent">7일 관계망</Badge>
-          <PanelFreshness updatedAt={updatedAt} />
-        </div>
-      </div>
+      <PanelHeader
+        className="p-panel"
+        title="토픽 맵"
+        titleId="topic-map-title"
+        controls={
+          <>
+            <Badge tone="accent">7일 관계망</Badge>
+            <PanelFreshness updatedAt={updatedAt} />
+          </>
+        }
+      />
 
       {isLoading ? <TopicMapLoading /> : null}
       {isError ? (

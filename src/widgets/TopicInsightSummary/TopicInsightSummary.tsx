@@ -3,6 +3,7 @@ import {
   Card,
   EmptyState,
   ErrorState,
+  PanelHeader,
   PanelFreshness,
   Skeleton,
 } from '@/shared/ui'
@@ -78,20 +79,11 @@ export function TopicInsightSummary({
 
   return (
     <Card aria-labelledby="topic-insight-title">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-app-accent">
-            AI insight
-          </p>
-          <h2
-            id="topic-insight-title"
-            className="mt-1 text-xl font-semibold text-app-text"
-          >
-            인사이트 요약
-          </h2>
-        </div>
-        <PanelFreshness updatedAt={updatedAt} />
-      </div>
+      <PanelHeader
+        title="인사이트 요약"
+        titleId="topic-insight-title"
+        controls={<PanelFreshness updatedAt={updatedAt} />}
+      />
       <div className="mt-4 space-y-5">
         <section>
           <h3 className="text-sm font-semibold text-sky-300">왜 중요한가</h3>
