@@ -10,6 +10,7 @@ export {
 } from './charts'
 export { Input } from './Input'
 export { InfoTooltip } from './InfoTooltip'
+export { PanelHeader } from './PanelHeader'
 export { PanelFreshness } from './PanelFreshness'
 export { EmptyState } from './EmptyState'
 export { ErrorState } from './ErrorState'
@@ -30,6 +31,7 @@ export type {
 } from './Table'
 export type { EmptyStateProps } from './EmptyState'
 export type { ErrorStateProps } from './ErrorState'
+export type { PanelHeaderProps } from './PanelHeader'
 export type { PanelFreshnessProps } from './PanelFreshness'
 export type { SkeletonProps } from './Skeleton'
 export type {

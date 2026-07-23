@@ -4,6 +4,7 @@ import {
   Card,
   EmptyState,
   ErrorState,
+  PanelHeader,
   PanelFreshness,
   Skeleton,
 } from '@/shared/ui'
@@ -57,30 +58,21 @@ export function InsightExplanationPanel({
 
   return (
     <Card aria-labelledby="insight-explanation-title">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-violet-300">
-            Explanation
-          </p>
-          <h2
-            id="insight-explanation-title"
-            className="mt-1 text-lg font-semibold text-app-text"
-          >
-            왜 이런 인사이트가 나왔나
-          </h2>
-          <p className="mt-1 text-sm leading-6 text-app-text-muted">
-            서버 분석 결과의 요인별 기여 비율과 데이터 상태를 표시합니다.
-          </p>
-        </div>
-        <div className="flex flex-col items-end gap-2">
-          {data ? (
-            <Badge tone="accent">
-              AI 분석 · 신뢰도 {data.meta.confidencePercent}%
-            </Badge>
-          ) : null}
-          <PanelFreshness updatedAt={explanationQuery.dataUpdatedAt} />
-        </div>
-      </div>
+      <PanelHeader
+        title="왜 이런 인사이트가 나왔나"
+        titleId="insight-explanation-title"
+        titleClassName="text-lg"
+        controls={
+          <>
+            {data ? (
+              <Badge tone="accent">
+                AI 분석 · 신뢰도 {data.meta.confidencePercent}%
+              </Badge>
+            ) : null}
+            <PanelFreshness updatedAt={explanationQuery.dataUpdatedAt} />
+          </>
+        }
+      />
 
       {!data || data.factors.length === 0 ? (
         <EmptyState

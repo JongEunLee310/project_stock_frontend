@@ -7,6 +7,7 @@ import {
   Card,
   EmptyState,
   ErrorState,
+  PanelHeader,
   PanelFreshness,
   Skeleton,
 } from '@/shared/ui'
@@ -30,7 +31,7 @@ function EvidenceList({ title, items }: { title: string; items: string[] }) {
 
 function OutlookItem({ item }: { item: FundFlowOutlookItemView }) {
   return (
-    <li className="rounded-control border border-app-border bg-app-surface-muted/40 p-4">
+    <li className="py-3">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="font-semibold text-app-text">{item.sector}</h3>
@@ -91,30 +92,21 @@ export function FundFlowOutlookPanel() {
       aria-labelledby="fund-flow-outlook-title"
       className="min-w-0 overflow-hidden p-0"
     >
-      <div className="flex flex-wrap items-start justify-between gap-3 p-panel">
-        <div className="min-w-0 flex-1">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-app-accent">
-            Fund flow outlook
-          </p>
-          <h2
-            id="fund-flow-outlook-title"
-            className="mt-1 text-xl font-semibold text-app-text"
-          >
-            예상 자금 흐름
-          </h2>
-          <p className="mt-1 text-sm leading-6 text-app-text-muted">
-            현재 근거에서 읽히는 방향·가능성 수준·범위이며 확정 예측이 아닙니다.
-          </p>
-        </div>
-        <div className="flex flex-col items-end gap-2">
-          {outlookQuery.data ? (
-            <Badge tone="accent">
-              분석 {outlookQuery.data.analysisVersion}
-            </Badge>
-          ) : null}
-          <PanelFreshness updatedAt={outlookQuery.dataUpdatedAt} />
-        </div>
-      </div>
+      <PanelHeader
+        className="p-panel"
+        title="예상 자금 흐름"
+        titleId="fund-flow-outlook-title"
+        controls={
+          <>
+            {outlookQuery.data ? (
+              <Badge tone="accent">
+                분석 {outlookQuery.data.analysisVersion}
+              </Badge>
+            ) : null}
+            <PanelFreshness updatedAt={outlookQuery.dataUpdatedAt} />
+          </>
+        }
+      />
 
       {outlookQuery.isLoading ? <OutlookLoading /> : null}
       {outlookQuery.isError ? (
@@ -134,7 +126,7 @@ export function FundFlowOutlookPanel() {
       ) : null}
       {!outlookQuery.isLoading && !outlookQuery.isError && items.length > 0 ? (
         <div className="space-y-4 border-t border-app-border p-panel">
-          <ul className="grid gap-4">
+          <ul className="divide-y divide-app-border">
             {items.map((item, index) => (
               <OutlookItem key={`${item.sector}-${index}`} item={item} />
             ))}

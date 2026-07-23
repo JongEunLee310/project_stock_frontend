@@ -102,7 +102,6 @@ export function NewsInsightsOverviewPage() {
           market="KR"
           window="7d"
           title="투자자 동향"
-          context="시장 전체의 투자 주체별 순매수·순매도와 뉴스 내러티브의 방향을 비교합니다."
           spanFullRow={false}
         />
         <FundFlowOutlookPanel />

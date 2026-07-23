@@ -2,7 +2,7 @@ import { generatePath, useNavigate } from 'react-router-dom'
 
 import type { NewsEventDetailView } from '@/features/news-insights'
 import { appRoutePaths } from '@/shared/config/navigation'
-import { Button, Card, EmptyState } from '@/shared/ui'
+import { Button, Card, EmptyState, PanelHeader } from '@/shared/ui'
 
 interface NewsEventRelatedTopicsProps {
   topics: NewsEventDetailView['relatedTopics']
@@ -15,17 +15,11 @@ export function NewsEventRelatedTopics({
 
   return (
     <Card aria-labelledby="news-event-topics-title" className="p-0">
-      <div className="p-panel">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-app-accent">
-          Related topics
-        </p>
-        <h2
-          id="news-event-topics-title"
-          className="mt-1 text-xl font-semibold text-app-text"
-        >
-          관련 토픽
-        </h2>
-      </div>
+      <PanelHeader
+        className="p-panel"
+        title="관련 토픽"
+        titleId="news-event-topics-title"
+      />
       {topics.length === 0 ? (
         <EmptyState
           title="표시할 관련 토픽이 없습니다"
@@ -36,7 +30,7 @@ export function NewsEventRelatedTopics({
           {topics.map((topic) => (
             <li
               key={topic.topicId}
-              className="flex flex-wrap items-center justify-between gap-3 p-panel"
+              className="flex flex-wrap items-center justify-between gap-3 px-panel py-3"
             >
               <div>
                 <h3 className="font-semibold text-app-text">{topic.title}</h3>

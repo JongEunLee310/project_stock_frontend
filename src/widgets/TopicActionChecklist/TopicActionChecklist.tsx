@@ -2,10 +2,9 @@ import { generatePath, useNavigate } from 'react-router-dom'
 
 import type { NewsTopicDetailView } from '@/features/news-insights'
 import { appRoutePaths } from '@/shared/config/navigation'
-import { Badge, Button, Card } from '@/shared/ui'
+import { Badge, Button, Card, PanelHeader } from '@/shared/ui'
 
 interface TopicActionChecklistProps {
-  topicId: string
   affectedSymbols: NewsTopicDetailView['affectedSymbols']
 }
 
@@ -48,7 +47,6 @@ const plannedActions = [
 ] as const
 
 export function TopicActionChecklist({
-  topicId,
   affectedSymbols,
 }: TopicActionChecklistProps) {
   const navigate = useNavigate()
@@ -59,24 +57,14 @@ export function TopicActionChecklist({
       aria-labelledby="topic-action-checklist-title"
       className="overflow-hidden p-0"
     >
-      <div className="p-panel">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-app-accent">
-          Next actions
-        </p>
-        <h2
-          id="topic-action-checklist-title"
-          className="mt-1 text-xl font-semibold text-app-text"
-        >
-          액션 체크리스트
-        </h2>
-        <p className="mt-1 text-sm leading-6 text-app-text-muted">
-          토픽 {topicId || '식별자 없음'}의 근거 확인 후 실행할 다음 행동을
-          점검합니다.
-        </p>
-      </div>
+      <PanelHeader
+        className="p-panel"
+        title="액션 체크리스트"
+        titleId="topic-action-checklist-title"
+      />
 
       <ul className="divide-y divide-app-border border-t border-app-border">
-        <li className="p-panel">
+        <li className="px-panel py-3">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
@@ -111,7 +99,7 @@ export function TopicActionChecklist({
         </li>
 
         {availableActions.map((action) => (
-          <li key={action.id} className="p-panel">
+          <li key={action.id} className="px-panel py-3">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
@@ -135,7 +123,7 @@ export function TopicActionChecklist({
         ))}
 
         {plannedActions.map((action) => (
-          <li key={action.id} className="p-panel">
+          <li key={action.id} className="px-panel py-3">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">

@@ -112,7 +112,6 @@ export function TopicInsightDetailPage() {
             window="7d"
             topicId={topicId}
             title="투자자 반응"
-            context="이 토픽의 영향 종목군에서 나타난 투자 주체별 수급 반응을 비교합니다."
           />
           <TopicSymbolSensitivity topicId={topicId} />
         </div>
@@ -133,7 +132,6 @@ export function TopicInsightDetailPage() {
       >
         <InsightExplanationPanel topicId={topicId} />
         <TopicActionChecklist
-          topicId={topicId}
           affectedSymbols={detailQuery.data?.affectedSymbols ?? []}
         />
         <CounterViewPanel

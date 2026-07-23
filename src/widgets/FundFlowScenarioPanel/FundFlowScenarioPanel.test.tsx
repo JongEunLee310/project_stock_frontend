@@ -77,8 +77,11 @@ describe('FundFlowScenarioPanel', () => {
     expect(screen.getByText('기준 무효화 조건')).toBeVisible()
     expect(screen.getAllByText('NVDA')).toHaveLength(3)
     expect(
-      screen.getByText(/통계적 확률이나 확정 예측이 아닙니다/),
+      screen.getByRole('region', { name: '예상 자금 흐름 시나리오' }),
     ).toBeVisible()
+    expect(
+      screen.queryByText(/통계적 확률이나 확정 예측이 아닙니다/),
+    ).not.toBeInTheDocument()
     expect(useNewsTopicScenariosQuery).toHaveBeenCalledWith('7')
   })
 

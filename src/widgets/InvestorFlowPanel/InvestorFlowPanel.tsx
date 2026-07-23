@@ -9,6 +9,7 @@ import {
   Card,
   EmptyState,
   ErrorState,
+  PanelHeader,
   PanelFreshness,
   Skeleton,
 } from '@/shared/ui'
@@ -18,7 +19,6 @@ interface InvestorFlowPanelProps {
   window: string
   topicId?: string
   title: string
-  context: string
   spanFullRow?: boolean
 }
 
@@ -58,7 +58,7 @@ function DirectionBar({ direction }: { direction: FlowDirectionDto }) {
 
 function InvestorFlowRow({ flow }: { flow: InvestorFlowView }) {
   return (
-    <li className="rounded-control border border-app-border bg-app-surface-muted/40 p-3">
+    <li className="py-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Badge tone={flow.investor.tone}>{flow.investor.label}</Badge>
@@ -98,7 +98,6 @@ export function InvestorFlowPanel({
   window,
   topicId,
   title,
-  context,
   spanFullRow = true,
 }: InvestorFlowPanelProps) {
   const flowsQuery = useNewsInvestorFlowsQuery({ market, window, topicId })
@@ -110,25 +109,19 @@ export function InvestorFlowPanel({
       aria-labelledby={titleId}
       className={`min-w-0 overflow-hidden p-0 ${spanFullRow ? 'xl:col-span-3' : ''}`}
     >
-      <div className="flex flex-wrap items-start justify-between gap-3 p-panel">
-        <div className="min-w-0 flex-1">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-app-accent">
-            Investor flows
-          </p>
-          <h2 id={titleId} className="mt-1 text-xl font-semibold text-app-text">
-            {title}
-          </h2>
-          <p className="mt-1 text-sm leading-6 text-app-text-muted">
-            {context}
-          </p>
-        </div>
-        <div className="flex flex-col items-end gap-2">
-          <Badge tone="info">
-            {market} · {window}
-          </Badge>
-          <PanelFreshness updatedAt={flowsQuery.dataUpdatedAt} />
-        </div>
-      </div>
+      <PanelHeader
+        className="p-panel"
+        title={title}
+        titleId={titleId}
+        controls={
+          <>
+            <Badge tone="info">
+              {market} · {window}
+            </Badge>
+            <PanelFreshness updatedAt={flowsQuery.dataUpdatedAt} />
+          </>
+        }
+      />
 
       {flowsQuery.isLoading ? <InvestorFlowLoading /> : null}
       {flowsQuery.isError ? (
@@ -164,12 +157,12 @@ export function InvestorFlowPanel({
       flowsQuery.data?.availability.available &&
       flows.length > 0 ? (
         <div className="space-y-4 border-t border-app-border p-panel">
-          <ul className="grid gap-3">
+          <ul className="divide-y divide-app-border">
             {flows.map((flow) => (
               <InvestorFlowRow key={flow.investorType} flow={flow} />
             ))}
           </ul>
-          <div className="flex flex-wrap items-start justify-between gap-3 rounded-control border border-app-border bg-app-surface-muted/40 p-3">
+          <div className="flex flex-wrap items-start justify-between gap-3 border-t border-app-border pt-3">
             <div>
               <p className="text-xs font-semibold text-app-text-muted">
                 뉴스 내러티브 vs 수급 방향
