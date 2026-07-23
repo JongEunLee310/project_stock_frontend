@@ -115,7 +115,12 @@ const fundFlowOutlook: NewsFundFlowOutlookView = {
       sector: '반도체',
       direction: { label: '유입 방향', tone: 'success' },
       likelihood: { label: '높음', tone: 'success' },
-      estimatedRange: '1,000억~1,500억원',
+      estimatedFlow: {
+        low: 800_000_000_000,
+        high: 1_800_000_000_000,
+        currency: 'KRW',
+        label: '8,000~18,000억원',
+      },
       horizon: '1개월',
       confidencePercent: 82,
       keyAssumptions: ['AI 수요 유지'],
@@ -264,6 +269,7 @@ describe('NewsInsightsOverviewPage', () => {
       screen.getByRole('heading', { name: '예상 자금 흐름' }),
     ).toBeVisible()
     expect(screen.getByText('흐름 가능성: 높음')).toBeVisible()
+    expect(screen.getByText('8,000~18,000억원')).toBeVisible()
     expect(
       screen.queryByLabelText('예상 자금 흐름 준비 중'),
     ).not.toBeInTheDocument()

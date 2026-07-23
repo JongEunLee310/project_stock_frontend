@@ -49,6 +49,12 @@ export type FundFlowDirectionDto = 'INFLOW' | 'OUTFLOW' | 'NEUTRAL'
 
 export type FlowLikelihoodDto = 'LOW' | 'MEDIUM' | 'HIGH'
 
+export interface FundFlowRangeDto {
+  low: string
+  high: string
+  currency: string
+}
+
 export interface NewsFundFlowOutlookDto {
   as_of: string
   analysis_version: string
@@ -56,7 +62,7 @@ export interface NewsFundFlowOutlookDto {
     sector: string
     direction: FundFlowDirectionDto
     likelihood: FlowLikelihoodDto
-    estimated_range: string | null
+    estimated_flow: FundFlowRangeDto | null
     horizon: string
     confidence: number
     key_assumptions: string[]

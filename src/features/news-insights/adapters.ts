@@ -1,4 +1,9 @@
-import { formatKstDateTime, formatKstTime } from '@/shared/lib/format'
+import {
+  formatKstDateTime,
+  formatKstTime,
+  formatMoney,
+  parseDecimal,
+} from '@/shared/lib/format'
 import type { BadgeTone } from '@/shared/ui'
 
 import type {
@@ -6,6 +11,7 @@ import type {
   AgentStageDto,
   FlowDirectionDto,
   FlowLikelihoodDto,
+  FundFlowRangeDto,
   FundFlowDirectionDto,
   InvestorTypeDto,
   MarketEventKindDto,
@@ -90,11 +96,18 @@ export interface FundFlowOutlookItemView {
   sector: string
   direction: PresentationView
   likelihood: PresentationView
-  estimatedRange: string | null
+  estimatedFlow: FundFlowRangeView | null
   horizon: string
   confidencePercent: number
   keyAssumptions: string[]
   riskFactors: string[]
+}
+
+export interface FundFlowRangeView {
+  low: number
+  high: number
+  currency: string
+  label: string
 }
 
 export interface NewsFundFlowOutlookView {
@@ -736,6 +749,40 @@ function trimStrings(values: string[]): string[] {
   return values.map((value) => value.trim()).filter(Boolean)
 }
 
+function adaptFundFlowRange(
+  range: FundFlowRangeDto | null,
+): FundFlowRangeView | null {
+  if (!range) return null
+
+  const low = parseDecimal(range.low.trim())
+  const high = parseDecimal(range.high.trim())
+  if (
+    low === null ||
+    high === null ||
+    !Number.isFinite(low) ||
+    !Number.isFinite(high)
+  ) {
+    return null
+  }
+
+  const currency = range.currency.trim().toUpperCase() || 'KRW'
+  const useEok =
+    currency === 'KRW' && Math.max(Math.abs(low), Math.abs(high)) >= 100_000_000
+  const divisor = useEok ? 100_000_000 : 1
+  const formatOptions = useEok ? { maximumFractionDigits: 1 } : undefined
+  const lowLabel = formatMoney(low / divisor, formatOptions)
+  const highLabel = formatMoney(high / divisor, formatOptions)
+  const rangeLabel = low === high ? lowLabel : `${lowLabel}~${highLabel}`
+  const unit = currency === 'KRW' ? (useEok ? '억원' : '원') : ` ${currency}`
+
+  return {
+    low,
+    high,
+    currency,
+    label: `${rangeLabel}${unit}`,
+  }
+}
+
 export function adaptNewsFundFlowOutlook(
   dto: NewsFundFlowOutlookDto,
 ): NewsFundFlowOutlookView {
@@ -746,7 +793,7 @@ export function adaptNewsFundFlowOutlook(
       sector: item.sector.trim() || '섹터 미상',
       direction: fundFlowDirectionPresentations[item.direction],
       likelihood: flowLikelihoodPresentations[item.likelihood],
-      estimatedRange: item.estimated_range?.trim() || null,
+      estimatedFlow: adaptFundFlowRange(item.estimated_flow),
       horizon: item.horizon.trim() || '기간 미상',
       confidencePercent: toScorePercent(item.confidence),
       keyAssumptions: trimStrings(item.key_assumptions),

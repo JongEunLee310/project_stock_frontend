@@ -51,7 +51,7 @@ function OutlookItem({ item }: { item: FundFlowOutlookItemView }) {
             예상 범위
           </dt>
           <dd className="mt-1 text-sm font-semibold text-app-text">
-            {item.estimatedRange ?? '범위 미제공'}
+            {item.estimatedFlow?.label ?? '범위 미제공'}
           </dd>
         </div>
         <div>

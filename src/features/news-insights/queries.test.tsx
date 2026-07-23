@@ -116,7 +116,11 @@ const fundFlowOutlookDto: NewsFundFlowOutlookDto = {
       sector: '반도체',
       direction: 'INFLOW',
       likelihood: 'HIGH',
-      estimated_range: '1,000억~1,500억원',
+      estimated_flow: {
+        low: '800000000000.0000',
+        high: '1800000000000.0000',
+        currency: 'KRW',
+      },
       horizon: '1개월',
       confidence: 0.82,
       key_assumptions: ['AI 수요 유지'],

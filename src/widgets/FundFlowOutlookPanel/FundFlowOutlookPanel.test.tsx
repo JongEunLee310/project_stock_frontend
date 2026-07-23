@@ -21,7 +21,12 @@ const outlook: NewsFundFlowOutlookView = {
       sector: '반도체',
       direction: { label: '유입 방향', tone: 'success' },
       likelihood: { label: '높음', tone: 'success' },
-      estimatedRange: '1,000억~1,500억원',
+      estimatedFlow: {
+        low: 800_000_000_000,
+        high: 1_800_000_000_000,
+        currency: 'KRW',
+        label: '8,000~18,000억원',
+      },
       horizon: '1개월',
       confidencePercent: 82,
       keyAssumptions: ['AI 수요가 유지됩니다.'],
@@ -51,7 +56,7 @@ describe('FundFlowOutlookPanel', () => {
     expect(screen.getByRole('heading', { name: '반도체' })).toBeVisible()
     expect(screen.getByText('유입 방향')).toBeVisible()
     expect(screen.getByText('흐름 가능성: 높음')).toBeVisible()
-    expect(screen.getByText('1,000억~1,500억원')).toBeVisible()
+    expect(screen.getByText('8,000~18,000억원')).toBeVisible()
     expect(screen.getByText('82% · 아래 가정과 위험 요인 기준')).toBeVisible()
     expect(screen.getByText('AI 수요가 유지됩니다.')).toBeVisible()
     expect(screen.getByText('공급 차질 가능성이 있습니다.')).toBeVisible()

@@ -111,7 +111,11 @@ const fundFlowOutlookDto: NewsFundFlowOutlookDto = {
       sector: ' 반도체 ',
       direction: 'INFLOW',
       likelihood: 'HIGH',
-      estimated_range: ' 1,000억~1,500억원 ',
+      estimated_flow: {
+        low: '800000000000.0000',
+        high: '1800000000000.0000',
+        currency: 'KRW',
+      },
       horizon: ' 1개월 ',
       confidence: 0.824,
       key_assumptions: [' AI 수요가 유지됩니다. '],
@@ -452,7 +456,7 @@ describe('news insights adapters', () => {
     expect(result.counterView.contradictingEvidence).toEqual([])
   })
 
-  it('maps fund-flow outlook levels and keeps the server range with grounded sentences', () => {
+  it('maps fund-flow outlook levels and adapts the numeric range with grounded sentences', () => {
     const result = adaptNewsFundFlowOutlook(fundFlowOutlookDto)
 
     expect(result).toEqual({
@@ -463,7 +467,12 @@ describe('news insights adapters', () => {
           sector: '반도체',
           direction: { label: '유입 방향', tone: 'success' },
           likelihood: { label: '높음', tone: 'success' },
-          estimatedRange: '1,000억~1,500억원',
+          estimatedFlow: {
+            low: 800_000_000_000,
+            high: 1_800_000_000_000,
+            currency: 'KRW',
+            label: '8,000~18,000억원',
+          },
           horizon: '1개월',
           confidencePercent: 82,
           keyAssumptions: ['AI 수요가 유지됩니다.'],
@@ -471,6 +480,91 @@ describe('news insights adapters', () => {
         },
       ],
     })
+  })
+
+  it.each([
+    {
+      name: 'keeps KRW below one eok in won',
+      estimatedFlow: {
+        low: '50000000',
+        high: '99999999',
+        currency: 'KRW',
+      },
+      expected: {
+        low: 50_000_000,
+        high: 99_999_999,
+        currency: 'KRW',
+        label: '50,000,000~99,999,999원',
+      },
+    },
+    {
+      name: 'preserves signs in a negative range',
+      estimatedFlow: {
+        low: '-200000000',
+        high: '-100000000',
+        currency: 'KRW',
+      },
+      expected: {
+        low: -200_000_000,
+        high: -100_000_000,
+        currency: 'KRW',
+        label: '-2~-1억원',
+      },
+    },
+    {
+      name: 'keeps non-KRW values and normalizes the currency',
+      estimatedFlow: {
+        low: '1000.25',
+        high: '1500.5',
+        currency: ' usd ',
+      },
+      expected: {
+        low: 1000.25,
+        high: 1500.5,
+        currency: 'USD',
+        label: '1,000.25~1,500.5 USD',
+      },
+    },
+    {
+      name: 'renders equal bounds once and defaults an empty currency to KRW',
+      estimatedFlow: {
+        low: '100000000',
+        high: '100000000.0000',
+        currency: ' ',
+      },
+      expected: {
+        low: 100_000_000,
+        high: 100_000_000,
+        currency: 'KRW',
+        label: '1억원',
+      },
+    },
+    {
+      name: 'keeps a null range unavailable',
+      estimatedFlow: null,
+      expected: null,
+    },
+    {
+      name: 'keeps an unreadable range unavailable',
+      estimatedFlow: {
+        low: 'Infinity',
+        high: '100000000',
+        currency: 'KRW',
+      },
+      expected: null,
+    },
+  ])('$name', ({ estimatedFlow, expected }) => {
+    const result = adaptNewsFundFlowOutlook({
+      ...fundFlowOutlookDto,
+      items: [
+        {
+          ...fundFlowOutlookDto.items[0],
+          estimated_flow: estimatedFlow,
+        },
+      ],
+    })
+
+    expect(result.items[0].estimatedFlow).toEqual(expected)
   })
 
   it('maps scenario weight as a display level and preserves empty response data', () => {
