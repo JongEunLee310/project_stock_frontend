@@ -7,6 +7,7 @@ import {
   Card,
   EmptyState,
   ErrorState,
+  PanelHeader,
   PanelFreshness,
   Skeleton,
 } from '@/shared/ui'
@@ -43,11 +44,11 @@ function PipelineLoading() {
 function PipelineContent({ data }: { data: NewsAgentRunsView }) {
   return (
     <div className="space-y-5 border-t border-app-border p-panel">
-      <dl className="grid gap-3 sm:grid-cols-3 2xl:grid-cols-2">
+      <dl className="grid gap-x-3 sm:grid-cols-3 2xl:grid-cols-2">
         {aggregateDefinitions.map((definition) => (
           <div
             key={definition.key}
-            className="rounded-control border border-app-border bg-app-surface-muted/40 p-3"
+            className="border-t border-app-border py-2 first:border-t-0"
           >
             <dt className="text-xs font-semibold text-app-text-muted">
               {definition.label}
@@ -61,12 +62,12 @@ function PipelineContent({ data }: { data: NewsAgentRunsView }) {
 
       <ol
         aria-label="에이전트 처리 단계"
-        className="grid gap-3 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-2 2xl:grid-cols-3"
+        className="grid gap-x-3 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-2 2xl:grid-cols-3"
       >
         {data.stages.map((stage, index) => (
           <li
             key={`${stage.name}-${index}`}
-            className="rounded-control border border-app-border bg-app-surface-muted/40 p-3"
+            className="border-t border-app-border py-3"
           >
             <p className="text-xs text-app-text-muted">{index + 1}단계</p>
             <p className="mt-1 text-sm font-semibold text-app-text">
@@ -98,30 +99,21 @@ export function AgentPipelinePanel() {
       aria-labelledby="agent-pipeline-title"
       className="min-w-0 overflow-hidden p-0"
     >
-      <div className="flex flex-wrap items-start justify-between gap-3 p-panel">
-        <div className="min-w-0 flex-1">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-app-accent">
-            Agent pipeline
-          </p>
-          <h2
-            id="agent-pipeline-title"
-            className="mt-1 text-xl font-semibold text-app-text"
-          >
-            에이전트 파이프라인
-          </h2>
-          <p className="mt-1 text-sm leading-6 text-app-text-muted">
-            검증 가능한 처리 단계와 집계 수치만 표시합니다.
-          </p>
-        </div>
-        <div className="flex flex-col items-end gap-2">
-          {runsQuery.data ? (
-            <Badge tone={runsQuery.data.hasDelay ? 'warning' : 'success'}>
-              {runsQuery.data.hasDelay ? '전체 지연 있음' : '전체 지연 없음'}
-            </Badge>
-          ) : null}
-          <PanelFreshness updatedAt={runsQuery.dataUpdatedAt} />
-        </div>
-      </div>
+      <PanelHeader
+        className="p-panel"
+        title="에이전트 파이프라인"
+        titleId="agent-pipeline-title"
+        controls={
+          <>
+            {runsQuery.data ? (
+              <Badge tone={runsQuery.data.hasDelay ? 'warning' : 'success'}>
+                {runsQuery.data.hasDelay ? '전체 지연 있음' : '전체 지연 없음'}
+              </Badge>
+            ) : null}
+            <PanelFreshness updatedAt={runsQuery.dataUpdatedAt} />
+          </>
+        }
+      />
 
       {runsQuery.isLoading ? <PipelineLoading /> : null}
       {runsQuery.isError ? (

@@ -327,10 +327,15 @@ describe('TopicInsightDetailPage', () => {
     expect(
       screen.getByRole('heading', { name: '액션 체크리스트' }),
     ).toBeVisible()
+    expect(
+      screen.getByRole('region', { name: '액션 체크리스트' }),
+    ).toBeVisible()
     expect(screen.queryByLabelText('액션 체크리스트 준비 중')).toBeNull()
     expect(
-      screen.getByText('토픽 7의 근거 확인 후 실행할 다음 행동을 점검합니다.'),
-    ).toBeVisible()
+      screen.queryByText(
+        '토픽 7의 근거 확인 후 실행할 다음 행동을 점검합니다.',
+      ),
+    ).not.toBeInTheDocument()
     expect(
       screen.getByText('첫 영향 종목 005930의 리서치를 확인합니다.'),
     ).toBeVisible()

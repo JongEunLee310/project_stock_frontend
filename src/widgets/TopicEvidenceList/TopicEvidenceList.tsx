@@ -7,6 +7,7 @@ import {
   Card,
   EmptyState,
   ErrorState,
+  PanelHeader,
   PanelFreshness,
   Skeleton,
 } from '@/shared/ui'
@@ -62,23 +63,12 @@ export function TopicEvidenceList({
 
   return (
     <Card aria-labelledby="topic-evidence-title" className="p-0">
-      <div className="flex flex-wrap items-start justify-between gap-3 p-panel">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-app-accent">
-            Evidence
-          </p>
-          <h2
-            id="topic-evidence-title"
-            className="mt-1 text-xl font-semibold text-app-text"
-          >
-            관련 근거
-          </h2>
-          <p className="mt-1 text-sm leading-6 text-app-text-muted">
-            출처의 원문 정보와 AI가 생성한 요약을 구분해 확인합니다.
-          </p>
-        </div>
-        <PanelFreshness updatedAt={updatedAt} />
-      </div>
+      <PanelHeader
+        className="p-panel"
+        title="관련 근거"
+        titleId="topic-evidence-title"
+        controls={<PanelFreshness updatedAt={updatedAt} />}
+      />
 
       {evidence.length === 0 ? (
         <EmptyState
@@ -90,7 +80,7 @@ export function TopicEvidenceList({
           {evidence.map((item) => {
             const viewMode = viewModes[item.id] ?? 'source'
             return (
-              <li key={item.id} className="p-panel">
+              <li key={item.id} className="px-panel py-3">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <div className="flex flex-wrap gap-2">
@@ -144,7 +134,7 @@ export function TopicEvidenceList({
                 </div>
 
                 {viewMode === 'source' ? (
-                  <div className="mt-4 rounded-control border border-sky-400/20 bg-sky-950/10 p-3 text-sm leading-6">
+                  <div className="mt-3 border-t border-app-border pt-3 text-sm leading-6">
                     <strong className="text-sky-200">원문 정보</strong>
                     <p className="mt-1 text-app-text-muted">
                       {item.source} · {item.publishedAt} · 문서 #
@@ -156,7 +146,7 @@ export function TopicEvidenceList({
                     </p>
                   </div>
                 ) : (
-                  <div className="mt-4 rounded-control border border-violet-400/20 bg-violet-950/10 p-3 text-sm leading-6">
+                  <div className="mt-3 border-t border-app-border pt-3 text-sm leading-6">
                     <strong className="text-violet-200">AI 요약</strong>
                     <p className="mt-1 text-app-text-muted">
                       {item.summary || '제공된 AI 요약이 없습니다.'}

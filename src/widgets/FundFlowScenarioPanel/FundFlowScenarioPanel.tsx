@@ -8,6 +8,7 @@ import {
   Card,
   EmptyState,
   ErrorState,
+  PanelHeader,
   PanelFreshness,
   Skeleton,
 } from '@/shared/ui'
@@ -52,7 +53,7 @@ function ChipList({ title, items }: { title: string; items: string[] }) {
 
 function ScenarioCard({ scenario }: { scenario: FundFlowScenarioView }) {
   return (
-    <li className="rounded-control border border-app-border bg-app-surface-muted/40 p-4">
+    <li className="border-t border-app-border py-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-lg font-semibold text-app-text">
           {scenario.kindPresentation.label} 시나리오
@@ -118,31 +119,21 @@ export function FundFlowScenarioPanel({ topicId }: { topicId: string }) {
       aria-labelledby="fund-flow-scenarios-title"
       className="overflow-hidden p-0"
     >
-      <div className="flex flex-wrap items-start justify-between gap-3 p-panel">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-app-accent">
-            Fund flow scenarios
-          </p>
-          <h2
-            id="fund-flow-scenarios-title"
-            className="mt-1 text-xl font-semibold text-app-text"
-          >
-            예상 자금 흐름 시나리오
-          </h2>
-          <p className="mt-1 text-sm leading-6 text-app-text-muted">
-            현재 근거에 따른 세 가지 조건부 경로이며 통계적 확률이나 확정 예측이
-            아닙니다.
-          </p>
-        </div>
-        <div className="flex flex-col items-end gap-2">
-          {scenariosQuery.data ? (
-            <Badge tone="accent">
-              분석 {scenariosQuery.data.analysisVersion}
-            </Badge>
-          ) : null}
-          <PanelFreshness updatedAt={scenariosQuery.dataUpdatedAt} />
-        </div>
-      </div>
+      <PanelHeader
+        className="p-panel"
+        title="예상 자금 흐름 시나리오"
+        titleId="fund-flow-scenarios-title"
+        controls={
+          <>
+            {scenariosQuery.data ? (
+              <Badge tone="accent">
+                분석 {scenariosQuery.data.analysisVersion}
+              </Badge>
+            ) : null}
+            <PanelFreshness updatedAt={scenariosQuery.dataUpdatedAt} />
+          </>
+        }
+      />
 
       {scenariosQuery.isLoading ? <ScenarioLoading /> : null}
       {scenariosQuery.isError || isIncomplete ? (
@@ -169,7 +160,7 @@ export function FundFlowScenarioPanel({ topicId }: { topicId: string }) {
       !isIncomplete &&
       orderedScenarios.length === scenarioOrder.length ? (
         <div className="space-y-4 border-t border-app-border p-panel">
-          <ul className="grid gap-4 2xl:grid-cols-3">
+          <ul className="grid gap-x-4 2xl:grid-cols-3">
             {orderedScenarios.map((scenario) => (
               <ScenarioCard key={scenario.kind} scenario={scenario} />
             ))}

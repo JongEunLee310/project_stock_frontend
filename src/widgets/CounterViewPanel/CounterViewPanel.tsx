@@ -4,6 +4,7 @@ import {
   Card,
   EmptyState,
   ErrorState,
+  PanelHeader,
   PanelFreshness,
   Skeleton,
 } from '@/shared/ui'
@@ -123,31 +124,21 @@ export function CounterViewPanel({
       aria-labelledby="counter-view-title"
       className="border-red-400/30 bg-red-950/10 shadow-none"
     >
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-red-300">
-            Counter view
-          </p>
-          <h2
-            id="counter-view-title"
-            className="mt-1 text-lg font-semibold text-app-text"
-          >
-            반대 관점
-          </h2>
-          <p className="mt-1 text-sm leading-6 text-app-text-muted">
-            같은 근거를 다르게 해석할 가능성과 현재 분석의 반대 논리를 함께
-            확인합니다.
-          </p>
-        </div>
-        <div className="flex flex-col items-end gap-2">
-          <PanelFreshness updatedAt={updatedAt} />
-          {explanation ? (
-            <Badge tone="accent">
-              AI 확장 분석 · 신뢰도 {explanation.meta.confidencePercent}%
-            </Badge>
-          ) : null}
-        </div>
-      </div>
+      <PanelHeader
+        title="반대 관점"
+        titleId="counter-view-title"
+        titleClassName="text-lg"
+        controls={
+          <>
+            <PanelFreshness updatedAt={updatedAt} />
+            {explanation ? (
+              <Badge tone="accent">
+                AI 확장 분석 · 신뢰도 {explanation.meta.confidencePercent}%
+              </Badge>
+            ) : null}
+          </>
+        }
+      />
 
       <section className="mt-5" aria-labelledby="base-counter-title">
         <h3
@@ -243,13 +234,10 @@ export function CounterViewPanel({
                 반대 원문 근거
               </h3>
               {explanation.counterView.contradictingEvidence.length > 0 ? (
-                <ul className="mt-2 space-y-2">
+                <ul className="mt-2 divide-y divide-app-border">
                   {explanation.counterView.contradictingEvidence.map(
                     (evidence) => (
-                      <li
-                        key={evidence.id}
-                        className="rounded-control border border-app-border bg-app-surface/70 p-3"
-                      >
+                      <li key={evidence.id} className="py-3">
                         <div className="flex flex-wrap gap-2">
                           <Badge tone="danger">상충 근거</Badge>
                           <Badge tone="info">원문 메타</Badge>

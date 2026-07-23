@@ -55,7 +55,8 @@ describe('FundFlowOutlookPanel', () => {
     expect(screen.getByText('82% · 아래 가정과 위험 요인 기준')).toBeVisible()
     expect(screen.getByText('AI 수요가 유지됩니다.')).toBeVisible()
     expect(screen.getByText('공급 차질 가능성이 있습니다.')).toBeVisible()
-    expect(screen.getByText(/확정 예측이 아닙니다/)).toBeVisible()
+    expect(screen.getByRole('region', { name: '예상 자금 흐름' })).toBeVisible()
+    expect(screen.queryByText(/확정 예측이 아닙니다/)).not.toBeInTheDocument()
     expect(screen.getByText(/데이터 기준 .*분석 버전 v3.1/)).toBeVisible()
   })
 

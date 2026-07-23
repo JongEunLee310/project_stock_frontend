@@ -44,7 +44,7 @@ function renderFeed(props = defaultProps) {
 }
 
 describe('RealtimeEventFeed', () => {
-  it('preserves the overview copy and columns by default', () => {
+  it('preserves the overview title, accessibility connection, and columns by default', () => {
     renderFeed()
 
     const table = screen.getByRole('table', { name: '실시간 이벤트 목록' })
@@ -60,10 +60,13 @@ describe('RealtimeEventFeed', () => {
       screen.getByRole('heading', { name: '실시간 뉴스·공시 피드' }),
     ).toBeVisible()
     expect(
-      screen.getByText(
+      screen.getByRole('region', { name: '실시간 뉴스·공시 피드' }),
+    ).toBeVisible()
+    expect(
+      screen.queryByText(
         '관련 문서를 하나의 시장 이벤트로 묶어 중요도와 감성을 분리했습니다.',
       ),
-    ).toBeVisible()
+    ).not.toBeInTheDocument()
     expect(
       within(table).getByRole('columnheader', { name: '종목' }),
     ).toBeVisible()
@@ -73,7 +76,7 @@ describe('RealtimeEventFeed', () => {
     )
   })
 
-  it('renders custom copy and hides the symbol column when requested', () => {
+  it('renders a custom title without panel description and hides the symbol column when requested', () => {
     renderFeed({
       ...defaultProps,
       title: 'NVDA 뉴스·공시 이벤트',
@@ -84,7 +87,10 @@ describe('RealtimeEventFeed', () => {
     expect(
       screen.getByRole('heading', { name: 'NVDA 뉴스·공시 이벤트' }),
     ).toBeVisible()
-    expect(screen.getByText('NVDA 이벤트 설명')).toBeVisible()
+    expect(
+      screen.getByRole('region', { name: 'NVDA 뉴스·공시 이벤트' }),
+    ).toBeVisible()
+    expect(screen.queryByText('NVDA 이벤트 설명')).not.toBeInTheDocument()
     expect(screen.queryByRole('columnheader', { name: '종목' })).toBeNull()
     expect(screen.queryByText(event.symbol)).toBeNull()
   })

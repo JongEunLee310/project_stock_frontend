@@ -9,6 +9,7 @@ import {
   Card,
   EmptyState,
   ErrorState,
+  PanelHeader,
   PanelFreshness,
   Skeleton,
   Table,
@@ -130,26 +131,17 @@ export function TopicSymbolSensitivity({
       aria-labelledby="topic-symbol-sensitivity-title"
       className="overflow-hidden p-0"
     >
-      <div className="flex flex-wrap items-start justify-between gap-3 p-panel">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-app-accent">
-            Symbol sensitivity
-          </p>
-          <h2
-            id="topic-symbol-sensitivity-title"
-            className="mt-1 text-xl font-semibold text-app-text"
-          >
-            종목 민감도
-          </h2>
-          <p className="mt-1 text-sm leading-6 text-app-text-muted">
-            노출도는 막대와 수치로, 예상 영향 방향은 별도 배지로 구분합니다.
-          </p>
-        </div>
-        <div className="flex flex-col items-end gap-2">
-          <Badge tone="info">토픽 영향 종목</Badge>
-          <PanelFreshness updatedAt={symbolsQuery.dataUpdatedAt} />
-        </div>
-      </div>
+      <PanelHeader
+        className="p-panel"
+        title="종목 민감도"
+        titleId="topic-symbol-sensitivity-title"
+        controls={
+          <>
+            <Badge tone="info">토픽 영향 종목</Badge>
+            <PanelFreshness updatedAt={symbolsQuery.dataUpdatedAt} />
+          </>
+        }
+      />
 
       {symbolsQuery.isLoading ? <SensitivityLoading /> : null}
       {symbolsQuery.isError ? (

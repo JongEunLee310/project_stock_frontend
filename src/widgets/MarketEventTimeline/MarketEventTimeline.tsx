@@ -10,6 +10,7 @@ import {
   Card,
   EmptyState,
   ErrorState,
+  PanelHeader,
   PanelFreshness,
   Skeleton,
 } from '@/shared/ui'
@@ -36,7 +37,7 @@ function EventItem({
   now: number
 }) {
   return (
-    <li className="rounded-control border border-app-border bg-app-surface-muted/40 p-4">
+    <li className="py-3">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
@@ -113,29 +114,19 @@ export function MarketEventTimeline({
       aria-labelledby="market-event-timeline-title"
       className="min-w-0 overflow-hidden p-0"
     >
-      <div className="flex flex-wrap items-start justify-between gap-3 p-panel">
-        <div className="min-w-0 flex-1">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-app-accent">
-            Event calendar
-          </p>
-          <h2
-            id="market-event-timeline-title"
-            className="mt-1 text-xl font-semibold text-app-text"
-          >
-            이벤트 타임라인
-          </h2>
-          <p className="mt-1 text-sm leading-6 text-app-text-muted">
-            예정된 검증 이벤트를 시간순으로 표시하며 D-N은 예정 시각에서
-            계산합니다.
-          </p>
-        </div>
-        <div className="flex flex-col items-end gap-2">
-          <Badge tone="info">
-            {market} · {window}
-          </Badge>
-          <PanelFreshness updatedAt={calendarQuery.dataUpdatedAt} />
-        </div>
-      </div>
+      <PanelHeader
+        className="p-panel"
+        title="이벤트 타임라인"
+        titleId="market-event-timeline-title"
+        controls={
+          <>
+            <Badge tone="info">
+              {market} · {window}
+            </Badge>
+            <PanelFreshness updatedAt={calendarQuery.dataUpdatedAt} />
+          </>
+        }
+      />
 
       {calendarQuery.isLoading ? <TimelineLoading /> : null}
       {calendarQuery.isError ? (
@@ -156,7 +147,7 @@ export function MarketEventTimeline({
       {!calendarQuery.isLoading &&
       !calendarQuery.isError &&
       futureEvents.length > 0 ? (
-        <ul className="grid gap-3 border-t border-app-border p-panel">
+        <ul className="divide-y divide-app-border border-t border-app-border px-panel">
           {futureEvents.map((event, index) => (
             <EventItem
               key={`${event.scheduledAt}-${event.eventKind}-${event.title}-${index}`}

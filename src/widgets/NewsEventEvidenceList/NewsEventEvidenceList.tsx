@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
 import type { NewsEventDetailView } from '@/features/news-insights'
-import { Badge, Button, Card, EmptyState } from '@/shared/ui'
+import { Badge, Button, Card, EmptyState, PanelHeader } from '@/shared/ui'
 
 interface NewsEventEvidenceListProps {
   evidence: NewsEventDetailView['evidence']
@@ -18,20 +18,11 @@ export function NewsEventEvidenceList({
 
   return (
     <Card aria-labelledby="news-event-evidence-title" className="p-0">
-      <div className="p-panel">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-app-accent">
-          Evidence
-        </p>
-        <h2
-          id="news-event-evidence-title"
-          className="mt-1 text-xl font-semibold text-app-text"
-        >
-          근거 문서
-        </h2>
-        <p className="mt-1 text-sm leading-6 text-app-text-muted">
-          원문 메타데이터와 AI 분석 제공 범위를 구분해 확인합니다.
-        </p>
-      </div>
+      <PanelHeader
+        className="p-panel"
+        title="근거 문서"
+        titleId="news-event-evidence-title"
+      />
       {evidence.length === 0 ? (
         <EmptyState
           title="표시할 근거 문서가 없습니다"
@@ -42,7 +33,7 @@ export function NewsEventEvidenceList({
           {evidence.map((item) => {
             const viewMode = viewModes[item.id] ?? 'source'
             return (
-              <li key={item.id} className="p-panel">
+              <li key={item.id} className="px-panel py-3">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <div className="flex flex-wrap gap-2">
@@ -88,7 +79,7 @@ export function NewsEventEvidenceList({
                   </div>
                 </div>
                 {viewMode === 'source' ? (
-                  <div className="mt-4 rounded-control border border-sky-400/20 bg-sky-950/10 p-3 text-sm leading-6">
+                  <div className="mt-3 border-t border-app-border pt-3 text-sm leading-6">
                     <strong className="text-sky-200">원문 정보</strong>
                     <p className="mt-1 text-app-text-muted">
                       {item.source} · {item.publishedAt} · 문서 #
@@ -100,7 +91,7 @@ export function NewsEventEvidenceList({
                     </p>
                   </div>
                 ) : (
-                  <div className="mt-4 rounded-control border border-violet-400/20 bg-violet-950/10 p-3 text-sm leading-6">
+                  <div className="mt-3 border-t border-app-border pt-3 text-sm leading-6">
                     <strong className="text-violet-200">AI 요약</strong>
                     <p className="mt-1 text-app-text-muted">
                       문서별 AI 요약은 제공되지 않습니다. 이벤트 수준의 AI

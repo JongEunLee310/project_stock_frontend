@@ -24,6 +24,7 @@ import {
   Card,
   EmptyState,
   ErrorState,
+  PanelHeader,
   PanelFreshness,
   Skeleton,
 } from '@/shared/ui'
@@ -247,26 +248,17 @@ export function TopicKeywordGraph({ topicId }: TopicKeywordGraphProps) {
       aria-labelledby="topic-keyword-graph-title"
       className="overflow-hidden p-0"
     >
-      <div className="flex flex-wrap items-start justify-between gap-3 p-panel">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-app-accent">
-            Keyword network
-          </p>
-          <h2
-            id="topic-keyword-graph-title"
-            className="mt-1 text-xl font-semibold text-app-text"
-          >
-            키워드 관계망
-          </h2>
-          <p className="mt-1 text-sm leading-6 text-app-text-muted">
-            감성은 노드 색과 텍스트 배지로, 연관 강도는 선 굵기로 구분합니다.
-          </p>
-        </div>
-        <div className="flex flex-col items-end gap-2">
-          <Badge tone="accent">토픽 키워드</Badge>
-          <PanelFreshness updatedAt={graphQuery.dataUpdatedAt} />
-        </div>
-      </div>
+      <PanelHeader
+        className="p-panel"
+        title="키워드 관계망"
+        titleId="topic-keyword-graph-title"
+        controls={
+          <>
+            <Badge tone="accent">토픽 키워드</Badge>
+            <PanelFreshness updatedAt={graphQuery.dataUpdatedAt} />
+          </>
+        }
+      />
 
       {graphQuery.isLoading ? <KeywordGraphLoading /> : null}
       {graphQuery.isError ? (

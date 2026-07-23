@@ -2,7 +2,7 @@ import { generatePath, useNavigate } from 'react-router-dom'
 
 import type { NewsEventDetailView } from '@/features/news-insights'
 import { appRoutePaths } from '@/shared/config/navigation'
-import { Badge, Button, Card, EmptyState } from '@/shared/ui'
+import { Badge, Button, Card, EmptyState, PanelHeader } from '@/shared/ui'
 
 interface NewsEventAffectedSymbolsProps {
   symbols: NewsEventDetailView['affectedSymbols']
@@ -15,17 +15,11 @@ export function NewsEventAffectedSymbols({
 
   return (
     <Card aria-labelledby="news-event-symbols-title" className="p-0">
-      <div className="p-panel">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-app-accent">
-          Market impact
-        </p>
-        <h2
-          id="news-event-symbols-title"
-          className="mt-1 text-xl font-semibold text-app-text"
-        >
-          영향 종목
-        </h2>
-      </div>
+      <PanelHeader
+        className="p-panel"
+        title="영향 종목"
+        titleId="news-event-symbols-title"
+      />
       {symbols.length === 0 ? (
         <EmptyState
           title="표시할 영향 종목이 없습니다"
@@ -34,7 +28,7 @@ export function NewsEventAffectedSymbols({
       ) : (
         <ul className="divide-y divide-app-border border-t border-app-border">
           {symbols.map((item) => (
-            <li key={item.symbol} className="p-panel">
+            <li key={item.symbol} className="px-panel py-3">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <div className="flex flex-wrap items-center gap-2">

@@ -11,6 +11,7 @@ import {
   Card,
   EmptyState,
   ErrorState,
+  PanelHeader,
   PanelFreshness,
   Skeleton,
 } from '@/shared/ui'
@@ -78,27 +79,21 @@ export function InsightSummaryCards({
 }: InsightSummaryCardsProps) {
   return (
     <section aria-labelledby="insight-summary-title">
-      <div className="mb-3 flex items-end justify-between gap-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-app-accent">
-            Market pulse
-          </p>
-          <h2
-            id="insight-summary-title"
-            className="mt-1 text-xl font-semibold text-app-text"
-          >
-            오늘의 인사이트
-          </h2>
-        </div>
-        <div className="flex flex-col items-end gap-1">
-          <PanelFreshness updatedAt={updatedAt} />
-          {data ? (
-            <span className="text-xs text-app-text-muted">
-              기준 {data.asOf}
-            </span>
-          ) : null}
-        </div>
-      </div>
+      <PanelHeader
+        className="mb-3"
+        title="오늘의 인사이트"
+        titleId="insight-summary-title"
+        controls={
+          <>
+            <PanelFreshness updatedAt={updatedAt} />
+            {data ? (
+              <span className="text-xs text-app-text-muted">
+                기준 {data.asOf}
+              </span>
+            ) : null}
+          </>
+        }
+      />
 
       {isLoading ? <SummaryLoadingState /> : null}
       {isError ? (

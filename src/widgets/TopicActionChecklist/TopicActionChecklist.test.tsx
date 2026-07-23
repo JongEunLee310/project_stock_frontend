@@ -23,7 +23,7 @@ function renderChecklist(
 ) {
   return render(
     <MemoryRouter initialEntries={['/news/topics/7']}>
-      <TopicActionChecklist topicId="7" affectedSymbols={symbols} />
+      <TopicActionChecklist affectedSymbols={symbols} />
       <LocationProbe />
     </MemoryRouter>,
   )
