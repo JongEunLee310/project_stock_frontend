@@ -25,8 +25,12 @@ const briefing: NewsOverviewView['briefing'] = {
   ],
 }
 
+function openBriefing() {
+  fireEvent.click(screen.getByRole('button', { name: '에이전트 브리핑 열기' }))
+}
+
 describe('AgentBriefing', () => {
-  it('renders as a visible panel without a toggle or dialog semantics', () => {
+  it('stays collapsed until the floating button is clicked', () => {
     render(
       <AgentBriefing
         data={briefing}
@@ -36,14 +40,14 @@ describe('AgentBriefing', () => {
       />,
     )
 
-    expect(
-      screen.getByRole('heading', { name: '에이전트 브리핑' }),
-    ).toBeVisible()
-    expect(screen.getByText(briefing.summary)).toBeVisible()
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(
-      screen.queryByRole('button', { name: /에이전트 브리핑/ }),
-    ).not.toBeInTheDocument()
+      screen.getByRole('button', { name: '에이전트 브리핑 열기' }),
+    ).toBeVisible()
+
+    openBriefing()
+
+    expect(screen.getByRole('dialog')).toBeVisible()
   })
 
   it('renders an API summary and evidence counts for every highlight', () => {
@@ -55,6 +59,7 @@ describe('AgentBriefing', () => {
         onRetry={vi.fn()}
       />,
     )
+    openBriefing()
     expect(screen.getByText('AI 분석')).toBeVisible()
     expect(screen.getByText(briefing.summary)).toBeVisible()
     expect(screen.getByText('HBM 공급 확대 기대가 높아졌습니다.')).toBeVisible()
@@ -65,6 +70,7 @@ describe('AgentBriefing', () => {
 
   it('renders a panel loading state', () => {
     render(<AgentBriefing isLoading isError={false} onRetry={vi.fn()} />)
+    openBriefing()
 
     expect(
       screen.getByRole('status', { name: '브리핑 불러오는 중' }),
@@ -74,6 +80,7 @@ describe('AgentBriefing', () => {
   it('renders a retryable panel error', () => {
     const onRetry = vi.fn()
     render(<AgentBriefing isLoading={false} isError onRetry={onRetry} />)
+    openBriefing()
 
     expect(
       screen.getByText('에이전트 브리핑을 불러오지 못했습니다'),
@@ -82,7 +89,7 @@ describe('AgentBriefing', () => {
     expect(onRetry).toHaveBeenCalledOnce()
   })
 
-  it('renders the empty state immediately', () => {
+  it('renders the empty state after opening the briefing', () => {
     render(
       <AgentBriefing
         data={{
@@ -95,6 +102,7 @@ describe('AgentBriefing', () => {
         onRetry={vi.fn()}
       />,
     )
+    openBriefing()
 
     expect(screen.getByText('생성된 브리핑이 없습니다')).toBeVisible()
   })

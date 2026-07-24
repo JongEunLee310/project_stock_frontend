@@ -24,90 +24,95 @@ export function NewsInsightsOverviewPage() {
   const events = eventsQuery.data?.flatMap((page) => page.items) ?? []
 
   return (
-    <section className="flex flex-col gap-6 py-4">
-      <header className="flex min-h-16 flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-app-text-muted">
-            News intelligence
-          </p>
-          <h1 className="mt-1 text-3xl font-bold text-app-text">
-            뉴스·공시 인사이트
-          </h1>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-app-text-muted">
-            AI Agent가 뉴스·공시·실적·투자 동향을 분석해 인사이트를 추출합니다.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant="primary"
-            onClick={() => void navigate(appRoutePaths.alerts)}
-          >
-            + 알림 생성
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={() => void navigate(appRoutePaths.decisionLog)}
-          >
-            판단 기록 연결
-          </Button>
-        </div>
-      </header>
+    <>
+      <section className="flex flex-col gap-3 pb-4 pt-5 2xl:h-[calc(100vh-1rem)] 2xl:min-h-[57rem] 2xl:overflow-hidden">
+        <header className="flex min-h-[4.25rem] flex-wrap items-end justify-between gap-4 2xl:pr-1">
+          <div>
+            <h1 className="text-[1.75rem] font-bold tracking-tight text-cockpit-text">
+              뉴스·공시 인사이트
+            </h1>
+            <p className="mt-1 max-w-3xl text-xs leading-5 text-cockpit-text-muted">
+              AI Agent가 뉴스·공시·실적·투자 동향을 분석해 인사이트를
+              추출합니다.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 2xl:mb-0.5">
+            <AgentPipelinePanel compact presentation="popover" />
+            <Button
+              variant="primary"
+              onClick={() => void navigate(appRoutePaths.alerts)}
+            >
+              + 알림 생성
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => void navigate(appRoutePaths.decisionLog)}
+            >
+              판단 기록 연결
+            </Button>
+          </div>
+        </header>
 
-      <InsightSummaryCards
-        data={overviewQuery.data}
+        <InsightSummaryCards
+          data={overviewQuery.data}
+          isLoading={overviewQuery.isLoading}
+          isError={overviewQuery.isError}
+          onRetry={() => void overviewQuery.refetch()}
+          updatedAt={overviewQuery.dataUpdatedAt}
+          compact
+        />
+
+        <div
+          role="group"
+          aria-label="핵심 인사이트 패널"
+          className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,1.15fr)] 2xl:min-h-0 2xl:flex-[1.45]"
+        >
+          <RealtimeEventFeed
+            events={events}
+            isLoading={eventsQuery.isLoading}
+            isError={eventsQuery.isError}
+            isFetchingNextPage={eventsQuery.isFetchingNextPage}
+            isFetchNextPageError={eventsQuery.isFetchNextPageError}
+            hasNextPage={eventsQuery.hasNextPage}
+            onLoadMore={() => void eventsQuery.fetchNextPage()}
+            onRetry={() => void eventsQuery.refetch()}
+            updatedAt={eventsQuery.dataUpdatedAt}
+            compact
+          />
+          <TopicMap
+            data={topicMapQuery.data}
+            isLoading={topicMapQuery.isLoading}
+            isError={topicMapQuery.isError}
+            onRetry={() => void topicMapQuery.refetch()}
+            updatedAt={topicMapQuery.dataUpdatedAt}
+            compact
+          />
+        </div>
+
+        <div
+          role="group"
+          aria-label="시장 분석 패널"
+          className="grid min-w-0 gap-3 xl:grid-cols-3 2xl:min-h-0 2xl:flex-1"
+        >
+          <InvestorFlowPanel
+            market="KR"
+            window="7d"
+            title="투자자 동향"
+            spanFullRow={false}
+            compact
+          />
+          <FundFlowOutlookPanel compact />
+          <MarketEventTimeline market="KR" window="30d" compact />
+        </div>
+      </section>
+
+      <AgentBriefing
+        data={overviewQuery.data?.briefing}
         isLoading={overviewQuery.isLoading}
         isError={overviewQuery.isError}
         onRetry={() => void overviewQuery.refetch()}
         updatedAt={overviewQuery.dataUpdatedAt}
       />
-
-      <div
-        role="group"
-        aria-label="핵심 인사이트 패널"
-        className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)]"
-      >
-        <RealtimeEventFeed
-          events={events}
-          isLoading={eventsQuery.isLoading}
-          isError={eventsQuery.isError}
-          isFetchingNextPage={eventsQuery.isFetchingNextPage}
-          isFetchNextPageError={eventsQuery.isFetchNextPageError}
-          hasNextPage={eventsQuery.hasNextPage}
-          onLoadMore={() => void eventsQuery.fetchNextPage()}
-          onRetry={() => void eventsQuery.refetch()}
-          updatedAt={eventsQuery.dataUpdatedAt}
-        />
-        <AgentBriefing
-          data={overviewQuery.data?.briefing}
-          isLoading={overviewQuery.isLoading}
-          isError={overviewQuery.isError}
-          onRetry={() => void overviewQuery.refetch()}
-          updatedAt={overviewQuery.dataUpdatedAt}
-        />
-        <TopicMap
-          data={topicMapQuery.data}
-          isLoading={topicMapQuery.isLoading}
-          isError={topicMapQuery.isError}
-          onRetry={() => void topicMapQuery.refetch()}
-          updatedAt={topicMapQuery.dataUpdatedAt}
-        />
-      </div>
-
-      <div
-        role="group"
-        aria-label="시장 분석 패널"
-        className="grid min-w-0 gap-4 xl:grid-cols-2 2xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.8fr)]"
-      >
-        <InvestorFlowPanel
-          market="KR"
-          window="7d"
-          title="투자자 동향"
-          spanFullRow={false}
-        />
-        <FundFlowOutlookPanel />
-        <MarketEventTimeline market="KR" window="30d" />
-        <AgentPipelinePanel />
-      </div>
-    </section>
+    </>
   )
 }

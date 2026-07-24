@@ -32,6 +32,7 @@ interface TopicMapProps {
   isError: boolean
   onRetry: () => void
   updatedAt?: number
+  compact?: boolean
 }
 
 const categoryPresentations = {
@@ -202,6 +203,7 @@ export function TopicMap({
   isError,
   onRetry,
   updatedAt,
+  compact = false,
 }: TopicMapProps) {
   const navigate = useNavigate()
   const cytoscapeRef = useRef<Core | null>(null)
@@ -245,11 +247,16 @@ export function TopicMap({
   const topicNodes = data?.nodes.filter((node) => node.type === 'TOPIC') ?? []
 
   return (
-    <Card aria-labelledby="topic-map-title" className="overflow-hidden p-0">
+    <Card
+      aria-labelledby="topic-map-title"
+      className={`border-cockpit-border bg-cockpit-surface/80 p-0 ${compact ? 'flex h-full min-h-0 flex-col overflow-hidden' : 'overflow-hidden'}`}
+    >
       <PanelHeader
-        className="p-panel"
+        className={compact ? 'p-3' : 'p-panel'}
         title="토픽 맵"
         titleId="topic-map-title"
+        titleClassName={compact ? 'text-base' : undefined}
+        controlsClassName={compact ? 'flex-row items-center gap-2' : undefined}
         controls={
           <>
             <Badge tone="accent">7일 관계망</Badge>
@@ -277,7 +284,11 @@ export function TopicMap({
           <div
             role="img"
             aria-label={`토픽 ${topicNodes.length}개, 전체 노드 ${data.nodes.length}개, 연관 관계 ${data.edges.length}개의 토픽 맵`}
-            className="h-[28rem] border-y border-app-border bg-slate-950/50"
+            className={
+              compact
+                ? 'h-80 min-h-0 border-y border-app-border bg-slate-950/50 2xl:h-auto 2xl:flex-1'
+                : 'h-[28rem] border-y border-app-border bg-slate-950/50'
+            }
           >
             <Suspense fallback={<TopicMapLoading />}>
               <CytoscapeComponent
@@ -297,7 +308,13 @@ export function TopicMap({
               />
             </Suspense>
           </div>
-          <TopicMapLegend />
+          {compact ? (
+            <div className="[&>div]:gap-x-3 [&>div]:gap-y-1 [&>div]:px-3 [&>div]:py-2">
+              <TopicMapLegend />
+            </div>
+          ) : (
+            <TopicMapLegend />
+          )}
         </>
       ) : null}
     </Card>

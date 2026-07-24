@@ -75,4 +75,16 @@ describe('FundFlowOutlookPanel', () => {
     rerender(<FundFlowOutlookPanel />)
     expect(screen.getByText('표시할 예상 자금 흐름이 없습니다')).toBeVisible()
   })
+
+  it('renders compact outlook data as sector summary rows', () => {
+    render(<FundFlowOutlookPanel compact />)
+
+    const summary = screen.getByRole('list', {
+      name: '섹터별 자금 흐름 요약',
+    })
+    expect(summary).toBeVisible()
+    expect(screen.getByText('반도체')).toBeVisible()
+    expect(screen.getByText('높음')).toBeVisible()
+    expect(screen.getByText('1,000억~1,500억원')).toBeVisible()
+  })
 })

@@ -1,3 +1,6 @@
+import { useEffect, useId, useState } from 'react'
+import { FiArrowRight, FiCpu, FiX } from 'react-icons/fi'
+
 import {
   type NewsAgentRunsView,
   useNewsAgentRunsQuery,
@@ -12,26 +15,52 @@ import {
   Skeleton,
 } from '@/shared/ui'
 
-const aggregateDefinitions = [
-  { key: 'processedDocuments', label: '처리 문서' },
-  { key: 'extractedEvents', label: '추출 이벤트' },
-  { key: 'activeTopics', label: '활성 토픽' },
+const pipelineMetricDefinitions = [
+  { label: '수집 소스', value: null, suffix: null },
+  { label: '처리 건수', value: 'processedDocuments', suffix: '건' },
+  { label: '이벤트 추출', value: 'extractedEvents', suffix: '건' },
+  { label: '평균 처리 지연', value: null, suffix: null },
+  { label: '정확도', value: null, suffix: null },
 ] as const satisfies ReadonlyArray<{
-  key: keyof Pick<
-    NewsAgentRunsView,
-    'processedDocuments' | 'extractedEvents' | 'activeTopics'
-  >
   label: string
+  value:
+    | keyof Pick<NewsAgentRunsView, 'processedDocuments' | 'extractedEvents'>
+    | null
+  suffix: string | null
 }>
 
-function PipelineLoading() {
+type PipelinePresentation = 'inline' | 'popover'
+
+interface AgentPipelinePanelProps {
+  compact?: boolean
+  presentation?: PipelinePresentation
+}
+
+function stageStatusClassName(
+  stage: NewsAgentRunsView['stages'][number],
+): string {
+  if (stage.delayed || stage.status === 'DELAYED') {
+    return 'border-amber-400/60 bg-amber-500/12 text-amber-200'
+  }
+
+  switch (stage.status) {
+    case 'COMPLETED':
+      return 'border-emerald-400/55 bg-emerald-500/12 text-emerald-200'
+    case 'RUNNING':
+      return 'border-sky-400/60 bg-sky-500/12 text-sky-200'
+    case 'FAILED':
+      return 'border-red-400/60 bg-red-500/12 text-red-200'
+  }
+}
+
+function PipelineLoading({ compact }: { compact: boolean }) {
   return (
     <div
       role="status"
       aria-label="에이전트 파이프라인 불러오는 중"
-      className="space-y-4 border-t border-app-border p-panel"
+      className={`${compact ? 'space-y-3 p-3' : 'space-y-4 p-panel'} border-t border-app-border`}
     >
-      <div className="grid gap-3 sm:grid-cols-3 2xl:grid-cols-2">
+      <div className="grid grid-cols-3 gap-3">
         <Skeleton className="h-20 w-full" />
         <Skeleton className="h-20 w-full" />
         <Skeleton className="h-20 w-full" />
@@ -41,47 +70,78 @@ function PipelineLoading() {
   )
 }
 
-function PipelineContent({ data }: { data: NewsAgentRunsView }) {
+function PipelineContent({
+  data,
+  compact,
+  presentation,
+}: {
+  data: NewsAgentRunsView
+  compact: boolean
+  presentation: PipelinePresentation
+}) {
+  const isPopover = presentation === 'popover'
+
   return (
-    <div className="space-y-5 border-t border-app-border p-panel">
-      <dl className="grid gap-x-3 sm:grid-cols-3 2xl:grid-cols-2">
-        {aggregateDefinitions.map((definition) => (
+    <div
+      className={`${compact ? 'min-h-0 flex-1 space-y-3 overflow-y-auto p-3' : 'space-y-5 p-panel'} border-t border-app-border`}
+    >
+      <div className="overflow-x-auto pb-1">
+        <ol
+          aria-label="에이전트 처리 단계"
+          className={`${isPopover ? 'grid min-w-[52rem] grid-cols-7' : compact ? 'grid min-w-[52rem] grid-cols-7' : 'grid sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-2 2xl:grid-cols-3'} gap-2`}
+        >
+          {data.stages.map((stage, index) => (
+            <li
+              key={`${stage.name}-${index}`}
+              aria-label={`${index + 1}단계 ${stage.namePresentation.label}, ${stage.statusPresentation.label}${stage.delayed && stage.status !== 'DELAYED' ? ', 지연' : ''}`}
+              className={`relative rounded-control border px-2.5 py-3 transition-colors ${compact || isPopover ? 'text-center' : ''} ${stageStatusClassName(stage)}`}
+            >
+              <p className="text-[0.65rem] font-semibold uppercase tracking-wide opacity-65">
+                Agent {index + 1}
+              </p>
+              <p className="mt-1 text-sm font-semibold text-current">
+                {stage.namePresentation.label}
+              </p>
+              <p className="mt-2 text-[0.7rem] font-semibold text-current opacity-80">
+                {stage.statusPresentation.label}
+                {stage.delayed && stage.status !== 'DELAYED' ? ' · 지연' : ''}
+              </p>
+              {index < data.stages.length - 1 ? (
+                <FiArrowRight
+                  aria-hidden="true"
+                  className="absolute -right-[0.7rem] top-1/2 z-10 -translate-y-1/2 text-cockpit-accent"
+                />
+              ) : null}
+            </li>
+          ))}
+        </ol>
+      </div>
+
+      <dl
+        aria-label="파이프라인 처리 지표"
+        className="grid grid-cols-5 rounded-control border border-app-border bg-cockpit-surface-muted/25"
+      >
+        {pipelineMetricDefinitions.map((definition) => (
           <div
-            key={definition.key}
-            className="border-t border-app-border py-2 first:border-t-0"
+            key={definition.label}
+            className="min-w-0 border-l border-app-border px-2 py-2.5 text-center first:border-l-0"
           >
-            <dt className="text-xs font-semibold text-app-text-muted">
+            <dt className="truncate text-[0.68rem] font-semibold text-app-text-muted sm:text-xs">
               {definition.label}
             </dt>
-            <dd className="mt-1 text-xl font-bold text-app-text">
-              {data[definition.key].toLocaleString()}건
+            <dd
+              className={`${compact ? 'text-sm sm:text-base' : 'text-xl'} mt-1 truncate font-bold text-app-text`}
+              title={
+                definition.value === null ? '백엔드 지표 연동 예정' : undefined
+              }
+            >
+              {definition.value === null
+                ? '—'
+                : `${data[definition.value].toLocaleString()}${definition.suffix}`}
             </dd>
           </div>
         ))}
       </dl>
-
-      <ol
-        aria-label="에이전트 처리 단계"
-        className="grid gap-x-3 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-2 2xl:grid-cols-3"
-      >
-        {data.stages.map((stage, index) => (
-          <li
-            key={`${stage.name}-${index}`}
-            className="border-t border-app-border py-3"
-          >
-            <p className="text-xs text-app-text-muted">{index + 1}단계</p>
-            <p className="mt-1 text-sm font-semibold text-app-text">
-              {stage.namePresentation.label}
-            </p>
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              <Badge tone={stage.statusPresentation.tone}>
-                {stage.statusPresentation.label}
-              </Badge>
-              {stage.delayed ? <Badge tone="warning">지연 플래그</Badge> : null}
-            </div>
-          </li>
-        ))}
-      </ol>
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-app-border pt-4 text-xs text-app-text-muted">
         <p>마지막 처리 시각 {data.lastProcessedAt}</p>
@@ -91,18 +151,34 @@ function PipelineContent({ data }: { data: NewsAgentRunsView }) {
   )
 }
 
-export function AgentPipelinePanel() {
-  const runsQuery = useNewsAgentRunsQuery()
-
+function PipelineCard({
+  compact,
+  presentation,
+  panelId,
+  titleId,
+  runsQuery,
+  onClose,
+}: {
+  compact: boolean
+  presentation: PipelinePresentation
+  panelId?: string
+  titleId: string
+  runsQuery: ReturnType<typeof useNewsAgentRunsQuery>
+  onClose?: () => void
+}) {
   return (
     <Card
-      aria-labelledby="agent-pipeline-title"
-      className="min-w-0 overflow-hidden p-0"
+      id={panelId}
+      aria-labelledby={titleId}
+      role={presentation === 'popover' ? 'dialog' : undefined}
+      className={`min-w-0 border-cockpit-border bg-cockpit-surface/95 p-0 backdrop-blur-xl ${compact ? 'flex h-full min-h-0 flex-col overflow-hidden' : 'overflow-hidden'}`}
     >
       <PanelHeader
-        className="p-panel"
+        className={compact ? 'p-3' : 'p-panel'}
         title="에이전트 파이프라인"
-        titleId="agent-pipeline-title"
+        titleId={titleId}
+        titleClassName={compact ? 'text-base' : undefined}
+        controlsClassName={compact ? 'flex-row items-center gap-2' : undefined}
         controls={
           <>
             {runsQuery.data ? (
@@ -111,11 +187,21 @@ export function AgentPipelinePanel() {
               </Badge>
             ) : null}
             <PanelFreshness updatedAt={runsQuery.dataUpdatedAt} />
+            {onClose ? (
+              <button
+                type="button"
+                aria-label="에이전트 파이프라인 닫기"
+                className="grid size-8 place-items-center rounded-control border border-app-border text-app-text-muted transition hover:border-cockpit-accent/60 hover:text-app-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cockpit-accent"
+                onClick={onClose}
+              >
+                <FiX aria-hidden="true" />
+              </button>
+            ) : null}
           </>
         }
       />
 
-      {runsQuery.isLoading ? <PipelineLoading /> : null}
+      {runsQuery.isLoading ? <PipelineLoading compact={compact} /> : null}
       {runsQuery.isError ? (
         <ErrorState
           title="에이전트 파이프라인을 불러오지 못했습니다"
@@ -135,8 +221,95 @@ export function AgentPipelinePanel() {
       !runsQuery.isError &&
       runsQuery.data &&
       runsQuery.data.stages.length > 0 ? (
-        <PipelineContent data={runsQuery.data} />
+        <PipelineContent
+          data={runsQuery.data}
+          compact={compact}
+          presentation={presentation}
+        />
       ) : null}
     </Card>
+  )
+}
+
+export function AgentPipelinePanel({
+  compact = false,
+  presentation = 'inline',
+}: AgentPipelinePanelProps) {
+  const [isOpen, setIsOpen] = useState(false)
+  const panelId = useId()
+  const titleId = useId()
+  const runsQuery = useNewsAgentRunsQuery()
+  const isPopover = presentation === 'popover'
+
+  useEffect(() => {
+    if (!isPopover || !isOpen) return
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsOpen(false)
+    }
+
+    window.addEventListener('keydown', closeOnEscape)
+    return () => window.removeEventListener('keydown', closeOnEscape)
+  }, [isOpen, isPopover])
+
+  if (!isPopover) {
+    return (
+      <PipelineCard
+        compact={compact}
+        presentation={presentation}
+        panelId={panelId}
+        titleId={titleId}
+        runsQuery={runsQuery}
+      />
+    )
+  }
+
+  const statusLabel = runsQuery.isError
+    ? '오류'
+    : runsQuery.isLoading
+      ? '확인 중'
+      : runsQuery.data?.hasDelay
+        ? '지연 있음'
+        : '정상'
+  const statusDotClassName = runsQuery.isError
+    ? 'bg-red-400'
+    : runsQuery.isLoading
+      ? 'animate-pulse bg-slate-400'
+      : runsQuery.data?.hasDelay
+        ? 'bg-amber-400'
+        : 'bg-emerald-400'
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        aria-label={`에이전트 파이프라인 ${isOpen ? '닫기' : '열기'}`}
+        aria-expanded={isOpen}
+        aria-controls={panelId}
+        title={`에이전트 상태: ${statusLabel}`}
+        className="relative grid size-10 place-items-center rounded-control border border-cockpit-border bg-cockpit-surface/80 text-lg text-cockpit-text-muted shadow-sm transition hover:border-cockpit-accent/60 hover:bg-cockpit-accent/10 hover:text-cockpit-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cockpit-accent"
+        onClick={() => setIsOpen((current) => !current)}
+      >
+        <FiCpu aria-hidden="true" />
+        <span
+          aria-hidden="true"
+          className={`absolute right-1.5 top-1.5 size-2 rounded-full ring-2 ring-cockpit-surface ${statusDotClassName}`}
+        />
+        <span className="sr-only">에이전트 상태: {statusLabel}</span>
+      </button>
+
+      {isOpen ? (
+        <div className="fixed right-4 top-[5.25rem] z-50 w-[min(56rem,calc(100vw-2rem))] drop-shadow-2xl 2xl:right-5">
+          <PipelineCard
+            compact
+            presentation="popover"
+            panelId={panelId}
+            titleId={titleId}
+            runsQuery={runsQuery}
+            onClose={() => setIsOpen(false)}
+          />
+        </div>
+      ) : null}
+    </div>
   )
 }

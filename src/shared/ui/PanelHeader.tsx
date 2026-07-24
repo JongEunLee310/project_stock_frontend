@@ -9,6 +9,7 @@ export interface PanelHeaderProps {
   description?: ReactNode
   className?: string
   titleClassName?: string
+  controlsClassName?: string
 }
 
 export function PanelHeader({
@@ -18,6 +19,7 @@ export function PanelHeader({
   description,
   className,
   titleClassName,
+  controlsClassName,
 }: PanelHeaderProps) {
   return (
     <div
@@ -43,7 +45,14 @@ export function PanelHeader({
         ) : null}
       </div>
       {controls ? (
-        <div className="flex shrink-0 flex-col items-end gap-2">{controls}</div>
+        <div
+          className={classNames(
+            'flex shrink-0 flex-col items-end gap-2',
+            controlsClassName,
+          )}
+        >
+          {controls}
+        </div>
       ) : null}
     </div>
   )

@@ -20,6 +20,7 @@ interface InvestorFlowPanelProps {
   topicId?: string
   title: string
   spanFullRow?: boolean
+  compact?: boolean
 }
 
 const directionBarClassNames: Record<FlowDirectionDto, string> = {
@@ -32,6 +33,16 @@ function formatNetValue(netValue: string): string {
   const parsedValue = parseDecimal(netValue)
   if (parsedValue === null) return '금액 미상'
   return `${formatMoney(parsedValue, { maximumFractionDigits: 2 })}원`
+}
+
+function formatCompactNetValue(netValue: string): string {
+  const parsedValue = parseDecimal(netValue)
+  if (parsedValue === null) return '금액 미상'
+  const valueInHundredMillions = parsedValue / 100_000_000
+  const prefix = valueInHundredMillions > 0 ? '+' : ''
+  return `${prefix}${formatMoney(valueInHundredMillions, {
+    maximumFractionDigits: 1,
+  })}억원`
 }
 
 function formatChange(change: number): string {
@@ -56,7 +67,37 @@ function DirectionBar({ direction }: { direction: FlowDirectionDto }) {
   )
 }
 
-function InvestorFlowRow({ flow }: { flow: InvestorFlowView }) {
+function InvestorFlowRow({
+  flow,
+  compact,
+}: {
+  flow: InvestorFlowView
+  compact: boolean
+}) {
+  if (compact) {
+    return (
+      <li
+        className="grid grid-cols-[3rem_3.25rem_minmax(2.5rem,1fr)_auto] items-center gap-1.5 py-2"
+        aria-label={`${flow.investor.label} ${flow.directionPresentation.label} ${formatNetValue(flow.netValue)}, ${formatChange(flow.change)}`}
+      >
+        <span className="truncate text-xs font-semibold text-app-text">
+          {flow.investor.label}
+        </span>
+        <Badge
+          tone={flow.directionPresentation.tone}
+          className="min-h-5 justify-center px-1 text-[0.625rem]"
+        >
+          {flow.directionPresentation.label}
+        </Badge>
+        <DirectionBar direction={flow.direction} />
+        <strong className="whitespace-nowrap text-right text-xs font-semibold text-app-text">
+          {formatCompactNetValue(flow.netValue)}
+        </strong>
+        <span className="sr-only">{formatChange(flow.change)}</span>
+      </li>
+    )
+  }
+
   return (
     <li className="py-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -99,6 +140,7 @@ export function InvestorFlowPanel({
   topicId,
   title,
   spanFullRow = true,
+  compact = false,
 }: InvestorFlowPanelProps) {
   const flowsQuery = useNewsInvestorFlowsQuery({ market, window, topicId })
   const flows = flowsQuery.data?.byInvestorType ?? []
@@ -107,12 +149,14 @@ export function InvestorFlowPanel({
   return (
     <Card
       aria-labelledby={titleId}
-      className={`min-w-0 overflow-hidden p-0 ${spanFullRow ? 'xl:col-span-3' : ''}`}
+      className={`min-w-0 border-cockpit-border bg-cockpit-surface/80 p-0 ${compact ? 'flex h-full min-h-0 flex-col overflow-hidden' : 'overflow-hidden'} ${spanFullRow ? 'xl:col-span-3' : ''}`}
     >
       <PanelHeader
-        className="p-panel"
+        className={compact ? 'p-3' : 'p-panel'}
         title={title}
         titleId={titleId}
+        titleClassName={compact ? 'text-base' : undefined}
+        controlsClassName={compact ? 'flex-row items-center gap-2' : undefined}
         controls={
           <>
             <Badge tone="info">
@@ -156,18 +200,33 @@ export function InvestorFlowPanel({
       !flowsQuery.isError &&
       flowsQuery.data?.availability.available &&
       flows.length > 0 ? (
-        <div className="space-y-4 border-t border-app-border p-panel">
-          <ul className="divide-y divide-app-border">
+        <div
+          className={`${compact ? 'min-h-0 flex-1 space-y-2 overflow-y-auto p-3' : 'space-y-4 p-panel'} border-t border-app-border`}
+        >
+          <ul
+            className="divide-y divide-app-border"
+            aria-label={compact ? '투자자 수급 요약' : undefined}
+          >
             {flows.map((flow) => (
-              <InvestorFlowRow key={flow.investorType} flow={flow} />
+              <InvestorFlowRow
+                key={flow.investorType}
+                flow={flow}
+                compact={compact}
+              />
             ))}
           </ul>
-          <div className="flex flex-wrap items-start justify-between gap-3 border-t border-app-border pt-3">
+          <div
+            className={`border-t border-app-border ${compact ? 'flex items-center justify-between gap-2 pt-2' : 'flex flex-wrap items-start justify-between gap-3 pt-3'}`}
+          >
             <div>
-              <p className="text-xs font-semibold text-app-text-muted">
-                뉴스 내러티브 vs 수급 방향
-              </p>
-              <p className="mt-1 text-sm leading-6 text-app-text">
+              {compact ? null : (
+                <p className="text-xs font-semibold text-app-text-muted">
+                  뉴스 내러티브 vs 수급 방향
+                </p>
+              )}
+              <p
+                className={`${compact ? 'text-xs leading-5' : 'mt-1 text-sm leading-6'} text-app-text`}
+              >
                 {flowsQuery.data.narrativeAlignment.note ||
                   '정렬 분석 설명이 없습니다.'}
               </p>
@@ -184,9 +243,13 @@ export function InvestorFlowPanel({
                 : '불일치 신호'}
             </Badge>
           </div>
-          <p className="text-right text-xs text-app-text-muted">
-            기준 시각 {flowsQuery.data.asOf}
-          </p>
+          {compact ? (
+            <span className="sr-only">기준 시각 {flowsQuery.data.asOf}</span>
+          ) : (
+            <p className="text-right text-xs text-app-text-muted">
+              기준 시각 {flowsQuery.data.asOf}
+            </p>
+          )}
         </div>
       ) : null}
     </Card>
