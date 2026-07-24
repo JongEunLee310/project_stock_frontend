@@ -58,10 +58,10 @@ function LocationProbe() {
   return <output aria-label="현재 경로">{location.pathname}</output>
 }
 
-function renderTimeline() {
+function renderTimeline(compact = false) {
   return render(
     <MemoryRouter>
-      <MarketEventTimeline market="KR" window="30d" />
+      <MarketEventTimeline market="KR" window="30d" compact={compact} />
       <LocationProbe />
     </MemoryRouter>,
   )
@@ -128,5 +128,18 @@ describe('MarketEventTimeline', () => {
       </MemoryRouter>,
     )
     expect(screen.getByText('예정된 이벤트가 없습니다')).toBeVisible()
+  })
+
+  it('renders compact events as aligned schedule rows', () => {
+    renderTimeline(true)
+
+    const summary = screen.getByRole('list', {
+      name: '시장 이벤트 일정 요약',
+    })
+    const items = within(summary).getAllByRole('listitem')
+    expect(items).toHaveLength(2)
+    expect(within(items[0]).getByText('첫 번째 실적 일정')).toBeVisible()
+    expect(within(items[0]).getByText('07. 22. 21:00')).toBeVisible()
+    expect(within(items[0]).getByText('실적 발표')).toBeVisible()
   })
 })

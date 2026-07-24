@@ -29,7 +29,64 @@ function EvidenceList({ title, items }: { title: string; items: string[] }) {
   )
 }
 
-function OutlookItem({ item }: { item: FundFlowOutlookItemView }) {
+function OutlookItem({
+  item,
+  compact,
+}: {
+  item: FundFlowOutlookItemView
+  compact: boolean
+}) {
+  if (compact) {
+    const barClassName =
+      item.direction.tone === 'danger'
+        ? 'bg-red-400'
+        : item.direction.tone === 'warning'
+          ? 'bg-amber-400'
+          : 'bg-emerald-400'
+    const details = [
+      `전망 ${item.horizon}`,
+      item.direction.label,
+      `흐름 가능성 ${item.likelihood.label}`,
+      `신뢰도 ${item.confidencePercent}%`,
+      ...item.keyAssumptions.map((assumption) => `가정: ${assumption}`),
+      ...item.riskFactors.map((risk) => `위험: ${risk}`),
+    ].join(', ')
+
+    return (
+      <li
+        className="grid grid-cols-[3.5rem_minmax(3rem,1fr)_auto] items-center gap-2 py-2"
+        aria-label={`${item.sector}, ${details}`}
+        title={details}
+      >
+        <div className="min-w-0">
+          <h3 className="truncate text-xs font-semibold text-app-text">
+            {item.sector}
+          </h3>
+          <span className="text-[0.625rem] text-app-text-muted">
+            {item.likelihood.label}
+          </span>
+        </div>
+        <div className="h-1.5 overflow-hidden rounded-full bg-app-surface-muted">
+          <div
+            className={`h-full rounded-full ${barClassName}`}
+            style={{
+              width: `${Math.max(0, Math.min(100, item.confidencePercent))}%`,
+            }}
+            aria-hidden="true"
+          />
+        </div>
+        <strong className="whitespace-nowrap text-right text-[0.6875rem] font-semibold text-app-text">
+          {item.estimatedRange ?? '범위 미제공'}
+        </strong>
+        <span className="sr-only">
+          {item.direction.label}, 흐름 가능성: {item.likelihood.label}, 신뢰도{' '}
+          {item.confidencePercent}%. 주요 가정 {item.keyAssumptions.join(', ')}.
+          위험 요인 {item.riskFactors.join(', ')}.
+        </span>
+      </li>
+    )
+  }
+
   return (
     <li className="py-3">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -83,19 +140,25 @@ function OutlookLoading() {
   )
 }
 
-export function FundFlowOutlookPanel() {
+export function FundFlowOutlookPanel({
+  compact = false,
+}: {
+  compact?: boolean
+}) {
   const outlookQuery = useNewsFundFlowOutlookQuery()
   const items = outlookQuery.data?.items ?? []
 
   return (
     <Card
       aria-labelledby="fund-flow-outlook-title"
-      className="min-w-0 overflow-hidden p-0"
+      className={`min-w-0 border-cockpit-border bg-cockpit-surface/80 p-0 ${compact ? 'flex h-full min-h-0 flex-col overflow-hidden' : 'overflow-hidden'}`}
     >
       <PanelHeader
-        className="p-panel"
+        className={compact ? 'p-3' : 'p-panel'}
         title="예상 자금 흐름"
         titleId="fund-flow-outlook-title"
+        titleClassName={compact ? 'text-base' : undefined}
+        controlsClassName={compact ? 'flex-row items-center gap-2' : undefined}
         controls={
           <>
             {outlookQuery.data ? (
@@ -125,16 +188,32 @@ export function FundFlowOutlookPanel() {
         />
       ) : null}
       {!outlookQuery.isLoading && !outlookQuery.isError && items.length > 0 ? (
-        <div className="space-y-4 border-t border-app-border p-panel">
-          <ul className="divide-y divide-app-border">
+        <div
+          className={`${compact ? 'min-h-0 flex-1 space-y-2 overflow-y-auto p-3' : 'space-y-4 p-panel'} border-t border-app-border`}
+        >
+          <ul
+            className="divide-y divide-app-border"
+            aria-label={compact ? '섹터별 자금 흐름 요약' : undefined}
+          >
             {items.map((item, index) => (
-              <OutlookItem key={`${item.sector}-${index}`} item={item} />
+              <OutlookItem
+                key={`${item.sector}-${index}`}
+                item={item}
+                compact={compact}
+              />
             ))}
           </ul>
-          <p className="text-right text-xs text-app-text-muted">
-            데이터 기준 {outlookQuery.data?.asOf} · 분석 버전{' '}
-            {outlookQuery.data?.analysisVersion}
-          </p>
+          {compact ? (
+            <span className="sr-only">
+              데이터 기준 {outlookQuery.data?.asOf} · 분석 버전{' '}
+              {outlookQuery.data?.analysisVersion}
+            </span>
+          ) : (
+            <p className="text-right text-xs text-app-text-muted">
+              데이터 기준 {outlookQuery.data?.asOf} · 분석 버전{' '}
+              {outlookQuery.data?.analysisVersion}
+            </p>
+          )}
         </div>
       ) : null}
     </Card>

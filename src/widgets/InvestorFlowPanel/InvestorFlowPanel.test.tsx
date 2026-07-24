@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 
 import {
   type NewsInvestorFlowsView,
@@ -68,13 +68,14 @@ function mockQuery(
   } as unknown as ReturnType<typeof useNewsInvestorFlowsQuery>)
 }
 
-function renderPanel(topicId?: string) {
+function renderPanel(topicId?: string, compact = false) {
   return render(
     <InvestorFlowPanel
       market="KR"
       window="7d"
       topicId={topicId}
       title="투자자 반응"
+      compact={compact}
     />,
   )
 }
@@ -121,6 +122,16 @@ describe('InvestorFlowPanel', () => {
     ).toBeVisible()
     expect(screen.getByText('ETF 자금 흐름을 참고하세요.')).toBeVisible()
     expect(screen.queryByText('1,234,567,890.12원')).not.toBeInTheDocument()
+  })
+
+  it('renders compact investor flows as single summary rows', () => {
+    renderPanel(undefined, true)
+
+    const summary = screen.getByRole('list', { name: '투자자 수급 요약' })
+    expect(within(summary).getAllByRole('listitem')).toHaveLength(4)
+    expect(within(summary).getByText('+12.3억원')).toBeVisible()
+    expect(within(summary).getByText('-4.2억원')).toBeVisible()
+    expect(within(summary).getByText('순매도')).toBeVisible()
   })
 
   it('shows independent loading, error, and empty states', () => {
