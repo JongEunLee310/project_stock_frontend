@@ -3,5 +3,14 @@
   "review": {
     "mode": "local",
     "defaultOutput": "docs/reviews/pr-<number>.md"
+  },
+  "skillOverrides": {
+    "react-patterns": "on",
+    "react-performance": "on",
+    "react-testing": "on",
+    "coding-standards": "on",
+    "api-design": "off",
+    "autonomous-agent-harness": "off",
+    "autonomous-loops": "off"
   }
 }
