@@ -20,6 +20,17 @@ This template targets React + Tailwind CSS projects built with Vite and managed 
 - Run `npm run test` for tests (Vitest).
 - Run `npm run build` for the production build (Vite).
 
+## Skills
+
+Reference the installed frontend skills for framework-specific patterns during implementation:
+
+- `.codex/skills/react-patterns/SKILL.md` — hooks discipline, component boundaries, Suspense/error boundaries, data fetching, state management, accessibility-first composition.
+- `.codex/skills/react-performance/SKILL.md` — waterfalls, bundle size, re-render and rendering optimization.
+- `.codex/skills/react-testing/SKILL.md` — React Testing Library, Vitest, network mocking, accessibility assertions, component vs e2e boundary.
+- `.codex/skills/coding-standards/SKILL.md` — naming, immutability, readability, and code-quality review.
+
+These are references, not autonomous workflows. Apply them within the handoff scope only; they never relax the boundaries below. Other skills under `.codex/skills/` are inactive for this project (see `docs/agent/skill-policy.md`).
+
 ## Boundaries
 
 Codex must not:
