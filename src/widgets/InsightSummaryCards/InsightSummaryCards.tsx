@@ -22,6 +22,7 @@ interface InsightSummaryCardsProps {
   isError: boolean
   onRetry: () => void
   updatedAt?: number
+  compact?: boolean
 }
 
 const metricPresentations: Record<
@@ -76,24 +77,31 @@ export function InsightSummaryCards({
   isError,
   onRetry,
   updatedAt,
+  compact = false,
 }: InsightSummaryCardsProps) {
   return (
     <section aria-labelledby="insight-summary-title">
-      <PanelHeader
-        className="mb-3"
-        title="오늘의 인사이트"
-        titleId="insight-summary-title"
-        controls={
-          <>
-            <PanelFreshness updatedAt={updatedAt} />
-            {data ? (
-              <span className="text-xs text-app-text-muted">
-                기준 {data.asOf}
-              </span>
-            ) : null}
-          </>
-        }
-      />
+      {compact ? (
+        <h2 id="insight-summary-title" className="sr-only">
+          오늘의 인사이트
+        </h2>
+      ) : (
+        <PanelHeader
+          className="mb-3"
+          title="오늘의 인사이트"
+          titleId="insight-summary-title"
+          controls={
+            <>
+              <PanelFreshness updatedAt={updatedAt} />
+              {data ? (
+                <span className="text-xs text-app-text-muted">
+                  기준 {data.asOf}
+                </span>
+              ) : null}
+            </>
+          }
+        />
+      )}
 
       {isLoading ? <SummaryLoadingState /> : null}
       {isError ? (
@@ -121,21 +129,29 @@ export function InsightSummaryCards({
               <Card
                 key={metric.id}
                 aria-label={`${metric.label} 요약`}
-                className="border-cockpit-border bg-cockpit-surface/80"
+                className={
+                  compact
+                    ? 'min-h-[7.1rem] border-cockpit-border bg-cockpit-surface/80 p-3.5'
+                    : 'border-cockpit-border bg-cockpit-surface/80'
+                }
               >
                 <div className="flex items-center gap-2">
-                  <Icon
-                    className={`h-5 w-5 shrink-0 ${presentation.iconClassName}`}
-                    aria-hidden="true"
-                  />
-                  <span className="text-base font-semibold text-cockpit-text">
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-app-surface-muted/70">
+                    <Icon
+                      className={`h-4 w-4 ${presentation.iconClassName}`}
+                      aria-hidden="true"
+                    />
+                  </span>
+                  <span className="text-sm font-semibold text-cockpit-text">
                     {metric.label}
                   </span>
                 </div>
-                <strong className="mt-4 block text-3xl font-bold text-cockpit-text">
+                <strong
+                  className={`${compact ? 'mt-2 text-2xl' : 'mt-4 text-3xl'} block font-bold text-cockpit-text`}
+                >
                   {metric.count}건
                 </strong>
-                <span className="mt-2 block text-sm text-cockpit-text-muted">
+                <span className="mt-1 block text-xs text-cockpit-text-muted">
                   {formatDelta(metric.change)}
                 </span>
               </Card>

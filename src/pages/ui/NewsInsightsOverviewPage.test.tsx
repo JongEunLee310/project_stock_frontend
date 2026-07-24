@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 
 import {
@@ -244,17 +244,15 @@ describe('NewsInsightsOverviewPage', () => {
     ).toBeVisible()
     expect(screen.getByText('API 이벤트 제목')).toBeVisible()
     expect(screen.getByLabelText('토픽 맵 시각화')).toBeVisible()
-    expect(screen.getByText('시장 브리핑입니다.')).toBeVisible()
     expect(
-      within(
-        screen.getByRole('group', { name: '핵심 인사이트 패널' }),
-      ).getByRole('heading', { name: '에이전트 브리핑' }),
+      screen.getByRole('button', { name: '에이전트 브리핑 열기' }),
     ).toBeVisible()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(
       within(
         screen.getByRole('group', { name: '시장 분석 패널' }),
       ).getAllByRole('heading', { level: 2 }),
-    ).toHaveLength(4)
+    ).toHaveLength(3)
     expect(screen.getByRole('heading', { name: '투자자 동향' })).toBeVisible()
     expect(screen.getByText('외국인')).toBeVisible()
     expect(
@@ -263,11 +261,19 @@ describe('NewsInsightsOverviewPage', () => {
     expect(
       screen.getByRole('heading', { name: '예상 자금 흐름' }),
     ).toBeVisible()
-    expect(screen.getByText('흐름 가능성: 높음')).toBeVisible()
+    expect(
+      within(
+        screen.getByRole('list', { name: '섹터별 자금 흐름 요약' }),
+      ).getByText('높음'),
+    ).toBeVisible()
     expect(
       screen.queryByLabelText('예상 자금 흐름 준비 중'),
     ).not.toBeInTheDocument()
     expect(screen.getByText('예정 실적 발표')).toBeVisible()
+    expect(screen.queryByText('1,200건')).not.toBeInTheDocument()
+    fireEvent.click(
+      screen.getByRole('button', { name: '에이전트 파이프라인 열기' }),
+    )
     expect(screen.getByText('1,200건')).toBeVisible()
     expect(screen.getByText('분석 버전 v3.2')).toBeVisible()
     expect(
@@ -282,6 +288,12 @@ describe('NewsInsightsOverviewPage', () => {
     expect(screen.queryByLabelText('토픽 맵 준비 중')).not.toBeInTheDocument()
     expect(
       screen.getAllByLabelText('데이터 갱신 5분 전').length,
+    ).toBeGreaterThanOrEqual(5)
+    fireEvent.click(
+      screen.getByRole('button', { name: '에이전트 브리핑 열기' }),
+    )
+    expect(
+      screen.getAllByLabelText('데이터 갱신 5분 전').length,
     ).toBeGreaterThanOrEqual(6)
   })
 
@@ -293,6 +305,9 @@ describe('NewsInsightsOverviewPage', () => {
     expect(
       screen.getByText('오늘의 인사이트를 불러오지 못했습니다'),
     ).toBeVisible()
+    fireEvent.click(
+      screen.getByRole('button', { name: '에이전트 브리핑 열기' }),
+    )
     expect(
       screen.getByText('에이전트 브리핑을 불러오지 못했습니다'),
     ).toBeVisible()
@@ -306,6 +321,9 @@ describe('NewsInsightsOverviewPage', () => {
       within(screen.getByLabelText('고중요 이벤트 요약')).getByText('2건'),
     ).toBeVisible()
     expect(screen.getByText('이벤트 피드를 불러오지 못했습니다')).toBeVisible()
+    fireEvent.click(
+      screen.getByRole('button', { name: '에이전트 브리핑 열기' }),
+    )
     expect(screen.getByText('시장 브리핑입니다.')).toBeVisible()
   })
 
@@ -315,7 +333,11 @@ describe('NewsInsightsOverviewPage', () => {
 
     expect(screen.getByText('API 이벤트 제목')).toBeVisible()
     expect(screen.getByText('투자자 동향을 불러오지 못했습니다')).toBeVisible()
-    expect(screen.getByText('흐름 가능성: 높음')).toBeVisible()
+    expect(
+      within(
+        screen.getByRole('list', { name: '섹터별 자금 흐름 요약' }),
+      ).getByText('높음'),
+    ).toBeVisible()
   })
 
   it('isolates fund-flow outlook failures from the other overview panels', () => {
@@ -337,12 +359,18 @@ describe('NewsInsightsOverviewPage', () => {
     expect(
       screen.getByText('이벤트 타임라인을 불러오지 못했습니다'),
     ).toBeVisible()
+    fireEvent.click(
+      screen.getByRole('button', { name: '에이전트 파이프라인 열기' }),
+    )
     expect(screen.getByText('1,200건')).toBeVisible()
     expect(screen.getByText('API 이벤트 제목')).toBeVisible()
     unmount()
 
     mockQueries({ agentRunsError: true })
     renderPage()
+    fireEvent.click(
+      screen.getByRole('button', { name: '에이전트 파이프라인 열기' }),
+    )
     expect(
       screen.getByText('에이전트 파이프라인을 불러오지 못했습니다'),
     ).toBeVisible()

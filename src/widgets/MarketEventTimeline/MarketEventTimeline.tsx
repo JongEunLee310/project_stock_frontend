@@ -18,9 +18,18 @@ import {
 interface MarketEventTimelineProps {
   market: string
   window: string
+  compact?: boolean
 }
 
 const millisecondsPerDay = 24 * 60 * 60 * 1000
+const compactScheduleFormatter = new Intl.DateTimeFormat('ko-KR', {
+  timeZone: 'Asia/Seoul',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+})
 
 function daysUntil(scheduledAt: string, now: number): number {
   return Math.max(
@@ -29,13 +38,61 @@ function daysUntil(scheduledAt: string, now: number): number {
   )
 }
 
+function formatCompactSchedule(scheduledAt: string): string {
+  const date = new Date(scheduledAt)
+  return Number.isNaN(date.getTime())
+    ? scheduledAt
+    : compactScheduleFormatter.format(date)
+}
+
 function EventItem({
   event,
   now,
+  compact,
 }: {
   event: NewsCalendarItemView
   now: number
+  compact: boolean
 }) {
+  if (compact) {
+    return (
+      <li
+        className="grid grid-cols-[4.25rem_minmax(0,1fr)_auto] items-center gap-2 py-2"
+        aria-label={`${event.scheduledAtLabel}, ${event.title}, ${event.eventKindPresentation.label}, ${event.importancePresentation.label} ${event.importancePercent}%, D-${daysUntil(event.scheduledAt, now)}`}
+      >
+        <time
+          dateTime={event.scheduledAt}
+          className="text-[0.625rem] tabular-nums text-app-text-muted"
+        >
+          {formatCompactSchedule(event.scheduledAt)}
+        </time>
+        <div className="min-w-0">
+          <h3 className="truncate text-xs font-medium text-app-text">
+            {event.title}
+          </h3>
+          {event.symbol || event.market ? (
+            <span className="block truncate text-[0.625rem] text-app-text-muted">
+              {[event.symbol, event.market].filter(Boolean).join(' · ')}
+            </span>
+          ) : null}
+        </div>
+        <Badge
+          tone={event.eventKindPresentation.tone}
+          className="min-h-5 max-w-16 justify-center truncate px-1 text-[0.625rem]"
+        >
+          {event.eventKindPresentation.label}
+        </Badge>
+        <span className="sr-only">
+          {event.importancePresentation.label} · {event.importancePercent}% · D-
+          {daysUntil(event.scheduledAt, now)}
+          {event.relatedTopicIds.length > 0
+            ? ` · 연결된 토픽 ${event.relatedTopicIds.join(', ')}`
+            : ''}
+        </span>
+      </li>
+    )
+  }
+
   return (
     <li className="py-3">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -96,6 +153,7 @@ function TimelineLoading() {
 export function MarketEventTimeline({
   market,
   window,
+  compact = false,
 }: MarketEventTimelineProps) {
   const calendarQuery = useNewsCalendarQuery({ market, window })
   const now = Date.now()
@@ -112,12 +170,14 @@ export function MarketEventTimeline({
   return (
     <Card
       aria-labelledby="market-event-timeline-title"
-      className="min-w-0 overflow-hidden p-0"
+      className={`min-w-0 border-cockpit-border bg-cockpit-surface/80 p-0 ${compact ? 'flex h-full min-h-0 flex-col overflow-hidden' : 'overflow-hidden'}`}
     >
       <PanelHeader
-        className="p-panel"
+        className={compact ? 'p-3' : 'p-panel'}
         title="이벤트 타임라인"
         titleId="market-event-timeline-title"
+        titleClassName={compact ? 'text-base' : undefined}
+        controlsClassName={compact ? 'flex-row items-center gap-2' : undefined}
         controls={
           <>
             <Badge tone="info">
@@ -147,12 +207,16 @@ export function MarketEventTimeline({
       {!calendarQuery.isLoading &&
       !calendarQuery.isError &&
       futureEvents.length > 0 ? (
-        <ul className="divide-y divide-app-border border-t border-app-border px-panel">
+        <ul
+          className={`min-h-0 divide-y divide-app-border overflow-y-auto border-t border-app-border ${compact ? 'flex-1 px-3' : 'px-panel'}`}
+          aria-label={compact ? '시장 이벤트 일정 요약' : undefined}
+        >
           {futureEvents.map((event, index) => (
             <EventItem
               key={`${event.scheduledAt}-${event.eventKind}-${event.title}-${index}`}
               event={event}
               now={now}
+              compact={compact}
             />
           ))}
         </ul>

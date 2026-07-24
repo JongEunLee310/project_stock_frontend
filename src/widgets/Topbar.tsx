@@ -23,7 +23,7 @@ function getProfileInitial(email: string | undefined): string {
     : fallbackProfileInitial
 }
 
-export function Topbar() {
+export function Topbar({ compact = false }: { compact?: boolean }) {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const { user } = useAuth()
@@ -67,7 +67,9 @@ export function Topbar() {
   }
 
   return (
-    <header className="flex min-h-20 flex-wrap items-center justify-end gap-4 border-b border-cockpit-border bg-cockpit-bg px-4 py-3 lg:px-5">
+    <header
+      className={`flex flex-wrap items-center justify-end bg-cockpit-bg px-4 lg:px-5 ${compact ? 'min-h-14 gap-2 border-b border-cockpit-border py-2 2xl:border-b-0 2xl:bg-transparent' : 'min-h-20 gap-4 border-b border-cockpit-border py-3'}`}
+    >
       <div className="flex items-center gap-3 text-sm text-cockpit-text">
         <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
         <span>
@@ -84,7 +86,7 @@ export function Topbar() {
         </span>
         <Button
           variant="ghost"
-          className="h-9 w-9 px-0 text-xl"
+          className={`${compact ? 'h-8 min-h-8 w-8' : 'h-9 w-9'} px-0 text-xl`}
           aria-label="새로고침"
           title="새로고침"
           onClick={handleRefresh}
@@ -92,11 +94,11 @@ export function Topbar() {
           ↻
         </Button>
       </div>
-      <div className="h-8 w-px bg-cockpit-border" />
+      <div className={`${compact ? 'h-6' : 'h-8'} w-px bg-cockpit-border`} />
       <div className="flex items-center gap-3">
         <Button
           variant="ghost"
-          className="h-9 w-9 px-0 text-xl"
+          className={`${compact ? 'h-8 min-h-8 w-8' : 'h-9 w-9'} px-0 text-xl`}
           aria-label="알림"
           title="알림"
           onClick={() => navigate(appRoutePaths.alerts)}
@@ -105,13 +107,15 @@ export function Topbar() {
         </Button>
         <Button
           variant="ghost"
-          className="h-9 w-9 px-0 text-xl"
+          className={`${compact ? 'h-8 min-h-8 w-8' : 'h-9 w-9'} px-0 text-xl`}
           aria-label="도움말"
           title="도움말"
         >
           ?
         </Button>
-        <span className="grid h-10 w-10 place-items-center rounded-full bg-cockpit-accent-strong text-sm font-semibold text-cockpit-accent-text">
+        <span
+          className={`grid place-items-center rounded-full bg-cockpit-accent-strong text-sm font-semibold text-cockpit-accent-text ${compact ? 'h-8 w-8' : 'h-10 w-10'}`}
+        >
           {profileInitial}
         </span>
         <span className="text-lg text-cockpit-text-muted">⌄</span>
