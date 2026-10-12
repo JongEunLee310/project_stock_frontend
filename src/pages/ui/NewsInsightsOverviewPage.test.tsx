@@ -230,8 +230,13 @@ function mockQueries({
 
 describe('NewsInsightsOverviewPage', () => {
   beforeEach(() => {
+    // MarketEventTimeline hides past events, so pin "now" before the calendar fixture date.
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-07-22T00:00:00Z'))
     mockQueries()
   })
+
+  afterEach(() => vi.useRealTimers())
 
   it('composes API-backed overview widgets and removes the exhausted roadmap section', () => {
     renderPage()
